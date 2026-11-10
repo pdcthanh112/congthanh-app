@@ -1,0 +1,68 @@
+# OpenTelemetry Collector (local). Service gửi OTLP về otel-collector:4317 (gRPC) / :4318 (HTTP).
+#   traces  → Tempo         (+ spanmetrics → RED metrics, servicegraph → service map)
+#   metrics → Prometheus    (remote write; trên K8s là Mimir)
+#   logs    → Loki          (OTLP native, Loki 3)
+receivers:
+  otlp:
+    protocols:
+      grpc: {endpoint: 0.0.0.0:4317}
+      http:
+        endpoint: 0.0.0.0:4318
+        cors: {allowed_origins: ["http://localhost:*"]}
+
+processors:
+  memory_limiter: {check_interval: 1s, limit_percentage: 80, spike_limit_percentage: 20}
+  batch: {}
+  resource:
+    attributes:
+      - {key: deployment.environment, value: local, action: upsert}
+  # Bỏ span health check cho đỡ nhiễu.
+  filter/health:
+    error_mode: ignore
+    traces:
+      span:
+        - 'IsMatch(attributes["url.path"], "^/(health|actuator/health)")'
+
+connectors:
+  spanmetrics:
+    histogram: {explicit: {buckets: [5ms, 10ms, 25ms, 50ms, 100ms, 250ms, 500ms, 1s, 2.5s, 5s]}}
+    dimensions: [{name: http.route}, {name: rpc.method}, {name: http.response.status_code}]
+    exemplars: {enabled: true}
+  servicegraph:
+    latency_histogram_buckets: [10ms, 50ms, 100ms, 250ms, 1s, 5s]
+    store: {ttl: 2s, max_items: 1000}
+
+exporters:
+  otlp/tempo:
+    endpoint: tempo:4317
+    tls: {insecure: true}
+  prometheusremotewrite:
+    endpoint: http://prometheus:9090/api/v1/write
+    resource_to_telemetry_conversion: {enabled: true}
+  otlphttp/loki:
+    endpoint: http://loki:3100/otlp
+  debug:
+    verbosity: basic
+
+extensions:
+  health_check: {endpoint: 0.0.0.0:13133}
+
+service:
+  extensions: [health_check]
+  pipelines:
+    traces:
+      receivers: [otlp]
+      processors: [memory_limiter, filter/health, resource, batch]
+      exporters: [otlp/tempo, spanmetrics, servicegraph]
+    metrics:
+      receivers: [otlp, spanmetrics, servicegraph]
+      processors: [memory_limiter, resource, batch]
+      exporters: [prometheusremotewrite]
+    logs:
+      receivers: [otlp]
+      processors: [memory_limiter, resource, batch]
+      exporters: [otlphttp/loki]
+  telemetry:
+    metrics:
+      readers:
+        - pull: {exporter: {prometheus: {host: 0.0.0.0, port: 8888}}}

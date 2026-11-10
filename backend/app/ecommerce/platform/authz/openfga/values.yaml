@@ -1,0 +1,12 @@
+# Helm openfga/openfga
+replicaCount: 3
+datastore:
+  engine: postgres
+  uriSecret: openfga-datastore   # ExternalSecret từ Vault
+  migrationType: job
+telemetry:
+  trace: {enabled: true, otlp: {endpoint: otel-collector.observability.svc.cluster.local:4317}, sampleRatio: 0.2}
+  metrics: {enabled: true, serviceMonitor: {enabled: true}}
+authn:
+  method: preshared
+  preshared: {keysSecret: openfga-keys}

@@ -1,0 +1,167 @@
+syntax = "proto3";
+
+package ecommerce.product.v1;
+
+option java_multiple_files = true;
+option java_package = "com.congthanh.productservice.grpc";
+
+service ProductService {
+  rpc GetProductById(ProductRequest) returns (ProductResponse) {}
+  rpc ValidateProducts(ValidateProductRequest) returns (ValidateProductResponse);
+  rpc GetProductDetails(GetProductDetailsRequest) returns (GetProductDetailsResponse);
+  rpc UpdateProductStock(UpdateProductStockRequest) returns (UpdateProductStockResponse);
+  rpc GetProductsByIds(GetProductsByIdsRequest) returns (GetProductsByIdsResponse);
+  rpc GetProductsForOrder(GetProductsForOrderRequest) returns (GetProductsForOrderResponse);
+}
+
+message ProductRequest {
+  string productId = 1;
+}
+
+message ProductResponse {
+  string id = 1;
+  string name = 2;
+  string category = 3;
+  string subcategory = 4;
+  string sku = 5;
+  string slug = 6;
+  double price = 7;
+}
+
+message ProductDetail {
+  string product_id = 1;
+  string sku = 2;
+  string name = 3;
+  double original_price = 4;
+  double selling_price = 5; // Final price after discounts
+  bool is_active = 6;
+  bool is_deleted = 7;
+  string seller_id = 8;
+  bool seller_active = 9;
+  int32 max_quantity_per_order = 10; // 0 = unlimited
+  bool is_preorder = 11;
+  string preorder_end_date = 12;
+  string variant_id = 13;
+  map<string, string> attributes = 14;
+}
+
+message ValidateProductRequest {
+  repeated string product_ids = 1;
+  bool check_availability = 2; // Kiểm tra sản phẩm còn bán không
+  bool check_active = 3; // Kiểm tra sản phẩm active không
+}
+
+message ValidateProductResponse {
+  bool is_valid = 1;
+  repeated string invalid_products = 2;
+  repeated ProductValidationError errors = 3;
+  map<string, ProductDetail> product_info = 4;
+}
+
+message ProductValidationError {
+  string product_id = 1;
+  string error_code = 2;
+  string error_message = 3;
+  ErrorType error_type = 4;
+
+  enum ErrorType {
+    NOT_FOUND = 0;
+    INACTIVE = 1;
+    OUT_OF_STOCK = 2;
+    DISCONTINUED = 3;
+    RESTRICTED = 4;
+  }
+}
+
+message GetProductDetailsRequest {
+  string product_id = 1;
+  bool include_variants = 2;
+  bool include_reviews = 3;
+}
+
+message GetProductDetailsResponse {
+  ProductDetail product = 1;
+  bool success = 2;
+  string error_message = 3;
+}
+
+message ProductVariant {
+  string variant_id = 1;
+  string name = 2;
+  double price = 3;
+  string sku = 4;
+  int32 stock_quantity = 5;
+  map<string, string> attributes = 6; // e.g., "size": "L", "color": "red"
+}
+
+message ProductMeta {
+  double weight = 1;
+  string weight_unit = 2;
+  Dimensions dimensions = 3;
+  string brand = 4;
+  repeated string tags = 5;
+}
+
+message Dimensions {
+  double length = 1;
+  double width = 2;
+  double height = 3;
+  string unit = 4;
+}
+
+// ============= Update Product Stock =============
+message UpdateProductStockRequest {
+  repeated StockUpdate updates = 1;
+  string reason = 2;
+  string reference_id = 3; // Order ID, Return ID, etc.
+}
+
+message StockUpdate {
+  string product_id = 1;
+  int32 quantity_change = 2; // Có thể âm (giảm) hoặc dương (tăng)
+  StockOperation operation = 3;
+
+  enum StockOperation {
+    RESERVE = 0;
+    RELEASE = 1;
+    DEDUCT = 2;
+    ADD = 3;
+  }
+}
+
+message UpdateProductStockResponse {
+  bool success = 1;
+  repeated StockUpdateResult results = 2;
+  string error_message = 3;
+}
+
+message StockUpdateResult {
+  string product_id = 1;
+  bool success = 2;
+  int32 old_quantity = 3;
+  int32 new_quantity = 4;
+  string error_message = 5;
+}
+
+// ============= Get Products By IDs =============
+message GetProductsByIdsRequest {
+  repeated string product_ids = 1;
+  bool include_inactive = 2;
+}
+
+message GetProductsByIdsResponse {
+  repeated ProductDetail products = 1;
+  repeated string not_found = 2;
+}
+
+// ============= Get Products For Order (order saga, step 1) =============
+message GetProductsForOrderRequest {
+  repeated string product_ids = 1;
+  string shipping_province_code = 2;
+}
+
+message GetProductsForOrderResponse {
+  repeated ProductDetail products = 1;
+  string error_code = 2; // empty when every product can be ordered
+  string error_message = 3;
+}

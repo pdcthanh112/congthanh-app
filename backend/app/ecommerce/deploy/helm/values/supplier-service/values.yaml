@@ -1,0 +1,25 @@
+# supplier-service: gian hàng người bán (Django + DRF, gunicorn). Ghi đè theo môi trường ở values-<env>.yaml.
+nameOverride: supplier-service
+runtime: python
+image:
+  repository: ghcr.io/pdcthanh112/congthanhapp/supplier-service
+ports:
+  http: 5019
+args: [gunicorn, -c, config/gunicorn.py, config.wsgi]
+migrations:
+  enabled: true
+  command: [/app/.venv/bin/python, manage.py, migrate_schema]
+env:
+  DB_SCHEMA: supplier
+  WEB_CONCURRENCY: "2"
+  JWT_JWKS_URL: http://keycloak-service.identity.svc.cluster.local:8080/realms/ecommerce/protocol/openid-connect/certs
+secretEnv:
+- name: DATABASE_URL
+  key: ecommerce/supplier-service
+  property: database_url
+- name: DJANGO_SECRET_KEY
+  key: ecommerce/supplier-service
+  property: django_secret_key
+resources:
+  requests: {cpu: 100m, memory: 192Mi}
+  limits: {memory: 384Mi}

@@ -1,0 +1,60 @@
+# Nguồn sự thật duy nhất cho định tuyến north-south (thay api-gateway Go cũ).
+# Sinh cấu hình APISIX bằng:  python3 tools/scripts/gen-apisix-routes.py
+#   → platform/gateway/apisix/apisix.yaml        (standalone, dùng cho deploy/local)
+#   → platform/gateway/apisix/k8s/routes.yaml    (ApisixRoute CRD cho cluster)
+#
+# auth: required  → plugin openid-connect (Keycloak, bearer_only) chặn request thiếu/sai token
+#       optional  → không chặn ở gateway; service tự xác thực JWT nếu có
+# host/port: tên service trong docker compose / K8s Service (port 80 trong cluster).
+# Mọi service REST phục vụ dưới /api/ecommerce/... nên đường dẫn được chuyển nguyên vẹn.
+# exact: true   → khớp đúng đường dẫn (không thêm *)
+# websocket     → cho phép nâng cấp WebSocket (GraphQL subscription)
+# rewrite       → đổi đường dẫn trước khi chuyển tới upstream
+# catalog, customer, review, notification, message (NestJS) chỉ phục vụ GraphQL qua router, không có route REST.
+keycloak:
+  discovery: http://keycloak:8080/realms/ecommerce/.well-known/openid-configuration
+  client_id: apisix-gateway
+defaults:
+  rate_limit: {count: 300, window: 60}   # mỗi IP / phút
+routes:
+  - {name: cart,         service: cart-service,         port: 5002, auth: required, paths: [/api/ecommerce/carts]}
+  - {name: inventory,    service: inventory-service,    port: 5014, paths: [/api/ecommerce/inventory, /api/ecommerce/warehouses]}
+  - name: flash-sale
+    service: inventory-service
+    port: 5014
+    auth: required
+    paths: [/api/ecommerce/flash-sales]
+    # Bảo vệ đợt flash sale: tối đa 5 lượt / 10s mỗi người dùng, 2000 kết nối đồng thời toàn route.
+    rate_limit: {count: 5, window: 10, key: consumer}
+    max_conn: 2000
+  - {name: order,        service: order-service,        port: 5006, auth: required, paths: [/api/ecommerce/orders, /api/ecommerce/checkout]}
+  - {name: media,        service: media-service,        port: 5007, paths: [/api/ecommerce/media]}
+  - {name: product,      service: product-service,      port: 5008, paths: [/api/ecommerce/products]}
+  - {name: payment,      service: payment-service,      port: 5018, paths: [/api/ecommerce/payment]}
+  - {name: promotion,    service: promotion-service,    port: 5009, paths: [/api/ecommerce/promotions]}
+  - {name: search,       service: search-service,       port: 5013, paths: [/api/ecommerce/search]}
+  - {name: supplier,     service: supplier-service,     port: 5019, paths: [/api/ecommerce/suppliers]}
+  - {name: shipping,     service: shipping-service,     port: 5016, paths: [/api/ecommerce/shipping]}
+  - name: translate
+    service: translate-service
+    port: 5017
+    paths: [/api/ecommerce/translate]
+    rate_limit: {count: 60, window: 60}
+  - {name: tax,          service: tax-service,          port: 5022, paths: [/api/ecommerce/tax]}
+  - {name: webhook,      service: webhook-service,      port: 5023, auth: required, paths: [/api/ecommerce/webhooks]}
+  - name: chatbot
+    service: chatbot-service
+    port: 5024
+    paths: [/api/ecommerce/chatbot]
+    # Gọi LLM tốn tiền: giới hạn chặt theo IP.
+    rate_limit: {count: 20, window: 60}
+  # GraphQL: Cosmo Router ghép supergraph; router và subgraph tự xác thực JWT nên không chặn ở gateway.
+  - {name: graphql,       service: graphql-router,            port: 4000, exact: true, websocket: true, paths: [/graphql]}
+  - name: graphql-admin
+    service: graphql-router-backoffice
+    port: 4000
+    exact: true
+    websocket: true
+    rewrite: /graphql
+    paths: [/admin/graphql]
+    rate_limit: {count: 600, window: 60}

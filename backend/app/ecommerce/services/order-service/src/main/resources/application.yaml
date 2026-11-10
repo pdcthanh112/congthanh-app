@@ -1,0 +1,125 @@
+# order-service. Mọi giá trị môi trường đọc từ biến môi trường (12-factor); mặc định chạy được local
+# với deploy/local/docker-compose.yaml.
+spring:
+  application:
+    name: order-service
+  threads:
+    virtual:
+      enabled: true
+  lifecycle:
+    timeout-per-shutdown-phase: 30s
+  datasource:
+    url: ${DATABASE_URL:jdbc:postgresql://localhost:5432/ecommerce?currentSchema=order_service}
+    username: ${DATABASE_USER:postgres}
+    password: ${DATABASE_PASSWORD:postgres}
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate.jdbc.time_zone: UTC
+  liquibase:
+    change-log: classpath:db/changelog/db.changelog-master.yaml
+    default-schema: order_service
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: ${OIDC_ISSUER_URI:http://localhost:8080/realms/ecommerce}
+          jwk-set-uri: ${JWT_JWKS_URL:http://localhost:8080/realms/ecommerce/protocol/openid-connect/certs}
+  grpc:
+    server:
+      port: ${GRPC_PORT:19090}
+    client:
+      channels:
+        product:
+          address: static://${PRODUCT_GRPC_ADDR:localhost:29090}
+          negotiation-type: plaintext
+        promotion:
+          address: static://${PROMOTION_GRPC_ADDR:localhost:9095}
+          negotiation-type: plaintext
+        inventory:
+          address: static://${INVENTORY_GRPC_ADDR:localhost:9092}
+          negotiation-type: plaintext
+
+server:
+  port: ${SERVER_PORT:5006}
+  shutdown: graceful
+
+platform:
+  idempotency:
+    paths: [/api/ecommerce/checkout]
+    required: true
+  temporal:
+    target: ${TEMPORAL_ADDRESS:localhost:7233}
+    namespace: ${TEMPORAL_NAMESPACE:default}
+
+order:
+  currency: ${ORDER_CURRENCY:VND}
+  checkout:
+    payment-timeout: ${CHECKOUT_PAYMENT_TIMEOUT:PT15M}
+
+resilience4j:
+  retry:
+    configs:
+      default:
+        max-attempts: 3
+        wait-duration: 200ms
+        enable-exponential-backoff: true
+        exponential-backoff-multiplier: 2
+        # Chỉ retry lỗi tạm thời; lỗi nghiệp vụ (INVALID, REJECTED...) trả ngay.
+        retry-exception-predicate: com.congthanh.orderservice.adapter.out.grpc.TransientFailure
+    instances:
+      product: {base-config: default}
+      promotion: {base-config: default}
+  circuitbreaker:
+    configs:
+      default:
+        sliding-window-size: 20
+        minimum-number-of-calls: 10
+        failure-rate-threshold: 50
+        slow-call-duration-threshold: 2s
+        slow-call-rate-threshold: 80
+        wait-duration-in-open-state: 15s
+        permitted-number-of-calls-in-half-open-state: 3
+        record-failure-predicate: com.congthanh.orderservice.adapter.out.grpc.TransientFailure
+    instances:
+      product: {base-config: default}
+      promotion: {base-config: default}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus
+  endpoint:
+    health:
+      probes:
+        enabled: true
+  health:
+    circuitbreakers:
+      enabled: true
+  observations:
+    key-values:
+      application: ${spring.application.name}
+  tracing:
+    sampling:
+      probability: ${TRACING_SAMPLING:1.0}
+  opentelemetry:
+    tracing:
+      export:
+        otlp:
+          endpoint: ${OTLP_TRACES_ENDPOINT:http://localhost:4318/v1/traces}
+  otlp:
+    metrics:
+      export:
+        enabled: false
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+
+logging:
+  structured:
+    format:
+      console: ${LOG_FORMAT:ecs}

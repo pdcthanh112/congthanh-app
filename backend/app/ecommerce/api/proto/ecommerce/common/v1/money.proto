@@ -1,0 +1,15 @@
+syntax = "proto3";
+
+package ecommerce.common.v1;
+
+option java_multiple_files = true;
+option java_package = "com.congthanh.ecom.common.v1";
+
+// Money theo kiểu google.type.Money: units + nanos để không mất chính xác như double.
+message Money {
+  // Mã tiền tệ ISO 4217, ví dụ "VND", "USD".
+  string currency_code = 1;
+  int64 units = 2;
+  // Phần lẻ, -999_999_999..999_999_999, cùng dấu với units.
+  int32 nanos = 3;
+}

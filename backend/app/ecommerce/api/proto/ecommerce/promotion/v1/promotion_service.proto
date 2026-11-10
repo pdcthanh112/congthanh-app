@@ -1,0 +1,94 @@
+syntax = "proto3";
+
+package ecommerce.promotion.v1;
+
+import "ecommerce/common/v1/money.proto";
+import "google/protobuf/timestamp.proto";
+
+option java_multiple_files = true;
+option java_outer_classname = "PromotionServiceProto";
+option java_package = "com.congthanh.promotionservice.grpc";
+
+service PromotionService {
+  rpc GetPromotion(PromotionRequest) returns (PromotionResponse) {}
+  rpc GetPromotionByCode(GetPromotionByCodeRequest) returns (PromotionResponse);
+  // Báo giá giảm giá cho giỏ hàng, không ghi gì (order-service gọi khi tạo đơn).
+  rpc QuoteDiscount(QuoteDiscountRequest) returns (QuoteDiscountResponse);
+  // Bước của saga checkout: giữ một lượt dùng voucher cho đơn. Idempotent theo order_id.
+  rpc RedeemPromotion(RedeemPromotionRequest) returns (RedeemPromotionResponse);
+  // Bù trừ của RedeemPromotion: trả lại lượt dùng. Idempotent, đơn chưa redeem thì không làm gì.
+  rpc CancelRedemption(CancelRedemptionRequest) returns (CancelRedemptionResponse);
+}
+
+message QuoteDiscountRequest {
+  string code = 1;
+  string customer_id = 2;
+  ecommerce.common.v1.Money subtotal = 3;
+}
+
+message QuoteDiscountResponse {
+  bool valid = 1;
+  ecommerce.common.v1.Money discount = 2;
+  // Lý do khi valid = false: NOT_FOUND, INACTIVE, EXPIRED, EXHAUSTED, ALREADY_USED, MIN_ORDER.
+  string reason = 3;
+  string promotion_id = 4;
+}
+
+message RedeemPromotionRequest {
+  string code = 1;
+  string customer_id = 2;
+  string order_id = 3;
+  ecommerce.common.v1.Money subtotal = 4;
+}
+
+message RedeemPromotionResponse {
+  bool redeemed = 1;
+  ecommerce.common.v1.Money discount = 2;
+  string reason = 3;
+}
+
+message CancelRedemptionRequest {
+  string order_id = 1;
+  string reason = 2;
+}
+
+message CancelRedemptionResponse {
+  bool cancelled = 1;
+}
+
+message PromotionRequest {
+  int64 promotionId = 1;
+}
+
+message PromotionResponse {
+  int64 id = 1;
+  string code = 2;
+  PromotionType type = 3;
+  float value = 4;
+  int32 usageLimit = 5;
+  string description = 6;
+  google.protobuf.Timestamp startDate = 7;
+  google.protobuf.Timestamp endDate = 8;
+  string status = 9;
+  google.protobuf.Timestamp createdAt = 10;
+  google.protobuf.Timestamp updatedAt = 11;
+}
+
+enum PromotionType {
+  DISCOUNT = 0;
+  SALE = 1;
+  VOUCHER = 2;
+  BUY_ONE_GET_ONE = 3;
+  FLASH_SALE = 4;
+  FREE_SHIPPING = 5;
+  LOYALTY_PROGRAM = 6;
+  BUNDLE_DEAL = 7;
+  FIRST_PURCHASE_DISCOUNT = 8;
+  REFERRAL_DISCOUNT = 9;
+  SEASONAL_PROMOTION = 10;
+  CASHBACK = 11;
+}
+
+message GetPromotionByCodeRequest {
+  string code = 1;
+}

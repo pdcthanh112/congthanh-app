@@ -1,0 +1,6 @@
+apiVersion: v2
+name: microservice
+description: Chart dùng chung cho mọi service (Go, Java, Node, Python) của CongThanhApp e-commerce.
+type: application
+version: 1.0.0
+appVersion: "1.0.0"

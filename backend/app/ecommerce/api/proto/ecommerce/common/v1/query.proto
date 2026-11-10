@@ -1,0 +1,18 @@
+syntax = "proto3";
+
+package ecommerce.common.v1;
+
+option java_multiple_files = true;
+option java_package = "com.congthanh.ecom.common.v1";
+
+message Query {
+  repeated string attributes = 1;
+  string where = 2;
+  string order = 3;
+  int32 offset = 4;
+  int32 limit = 5;
+}
+
+message Count {
+  int32 count = 1;
+}

@@ -1,0 +1,15 @@
+# tax-service: giá trị chung mọi môi trường. Ghi đè theo môi trường ở values-<env>.yaml.
+nameOverride: tax-service
+runtime: go
+image:
+  repository: ghcr.io/pdcthanh112/congthanhapp/tax-service
+ports:
+  http: 5022
+  grpc: 9096
+env:
+  DB_SCHEMA: tax
+  JWT_JWKS_URL: http://keycloak-service.identity.svc.cluster.local:8080/realms/ecommerce/protocol/openid-connect/certs
+secretEnv:
+- name: DATABASE_URL
+  key: ecommerce/tax-service
+  property: database_url

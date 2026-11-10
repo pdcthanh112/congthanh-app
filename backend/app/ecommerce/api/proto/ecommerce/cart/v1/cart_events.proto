@@ -1,0 +1,27 @@
+syntax = "proto3";
+
+package ecommerce.cart.v1;
+
+option java_multiple_files = true;
+option java_package = "com.congthanh.cartservice.grpc";
+
+// Topic: ecom.cart.events (key = cart_id)
+
+message CartItemAdded {
+  int64 cart_id = 1;
+  string customer_id = 2;
+  string product_id = 3;
+  int32 quantity = 4;
+}
+
+message CartItemRemoved {
+  int64 cart_id = 1;
+  string customer_id = 2;
+  string product_id = 3;
+}
+
+message CartCleared {
+  int64 cart_id = 1;
+  string customer_id = 2;
+  repeated string product_ids = 3;
+}

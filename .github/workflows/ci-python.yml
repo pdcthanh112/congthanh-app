@@ -1,0 +1,102 @@
+# Service Python (FastAPI: translate, chatbot; Django: supplier) + thư viện libs/python. Quản lý bằng uv.
+name: ci-python
+on:
+  pull_request:
+    paths:
+      - "backend/app/ecommerce/services/*/pyproject.toml"
+      - "backend/app/ecommerce/services/*/uv.lock"
+      - "backend/app/ecommerce/services/**/*.py"
+      - "backend/app/ecommerce/services/python.Dockerfile"
+      - "backend/app/ecommerce/libs/python/**"
+      - ".github/workflows/ci-python.yml"
+  push:
+    branches: [main]
+    paths:
+      - "backend/app/ecommerce/services/**/*.py"
+      - "backend/app/ecommerce/services/*/uv.lock"
+      - "backend/app/ecommerce/libs/python/**"
+permissions: {contents: read}
+concurrency: {group: "${{ github.workflow }}-${{ github.ref }}", cancel-in-progress: true}
+defaults:
+  run: {working-directory: backend/app/ecommerce}
+
+jobs:
+  check:
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        project: [libs/python/ecom-platform, services/translate-service, services/chatbot-service, services/supplier-service]
+    services:
+      postgres:
+        image: pgvector/pgvector:0.8.1-pg18-trixie
+        env: {POSTGRES_PASSWORD: postgres, POSTGRES_DB: test}
+        ports: ["5432:5432"]
+        options: --health-cmd "pg_isready -U postgres" --health-interval 5s --health-retries 20
+    env:
+      TEST_DATABASE_URL: postgres://postgres:postgres@localhost:5432/test
+      ANTHROPIC_API_KEY: test-not-used   # test dùng client giả, không gọi API thật
+    steps:
+      - uses: actions/checkout@v5
+      - uses: astral-sh/setup-uv@v6
+        with: {enable-cache: true, cache-dependency-glob: "backend/app/ecommerce/${{ matrix.project }}/uv.lock"}
+      - name: lock khớp pyproject, cài đặt
+        working-directory: backend/app/ecommerce/${{ matrix.project }}
+        run: |
+          uv lock --check
+          uv sync --locked --all-groups
+      - name: ruff (lint + format)
+        working-directory: backend/app/ecommerce/${{ matrix.project }}
+        run: uv run ruff check . && uv run ruff format --check .
+      - name: migration Django khớp model
+        if: matrix.project == 'services/supplier-service'
+        working-directory: backend/app/ecommerce/${{ matrix.project }}
+        run: DJANGO_SETTINGS_MODULE=config.settings_test uv run python manage.py makemigrations --check --dry-run
+      - name: pytest
+        working-directory: backend/app/ecommerce/${{ matrix.project }}
+        run: uv run pytest -q
+
+  image:
+    if: github.event_name == 'push'
+    needs: check
+    runs-on: ubuntu-24.04
+    permissions: {contents: read, packages: write, id-token: write}
+    strategy:
+      fail-fast: false
+      matrix:
+        service: [translate-service, chatbot-service, supplier-service]
+    steps:
+      - uses: actions/checkout@v5
+      # Tag = 12 ký tự đầu của SHA, giống image Go/Java/Node, để workflow release tìm được digest.
+      - id: sha
+        run: echo "short=${GITHUB_SHA::12}" >> "$GITHUB_OUTPUT"
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with: {registry: ghcr.io, username: "${{ github.actor }}", password: "${{ secrets.GITHUB_TOKEN }}"}
+      - uses: sigstore/cosign-installer@v3
+      - uses: anchore/sbom-action/download-syft@v0
+      - name: build & push (một Dockerfile chung, multi-arch)
+        id: build
+        uses: docker/build-push-action@v6
+        with:
+          context: backend/app/ecommerce
+          file: backend/app/ecommerce/services/python.Dockerfile
+          build-args: SERVICE=${{ matrix.service }}
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ghcr.io/${{ github.repository_owner }}/congthanhapp/${{ matrix.service }}:${{ steps.sha.outputs.short }}
+          cache-from: type=gha,scope=${{ matrix.service }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.service }}
+      - name: trivy scan
+        uses: aquasecurity/trivy-action@0.33.1
+        with:
+          image-ref: "ghcr.io/${{ github.repository_owner }}/congthanhapp/${{ matrix.service }}@${{ steps.build.outputs.digest }}"
+          severity: "CRITICAL,HIGH"
+          exit-code: "1"
+          ignore-unfixed: true
+      - name: sign + SBOM attestation (Cosign keyless)
+        env: {IMAGE: "ghcr.io/${{ github.repository_owner }}/congthanhapp/${{ matrix.service }}@${{ steps.build.outputs.digest }}"}
+        run: |
+          syft "$IMAGE" -o spdx-json > sbom.spdx.json
+          cosign sign --yes "$IMAGE"
+          cosign attest --yes --type spdxjson --predicate sbom.spdx.json "$IMAGE"

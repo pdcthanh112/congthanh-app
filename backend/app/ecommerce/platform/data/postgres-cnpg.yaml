@@ -1,0 +1,67 @@
+# PostgreSQL 18 qua CloudNativePG (dùng cho môi trường không phải AWS; trên AWS dùng RDS — infra/terraform/modules/rds-postgres).
+# Một cluster, mỗi service một schema + user riêng (database-per-service về mặt logic).
+# Bật logical replication cho Debezium, pgvector cho tìm kiếm ngữ nghĩa (product/search).
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: ecom-db
+  namespace: data
+spec:
+  instances: 3
+  imageName: ghcr.io/cloudnative-pg/postgresql:18-standard-trixie
+  primaryUpdateStrategy: unsupervised
+  storage: {size: 200Gi, storageClass: gp3}
+  walStorage: {size: 50Gi, storageClass: gp3}
+  postgresql:
+    parameters:
+      wal_level: logical
+      max_replication_slots: "20"
+      max_wal_senders: "20"
+      shared_preload_libraries: ""
+      max_connections: "400"
+  bootstrap:
+    initdb:
+      database: ecommerce
+      owner: app
+      postInitApplicationSQL:
+        - CREATE EXTENSION IF NOT EXISTS vector;
+        - CREATE EXTENSION IF NOT EXISTS pg_stat_statements;
+        - CREATE ROLE debezium WITH LOGIN REPLICATION;
+  managed:
+    roles:
+      - {name: inventory_service, login: true, passwordSecret: {name: db-inventory-service}}
+      - {name: cart_service, login: true, passwordSecret: {name: db-cart-service}}
+      - {name: order_service, login: true, passwordSecret: {name: db-order-service}}
+      - {name: payment_service, login: true, passwordSecret: {name: db-payment-service}}
+      - {name: product_service, login: true, passwordSecret: {name: db-product-service}}
+      - {name: promotion_service, login: true, passwordSecret: {name: db-promotion-service}}
+  backup:
+    barmanObjectStore:
+      destinationPath: s3://congthanhapp-pg-backup/ecom-db
+      s3Credentials: {inheritFromIAMRole: true}
+      wal: {compression: zstd}
+    retentionPolicy: 30d
+  monitoring:
+    enablePodMonitor: true
+---
+apiVersion: postgresql.cnpg.io/v1
+kind: Pooler
+metadata:
+  name: ecom-db-pooler
+  namespace: data
+spec:
+  cluster: {name: ecom-db}
+  instances: 3
+  type: rw
+  pgbouncer:
+    poolMode: transaction
+    parameters: {max_client_conn: "5000", default_pool_size: "50"}
+---
+apiVersion: postgresql.cnpg.io/v1
+kind: ScheduledBackup
+metadata:
+  name: ecom-db-daily
+  namespace: data
+spec:
+  schedule: "0 0 2 * * *"
+  cluster: {name: ecom-db}

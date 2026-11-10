@@ -1,0 +1,176 @@
+# Zero trust: từ chối mặc định, chỉ mở các đường gọi đồng bộ trong kiến trúc.
+# Event bất đồng bộ đi qua Kafka nên không cần mở service-to-service cho chúng.
+apiVersion: security.istio.io/v1
+kind: AuthorizationPolicy
+metadata:
+  name: deny-by-default
+  namespace: ecommerce
+spec: {}
+---
+apiVersion: security.istio.io/v1
+kind: AuthorizationPolicy
+metadata:
+  name: allow-inventory-service
+  namespace: ecommerce
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: inventory-service
+  action: ALLOW
+  rules:
+  - from:
+    - source:
+        principals:
+        - cluster.local/ns/ecommerce/sa/cart-service
+        - cluster.local/ns/ecommerce/sa/order-service
+        - cluster.local/ns/ecommerce/sa/storefront-bff
+        - cluster.local/ns/ecommerce/sa/backoffice-bff
+        - cluster.local/ns/gateway/sa/apisix
+  - from:
+    - source:
+        namespaces:
+        - observability
+    to:
+    - operation:
+        ports:
+        - '9464'
+        - '8080'
+---
+apiVersion: security.istio.io/v1
+kind: AuthorizationPolicy
+metadata:
+  name: allow-cart-service
+  namespace: ecommerce
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: cart-service
+  action: ALLOW
+  rules:
+  - from:
+    - source:
+        principals:
+        - cluster.local/ns/ecommerce/sa/order-service
+        - cluster.local/ns/ecommerce/sa/storefront-bff
+        - cluster.local/ns/gateway/sa/apisix
+  - from:
+    - source:
+        namespaces:
+        - observability
+    to:
+    - operation:
+        ports:
+        - '9464'
+        - '8080'
+---
+apiVersion: security.istio.io/v1
+kind: AuthorizationPolicy
+metadata:
+  name: allow-product-service
+  namespace: ecommerce
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: product-service
+  action: ALLOW
+  rules:
+  - from:
+    - source:
+        principals:
+        - cluster.local/ns/ecommerce/sa/cart-service
+        - cluster.local/ns/ecommerce/sa/order-service
+        - cluster.local/ns/ecommerce/sa/storefront-bff
+        - cluster.local/ns/ecommerce/sa/backoffice-bff
+        - cluster.local/ns/ecommerce/sa/promotion-service
+        - cluster.local/ns/gateway/sa/apisix
+  - from:
+    - source:
+        namespaces:
+        - observability
+    to:
+    - operation:
+        ports:
+        - '9464'
+        - '8080'
+---
+apiVersion: security.istio.io/v1
+kind: AuthorizationPolicy
+metadata:
+  name: allow-promotion-service
+  namespace: ecommerce
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: promotion-service
+  action: ALLOW
+  rules:
+  - from:
+    - source:
+        principals:
+        - cluster.local/ns/ecommerce/sa/order-service
+        - cluster.local/ns/ecommerce/sa/storefront-bff
+        - cluster.local/ns/ecommerce/sa/backoffice-bff
+        - cluster.local/ns/gateway/sa/apisix
+  - from:
+    - source:
+        namespaces:
+        - observability
+    to:
+    - operation:
+        ports:
+        - '9464'
+        - '8080'
+---
+apiVersion: security.istio.io/v1
+kind: AuthorizationPolicy
+metadata:
+  name: allow-order-service
+  namespace: ecommerce
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: order-service
+  action: ALLOW
+  rules:
+  - from:
+    - source:
+        principals:
+        - cluster.local/ns/ecommerce/sa/storefront-bff
+        - cluster.local/ns/ecommerce/sa/backoffice-bff
+        - cluster.local/ns/gateway/sa/apisix
+  - from:
+    - source:
+        namespaces:
+        - observability
+    to:
+    - operation:
+        ports:
+        - '9464'
+        - '8080'
+---
+apiVersion: security.istio.io/v1
+kind: AuthorizationPolicy
+metadata:
+  name: allow-payment-service
+  namespace: ecommerce
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: payment-service
+  action: ALLOW
+  rules:
+  - from:
+    - source:
+        principals:
+        - cluster.local/ns/ecommerce/sa/order-service
+        - cluster.local/ns/ecommerce/sa/backoffice-bff
+        - cluster.local/ns/gateway/sa/apisix
+  - from:
+    - source:
+        namespaces:
+        - observability
+    to:
+    - operation:
+        ports:
+        - '9464'
+        - '8080'

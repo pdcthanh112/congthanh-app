@@ -1,0 +1,31 @@
+{{- if .Values.rollout.enabled }}
+apiVersion: argoproj.io/v1alpha1
+kind: Rollout
+{{- else }}
+apiVersion: apps/v1
+kind: Deployment
+{{- end }}
+metadata:
+  name: {{ include "ms.name" . }}
+  labels: {{- include "ms.labels" . | nindent 4 }}
+spec:
+  {{- if not (or .Values.autoscaling.enabled .Values.keda.enabled) }}
+  replicas: {{ .Values.replicas }}
+  {{- end }}
+  revisionHistoryLimit: 5
+  selector:
+    matchLabels: {{- include "ms.selector" . | nindent 6 }}
+  template:
+    {{- include "ms.podTemplate" . | nindent 4 }}
+  {{- if .Values.rollout.enabled }}
+  strategy:
+    canary:
+      stableService: {{ include "ms.name" . }}
+      canaryService: {{ include "ms.name" . }}-canary
+      steps:
+        {{- tpl (toYaml .Values.rollout.steps) . | nindent 8 }}
+  {{- else }}
+  strategy:
+    type: RollingUpdate
+    rollingUpdate: {maxSurge: 25%, maxUnavailable: 0}
+  {{- end }}

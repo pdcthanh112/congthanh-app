@@ -1,0 +1,147 @@
+# Backstage: đăng ký file này một lần, các service được nạp qua Location.
+apiVersion: backstage.io/v1alpha1
+kind: System
+metadata:
+  name: ecommerce
+  description: Nền tảng e-commerce CongThanhApp
+spec:
+  owner: team-ecommerce
+---
+apiVersion: backstage.io/v1alpha1
+kind: API
+metadata:
+  name: inventory-api-grpc
+spec:
+  type: grpc
+  lifecycle: production
+  owner: team-ecommerce
+  system: ecommerce
+  definition:
+    $text: ./api/proto/ecommerce/inventory/v1/inventory_service.proto
+---
+apiVersion: backstage.io/v1alpha1
+kind: API
+metadata:
+  name: inventory-api-rest
+spec:
+  type: openapi
+  lifecycle: production
+  owner: team-ecommerce
+  system: ecommerce
+  definition:
+    $text: ./api/openapi/inventory-service.yaml
+---
+apiVersion: backstage.io/v1alpha1
+kind: API
+metadata:
+  name: cart-api-grpc
+spec:
+  type: grpc
+  lifecycle: production
+  owner: team-ecommerce
+  system: ecommerce
+  definition:
+    $text: ./api/proto/ecommerce/cart/v1/cart_service.proto
+---
+apiVersion: backstage.io/v1alpha1
+kind: API
+metadata:
+  name: cart-api-rest
+spec:
+  type: openapi
+  lifecycle: production
+  owner: team-ecommerce
+  system: ecommerce
+  definition:
+    $text: ./api/openapi/cart-service.yaml
+---
+apiVersion: backstage.io/v1alpha1
+kind: API
+metadata:
+  name: product-api-grpc
+spec:
+  type: grpc
+  lifecycle: production
+  owner: team-ecommerce
+  system: ecommerce
+  definition:
+    $text: ./api/proto/ecommerce/product/v1/product_service.proto
+---
+apiVersion: backstage.io/v1alpha1
+kind: API
+metadata:
+  name: ecommerce-events
+spec:
+  type: asyncapi
+  lifecycle: production
+  owner: team-ecommerce
+  system: ecommerce
+  definition:
+    $text: ./api/asyncapi/asyncapi.yaml
+---
+apiVersion: backstage.io/v1alpha1
+kind: Resource
+metadata:
+  name: ecom-postgres
+spec:
+  type: database
+  owner: team-platform
+  system: ecommerce
+---
+apiVersion: backstage.io/v1alpha1
+kind: Resource
+metadata:
+  name: ecom-kafka
+spec:
+  type: message-broker
+  owner: team-platform
+  system: ecommerce
+---
+apiVersion: backstage.io/v1alpha1
+kind: Resource
+metadata:
+  name: ecom-valkey
+spec:
+  type: cache
+  owner: team-platform
+  system: ecommerce
+---
+apiVersion: backstage.io/v1alpha1
+kind: Resource
+metadata:
+  name: ecom-opensearch
+spec:
+  type: search-cluster
+  owner: team-platform
+  system: ecommerce
+---
+apiVersion: backstage.io/v1alpha1
+kind: Resource
+metadata:
+  name: ecom-media-bucket
+spec:
+  type: s3-bucket
+  owner: team-platform
+  system: ecommerce
+---
+apiVersion: backstage.io/v1alpha1
+kind: Location
+metadata:
+  name: ecommerce-services
+spec:
+  targets:
+  - ./services/cart-service/catalog-info.yaml
+  - ./services/chatbot-service/catalog-info.yaml
+  - ./services/inventory-service/catalog-info.yaml
+  - ./services/media-service/catalog-info.yaml
+  - ./services/order-service/catalog-info.yaml
+  - ./services/payment-service/catalog-info.yaml
+  - ./services/product-service/catalog-info.yaml
+  - ./services/promotion-service/catalog-info.yaml
+  - ./services/search-service/catalog-info.yaml
+  - ./services/shipping-service/catalog-info.yaml
+  - ./services/supplier-service/catalog-info.yaml
+  - ./services/tax-service/catalog-info.yaml
+  - ./services/translate-service/catalog-info.yaml
+  - ./services/webhook-service/catalog-info.yaml
+  - ./tools/backstage/templates/go-service/template.yaml

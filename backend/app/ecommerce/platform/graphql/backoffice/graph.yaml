@@ -1,0 +1,20 @@
+# Supergraph cho trang quản trị/người bán (router :4001). Compose: npm run supergraph
+version: 1
+subgraphs:
+  - name: backoffice
+    routing_url: http://backoffice-bff:5021/graphql
+    schema: {file: ../../../services/backoffice-bff/schema.graphql}
+  - name: catalog
+    routing_url: http://catalog-service:5003/graphql
+    schema: {file: ../../../services/catalog-service/schema.graphql}
+  - name: review
+    routing_url: http://review-service:5010/graphql
+    schema: {file: ../../../services/review-service/schema.graphql}
+  - name: notification
+    routing_url: http://notification-service:5011/graphql
+    schema: {file: ../../../services/notification-service/schema.graphql}
+    subscription: {url: ws://notification-service:5011/graphql, protocol: ws, websocketSubprotocol: graphql-transport-ws}
+  - name: message
+    routing_url: http://message-service:5012/graphql
+    schema: {file: ../../../services/message-service/schema.graphql}
+    subscription: {url: ws://message-service:5012/graphql, protocol: ws, websocketSubprotocol: graphql-transport-ws}

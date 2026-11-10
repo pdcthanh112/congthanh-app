@@ -1,0 +1,40 @@
+# OpenFGA (Zanzibar ReBAC): phân quyền chi tiết theo quan hệ, bổ sung cho role trong JWT.
+# Service hỏi: check(user:u1, can_view, order:o9) qua OpenFGA API.
+model
+  schema 1.1
+
+type user
+
+type platform
+  relations
+    define admin: [user]
+    define support: [user] or admin
+
+type store
+  relations
+    define platform: [platform]
+    define owner: [user]
+    define staff: [user] or owner
+    define can_manage_products: staff or admin from platform
+    define can_view_orders: staff or support from platform
+
+type product
+  relations
+    define store: [store]
+    define can_edit: can_manage_products from store
+
+type cart
+  relations
+    define owner: [user]
+    define can_view: owner or support from platform
+    define can_edit: owner
+    define platform: [platform]
+
+type order
+  relations
+    define buyer: [user]
+    define store: [store]
+    define platform: [platform]
+    define can_view: buyer or can_view_orders from store or support from platform
+    define can_cancel: buyer or admin from platform
+    define can_refund: admin from platform

@@ -1,0 +1,38 @@
+# Helm temporalio/temporal: điều phối saga checkout (order → inventory → payment → shipping).
+# Worker chạy trong order-service (Java SDK) — xem đợt 2.
+server:
+  replicaCount: 3
+  config:
+    persistence:
+      default:
+        driver: sql
+        sql:
+          driver: postgres12
+          host: temporal-db-rw.workflow.svc.cluster.local
+          port: 5432
+          database: temporal
+          user: temporal
+          existingSecret: temporal-db-app
+      visibility:
+        driver: sql
+        sql:
+          driver: postgres12
+          host: temporal-db-rw.workflow.svc.cluster.local
+          port: 5432
+          database: temporal_visibility
+          user: temporal
+          existingSecret: temporal-db-app
+  metrics:
+    serviceMonitor: {enabled: true}
+cassandra: {enabled: false}
+mysql: {enabled: false}
+postgresql: {enabled: false}
+elasticsearch: {enabled: false}
+prometheus: {enabled: false}
+grafana: {enabled: false}
+web:
+  enabled: true
+  additionalEnv:
+    - {name: TEMPORAL_AUTH_ENABLED, value: "true"}
+    - {name: TEMPORAL_AUTH_PROVIDER_URL, value: https://auth.congthanh.vn/realms/ecommerce}
+    - {name: TEMPORAL_AUTH_CLIENT_ID, value: temporal-ui}

@@ -1,0 +1,22 @@
+{{- if .Values.rollout.enabled }}
+# Canary chỉ được tăng tải khi tỉ lệ thành công (từ spanmetrics) >= ngưỡng.
+apiVersion: argoproj.io/v1alpha1
+kind: AnalysisTemplate
+metadata:
+  name: {{ include "ms.name" . }}-success-rate
+  labels: {{- include "ms.labels" . | nindent 4 }}
+spec:
+  metrics:
+    - name: success-rate
+      interval: 1m
+      count: 3
+      failureLimit: 1
+      successCondition: "result[0] >= {{ .Values.rollout.successRateThreshold }}"
+      provider:
+        prometheus:
+          address: http://lgtm-mimir-nginx.observability/prometheus
+          query: |
+            sum(rate(traces_span_metrics_calls_total{service_name="{{ include "ms.name" . }}",span_kind="SPAN_KIND_SERVER",status_code!="STATUS_CODE_ERROR"}[2m]))
+            /
+            sum(rate(traces_span_metrics_calls_total{service_name="{{ include "ms.name" . }}",span_kind="SPAN_KIND_SERVER"}[2m]))
+{{- end }}

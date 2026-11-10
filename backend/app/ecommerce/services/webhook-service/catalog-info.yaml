@@ -1,0 +1,23 @@
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: webhook-service
+  description: Webhook cho bên thứ ba (HMAC, thử lại, chặn SSRF)
+  tags:
+  - go
+  annotations:
+    github.com/project-slug: pdcthanh112/CongThanhApp
+    backstage.io/source-location: url:https://github.com/pdcthanh112/CongThanhApp/tree/main/backend/app/ecommerce/services/webhook-service
+    argocd/app-selector: app.kubernetes.io/name=webhook-service
+    grafana/dashboard-selector: tags @> 'webhook-service'
+    backstage.io/techdocs-ref: dir:../../docs
+spec:
+  type: service
+  lifecycle: production
+  owner: team-ecommerce
+  system: ecommerce
+  providesApis:
+  - webhook-api-rest
+  dependsOn:
+  - resource:ecom-postgres
+  - resource:ecom-kafka

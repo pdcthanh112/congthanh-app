@@ -1,0 +1,31 @@
+# Plugin áp dụng cho mọi route.
+apiVersion: apisix.apache.org/v2
+kind: ApisixGlobalRule
+metadata:
+  name: global
+  namespace: gateway
+spec:
+  ingressClassName: apisix
+  plugins:
+    - name: request-id
+      enable: true
+      config: {header_name: X-Request-Id, include_in_response: true, algorithm: uuid}
+    - name: real-ip
+      enable: true
+      config: {source: http_x_forwarded_for, trusted_addresses: ["10.0.0.0/8"]}
+    - name: opentelemetry
+      enable: true
+      config: {sampler: {name: parent_base, options: {root: {name: trace_id_ratio, options: {fraction: 0.2}}}}}
+    - name: prometheus
+      enable: true
+      config: {prefer_name: true}
+    - name: cors
+      enable: true
+      config:
+        allow_origins: "https://shop.congthanh.vn,https://admin.congthanh.vn"
+        allow_methods: "GET,POST,PUT,PATCH,DELETE,OPTIONS"
+        allow_headers: "Authorization,Content-Type,X-Request-Id,Idempotency-Key"
+        allow_credential: true
+    - name: api-breaker
+      enable: true
+      config: {break_response_code: 503, unhealthy: {http_statuses: [500, 502, 503, 504], failures: 5}, max_breaker_sec: 30}

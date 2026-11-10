@@ -1,0 +1,93 @@
+# payment-service. Khoá của cổng thanh toán CHỈ đến từ biến môi trường / External Secrets, không bao giờ nằm trong file.
+spring:
+  application:
+    name: payment-service
+  threads:
+    virtual:
+      enabled: true
+  lifecycle:
+    timeout-per-shutdown-phase: 30s
+  datasource:
+    url: ${DATABASE_URL:jdbc:postgresql://localhost:5432/ecommerce?currentSchema=payment_service}
+    username: ${DATABASE_USER:postgres}
+    password: ${DATABASE_PASSWORD:postgres}
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate.jdbc.time_zone: UTC
+  liquibase:
+    change-log: classpath:db/changelog/db.changelog-master.yaml
+    default-schema: payment_service
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: ${OIDC_ISSUER_URI:http://localhost:8080/realms/ecommerce}
+          jwk-set-uri: ${JWT_JWKS_URL:http://localhost:8080/realms/ecommerce/protocol/openid-connect/certs}
+  grpc:
+    server:
+      port: ${GRPC_PORT:9090}
+
+server:
+  port: ${SERVER_PORT:5018}
+  shutdown: graceful
+
+platform:
+  temporal:
+    target: ${TEMPORAL_ADDRESS:localhost:7233}
+    namespace: ${TEMPORAL_NAMESPACE:default}
+
+payment:
+  # URL công khai của payment-service (qua gateway) để cổng gọi lại / redirect về.
+  public-base-url: ${PAYMENT_PUBLIC_BASE_URL:http://localhost:9080}
+  # Trang kết quả của storefront sau khi khách trả ở cổng redirect.
+  frontend-result-url: ${PAYMENT_FRONTEND_RESULT_URL:http://localhost:3000/checkout/result}
+  sandbox:
+    enabled: ${PAYMENT_SANDBOX_ENABLED:false}
+    secret: ${PAYMENT_SANDBOX_SECRET:local-sandbox-secret}
+  # Mỗi cổng chỉ bật khi có khoá (ConditionalOnProperty). Để trống = tắt.
+  stripe:
+    api-key: ${STRIPE_API_KEY:}
+    webhook-secret: ${STRIPE_WEBHOOK_SECRET:}
+  paypal:
+    client-id: ${PAYPAL_CLIENT_ID:}
+    client-secret: ${PAYPAL_CLIENT_SECRET:}
+    base-url: ${PAYPAL_BASE_URL:https://api-m.sandbox.paypal.com}
+  vnpay:
+    tmn-code: ${VNPAY_TMN_CODE:}
+    hash-secret: ${VNPAY_HASH_SECRET:}
+    pay-url: ${VNPAY_PAY_URL:https://sandbox.vnpayment.vn/paymentv2/vpcpay.html}
+    api-url: ${VNPAY_API_URL:https://sandbox.vnpayment.vn/merchant_webapi/api/transaction}
+    return-url: ${VNPAY_RETURN_URL:http://localhost:3000/checkout/result}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus
+  endpoint:
+    health:
+      probes:
+        enabled: true
+  observations:
+    key-values:
+      application: ${spring.application.name}
+  tracing:
+    sampling:
+      probability: ${TRACING_SAMPLING:1.0}
+  opentelemetry:
+    tracing:
+      export:
+        otlp:
+          endpoint: ${OTLP_TRACES_ENDPOINT:http://localhost:4318/v1/traces}
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+
+logging:
+  structured:
+    format:
+      console: ${LOG_FORMAT:ecs}

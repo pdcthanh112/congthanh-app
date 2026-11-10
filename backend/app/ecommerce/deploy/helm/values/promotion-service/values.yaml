@@ -1,0 +1,39 @@
+# promotion-service: giá trị chung mọi môi trường. Ghi đè theo môi trường ở values-<env>.yaml.
+nameOverride: promotion-service
+runtime: java
+image:
+  repository: ghcr.io/pdcthanh112/congthanhapp/promotion-service
+ports:
+  http: 5009
+  grpc: 9095
+env:
+  # Cấu hình qua biến môi trường (application.yaml đọc env), không còn Spring profile.
+  OIDC_ISSUER_URI: http://keycloak-service.identity.svc.cluster.local:8080/realms/ecommerce
+  JWT_JWKS_URL: http://keycloak-service.identity.svc.cluster.local:8080/realms/ecommerce/protocol/openid-connect/certs
+  OTLP_TRACES_ENDPOINT: http://otel-collector.observability.svc.cluster.local:4318/v1/traces
+  KAFKA_BROKERS: ecom-kafka-bootstrap.messaging.svc.cluster.local:9092
+secretEnv:
+- name: DATABASE_URL
+  key: ecommerce/promotion-service
+  property: database_url
+- name: DATABASE_USER
+  key: ecommerce/promotion-service
+  property: database_user
+- name: DATABASE_PASSWORD
+  key: ecommerce/promotion-service
+  property: database_password
+probes:
+  readinessPath: /actuator/health/readiness
+  livenessPath: /actuator/health/liveness
+resources:
+  requests:
+    cpu: 250m
+    memory: 512Mi
+  limits:
+    memory: 1Gi
+serviceMonitor:
+  enabled: true
+  path: /actuator/prometheus
+otel:
+  # Spring Boot 4 tự xuất trace/metric qua Micrometer + OTLP, không cần Java agent.
+  javaAutoInstrumentation: false

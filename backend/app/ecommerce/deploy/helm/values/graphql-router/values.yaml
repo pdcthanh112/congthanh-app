@@ -1,0 +1,23 @@
+# graphql-router: Cosmo Router cho supergraph "storefront" (image dựng từ platform/graphql/router/Dockerfile,
+# GRAPH=storefront; execution config được compose trong CI và đóng gói vào image).
+nameOverride: graphql-router
+runtime: router
+image:
+  repository: ghcr.io/pdcthanh112/congthanhapp/graphql-router
+ports:
+  http: 4000
+env:
+  ROUTER_JWKS_URL: "http://keycloak-service.identity.svc.cluster.local:8080/realms/ecommerce/protocol/openid-connect/certs"
+  OTEL_EXPORTER_OTLP_ENDPOINT: "http://otel-collector.observability.svc.cluster.local:4317"
+  ROUTER_CORS_ORIGINS: '"https://congthanh.vn","https://www.congthanh.vn"'
+probes:
+  readinessPath: /health/ready
+  livenessPath: /health/live
+resources:
+  requests: {cpu: 200m, memory: 256Mi}
+  limits: {memory: 512Mi}
+autoscaling:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 10
+  targetCPU: 60

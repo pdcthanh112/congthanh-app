@@ -1,0 +1,115 @@
+spring:
+  application:
+    name: product-service
+  threads:
+    virtual:
+      enabled: true
+  datasource:
+    url: ${DATABASE_URL:jdbc:postgresql://localhost:5432/ecommerce?currentSchema=product_service}
+    username: ${DATABASE_USER:postgres}
+    password: ${DATABASE_PASSWORD:postgres}
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate.jdbc.time_zone: UTC
+  liquibase:
+    change-log: classpath:db/changelog/db.changelog-master.yaml
+    default-schema: product_service
+  data:
+    mongodb:
+      uri: ${MONGODB_URI:mongodb://localhost:27017/ecommerce_product}
+    redis:
+      url: ${REDIS_URL:redis://localhost:6379/0}
+  graphql:
+    graphiql:
+      enabled: ${GRAPHIQL_ENABLED:false}
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: ${OIDC_ISSUER_URI:http://localhost:8080/realms/ecommerce}
+          jwk-set-uri: ${JWT_JWKS_URL:http://localhost:8080/realms/ecommerce/protocol/openid-connect/certs}
+  grpc:
+    server:
+      port: ${GRPC_PORT:29090}
+    client:
+      channels:
+        catalog:
+          address: static://${CATALOG_GRPC_ADDR:localhost:19092}
+          negotiation-type: plaintext
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 10MB
+
+server:
+  port: ${SERVER_PORT:5008}
+  shutdown: graceful
+
+product:
+  currency: ${PRODUCT_CURRENCY:VND}
+  # S3: đặt PRODUCT_S3_REGION (env → product.s3.region) thì mới tạo S3Client; local không cần AWS.
+
+# worker-id phải khác nhau giữa các pod (Helm gán từ ordinal của StatefulSet hoặc hash tên pod).
+snowflake:
+  worker-id: ${SNOWFLAKE_WORKER_ID:1}
+  datacenter-id: ${SNOWFLAKE_DATACENTER_ID:1}
+
+congthanhapp:
+  openapi:
+    dev-url: ${OPENAPI_DEV_URL:http://localhost:8000}
+    prod-url: ${OPENAPI_PROD_URL:https://api.congthanhapp.com}
+
+resilience4j:
+  retry:
+    instances:
+      catalog:
+        max-attempts: 3
+        wait-duration: 200ms
+        enable-exponential-backoff: true
+  circuitbreaker:
+    instances:
+      catalog:
+        sliding-window-size: 20
+        minimum-number-of-calls: 10
+        failure-rate-threshold: 50
+        wait-duration-in-open-state: 15s
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus
+  endpoint:
+    health:
+      probes:
+        enabled: true
+  health:
+    # Mongo là read model: sập thì vẫn phục vụ được (fallback Postgres), không đánh dấu pod không sẵn sàng.
+    mongo:
+      enabled: false
+  observations:
+    key-values:
+      application: ${spring.application.name}
+  tracing:
+    sampling:
+      probability: ${TRACING_SAMPLING:1.0}
+  opentelemetry:
+    tracing:
+      export:
+        otlp:
+          endpoint: ${OTLP_TRACES_ENDPOINT:http://localhost:4318/v1/traces}
+
+springdoc:
+  oauthflow:
+    authorization-url: ${OIDC_ISSUER_URI:http://localhost:8080/realms/ecommerce}/protocol/openid-connect/auth
+    token-url: ${OIDC_ISSUER_URI:http://localhost:8080/realms/ecommerce}/protocol/openid-connect/token
+  swagger-ui:
+    path: /swagger-ui.html
+
+logging:
+  structured:
+    format:
+      console: ${LOG_FORMAT:ecs}

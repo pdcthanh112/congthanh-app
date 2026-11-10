@@ -1,0 +1,13 @@
+go 1.26.0
+
+use (
+	./libs/go/platform
+	./libs/go/proto
+	./services/cart-service
+	./services/inventory-service
+	./services/media-service
+	./services/search-service
+	./services/shipping-service
+	./services/tax-service
+	./services/webhook-service
+)

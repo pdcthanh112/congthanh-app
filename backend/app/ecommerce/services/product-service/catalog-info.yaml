@@ -1,0 +1,24 @@
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: product-service
+  description: Sản phẩm
+  tags:
+  - java
+  annotations:
+    github.com/project-slug: pdcthanh112/CongThanhApp
+    backstage.io/source-location: url:https://github.com/pdcthanh112/CongThanhApp/tree/main/backend/app/ecommerce/services/product-service
+    argocd/app-selector: app.kubernetes.io/name=product-service
+    grafana/dashboard-selector: tags @> 'product-service'
+    backstage.io/techdocs-ref: dir:../../docs
+spec:
+  type: service
+  lifecycle: production
+  owner: team-ecommerce
+  system: ecommerce
+  providesApis:
+  - product-api-grpc
+  consumesApis: []
+  dependsOn:
+  - resource:ecom-postgres
+  - resource:ecom-kafka

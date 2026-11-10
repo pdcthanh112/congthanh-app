@@ -1,0 +1,418 @@
+# FILE SINH TỰ ĐỘNG từ platform/gateway/routes.yaml — đừng sửa tay.
+routes:
+- id: cart
+  uris:
+  - /api/ecommerce/carts*
+  upstream_id: cart
+  plugins:
+    limit-count:
+      count: 300
+      time_window: 60
+      key: remote_addr
+      rejected_code: 429
+      policy: redis
+      redis_host: valkey
+      allow_degradation: true
+    openid-connect:
+      discovery: http://keycloak:8080/realms/ecommerce/.well-known/openid-configuration
+      client_id: apisix-gateway
+      client_secret: $ENV://KEYCLOAK_GATEWAY_SECRET
+      bearer_only: true
+      use_jwks: true
+      set_userinfo_header: false
+- id: inventory
+  uris:
+  - /api/ecommerce/inventory*
+  - /api/ecommerce/warehouses*
+  upstream_id: inventory
+  plugins:
+    limit-count:
+      count: 300
+      time_window: 60
+      key: remote_addr
+      rejected_code: 429
+      policy: redis
+      redis_host: valkey
+      allow_degradation: true
+- id: flash-sale
+  uris:
+  - /api/ecommerce/flash-sales*
+  upstream_id: flash-sale
+  plugins:
+    limit-count:
+      count: 5
+      time_window: 10
+      key: consumer_name
+      rejected_code: 429
+      policy: redis
+      redis_host: valkey
+      allow_degradation: true
+    limit-conn:
+      conn: 2000
+      burst: 200
+      default_conn_delay: 0.1
+      key: server_addr
+      rejected_code: 503
+    openid-connect:
+      discovery: http://keycloak:8080/realms/ecommerce/.well-known/openid-configuration
+      client_id: apisix-gateway
+      client_secret: $ENV://KEYCLOAK_GATEWAY_SECRET
+      bearer_only: true
+      use_jwks: true
+      set_userinfo_header: false
+- id: order
+  uris:
+  - /api/ecommerce/orders*
+  - /api/ecommerce/checkout*
+  upstream_id: order
+  plugins:
+    limit-count:
+      count: 300
+      time_window: 60
+      key: remote_addr
+      rejected_code: 429
+      policy: redis
+      redis_host: valkey
+      allow_degradation: true
+    openid-connect:
+      discovery: http://keycloak:8080/realms/ecommerce/.well-known/openid-configuration
+      client_id: apisix-gateway
+      client_secret: $ENV://KEYCLOAK_GATEWAY_SECRET
+      bearer_only: true
+      use_jwks: true
+      set_userinfo_header: false
+- id: media
+  uris:
+  - /api/ecommerce/media*
+  upstream_id: media
+  plugins:
+    limit-count:
+      count: 300
+      time_window: 60
+      key: remote_addr
+      rejected_code: 429
+      policy: redis
+      redis_host: valkey
+      allow_degradation: true
+- id: product
+  uris:
+  - /api/ecommerce/products*
+  upstream_id: product
+  plugins:
+    limit-count:
+      count: 300
+      time_window: 60
+      key: remote_addr
+      rejected_code: 429
+      policy: redis
+      redis_host: valkey
+      allow_degradation: true
+- id: payment
+  uris:
+  - /api/ecommerce/payment*
+  upstream_id: payment
+  plugins:
+    limit-count:
+      count: 300
+      time_window: 60
+      key: remote_addr
+      rejected_code: 429
+      policy: redis
+      redis_host: valkey
+      allow_degradation: true
+- id: promotion
+  uris:
+  - /api/ecommerce/promotions*
+  upstream_id: promotion
+  plugins:
+    limit-count:
+      count: 300
+      time_window: 60
+      key: remote_addr
+      rejected_code: 429
+      policy: redis
+      redis_host: valkey
+      allow_degradation: true
+- id: search
+  uris:
+  - /api/ecommerce/search*
+  upstream_id: search
+  plugins:
+    limit-count:
+      count: 300
+      time_window: 60
+      key: remote_addr
+      rejected_code: 429
+      policy: redis
+      redis_host: valkey
+      allow_degradation: true
+- id: supplier
+  uris:
+  - /api/ecommerce/suppliers*
+  upstream_id: supplier
+  plugins:
+    limit-count:
+      count: 300
+      time_window: 60
+      key: remote_addr
+      rejected_code: 429
+      policy: redis
+      redis_host: valkey
+      allow_degradation: true
+- id: shipping
+  uris:
+  - /api/ecommerce/shipping*
+  upstream_id: shipping
+  plugins:
+    limit-count:
+      count: 300
+      time_window: 60
+      key: remote_addr
+      rejected_code: 429
+      policy: redis
+      redis_host: valkey
+      allow_degradation: true
+- id: translate
+  uris:
+  - /api/ecommerce/translate*
+  upstream_id: translate
+  plugins:
+    limit-count:
+      count: 60
+      time_window: 60
+      key: remote_addr
+      rejected_code: 429
+      policy: redis
+      redis_host: valkey
+      allow_degradation: true
+- id: tax
+  uris:
+  - /api/ecommerce/tax*
+  upstream_id: tax
+  plugins:
+    limit-count:
+      count: 300
+      time_window: 60
+      key: remote_addr
+      rejected_code: 429
+      policy: redis
+      redis_host: valkey
+      allow_degradation: true
+- id: webhook
+  uris:
+  - /api/ecommerce/webhooks*
+  upstream_id: webhook
+  plugins:
+    limit-count:
+      count: 300
+      time_window: 60
+      key: remote_addr
+      rejected_code: 429
+      policy: redis
+      redis_host: valkey
+      allow_degradation: true
+    openid-connect:
+      discovery: http://keycloak:8080/realms/ecommerce/.well-known/openid-configuration
+      client_id: apisix-gateway
+      client_secret: $ENV://KEYCLOAK_GATEWAY_SECRET
+      bearer_only: true
+      use_jwks: true
+      set_userinfo_header: false
+- id: chatbot
+  uris:
+  - /api/ecommerce/chatbot*
+  upstream_id: chatbot
+  plugins:
+    limit-count:
+      count: 20
+      time_window: 60
+      key: remote_addr
+      rejected_code: 429
+      policy: redis
+      redis_host: valkey
+      allow_degradation: true
+- id: graphql
+  uris:
+  - /graphql
+  upstream_id: graphql
+  plugins:
+    limit-count:
+      count: 300
+      time_window: 60
+      key: remote_addr
+      rejected_code: 429
+      policy: redis
+      redis_host: valkey
+      allow_degradation: true
+  enable_websocket: true
+- id: graphql-admin
+  uris:
+  - /admin/graphql
+  upstream_id: graphql-admin
+  plugins:
+    limit-count:
+      count: 600
+      time_window: 60
+      key: remote_addr
+      rejected_code: 429
+      policy: redis
+      redis_host: valkey
+      allow_degradation: true
+    proxy-rewrite:
+      uri: /graphql
+  enable_websocket: true
+upstreams:
+- id: cart
+  type: roundrobin
+  scheme: http
+  nodes:
+    cart-service:5002: 1
+  timeout:
+    connect: 3
+    send: 30
+    read: 30
+- id: inventory
+  type: roundrobin
+  scheme: http
+  nodes:
+    inventory-service:5014: 1
+  timeout:
+    connect: 3
+    send: 30
+    read: 30
+- id: flash-sale
+  type: roundrobin
+  scheme: http
+  nodes:
+    inventory-service:5014: 1
+  timeout:
+    connect: 3
+    send: 30
+    read: 30
+- id: order
+  type: roundrobin
+  scheme: http
+  nodes:
+    order-service:5006: 1
+  timeout:
+    connect: 3
+    send: 30
+    read: 30
+- id: media
+  type: roundrobin
+  scheme: http
+  nodes:
+    media-service:5007: 1
+  timeout:
+    connect: 3
+    send: 30
+    read: 30
+- id: product
+  type: roundrobin
+  scheme: http
+  nodes:
+    product-service:5008: 1
+  timeout:
+    connect: 3
+    send: 30
+    read: 30
+- id: payment
+  type: roundrobin
+  scheme: http
+  nodes:
+    payment-service:5018: 1
+  timeout:
+    connect: 3
+    send: 30
+    read: 30
+- id: promotion
+  type: roundrobin
+  scheme: http
+  nodes:
+    promotion-service:5009: 1
+  timeout:
+    connect: 3
+    send: 30
+    read: 30
+- id: search
+  type: roundrobin
+  scheme: http
+  nodes:
+    search-service:5013: 1
+  timeout:
+    connect: 3
+    send: 30
+    read: 30
+- id: supplier
+  type: roundrobin
+  scheme: http
+  nodes:
+    supplier-service:5019: 1
+  timeout:
+    connect: 3
+    send: 30
+    read: 30
+- id: shipping
+  type: roundrobin
+  scheme: http
+  nodes:
+    shipping-service:5016: 1
+  timeout:
+    connect: 3
+    send: 30
+    read: 30
+- id: translate
+  type: roundrobin
+  scheme: http
+  nodes:
+    translate-service:5017: 1
+  timeout:
+    connect: 3
+    send: 30
+    read: 30
+- id: tax
+  type: roundrobin
+  scheme: http
+  nodes:
+    tax-service:5022: 1
+  timeout:
+    connect: 3
+    send: 30
+    read: 30
+- id: webhook
+  type: roundrobin
+  scheme: http
+  nodes:
+    webhook-service:5023: 1
+  timeout:
+    connect: 3
+    send: 30
+    read: 30
+- id: chatbot
+  type: roundrobin
+  scheme: http
+  nodes:
+    chatbot-service:5024: 1
+  timeout:
+    connect: 3
+    send: 30
+    read: 30
+- id: graphql
+  type: roundrobin
+  scheme: http
+  nodes:
+    graphql-router:4000: 1
+  timeout:
+    connect: 3
+    send: 3600
+    read: 3600
+- id: graphql-admin
+  type: roundrobin
+  scheme: http
+  nodes:
+    graphql-router-backoffice:4000: 1
+  timeout:
+    connect: 3
+    send: 3600
+    read: 3600
+#END

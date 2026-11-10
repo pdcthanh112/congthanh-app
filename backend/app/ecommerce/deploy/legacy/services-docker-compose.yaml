@@ -1,0 +1,257 @@
+# version: '3'
+services:
+  nginx:
+    image: nginx:1.27.2
+    container_name: nginx
+    restart: unless-stopped
+    # volumes:
+    #   - ./nginx/templates:/etc/nginx/templates
+    #   - ./nginx/configuration/custom_proxy_settings.conf:/etc/nginx/conf.d/custom_proxy_settings.conf
+    ports:
+      - "80:80"
+    networks:
+      - congthanhapp-network
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.0.2
+    container_name: keycloak
+    command: "start-dev --import-realm"
+    environment:
+      KC_BOOTSTRAP_ADMIN_USERNAME: admin
+      KC_BOOTSTRAP_ADMIN_PASSWORD: admin
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://postgres:5432/keycloak
+      KC_DB_USERNAME: admin
+      KC_DB_PASSWORD: admin
+      KC_HTTP_PORT: 80
+    # volumes:
+    #   - ./identity/realm-export.json:/opt/keycloak/data/import/realm-export.json
+    #   - ./identity/themes/yas/theme:/opt/keycloak/themes
+    networks:
+      - congthanhapp-network
+
+  postgres:
+    container_name: postgres_container
+    image: postgres:latest
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-123456}
+      PGDATA: /data/postgres
+    # volumes:
+    #   - postgres:/data/postgres
+    ports:
+      - "5432:5432"
+    networks:
+      - congthanhapp-network
+    restart: unless-stopped
+
+
+  pgadmin:
+    container_name: pgadmin_container
+    image: dpage/pgadmin4
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_DEFAULT_EMAIL:-pgadmin4@pgadmin.org}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_DEFAULT_PASSWORD:-admin}
+      PGADMIN_CONFIG_SERVER_MODE: "False"
+    # volumes:
+    #   - pgadmin:/var/lib/pgadmin
+    ports:
+      - "${PGADMIN_PORT:-5050}:80"
+    networks:
+      - congthanhapp-network
+    restart: unless-stopped
+
+  zookeeper:
+    image: confluentinc/cp-zookeeper:latest
+    container_name: zookeeper
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    ports:
+      - "2181:2181"
+
+  kafka:
+    image: confluentinc/cp-kafka:latest
+    container_name: kafka
+    depends_on:
+      - zookeeper
+    ports:
+      - "9092:9092"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+
+
+  rabbitmq:
+    image: rabbitmq:3.12-management
+    container_name: rabbitmq
+    hostname: rabbitmq
+    ports:
+      - "5672:5672" # AMQP protocol port
+      - "15672:15672" # Management UI port
+    environment:
+      - RABBITMQ_DEFAULT_USER=congthanh
+      - RABBITMQ_DEFAULT_PASS=123456
+      - RABBITMQ_SERVER_ADDITIONAL_ERL_ARGS=-rabbit disk_free_limit 2147483648 # 2GB
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+      - rabbitmq_log:/var/log/rabbitmq
+    networks:
+      - congthanhapp-network
+    healthcheck:
+      test: ["CMD", "rabbitmqctl", "status"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+    restart: unless-stopped
+
+  prometheus:
+    container_name: prometheus
+    image: prom/prometheus:latest
+    restart: unless-stopped
+    ports:
+      - "9090:9090"
+    # volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+    # depends_on:
+      # - product-service
+      # - order-service
+      # - inventory-service
+      # - notification-service
+    networks:
+      - congthanhapp-network
+  
+  grafana:
+    container_name: grafana
+    image: grafana/grafana-oss:latest
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    links:
+      - prometheus:prometheus
+    # volumes:
+    #   - ./grafana_data:/var/lib/grafana
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=password
+    networks:
+      - congthanhapp-network
+
+  elasticsearch:
+    image: elasticsearch:8.16.1
+    container_name: elasticsearch
+    environment:
+      - discovery.type=single-node
+      - ES_JAVA_OPTS=-Xms512m -Xmx512m
+      - xpack.security.enabled=false
+    ports:
+      - "9200:9200"
+      - "9300:9300"
+    volumes:
+      - esdata:/usr/share/elasticsearch/data
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "curl --silent --fail localhost:9200/_cluster/health || exit 1",
+        ]
+      interval: 10s
+      timeout: 10s
+      retries: 3
+    networks:
+      - congthanhapp-network
+  logstash:
+    image: logstash:8.16.1
+    container_name: logstash
+    environment:
+      discovery.seed_hosts: logstash
+      LS_JAVA_OPTS: "-Xms512m -Xmx512m"
+    volumes:
+      - ./logstash.conf:/usr/share/logstash/pipeline/logstash.conf
+    ports:
+      - "5000:5000/tcp"
+      - "5000:5000/udp"
+      - "5044:5044"
+      - "9600:9600"
+    depends_on:
+      - elasticsearch
+    networks:
+      - congthanhapp-network
+    # command: logstash -f /usr/share/logstash/pipeline/logstash-nginx.config
+  
+  kibana:
+    image: kibana:8.16.1
+    container_name: kibana
+    ports:
+      - "5601:5601"
+    depends_on:
+      - elasticsearch
+    networks:
+      - congthanhapp-network
+    environment:
+      ELASTICSEARCH_URL: http://elasticsearch:9200
+
+  axonserver:
+    image: axoniq/axonserver
+    container_name: axonserver
+    hostname: axonserver
+    # volumes:
+    #   - axonserver-data:/data
+    #   - axonserver-events:/eventdata
+    #   - axonserver-config:/config:ro
+    ports:
+      - "8024:8024"
+      - "8124:8124"
+      - "8224:8224"
+    networks:
+      - congthanhapp-network
+
+  redis:
+    image: redis:7.4.1-alpine
+    container_name: redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    environment:
+      - SPRING_DATA_REDIS_HOST
+      - SPRING_DATA_REDIS_PORT
+    # volumes:
+    #   - redis:/data
+    networks:
+      - congthanhapp-network
+
+  # product-service:
+  #   build: ./product-service
+  #   networks:
+  #     - app-network
+  #   depends_on:
+  #     - axonserver
+  # shipping-service:
+  #   build: ./shipping-service
+  #   networks:
+  #     - app-network
+  #   depends_on:
+  #     - axonserver
+
+volumes:
+  postgres:
+  pgadmin:
+  axonserver-data:
+  axonserver-events:
+  axonserver-config:
+  rabbitmq_data:
+  rabbitmq_log:
+  esdata:
+  redis:
+
+networks:
+  congthanhapp-network:
+    driver: bridge
+    name: app-network
+  # elk:
+  #   driver: bridge
+

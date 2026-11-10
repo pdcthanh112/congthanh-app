@@ -1,0 +1,22 @@
+{
+  "name": "checkout-service-outbox",
+  "config": {
+    "connector.class": "io.debezium.connector.postgresql.PostgresConnector",
+    "database.hostname": "postgres",
+    "database.port": "5432",
+    "database.user": "ecom",
+    "database.password": "${file:/secrets/db.properties:password}",
+    "database.dbname": "checkout_db",
+    "topic.prefix": "checkout",
+    "plugin.name": "pgoutput",
+    "slot.name": "checkout_outbox_slot",
+    "table.include.list": "public.outbox",
+    "transforms": "outbox",
+    "transforms.outbox.type": "io.debezium.transforms.outbox.EventRouter",
+    "transforms.outbox.route.by.field": "type",
+    "transforms.outbox.route.topic.replacement": "${routedByValue}",
+    "transforms.outbox.table.field.event.key": "aggregateid",
+    "value.converter": "io.debezium.converters.BinaryDataConverter",
+    "tombstones.on.delete": "false"
+  }
+}

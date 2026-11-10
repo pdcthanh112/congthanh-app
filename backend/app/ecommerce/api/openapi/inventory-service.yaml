@@ -1,0 +1,855 @@
+openapi: 3.1.0
+info:
+  title: inventory-service
+  version: 1.0.0
+  description: Tồn kho, kho hàng, giữ chỗ (saga) và flash sale.
+servers:
+- url: https://api.congthanh.vn
+- url: http://localhost:9080
+security:
+- keycloak: []
+paths:
+  /api/ecommerce/inventory/{sku}:
+    get:
+      summary: Tồn kho theo SKU (mọi kho)
+      tags:
+      - inventory
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  data:
+                    type: object
+                  status:
+                    type: string
+                    enum:
+                    - Success
+                    - Failed
+                  errorCode:
+                    type: integer
+        '400':
+          $ref: '#/components/responses/Error'
+        '404':
+          $ref: '#/components/responses/Error'
+      parameters:
+      - name: sku
+        in: path
+        required: true
+        schema:
+          type: string
+      security: []
+    put:
+      summary: Đặt số lượng tồn của SKU
+      tags:
+      - inventory
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  data:
+                    $ref: '#/components/schemas/Stock'
+                  status:
+                    type: string
+                    enum:
+                    - Success
+                    - Failed
+                  errorCode:
+                    type: integer
+        '400':
+          $ref: '#/components/responses/Error'
+        '404':
+          $ref: '#/components/responses/Error'
+      parameters:
+      - name: sku
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: quantity
+        in: query
+        required: true
+        schema:
+          type: integer
+      - name: warehouseId
+        in: query
+        required: false
+        schema:
+          type: string
+    delete:
+      summary: Xoá SKU (khi không còn reservation)
+      tags:
+      - inventory
+      responses:
+        '204':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  data:
+                    nullable: true
+                  status:
+                    type: string
+                    enum:
+                    - Success
+                    - Failed
+                  errorCode:
+                    type: integer
+        '400':
+          $ref: '#/components/responses/Error'
+        '404':
+          $ref: '#/components/responses/Error'
+      parameters:
+      - name: sku
+        in: path
+        required: true
+        schema:
+          type: string
+  /api/ecommerce/inventory/{sku}/in-stock:
+    get:
+      summary: Còn đủ hàng?
+      tags:
+      - inventory
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  data:
+                    type: boolean
+                  status:
+                    type: string
+                    enum:
+                    - Success
+                    - Failed
+                  errorCode:
+                    type: integer
+        '400':
+          $ref: '#/components/responses/Error'
+        '404':
+          $ref: '#/components/responses/Error'
+      parameters:
+      - name: sku
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: quantity
+        in: query
+        required: true
+        schema:
+          type: integer
+      security: []
+  /api/ecommerce/inventory/availability:
+    post:
+      summary: Kiểm tra nhiều sản phẩm
+      tags:
+      - inventory
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  data:
+                    type: array
+                    items:
+                      type: object
+                  status:
+                    type: string
+                    enum:
+                    - Success
+                    - Failed
+                  errorCode:
+                    type: integer
+        '400':
+          $ref: '#/components/responses/Error'
+        '404':
+          $ref: '#/components/responses/Error'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                items:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/Item'
+                warehouseId:
+                  type: string
+      security: []
+  /api/ecommerce/inventory/levels:
+    get:
+      summary: Mức tồn kho
+      tags:
+      - inventory
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  data:
+                    type: array
+                    items:
+                      type: object
+                  status:
+                    type: string
+                    enum:
+                    - Success
+                    - Failed
+                  errorCode:
+                    type: integer
+        '400':
+          $ref: '#/components/responses/Error'
+        '404':
+          $ref: '#/components/responses/Error'
+      parameters:
+      - name: productIds
+        in: query
+        required: true
+        schema:
+          type: string
+      - name: warehouseId
+        in: query
+        required: false
+        schema:
+          type: string
+      security: []
+  /api/ecommerce/inventory/:
+    post:
+      summary: Tạo/cập nhật dòng tồn kho
+      tags:
+      - inventory
+      responses:
+        '201':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  data:
+                    $ref: '#/components/schemas/Stock'
+                  status:
+                    type: string
+                    enum:
+                    - Success
+                    - Failed
+                  errorCode:
+                    type: integer
+        '400':
+          $ref: '#/components/responses/Error'
+        '404':
+          $ref: '#/components/responses/Error'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+  /api/ecommerce/inventory/adjust:
+    post:
+      summary: Điều chỉnh tồn (nhập, hỏng, kiểm kê)
+      tags:
+      - inventory
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  data:
+                    type: object
+                  status:
+                    type: string
+                    enum:
+                    - Success
+                    - Failed
+                  errorCode:
+                    type: integer
+        '400':
+          $ref: '#/components/responses/Error'
+        '404':
+          $ref: '#/components/responses/Error'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+  /api/ecommerce/inventory/reserve:
+    post:
+      summary: Giữ hàng (all-or-nothing, idempotent theo reservationId)
+      tags:
+      - reservation
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  data:
+                    $ref: '#/components/schemas/ReserveResult'
+                  status:
+                    type: string
+                    enum:
+                    - Success
+                    - Failed
+                  errorCode:
+                    type: integer
+        '400':
+          $ref: '#/components/responses/Error'
+        '404':
+          $ref: '#/components/responses/Error'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                reservationId:
+                  type: string
+                customerId:
+                  type: string
+                reservationType:
+                  type: string
+                items:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/Item'
+  /api/ecommerce/inventory/release:
+    post:
+      summary: Trả hàng đã giữ
+      tags:
+      - reservation
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  data:
+                    type: object
+                  status:
+                    type: string
+                    enum:
+                    - Success
+                    - Failed
+                  errorCode:
+                    type: integer
+        '400':
+          $ref: '#/components/responses/Error'
+        '404':
+          $ref: '#/components/responses/Error'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+  /api/ecommerce/inventory/commit:
+    post:
+      summary: Chốt hàng đã giữ
+      tags:
+      - reservation
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  data:
+                    type: object
+                  status:
+                    type: string
+                    enum:
+                    - Success
+                    - Failed
+                  errorCode:
+                    type: integer
+        '400':
+          $ref: '#/components/responses/Error'
+        '404':
+          $ref: '#/components/responses/Error'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+  /api/ecommerce/flash-sales/{saleId}/products/{productId}/start:
+    post:
+      summary: Mở flash sale (giữ hàng + nạp Valkey)
+      tags:
+      - flash-sale
+      responses:
+        '201':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  data:
+                    $ref: '#/components/schemas/ReserveResult'
+                  status:
+                    type: string
+                    enum:
+                    - Success
+                    - Failed
+                  errorCode:
+                    type: integer
+        '400':
+          $ref: '#/components/responses/Error'
+        '404':
+          $ref: '#/components/responses/Error'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                quantity:
+                  type: integer
+                perCustomerLimit:
+                  type: integer
+                endsAt:
+                  type: string
+                  format: date-time
+      parameters:
+      - name: saleId
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: productId
+        in: path
+        required: true
+        schema:
+          type: string
+  /api/ecommerce/flash-sales/{saleId}/products/{productId}/claim:
+    post:
+      summary: Giành hàng flash sale (khách lấy từ JWT)
+      tags:
+      - flash-sale
+      responses:
+        '202':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  data:
+                    $ref: '#/components/schemas/FlashSaleClaim'
+                  status:
+                    type: string
+                    enum:
+                    - Success
+                    - Failed
+                  errorCode:
+                    type: integer
+        '400':
+          $ref: '#/components/responses/Error'
+        '404':
+          $ref: '#/components/responses/Error'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                quantity:
+                  type: integer
+      parameters:
+      - name: saleId
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: productId
+        in: path
+        required: true
+        schema:
+          type: string
+  /api/ecommerce/flash-sales/{saleId}/products/{productId}/end:
+    post:
+      summary: Đóng flash sale, đối soát
+      tags:
+      - flash-sale
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  data:
+                    type: object
+                  status:
+                    type: string
+                    enum:
+                    - Success
+                    - Failed
+                  errorCode:
+                    type: integer
+        '400':
+          $ref: '#/components/responses/Error'
+        '404':
+          $ref: '#/components/responses/Error'
+      parameters:
+      - name: saleId
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: productId
+        in: path
+        required: true
+        schema:
+          type: string
+  /api/ecommerce/warehouses/:
+    get:
+      summary: Danh sách kho
+      tags:
+      - warehouse
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Warehouse'
+                  status:
+                    type: string
+                    enum:
+                    - Success
+                    - Failed
+                  errorCode:
+                    type: integer
+        '400':
+          $ref: '#/components/responses/Error'
+        '404':
+          $ref: '#/components/responses/Error'
+      security: []
+    post:
+      summary: Tạo kho
+      tags:
+      - warehouse
+      responses:
+        '201':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  data:
+                    $ref: '#/components/schemas/Warehouse'
+                  status:
+                    type: string
+                    enum:
+                    - Success
+                    - Failed
+                  errorCode:
+                    type: integer
+        '400':
+          $ref: '#/components/responses/Error'
+        '404':
+          $ref: '#/components/responses/Error'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Warehouse'
+  /api/ecommerce/warehouses/{id}:
+    get:
+      summary: Chi tiết kho
+      tags:
+      - warehouse
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  data:
+                    $ref: '#/components/schemas/Warehouse'
+                  status:
+                    type: string
+                    enum:
+                    - Success
+                    - Failed
+                  errorCode:
+                    type: integer
+        '400':
+          $ref: '#/components/responses/Error'
+        '404':
+          $ref: '#/components/responses/Error'
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+      security: []
+    put:
+      summary: Sửa kho
+      tags:
+      - warehouse
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  data:
+                    $ref: '#/components/schemas/Warehouse'
+                  status:
+                    type: string
+                    enum:
+                    - Success
+                    - Failed
+                  errorCode:
+                    type: integer
+        '400':
+          $ref: '#/components/responses/Error'
+        '404':
+          $ref: '#/components/responses/Error'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Warehouse'
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+    delete:
+      summary: Xoá kho (khi hết tồn)
+      tags:
+      - warehouse
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  data:
+                    nullable: true
+                  status:
+                    type: string
+                    enum:
+                    - Success
+                    - Failed
+                  errorCode:
+                    type: integer
+        '400':
+          $ref: '#/components/responses/Error'
+        '404':
+          $ref: '#/components/responses/Error'
+      parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+components:
+  securitySchemes:
+    keycloak:
+      type: openIdConnect
+      openIdConnectUrl: https://auth.congthanh.vn/realms/ecommerce/.well-known/openid-configuration
+  responses:
+    Error:
+      description: Lỗi
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              message:
+                type: string
+              data:
+                nullable: true
+              status:
+                type: string
+                enum:
+                - Success
+                - Failed
+              errorCode:
+                type: integer
+  schemas:
+    Item:
+      type: object
+      required:
+      - productId
+      - quantity
+      properties:
+        productId:
+          type: string
+        quantity:
+          type: integer
+          minimum: 1
+    Stock:
+      type: object
+      properties:
+        id:
+          type: integer
+        productId:
+          type: string
+        sku:
+          type: string
+        warehouseId:
+          type: string
+        warehouseName:
+          type: string
+        quantity:
+          type: integer
+        reserved:
+          type: integer
+        inTransit:
+          type: integer
+        reorderPoint:
+          type: integer
+        discontinued:
+          type: boolean
+    ReserveResult:
+      type: object
+      properties:
+        success:
+          type: boolean
+        reservationId:
+          type: string
+        message:
+          type: string
+        results:
+          type: array
+          items:
+            type: object
+            properties:
+              productId:
+                type: string
+              requestedQuantity:
+                type: integer
+              reservedQuantity:
+                type: integer
+              warehouseId:
+                type: string
+              errorMessage:
+                type: string
+        reservedAt:
+          type: string
+          format: date-time
+        expiresAt:
+          type: string
+          format: date-time
+    Warehouse:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        location:
+          type: string
+        address:
+          type: string
+        isActive:
+          type: boolean
+    FlashSaleClaim:
+      type: object
+      properties:
+        claimId:
+          type: string
+        saleId:
+          type: string
+        productId:
+          type: string
+        quantity:
+          type: integer
+        remaining:
+          type: integer

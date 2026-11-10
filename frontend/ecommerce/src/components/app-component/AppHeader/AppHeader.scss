@@ -1,0 +1,10 @@
+.sub-item-link {
+  opacity: 0.8;
+
+  &:hover {
+    opacity: 0.9;
+    cursor: pointer;
+    text-decoration: underline;
+    color: #3399FF;
+  }
+}

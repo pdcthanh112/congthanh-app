@@ -1,0 +1,103 @@
+# SINH TỪ realms/ecommerce-realm.json (bỏ user mẫu và client dev-cli chỉ dành cho local).
+apiVersion: k8s.keycloak.org/v2alpha1
+kind: KeycloakRealmImport
+metadata:
+  name: ecommerce
+spec:
+  realm:
+    realm: ecommerce
+    enabled: true
+    displayName: CongThanh E-commerce
+    sslRequired: external
+    registrationAllowed: true
+    loginWithEmailAllowed: true
+    resetPasswordAllowed: true
+    verifyEmail: true
+    bruteForceProtected: true
+    accessTokenLifespan: 300
+    ssoSessionIdleTimeout: 1800
+    ssoSessionMaxLifespan: 36000
+    roles:
+      realm:
+      - name: CUSTOMER
+        description: Khách mua hàng
+      - name: SELLER
+        description: Người bán
+      - name: ADMIN
+        description: Quản trị backoffice
+      - name: SUPPORT
+        description: Chăm sóc khách hàng
+    defaultRoles:
+    - CUSTOMER
+    clientScopes:
+    - name: roles-claim
+      protocol: openid-connect
+      attributes:
+        include.in.token.scope: 'false'
+      protocolMappers:
+      - name: realm roles
+        protocol: openid-connect
+        protocolMapper: oidc-usermodel-realm-role-mapper
+        config:
+          claim.name: roles
+          jsonType.label: String
+          multivalued: 'true'
+          access.token.claim: 'true'
+          id.token.claim: 'false'
+          userinfo.token.claim: 'true'
+    clients:
+    - clientId: apisix-gateway
+      name: API gateway (bearer only)
+      enabled: true
+      publicClient: false
+      secret: ${KEYCLOAK_GATEWAY_SECRET}
+      standardFlowEnabled: false
+      serviceAccountsEnabled: false
+      directAccessGrantsEnabled: false
+      defaultClientScopes:
+      - roles-claim
+    - clientId: storefront-web
+      name: Storefront (Next.js)
+      enabled: true
+      publicClient: true
+      standardFlowEnabled: true
+      directAccessGrantsEnabled: false
+      redirectUris:
+      - http://localhost:3000/*
+      - https://shop.congthanh.vn/*
+      webOrigins:
+      - +
+      attributes:
+        pkce.code.challenge.method: S256
+        post.logout.redirect.uris: +
+      defaultClientScopes:
+      - roles-claim
+      - profile
+      - email
+    - clientId: backoffice-web
+      name: Backoffice
+      enabled: true
+      publicClient: true
+      standardFlowEnabled: true
+      directAccessGrantsEnabled: false
+      redirectUris:
+      - http://localhost:3001/*
+      - https://admin.congthanh.vn/*
+      webOrigins:
+      - +
+      attributes:
+        pkce.code.challenge.method: S256
+        post.logout.redirect.uris: +
+      defaultClientScopes:
+      - roles-claim
+      - profile
+      - email
+    - clientId: order-service
+      name: Service account (client credentials) cho saga
+      enabled: true
+      publicClient: false
+      secret: ${ORDER_SERVICE_CLIENT_SECRET}
+      standardFlowEnabled: false
+      serviceAccountsEnabled: true
+      defaultClientScopes:
+      - roles-claim

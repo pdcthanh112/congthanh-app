@@ -1,0 +1,9 @@
+version: 2
+updates:
+  - {package-ecosystem: gomod, directories: ["/backend/app/ecommerce/libs/go/*", "/backend/app/ecommerce/services/cart-service", "/backend/app/ecommerce/services/inventory-service"], schedule: {interval: weekly}, groups: {go-deps: {patterns: ["*"]}}}
+  - {package-ecosystem: gradle, directory: "/backend/app/ecommerce", schedule: {interval: weekly}, groups: {spring: {patterns: ["org.springframework*"]}}}
+  # npm workspaces (NestJS + BFF); cooldown 14 ngày: chỉ nhận bản phát hành đã ra ít nhất 2 tuần.
+  - {package-ecosystem: npm, directory: "/backend/app/ecommerce", schedule: {interval: weekly}, cooldown: {default-days: 14}, groups: {nestjs: {patterns: ["@nestjs/*"]}, ts-deps: {patterns: ["*"], exclude-patterns: ["@nestjs/*"]}}}
+  - {package-ecosystem: github-actions, directory: "/", schedule: {interval: weekly}}
+  - {package-ecosystem: terraform, directories: ["/backend/app/ecommerce/infra/terraform/envs/*"], schedule: {interval: monthly}}
+  - {package-ecosystem: docker, directories: ["/backend/app/ecommerce/services/*", "/backend/app/ecommerce/services", "/backend/app/ecommerce/platform/graphql/router"], schedule: {interval: weekly}}

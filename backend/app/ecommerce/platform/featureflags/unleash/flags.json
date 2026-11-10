@@ -1,0 +1,26 @@
+{
+  "version": 1,
+  "features": [
+    {
+      "name": "inventory.flash-sale.claim",
+      "description": "Kill switch cho endpoint giành hàng flash sale (inventory-service).",
+      "type": "kill-switch",
+      "enabled": true,
+      "strategies": [{"name": "default"}]
+    },
+    {
+      "name": "checkout.temporal-saga",
+      "description": "Chuyển checkout từ Axon sang Temporal saga (đợt 2), bật dần theo % khách.",
+      "type": "release",
+      "enabled": false,
+      "strategies": [{"name": "flexibleRollout", "parameters": {"rollout": "0", "stickiness": "userId", "groupId": "checkout"}}]
+    },
+    {
+      "name": "storefront.graphql-federation",
+      "description": "Storefront gọi supergraph GraphQL thay vì REST (giai đoạn 3).",
+      "type": "release",
+      "enabled": false,
+      "strategies": [{"name": "default"}]
+    }
+  ]
+}

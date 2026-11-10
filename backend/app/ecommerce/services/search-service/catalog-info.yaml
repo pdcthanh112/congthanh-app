@@ -1,0 +1,24 @@
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: search-service
+  description: Tìm kiếm và gợi ý sản phẩm (OpenSearch)
+  tags:
+  - go
+  annotations:
+    github.com/project-slug: pdcthanh112/CongThanhApp
+    backstage.io/source-location: url:https://github.com/pdcthanh112/CongThanhApp/tree/main/backend/app/ecommerce/services/search-service
+    argocd/app-selector: app.kubernetes.io/name=search-service
+    grafana/dashboard-selector: tags @> 'search-service'
+    backstage.io/techdocs-ref: dir:../../docs
+spec:
+  type: service
+  lifecycle: production
+  owner: team-ecommerce
+  system: ecommerce
+  providesApis:
+  - search-api-grpc
+  - search-api-rest
+  dependsOn:
+  - resource:ecom-kafka
+  - resource:ecom-opensearch

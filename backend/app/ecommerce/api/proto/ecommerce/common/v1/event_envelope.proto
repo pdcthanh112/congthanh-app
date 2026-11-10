@@ -1,0 +1,28 @@
+syntax = "proto3";
+
+package ecommerce.common.v1;
+
+import "google/protobuf/any.proto";
+import "google/protobuf/timestamp.proto";
+
+option java_multiple_files = true;
+option java_package = "com.congthanh.ecom.common.v1";
+
+// Phong bì chung cho mọi event trên Kafka (theo tinh thần CloudEvents).
+// Service ghi event vào bảng outbox trong cùng transaction với dữ liệu nghiệp vụ;
+// Debezium (Outbox Event Router) đọc bảng outbox và đẩy lên Kafka.
+message EventEnvelope {
+  // ID duy nhất, consumer dùng để chống xử lý trùng (idempotent consumer).
+  string id = 1;
+  // Kiểu event, ví dụ "ecommerce.inventory.v1.InventoryReserved".
+  string type = 2;
+  // Service phát event, ví dụ "inventory-service".
+  string source = 3;
+  // Aggregate mà event thuộc về; cũng là Kafka message key để giữ thứ tự.
+  string aggregate_type = 4;
+  string aggregate_id = 5;
+  google.protobuf.Timestamp occurred_at = 6;
+  // W3C traceparent để nối trace qua Kafka.
+  string traceparent = 7;
+  google.protobuf.Any payload = 8;
+}

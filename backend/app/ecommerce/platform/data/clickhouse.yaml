@@ -1,0 +1,47 @@
+# ClickHouse: kho phân tích (OLAP) — đọc thẳng event từ Kafka bằng Kafka table engine.
+# Dashboard doanh thu, phễu chuyển đổi, hiệu quả flash sale.
+apiVersion: clickhouse.altinity.com/v1
+kind: ClickHouseInstallation
+metadata:
+  name: analytics
+  namespace: data
+spec:
+  configuration:
+    clusters:
+      - name: main
+        layout: {shardsCount: 2, replicasCount: 2}
+    zookeeper:
+      nodes: [{host: clickhouse-keeper.data.svc.cluster.local, port: 2181}]
+  defaults:
+    templates: {dataVolumeClaimTemplate: data}
+  templates:
+    volumeClaimTemplates:
+      - name: data
+        spec: {accessModes: [ReadWriteOnce], resources: {requests: {storage: 500Gi}}, storageClassName: gp3}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: clickhouse-schema
+  namespace: data
+data:
+  001_events.sql: |
+    -- Event thô từ Kafka (protobuf EventEnvelope), giải mã bằng format Protobuf + schema đăng ký sẵn.
+    CREATE TABLE IF NOT EXISTS kafka_order_events ON CLUSTER main
+    (
+      event_id String, type String, aggregate_id String, occurred_at DateTime64(3), payload String
+    ) ENGINE = Kafka
+    SETTINGS kafka_broker_list = 'ecom-kafka-bootstrap.messaging:9092',
+             kafka_topic_list = 'ecom.order.events',
+             kafka_group_name = 'clickhouse-analytics',
+             kafka_format = 'ProtobufSingle',
+             kafka_schema = 'event_envelope.proto:EventEnvelope';
+
+    CREATE TABLE IF NOT EXISTS order_events ON CLUSTER main
+    (
+      event_id String, type LowCardinality(String), aggregate_id String, occurred_at DateTime64(3), payload String
+    ) ENGINE = ReplicatedReplacingMergeTree
+    PARTITION BY toYYYYMM(occurred_at) ORDER BY (type, occurred_at, event_id);
+
+    CREATE MATERIALIZED VIEW IF NOT EXISTS mv_order_events ON CLUSTER main TO order_events
+    AS SELECT * FROM kafka_order_events;

@@ -1,0 +1,356 @@
+# Topic sự kiện miền (key = aggregate id) + DLQ cho từng topic + topic compact cho CQRS.
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaTopic
+metadata:
+  name: ecom-inventory-events
+  namespace: messaging
+  labels:
+    strimzi.io/cluster: ecom
+spec:
+  topicName: ecom.inventory.events
+  partitions: 12
+  replicas: 3
+  config:
+    retention.ms: 604800000
+    cleanup.policy: delete
+    min.insync.replicas: 2
+---
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaTopic
+metadata:
+  name: ecom-inventory-events-dlq
+  namespace: messaging
+  labels:
+    strimzi.io/cluster: ecom
+spec:
+  topicName: ecom.inventory.events.dlq
+  partitions: 3
+  replicas: 3
+  config:
+    retention.ms: 1209600000
+    cleanup.policy: delete
+---
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaTopic
+metadata:
+  name: ecom-order-events
+  namespace: messaging
+  labels:
+    strimzi.io/cluster: ecom
+spec:
+  topicName: ecom.order.events
+  partitions: 12
+  replicas: 3
+  config:
+    retention.ms: 604800000
+    cleanup.policy: delete
+    min.insync.replicas: 2
+---
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaTopic
+metadata:
+  name: ecom-order-events-dlq
+  namespace: messaging
+  labels:
+    strimzi.io/cluster: ecom
+spec:
+  topicName: ecom.order.events.dlq
+  partitions: 3
+  replicas: 3
+  config:
+    retention.ms: 1209600000
+    cleanup.policy: delete
+---
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaTopic
+metadata:
+  name: ecom-payment-events
+  namespace: messaging
+  labels:
+    strimzi.io/cluster: ecom
+spec:
+  topicName: ecom.payment.events
+  partitions: 6
+  replicas: 3
+  config:
+    retention.ms: 604800000
+    cleanup.policy: delete
+    min.insync.replicas: 2
+---
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaTopic
+metadata:
+  name: ecom-payment-events-dlq
+  namespace: messaging
+  labels:
+    strimzi.io/cluster: ecom
+spec:
+  topicName: ecom.payment.events.dlq
+  partitions: 3
+  replicas: 3
+  config:
+    retention.ms: 1209600000
+    cleanup.policy: delete
+---
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaTopic
+metadata:
+  name: ecom-cart-events
+  namespace: messaging
+  labels:
+    strimzi.io/cluster: ecom
+spec:
+  topicName: ecom.cart.events
+  partitions: 12
+  replicas: 3
+  config:
+    retention.ms: 604800000
+    cleanup.policy: delete
+    min.insync.replicas: 2
+---
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaTopic
+metadata:
+  name: ecom-cart-events-dlq
+  namespace: messaging
+  labels:
+    strimzi.io/cluster: ecom
+spec:
+  topicName: ecom.cart.events.dlq
+  partitions: 3
+  replicas: 3
+  config:
+    retention.ms: 1209600000
+    cleanup.policy: delete
+---
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaTopic
+metadata:
+  name: ecom-product-events
+  namespace: messaging
+  labels:
+    strimzi.io/cluster: ecom
+spec:
+  topicName: ecom.product.events
+  partitions: 6
+  replicas: 3
+  config:
+    retention.ms: 604800000
+    cleanup.policy: delete
+    min.insync.replicas: 2
+---
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaTopic
+metadata:
+  name: ecom-product-events-dlq
+  namespace: messaging
+  labels:
+    strimzi.io/cluster: ecom
+spec:
+  topicName: ecom.product.events.dlq
+  partitions: 3
+  replicas: 3
+  config:
+    retention.ms: 1209600000
+    cleanup.policy: delete
+---
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaTopic
+metadata:
+  name: ecom-promotion-events
+  namespace: messaging
+  labels:
+    strimzi.io/cluster: ecom
+spec:
+  topicName: ecom.promotion.events
+  partitions: 3
+  replicas: 3
+  config:
+    retention.ms: 604800000
+    cleanup.policy: delete
+    min.insync.replicas: 2
+---
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaTopic
+metadata:
+  name: ecom-promotion-events-dlq
+  namespace: messaging
+  labels:
+    strimzi.io/cluster: ecom
+spec:
+  topicName: ecom.promotion.events.dlq
+  partitions: 3
+  replicas: 3
+  config:
+    retention.ms: 1209600000
+    cleanup.policy: delete
+---
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaTopic
+metadata:
+  name: ecom-catalog-events
+  namespace: messaging
+  labels:
+    strimzi.io/cluster: ecom
+spec:
+  topicName: ecom.catalog.events
+  partitions: 3
+  replicas: 3
+  config:
+    retention.ms: 604800000
+    cleanup.policy: delete
+    min.insync.replicas: 2
+---
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaTopic
+metadata:
+  name: ecom-catalog-events-dlq
+  namespace: messaging
+  labels:
+    strimzi.io/cluster: ecom
+spec:
+  topicName: ecom.catalog.events.dlq
+  partitions: 3
+  replicas: 3
+  config:
+    retention.ms: 1209600000
+    cleanup.policy: delete
+---
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaTopic
+metadata:
+  name: ecom-customer-events
+  namespace: messaging
+  labels:
+    strimzi.io/cluster: ecom
+spec:
+  topicName: ecom.customer.events
+  partitions: 6
+  replicas: 3
+  config:
+    retention.ms: 604800000
+    cleanup.policy: delete
+    min.insync.replicas: 2
+---
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaTopic
+metadata:
+  name: ecom-customer-events-dlq
+  namespace: messaging
+  labels:
+    strimzi.io/cluster: ecom
+spec:
+  topicName: ecom.customer.events.dlq
+  partitions: 3
+  replicas: 3
+  config:
+    retention.ms: 1209600000
+    cleanup.policy: delete
+---
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaTopic
+metadata:
+  name: ecom-review-events
+  namespace: messaging
+  labels:
+    strimzi.io/cluster: ecom
+spec:
+  topicName: ecom.review.events
+  partitions: 3
+  replicas: 3
+  config:
+    retention.ms: 604800000
+    cleanup.policy: delete
+    min.insync.replicas: 2
+---
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaTopic
+metadata:
+  name: ecom-review-events-dlq
+  namespace: messaging
+  labels:
+    strimzi.io/cluster: ecom
+spec:
+  topicName: ecom.review.events.dlq
+  partitions: 3
+  replicas: 3
+  config:
+    retention.ms: 1209600000
+    cleanup.policy: delete
+---
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaTopic
+metadata:
+  name: ecom-notification-events
+  namespace: messaging
+  labels:
+    strimzi.io/cluster: ecom
+spec:
+  topicName: ecom.notification.events
+  partitions: 6
+  replicas: 3
+  config:
+    retention.ms: 604800000
+    cleanup.policy: delete
+    min.insync.replicas: 2
+---
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaTopic
+metadata:
+  name: ecom-notification-events-dlq
+  namespace: messaging
+  labels:
+    strimzi.io/cluster: ecom
+spec:
+  topicName: ecom.notification.events.dlq
+  partitions: 3
+  replicas: 3
+  config:
+    retention.ms: 1209600000
+    cleanup.policy: delete
+---
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaTopic
+metadata:
+  name: ecom-shipping-events
+  namespace: messaging
+  labels:
+    strimzi.io/cluster: ecom
+spec:
+  topicName: ecom.shipping.events
+  partitions: 6
+  replicas: 3
+  config:
+    retention.ms: 604800000
+    cleanup.policy: delete
+    min.insync.replicas: 2
+---
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaTopic
+metadata:
+  name: ecom-shipping-events-dlq
+  namespace: messaging
+  labels:
+    strimzi.io/cluster: ecom
+spec:
+  topicName: ecom.shipping.events.dlq
+  partitions: 3
+  replicas: 3
+  config:
+    retention.ms: 1209600000
+    cleanup.policy: delete
+---
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaTopic
+metadata:
+  name: ecom-product-snapshot
+  namespace: messaging
+  labels:
+    strimzi.io/cluster: ecom
+spec:
+  topicName: ecom.product.snapshot
+  partitions: 6
+  replicas: 3
+  config:
+    cleanup.policy: compact
+    min.compaction.lag.ms: 60000

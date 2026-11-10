@@ -1,0 +1,20 @@
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaConnector
+metadata:
+  name: events-to-iceberg
+  namespace: messaging
+  labels:
+    strimzi.io/cluster: debezium
+spec:
+  class: io.tabular.iceberg.connect.IcebergSinkConnector
+  tasksMax: 2
+  config:
+    topics.regex: ecom\.[a-z]+\.events
+    iceberg.tables: lake.events_raw
+    iceberg.tables.auto-create-enabled: 'true'
+    iceberg.catalog.catalog-impl: org.apache.iceberg.aws.glue.GlueCatalog
+    iceberg.catalog.warehouse: s3://congthanhapp-lake/warehouse
+    iceberg.catalog.io-impl: org.apache.iceberg.aws.s3.S3FileIO
+    iceberg.control.commit.interval-ms: '60000'
+    key.converter: org.apache.kafka.connect.storage.StringConverter
+    value.converter: org.apache.kafka.connect.converters.ByteArrayConverter

@@ -1,0 +1,10 @@
+nameOverride: ${{ values.name }}
+runtime: go
+image:
+  repository: ghcr.io/pdcthanh112/congthanhapp/${{ values.name }}
+ports:
+  http: ${{ values.httpPort }}
+  grpc: ${{ values.grpcPort }}
+env: {}
+secretEnv:
+  - {name: DATABASE_URL, key: ecommerce/${{ values.name }}, property: database_url}

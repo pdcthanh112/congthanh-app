@@ -1,0 +1,21 @@
+# chatbot-service: trợ lý mua sắm (FastAPI, SSE). Ghi đè theo môi trường ở values-<env>.yaml.
+nameOverride: chatbot-service
+runtime: python
+image:
+  repository: ghcr.io/pdcthanh112/congthanhapp/chatbot-service
+ports:
+  http: 5024
+env:
+  LLM_PROVIDER: anthropic
+  ANTHROPIC_MODEL: claude-opus-5-5
+  ANTHROPIC_EFFORT: low
+  SEARCH_URL: http://search-service:5013
+  VALKEY_URL: redis://ecom-valkey.data.svc.cluster.local:6379/6
+  JWT_JWKS_URL: http://keycloak-service.identity.svc.cluster.local:8080/realms/ecommerce/protocol/openid-connect/certs
+secretEnv:
+- name: ANTHROPIC_API_KEY
+  key: ecommerce/chatbot-service
+  property: anthropic_api_key
+resources:
+  requests: {cpu: 50m, memory: 128Mi}
+  limits: {memory: 256Mi}

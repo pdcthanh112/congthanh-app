@@ -1,0 +1,23 @@
+syntax = "proto3";
+
+package ecommerce.message.v1;
+
+import "google/protobuf/timestamp.proto";
+
+option java_multiple_files = true;
+option java_package = "com.congthanh.messageservice.grpc";
+
+// Event của message-service (aggregatetype "message" → topic ecom.message.events, key = conversation_id).
+// notification-service báo "tin nhắn mới" cho người nhận (push/in-app), có gom để không spam.
+
+message MessageSent {
+  string conversation_id = 1;
+  string message_id = 2;
+  int64 seq = 3;
+  string sender_id = 4;
+  // Người nhận cụ thể; rỗng khi gửi vào hàng chờ hỗ trợ (mọi nhân viên SUPPORT).
+  repeated string recipient_ids = 5;
+  // 100 ký tự đầu, để hiện trong thông báo.
+  string preview = 6;
+  google.protobuf.Timestamp sent_at = 7;
+}

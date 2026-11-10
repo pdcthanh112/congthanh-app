@@ -1,0 +1,57 @@
+name: ci-java
+on:
+  pull_request:
+    paths: ["backend/app/ecommerce/libs/java/**", "backend/app/ecommerce/services/{product,order,payment,promotion}-service/**", "backend/app/ecommerce/build-logic/**", "backend/app/ecommerce/*.gradle.kts", "backend/app/ecommerce/gradle/**", "backend/app/ecommerce/api/proto/**"]
+  push:
+    branches: [main]
+    paths: ["backend/app/ecommerce/libs/java/**", "backend/app/ecommerce/services/{product,order,payment,promotion}-service/**", "backend/app/ecommerce/build-logic/**", "backend/app/ecommerce/api/proto/**"]
+permissions: {contents: read}
+concurrency: {group: "${{ github.workflow }}-${{ github.ref }}", cancel-in-progress: true}
+defaults:
+  run: {working-directory: backend/app/ecommerce}
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-java@v5
+        with: {distribution: temurin, java-version: "25"}
+      - uses: gradle/actions/setup-gradle@v5
+      - name: build + test (Testcontainers)
+        run: ./gradlew build --scan --no-daemon
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with: {name: test-reports, path: "backend/app/ecommerce/services/*/build/reports/tests"}
+
+  # Image bằng Jib (build-logic/congthanh.spring-service): không cần Dockerfile hay Docker daemon.
+  image:
+    if: github.event_name == 'push'
+    needs: build
+    runs-on: ubuntu-24.04
+    permissions: {contents: read, packages: write, id-token: write}
+    strategy:
+      matrix:
+        service: [product-service, order-service, payment-service, promotion-service]
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-java@v5
+        with: {distribution: temurin, java-version: "25"}
+      - uses: gradle/actions/setup-gradle@v5
+      - uses: sigstore/cosign-installer@v3
+      - uses: anchore/sbom-action/download-syft@v0
+      - name: build & push (Jib, không cần Docker daemon)
+        id: jib
+        env:
+          IMAGE: ghcr.io/${{ github.repository_owner }}/congthanhapp/${{ matrix.service }}
+        run: |
+          ./gradlew :services:${{ matrix.service }}:jib \
+            -Djib.to.image=$IMAGE:${GITHUB_SHA::12} \
+            -Djib.to.auth.username=${{ github.actor }} -Djib.to.auth.password=${{ secrets.GITHUB_TOKEN }}
+          echo "image=$IMAGE@$(cat services/${{ matrix.service }}/build/jib-image.digest)" >> "$GITHUB_OUTPUT"
+      - uses: aquasecurity/trivy-action@0.33.1
+        with: {image-ref: "${{ steps.jib.outputs.image }}", severity: "CRITICAL,HIGH", exit-code: "1", ignore-unfixed: true}
+      - run: |
+          syft "${{ steps.jib.outputs.image }}" -o spdx-json > sbom.spdx.json
+          cosign sign --yes "${{ steps.jib.outputs.image }}"
+          cosign attest --yes --type spdxjson --predicate sbom.spdx.json "${{ steps.jib.outputs.image }}"

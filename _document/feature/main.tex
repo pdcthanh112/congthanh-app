@@ -1,0 +1,396 @@
+\part{Feature}
+
+\section{Phân tích trên tập dữ liệu product}
+\subsection{Tiền xử lý dữ liệu}
+\begin{figure}
+    \centering
+    \includegraphics[width=1\linewidth]{images/binh/product_bad_example.png}
+    \caption{Một số sản phẩm sẽ bị loại ra trong quá trình tiền xử lý}
+    \label{fig:enter-label}
+\end{figure}
+Do trong quá trình thu thập dữ liệu, một số sản phẩm không liên quan đã bị lẫn vào trong danh sách tìm kiếm (do chứa các từ khóa gần giống như "thuốc bổ trợ dinh dưỡng tablets", "sạc điện thoại", "kính cường lực". Đồng thời nhiều sản phầm khi crawl về bị lỗi hoặc mất giá trị ở các cột thương hiệu, giá hiển thị, etc nên nhóm đã thực hiện tiền xử lý trên tập dữ liệu product. Các bước xử lý được thực hiện như sau:
+
+\begin{enumerate}
+    \item Lọc sử dụng từ khóa: Sử dụng một số từ khóa cơ bản để chọn và loại bỏ những sản phẩm không liên quan đến đề tài, ví dụ như "bảng vẽ", "điện thoại bàn", "phụ kiện", etc
+    \item Loại bỏ sản phẩm trùng lặp: Nhóm sản phẩm theo 'itemId' và chỉ giữ lại lần xuất hiện đầu tiên của mỗi sản phẩm.
+    \item Loại bỏ sản phẩm ở nước ngoài: Loại bỏ các sản phẩm có giá trị 'location' chứa từ "overseas".
+    \item Cập nhật tên thương hiệu: Sử dụng từ khóa để cập nhật tên thương hiệu cho các sản phẩm không có giá trị 'brandName' hoặc có giá trị 'brandName' là 'No Brand'.
+    \item Làm sạch dữ liệu dựa trên tên thương hiệu: Cập nhật tên thương hiệu cho các sản phẩm bị gán thương hiệu sai sai và loại bỏ các sản phẩm không xác định được thương hiệu.
+    \item Loại bỏ thương hiệu có ít sản phẩm: Loại bỏ các thương hiệu có số lượng sản phẩm nhỏ hơn hoặc bằng 10.
+    \item Định dạng lại hệ thống đánh giá: Chuyển đổi hệ thống đánh giá về định dạng chính xác từ khoảng 1 đến 5 và thay thế các giá trị thiếu bằng giá trị 0.
+    \item Cập nhật giá gốc: Cập nhật giá gốc cho các sản phẩm có bị lỗi giágiá.
+    \item Loại bỏ cột không cần thiết: Loại bỏ cột 'price' vì nó tương tự với 'priceShow'.
+\end{enumerate}
+
+Kết quả sau khi thực hiện các bước tiền xử lý là tập dữ liệu  gồm 3617 sản phầm đã được lọc và làm sạch, loại bỏ các sản phẩm không liên quan và đảm bảo dữ liệu chính xác và đầy đủ hơn để tiếp tục phân tích và nghiên cứu.
+
+Dữ liệu sau quá trình tiền xử lý sẽ được chuẩn hóa bằng kết hợp phương pháp DBSCAN và IQR để loại bỏ các điểm dữ liệu ngoại lai, kích thước của tập dữ liệu giảm đáng kể từ 3616 xuống còn 2143, cho thấy một lượng lớn các điểm dữ liệu bất thường đã được loại bỏ.
+
+Có thể thấy rằng phân phối của các đặc trăng sau khi xử lý trở nên đối xứng và ổn định hơn, ít bị ảnh hưởng bởi các giá trị ngoại lai. Cụ thể:
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=1\linewidth]{images/compare_att.png}
+    \caption{Đặc trưng priceShow: Phân phối sau xử lý trở nên đối xứng hơn, tập trung quanh giá trị trung bình và có ít giá trị cực đoan hơn.}
+    \label{fig:piechart_item_listed}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=1\linewidth]{images/compare_att_1.png}
+    \caption{Đặc trưng discount: Phân phối sau xử lý có dạng chuẩn hơn, tập trung quanh giá trị 50 phần trăm.}
+    \label{fig:piechart_item_listed}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=1\linewidth]{images/compare_att_2.png}
+    \caption{Đặc trưng ratingScore: Phân phối sau xử lý tập trung hơn quanh giá trị 4-5, loại bỏ các giá trị thấp và cao bất thường.}
+    \label{fig:piechart_item_listed}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=1\linewidth]{images/compare_att_3.png}
+    \caption{Đặc trưng review: Phân phối sau xử lý trở nên đối xứng hơn, loại bỏ các giá trị cực cao.}
+    \label{fig:piechart_item_listed}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=1\linewidth]{images/compare_att_4.png}
+    \caption{Đặc trưng itemSoldCntShow: Phân phối sau xử lý tập trung hơn ở các giá trị thấp, loại bỏ các giá trị cực cao.}
+    \label{fig:piechart_item_listed}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=1\linewidth]{images/compare_att_5.png}
+    \caption{Đặc trưng originalPrice: Phân phối sau xử lý trở nên đối xứng và tập trung hơn quanh giá trị trung bình.}
+    \label{fig:piechart_item_listed}
+\end{figure}
+
+Kết luận, việc áp dụng phương pháp kết hợp DBSCAN và IQR đã giúp loại bỏ hiệu quả các điểm dữ liệu ngoại lai (outlier), cải thiện chất lượng và tính nhất quán của tập dữ liệu. Phân phối của các đặc trưng trở nên cân đối hơn và ít bị ảnh hưởng bởi các giá trị cực đoan. Mặc dù vậy, phân phối của các đặc trưng vẫn chưa hoàn toàn tuân theo phân phối chuẩn sau khi xử lý.
+
+\subsection{Phân tích phân phối sản phẩm theo địa điểm}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.8\linewidth]{images/binh/piechart_listed_location.png}
+    \caption{Số mặt hàng được bày bán ở từng vùng (Top 3)}
+    \label{fig:piechart_item_listed}
+\end{figure}
+
+Biểu đồ tròn trên cho thấy tỷ lệ phân phối sản phẩm tại các địa điểm lớn nhất. Hồ Chí Minh chiếm 55.4\%, Hà Nội chiếm 42.1\%, và các địa điểm khác chiếm tỷ lệ nhỏ hơn, gần như là không đang kể. Điều này được lý giải là do trong quá trình crawl data, Lazada đã hiện những sản phẩm gần với mình nhất lên đầu tiên, nên lượng sản phầm ở Hồ Chí Minh hiện lên rất nhiều so với các tỉnh thành khác.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=1\linewidth]{images/binh/listed_location.png}
+    \caption{Số lượng từng mặt hàng được bày bán ở các vùng}
+    \label{fig:item_listed}
+\end{figure}
+
+Biểu đồ cột thể hiện số lượng sản phẩm được liệt kê tại các địa điểm. Hồ Chí Minh và Hà Nội là hai địa điểm có số lượng sản phẩm cao nhất, đặc biệt là điện thoại.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=1\linewidth]{images/binh/sale_location.png}
+    \caption{Số lượng bán ra ở từng địa điểm}
+    \label{fig:sale_location}
+\end{figure}
+
+Biểu đồ này cho thấy số lượng bán sản phẩm tại các địa điểm. Hồ Chí Minh chiếm số lượng bán lớn nhất cho cả máy tính bảng và điện thoại.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=1\linewidth]{images/binh/profit_location.png}
+    \caption{Doanh thu ở từng địa điểm}
+    \label{fig:profit_location}
+\end{figure}
+
+Biểu đồ này minh họa tổng doanh thu (tính bằng triệu VNĐ) của máy tính bảng và điện thoại tại các địa điểm. Hồ Chí Minh tiếp tục dẫn đầu, theo sau là Hà Nội.
+
+\subsection{Phân tích phân phối sản phẩm theo giảm giá}
+\textbf{Phân tích thương hiệu Samsung}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=1\linewidth]{images/thanh/samsung-report.png}
+    \caption{Báo cáo của mô hình hồi quy OLS với thương hiệu Samsung}
+    \label{fig:samsung-report}
+\end{figure}
+
+Dựa và kết quả báo cáo này, có thể nhận thấy rằng
+\begin{enumerate}
+  \item Giá trị p-value của thống kê là 1.5e-16, nhỏ hơn mức ý nghĩa 0.05, cho thấy mô hình hồi quy có ý nghĩa thống kê và đáng tin cậy.
+  \item Độ tin cậy của mô hình khá cao với R-squared = 0.054, cho thấy 5.4\% sự biến thiên của giá bán được giải thích bởi số lượng sản phẩm bán ra.
+  \item Hệ số hồi quy của "itemSoldCntShow" là 0.056, cho thấy khi số lượng sản phẩm bán ra tăng lên 1 đơn vị, giá bán trung bình sẽ tăng lên 0.056 đơn vị.
+\end{enumerate}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=1\linewidth]{images/thanh/samsung-diagram.png}
+    \caption{Biểu đồ thể hiện phân bố lượng mua hàng hoá của thương hiệu Samsung, trước và sau khi có giảm giá}
+    \label{fig:samsung-diagram}
+\end{figure}
+
+\begin{itemize}
+    \item Biểu đồ thể hiện mối quan hệ âm giữa giá bán (priceShow) và số lượng sản phẩm bán ra (ItemSoldCntShow). Điều này phù hợp với kết quả hồi quy, cho thấy khi giá bán tăng, số lượng bán ra sẽ giảm.
+    \item Tuy nhiên, dữ liệu rất phân tán và có nhiều điểm ngoại lai (outliers). Điều này cho thấy mối quan hệ giữa hai biến không hoàn toàn tuyến tính mà có thể phức tạp hơn.
+    \item Một số điểm dữ liệu có số lượng bán ra cao ở các mức giá trung bình cũng đáng chú ý. Điều này có thể do các yếu tố khác như chất lượng sản phẩm, thương hiệu, chiến lược marketing, v.v. ảnh hưởng tới số lượng bán ra.
+\end{itemize}
+    
+Kết luận: Dựa trên kết quả phân tích, có thể thấy rằng số lượng sản phẩm bán ra có ảnh hưởng đến giá bán trung bình của các sản phẩm Samsung. Tuy nhiên, mối quan hệ này không hoàn toàn tuyến tính và có một số ngoại lệ. Ngoài ra, mức giảm giá cũng có ảnh hưởng đến số lượng sản phẩm bán ra, thể hiện ở mối quan hệ ngược chiều giữa hai biến số này. Để hiểu rõ hơn về các yếu tố ảnh hưởng đến giá bán và số lượng sản phẩm bán ra, cần có thêm các phân tích sâu hơn về các yếu tố khác như thị trường, cạnh tranh, chiến lược giá cả, v.v. \\
+
+
+\textbf{Phân tích thương hiệu Apple}
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=1\linewidth]{images/thanh/apple-report.png}
+    \caption{Báo cáo của mô hình hồi quy OLS với thương hiệu Apple}
+    \label{fig:apple-report}
+\end{figure}
+
+Dựa và kết quả báo cáo này, có thể nhận thấy rằng
+\begin{enumerate}
+  \item Kết quả hồi quy cho thấy các biến số "price" và "discount" đều có ý nghĩa thống kê (p-value < 0.05) và ảnh hưởng đến biến phụ thuộc "itemSoldCntShow".
+  \item Hệ số hồi quy cho "price" là -3.975e-05, có nghĩa là khi giá bán tăng 1 đơn vị, số lượng sản phẩm bán ra sẽ giảm 3.975 đơn vị.
+  \item Hệ số hồi quy cho "discount" là -7.0861, có nghĩa là khi mức giảm giá tăng 1 đơn vị, số lượng sản phẩm bán ra sẽ giảm 7.0861 đơn vị.
+\end{enumerate}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=1\linewidth]{images/thanh/apple-diagram.png}
+    \caption{Biểu đồ thể hiện phân bố lượng mua hàng hoá của thương hiệu Apple, trước và sau khi có giảm giá}
+    \label{fig:apple-diagram}
+\end{figure}
+
+\begin{itemize}
+    \item Biểu đồ thể hiện mối quan hệ giảm dần (âm) giữa giá sản phẩm và lượng sản phẩm bán ra, phù hợp với kết quả hồi quy.
+    \item Tuy nhiên, mối quan hệ này không hoàn toàn tuyến tính, có những điểm bất thường với giá cao nhưng lượng bán cao hơn so với xu hướng chung.
+    \item Một số điểm dữ liệu có giá khá thấp nhưng lại có lượng bán ra cũng thấp, không nằm trong xu hướng chung.
+\end{itemize}
+   
+Kết luận: Dữ liệu cho thấy mối quan hệ tương đối tuyến tính giữa giá bán và số lượng sản phẩm bán ra, tuy nhiên cũng có một số ngoại lệ.
+Mức độ giảm giá có ảnh hưởng ngược chiều đến số lượng sản phẩm bán ra, thể hiện rằng người tiêu dùng thường mua nhiều hơn khi sản phẩm có giá thấp hơn.
+Kết quả hồi quy xác nhận ảnh hưởng của giá bán và mức độ giảm giá đến số lượng sản phẩm bán ra, giúp hiểu rõ hơn mối quan hệ này.\\
+
+
+\subsection{Phân tích ảnh hưởng thương hiệu, địa điêm, mức giảm giá và điểm đánh giá lên số lượng sản phẩm bán ra} \label{Phân tích product 2}
+
+Trong phần này, nhóm em sẽ phân tích các yếu tố ảnh hưởng đến số lượng sản phẩm bán ra (itemSold), bao gồm thương hiệu (Brand), địa điểm (Location), mức giảm giá (Discount) và điểm đánh giá (Rating Score).
+
+Đầu tiên, nhóm em xây dựng một mô hình hồi quy tuyến tính đa biến (OLS) với biến phụ thuộc là itemSoldCntShow và các biến độc lập là brandEncoded, locationEncoded, discount và ratingScore. Kết quả của mô hình cho thấy:
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=1\linewidth]{images/compare_att_10.png}
+    \caption{Kết quả OLS}
+    \label{fig:piechart_item_listed}
+\end{figure}
+
+\begin{itemize}
+    \item R-squared là 0.567 có nghĩa là mô hình giải thích được 56.7\% sự biến động của số lượng sản phẩm bán ra (itemSoldCntShow). Nói cách khác, hơn một nửa sự thay đổi trong số lượng bán ra có thể được giải thích bởi sự thay đổi của các yếu tố trong mô hình (thương hiệu, địa điểm, giảm giá, điểm đánh giá). 
+    
+    \item P-value < 0.05 cho tất cả các biến độc lập cho thấy các yếu tố này có tác động đáng kể đến số lượng sản phẩm bán ra, không phải do ngẫu nhiên. Ta có thể tin tưởng vào mối quan hệ giữa các yếu tố này và doanh số.
+
+    \item Thương hiệu: Khi thương hiệu "tốt hơn" một bậc, doanh số bán hàng tăng khoảng 0.6 sản phẩm.
+    
+    \item Địa điểm: Khi địa điểm "tốt hơn" một bậc, doanh số bán hàng tăng khoảng 4.6 sản phẩm.
+    
+    \item Giảm giá: Khi tăng mức giảm giá thêm 1\%, doanh số bán hàng tăng mạnh, khoảng 53 sản phẩm.
+    
+    \item Đánh giá: Khi điểm đánh giá tăng 1 sao, doanh số bán hàng tăng khoảng 11 sản phẩm.
+\end{itemize}
+
+Tiếp theo, nhóm em xem xét các biểu đồ phân tán để trực quan hóa mối quan hệ giữa các biến:
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=1\linewidth]{images/compare_att_6.png}
+    \caption{Biểu đồ "Location vs itemSold" cũng cho thấy một mối quan hệ dương giữa mã hóa địa điểm và số lượng sản phẩm bán ra. Tuy nhiên, mối quan hệ này cũng không rõ ràng như biểu đồ trước.}
+    \label{fig:piechart_item_listed}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=1\linewidth]{images/compare_att_7.png}
+    \caption{Biểu đồ "Discount vs itemSold" cho thấy một mối quan hệ dương rõ ràng hơn giữa mức giảm giá và số lượng sản phẩm bán ra. Khi mức giảm giá tăng, số lượng sản phẩm bán ra có xu hướng tăng.}
+    \label{fig:piechart_item_listed}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=1\linewidth]{images/compare_att_8.png}
+    \caption{Biểu đồ "Discount vs itemSold" cho thấy một mối quan hệ dương rõ ràng hơn giữa mức giảm giá và số lượng sản phẩm bán ra. Khi mức giảm giá tăng, số lượng sản phẩm bán ra có xu hướng tăng.}
+    \label{fig:piechart_item_listed}
+\end{figure}
+
+\begin{itemize}
+    \item Biểu đồ cho thấy mối quan hệ giữa mức giảm giá (discount) và số lượng sản phẩm bán ra (itemSold). Tuy nhiên, mối quan hệ này không hoàn toàn rõ ràng.
+    
+    \item Các điểm dữ liệu tập trung chủ yếu trong khoảng giảm giá từ 0.3 đến 0.5, và có sự phân tán lớn của itemSold trong khoảng này.
+
+    \item Ở mức giảm giá thấp hơn (dưới 0.3) và cao hơn (trên 0.5), số lượng các điểm dữ liệu ít hơn, khiến việc xác định mối quan hệ trở nên khó khăn hơn.
+    
+    \item Mặc dù xu hướng tổng thể cho thấy itemSold tăng khi mức giảm giá tăng, nhưng mối quan hệ này không mạnh và có nhiều biến động.
+\end{itemize}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=1\linewidth]{images/compare_att_9.png}
+    \caption{Biểu đồ "Rating Score vs itemSold"}
+    \label{fig:piechart_item_listed}
+\end{figure}
+
+\begin{itemize}
+    \item Biểu đồ thể hiện mối quan hệ giữa điểm đánh giá (ratingScore) và số lượng sản phẩm bán ra (itemSold).
+    
+    \item Phần lớn các điểm dữ liệu tập trung ở mức điểm đánh giá từ 4 đến 5. Trong khoảng này, itemSold có xu hướng tăng khi điểm đánh giá tăng, nhưng sự phân tán của các điểm dữ liệu cũng rất lớn.
+
+    \item Ở mức điểm đánh giá thấp hơn (dưới 4), số lượng các điểm dữ liệu ít hơn đáng kể, gây khó khăn cho việc xác định mối quan hệ.
+    
+    \item Mặc dù có xu hướng tổng thể là itemSold tăng khi điểm đánh giá tăng, nhưng mối quan hệ này không quá mạnh và có nhiều biến động.
+\end{itemize}
+
+
+Kết luận lại, phân tích cho thấy thương hiệu, địa điểm, mức giảm giá và điểm đánh giá đều có ảnh hưởng đến số lượng sản phẩm bán ra. Tuy nhiên, mối quan hệ giữa thương hiệu, địa điểm và số lượng sản phẩm bán ra không rõ ràng như mối quan hệ giữa mức giảm giá, điểm đánh giá và số lượng sản phẩm bán ra. Nhưng do sự phân tán lớn của dữ liệu và số lượng điểm dữ liệu hạn chế ở một số khoảng giá trị, mối quan hệ của mức giảm giá và điểm đánh giá cũng không hoàn toàn rõ ràng. Cần xem xét thêm để giải quyết vấn đề này và cải thiện mô hình.
+
+\section{Phân tích trên tập dữ liệu review}
+\subsection{Tiền xử lý dữ liệu}
+Trong phần này, nhóm em sẽ thực hiện quá trình tiền xử lý dữ liệu trên tập review của các khách hàng ở sàn thương mại điện tử Lazada. Đây là phần mất nhiều thời gian nhất trong phân tích dữ liệu
+
+\begin{center}
+    \begin{figure}[htb] % Các option h: here (đặt tại đây), p: page (đặt ở top next page), t: top, b:bottom
+        \centering
+        \includegraphics[scale = 0.4]{images/Review_text.png}
+        \caption{Ví dụ về một vài review}
+    \end{figure}
+\end{center}
+
+Mục tiêu chính trong quá trình này là áp dụng các kỹ thuật xử lý ngôn ngữ tự nhiên trong cột "reviewContent", các bước xử lý này được thực hiện như sau:
+
+\begin{enumerate}
+    \item Chuyển đổi dữ liệu: Trước tiên, dữ liệu đầu vào được chuyển đổi sang định dạng chuỗi để dễ dàng xử lý. Việc này đảm bảo rằng các đánh giá hoặc nhận xét từ người dùng được biểu diễn dưới dạng chuỗi ký tự.
+    \item Chuẩn hóa dữ liệu: Bằng cách chuyển đổi các ký tự chữ hoa thành các chữ thường, việc này giúp đồng nhất các từ với nhau, giúp các bước sau sẽ đơn giản và chính xác hơn.
+    \item Loại bỏ các biểu tượng emoji: Đối với các đánh giá từ người dùng trên các nền tảng thương mại điện tử, các biểu tượng emoji thường không mang nhiều ý nghĩa trong phân tích ngữ nghĩa. Do đó, chúng được loại bỏ để tránh ảnh hưởng đến quá trình phân tích sau này.
+    \item Loại bỏ dấu câu và ký tự đặc biệt: Dấu câu và các ký tự đặc biệt thường không cần thiết trong việc phân tích ngữ nghĩa và có thể làm nhiễu dữ liệu. Chúng được loại bỏ bằng cách sử dụng biểu thức chính quy để chỉ giữ lại các từ và số.
+    \item Tách từ (tokenize): Sau khi loại bỏ các yếu tố nhiễu cơ bản, văn bản được tách thành các đơn vị nhỏ bằng thư viện underthesea như được trình bày ở phần trước.
+\end{enumerate}
+
+Tuy nhiên, việc sử dụng thư viện này chỉ để tiết kiệm 1 ít về thời gian trong quá trình tách từ. Mô hình underthesea còn có một số hạn chế trong việc tách từ dữ liệu thật. Trong dữ liệu thật, không phải lúc nào các câu có đúng ngữ pháp và hoàn chỉnh như ngôn ngữ Tiếng việt thông thường, đôi khi xảy ra một số trường hợp khó khăn gây nhiễu khác như: sai chính tả, từ địa phương, viết không dấu, sử dụng nhiều từ viết tắt và teencode làm cho khả năng tách từ của thư viện này bị giảm độ chính xác. Vì thế nhóm em đã xây dựng một bộ nhỏ về danh sách các từ ghép, để ghép các từ có dấu không rõ ràng thành 1 cụm từ có nghĩa ví dụ như: "lua dao","lưa đao", "lừa đao", "lưa đảo", "ung ho", "ung hô", "hài long", "k đúng", "ko đúng", "hàng lởm", "hàng dỏm", "rat tot", "rì viu".
+
+Bên cạnh đó, nhóm em lập ra danh sách các từ dừng "stop word", loại bỏ các từ không có mang nhiều ý nghĩa trong quá nhiều phân tích, Ví dụ về một đánh giá của khách hàng: "Tôi rất hài lòng, điện thoại tốt hơn sự mong đợi, cho shop 5 sao, sẽ giới thiệu shop cho bạn bè ủng hộ, cảm ơn shop nhé", khi áp dụng stop word vào câu này, nó sẽ loại bỏ các từ không mang ý nghĩa và sẽ trở thành: ["hài lòng", "điện thoại", "tốt", "mong đợi", "shop", "5 sao", "giới thiệu", "shop", "bạn bè", "ủng hộ", "cảm ơn", "shop"].
+
+Sau khi hoàn thành xong việc xử lý ngôn ngữ tự nhiên, các bước tiếp theo khác cũng quan trọng không kém như là drop duplicate, kỹ thuật này giúp ta loại bỏ các review giống y chang nhau và xuất hiện liên tục trên một hoặc nhiều sản phẩm (hay nói cách khác gọi là seeding), điều này giúp cho dữ liệu minh bạch và chính xác hơn.
+
+\subsection{Phân tích đánh giá của khách hàng dựa trên cảm xúc}
+
+Giai đoạn tiền xử lý dữ liệu đã hoàn tất. Tiếp theo, nhóm em sẽ dựa vào các cụm từ đã được xử lý để phân loại cảm xúc của người dùng thành ba loại: tích cực, trung lập và tiêu cực. Dựa trên các đánh giá về sản phẩm, nhóm em sẽ tiến hành phân tích về cảm xúc của người dùng đối với từng sản phẩm cụ thể. Việc phân loại cảm xúc giúp nhóm em hiểu rõ hơn về mức độ hài lòng của khách hàng, các điểm mạnh và yếu của sản phẩm, cũng như cung cấp thông tin hữu ích để cải thiện chất lượng dịch vụ và sản phẩm trên sàn thương mại điện tử Lazada. Đồng thời, phân tích này cũng giúp xác định xu hướng và thị hiếu của người tiêu dùng, từ đó hỗ trợ các chiến lược marketing và phát triển sản phẩm hiệu quả hơn.
+
+Sau đây là những cụm từ mang cảm xúc tích cực mà nhóm em đã đưa ra trong tập dữ liệu của mình: "tuyệt vời", "xuất sắc", "hài lòng", "rất tốt", "đáng mua", "rất hài lòng", "yêu thích", "tốt hơn mong đợi", "5 sao", ... Các cụm từ này thể hiện sự hài lòng cao của khách hàng đối với sản phẩm và dịch vụ. Việc nhận diện và phân loại các cụm từ này giúp nhóm em đánh giá chính xác những yếu tố tích cực mà sản phẩm mang lại, từ đó phát huy và cải thiện thêm những điểm mạnh này. Bên cạnh đó là danh sách các cụm từ tiêu cực như: "kém", "gian lận", "lừa đảo", "thất vọng", "bực mình", "1 sao", "hư hỏng", "chê", "nóng máu", ... Đây là các cụm từ thể hiện sự không hài lòng của khách hàng đối với sản phẩm. Cuối cùng là cảm xúc trung lập như: "bình thường", "trung bình", "ổn", "bình dân", "bt", ...
+
+Sau khi xác định các danh sách từ liên quan đến các cảm xúc, nhóm em thực hiện một thuật toán cơ bản để phân loại cảm xúc bằng cách đếm số lượng từ tích cực, tiêu cực và bình thường xuất hiện trong các đánh giá của khách hàng. Cảm xúc tổng thể của một đánh giá sẽ được xác định dựa trên số lượng từ thuộc mỗi loại cảm xúc. Nếu số lượng từ tích cực nhiều hơn, đánh giá được phân loại là tích cực; nếu từ tiêu cực nhiều hơn, đánh giá sẽ là tiêu cực; và nếu từ bình thường chiếm ưu thế, đánh giá sẽ được coi là trung lập. Phương pháp này giúp nhóm em đưa ra kết luận về cảm xúc chung của khách hàng một cách đơn giản và hiệu quả.
+
+Dựa trên cột cảm xúc đã được phân loại, sau đây nhóm em sẽ trực quan hóa đồ thị dựa trên chỉ số đánh giá và cảm xúc được thể hiện ở hình bên dưới
+
+\begin{center}
+    \begin{figure}[htb] % Các option h: here (đặt tại đây), p: page (đặt ở top next page), t: top, b:bottom
+        \centering
+        \includegraphics[scale = 0.4]{images/overall_rating_sentiment.png}
+        \caption{Biểu đồ giữa đánh giá và cảm xúc}
+    \end{figure}
+\end{center}
+
+Đối với biểu đồ cho cảm xúc tổng thể: Ta thấy được cảm xúc tiêu cực chiếm khoảng 500 lượt trong dữ liệu, tương ứng với các cảm xúc trung lập và tiêu cực lần lượt là vào khoảng 1500 lượt và 3000 lượt. Điều này cho ta thấy rằng các đánh giá tiêu cực chủ yếu đi kèm với cảm xúc tiêu cực, trong khi đánh giá cao (4-5 sao) chủ yếu đi kèm với cảm xúc tích cực. Điều này xác nhận rằng cảm xúc tích cực thường dẫn đến đánh giá cao và ngược lại.
+
+Tương tự như vậy như đến đồ thị thứ hai, đa số khách hàng đánh giá rất cao sản phẩm và dịch vụ, cho thấy được sự hài lòng cao. Tuy nhiên ta cần tìm hiểu thêm các lý do tại sao vẫn có 1 số ít đánh giá thấp. Phân tích này dành cho phần sau.
+
+\begin{center}
+    \begin{figure}[htb] % Các option h: here (đặt tại đây), p: page (đặt ở top next page), t: top, b:bottom
+        \centering
+        \includegraphics[scale = 0.43]{images/sentiment_plot.png}
+        \caption{Biểu đồ đánh giá \% theo cảm xúc}
+    \end{figure}
+\end{center}
+
+Tiếp theo ta xem biểu đồ tần suất đánh giá \% theo cảm xúc. Đối với rating 1 2 sao, thì chủ yếu vẫn là các cảm xúc tiêu cực, rating 3 4 là các cảm xúc trung lập, là rating 5 nhận được cảm xúc tiêu cực rất cao. Có một số điều thú vị trong đồ thị này. Tại sao vẫn có phần trăm cảm xúc tích cực trong đánh giá 1 sao, có thể giải thích như sau:
+\begin{itemize}
+    \item Đánh giá dựa trên một khía cạnh cụ thể: Một số khách hàng có thể cảm thấy hài lòng về một khía cạnh cụ thể như chất lượng của sản phẩm nhưng lại không hài lòng về một khía cạnh khác ví dụ dịch vụ khách hàng. Do đó, mặc dù họ cảm thấy tích cực về một khía cạnh nào đó, tổng thể họ vẫn quyết định cho điểm thấp vì không chấp nhận được.
+    \item Sự thất vọng: Một vài khách hàng có thể bắt đầu với cảm xúc rất tích cực nhưng gặp phải một sự cố lớn hoặc lỗi lớn khiến họ cực kỳ thất vọng. Sự thay đổi cảm xúc này có thể dẫn đến việc họ đánh giá thấp hơn rất nhiều so với cảm nhận ban đầu của họ.
+    \item Một số khách hàng có thể sử dụng đánh giá 1 sao để gửi một thông điệp mạnh mẽ rằng cần có sự cải thiện, mặc dù họ vẫn có cảm giác tích cực về các khía cạnh khác của sản phẩm/dịch vụ.
+\end{itemize} 
+Và các phản hồi tiêu cực trong đánh giá 5 sao, ta có thể đưa ra ý nghĩa sâu xa như:
+\begin{itemize}
+    \item Khách hàng có tiêu chuẩn đánh giá khác nhau: Một số khách hàng có thể có tiêu chuẩn riêng khi đánh giá sản phẩm hoặc dịch vụ. Họ có thể cảm thấy rằng mặc dù có một vài điểm tiêu cực, tổng thể trải nghiệm của họ vẫn đủ tốt để đánh giá 5 sao.
+    \item Trải nghiệm trước đây và sự cân nhắc tổng thể: Nếu khách hàng đã có nhiều trải nghiệm tích cực trước đây, một trải nghiệm tiêu cực nhỏ hiện tại có thể không đủ để làm giảm đáng kể đánh giá tổng thể của họ. Họ có thể đánh giá dựa trên toàn bộ trải nghiệm và những ký ức tích cực trước đó.
+    \item Tâm lý “mềm lòng”: Một số khách hàng có thể có tâm lý muốn ủng hộ doanh nghiệp, đặc biệt nếu họ cảm thấy rằng doanh nghiệp đang cố gắng cung cấp sản phẩm/dịch vụ tốt. Họ có thể cho 5 sao để thể hiện sự ủng hộ và khích lệ, dù có cảm xúc tiêu cực nhất định.
+    \item Khách hàng có thể có sự trung thành cao với thương hiệu, khiến họ có xu hướng đánh giá cao bất chấp một vài trải nghiệm tiêu cực. Họ tin tưởng rằng các vấn đề sẽ được giải quyết và vẫn cảm thấy tích cực về sản phẩm hoặc dịch vụ.
+    \item Đánh giá nhằm khuyến khích cải thiện: Một số khách hàng có thể để lại đánh giá 5 sao kèm theo phản hồi tiêu cực để thu hút sự chú ý của doanh nghiệp và thúc đẩy sự cải thiện. Họ có thể hy vọng rằng việc này sẽ giúp doanh nghiệp nhận ra vấn đề và khắc phục mà không muốn làm giảm điểm trung bình của sản phẩm/dịch vụ.
+\end{itemize}
+
+
+Tiếp theo nhóm em phân tích sâu hơn các lý do dẫn đến cảm xúc tích cực và tiêu cực của họ bằng việc trực quan hóa wordcloud và biểu đồ cột top 20 từ được xuất hiện nhiều nhất trong cảm xúc. Word Cloud cho thấy các từ xuất hiện nhiều nhất trong các phản hồi tích cực và tiêu cực của khách hàng. Những từ lớn hơn và đậm hơn đại diện cho các từ xuất hiện nhiều hơn.
+
+\begin{figure}[htb]
+    \centering
+    \begin{subfigure}
+        \centering
+        \includegraphics[scale=0.55]{images/positive_cloud.png}
+        %\caption{Positive Cloud}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}
+        \centering
+        \includegraphics[scale=0.4]{images/top20_positive.png}
+        %\caption{Top 20 Positive}
+    \end{subfigure}
+    \caption{Biểu đồ word cloud và top 20 từ tích cực}
+    \label{positive_words_cloud}
+\end{figure}
+
+Đối với cảm xúc tích cực, đồ thị trực quan hóa ở hình \ref{positive_words_cloud} đã nói lên nhiều thứ để có thể góp phần cho các doanh nghiệp phát triển và duy trì. Các yếu tố ảnh hưởng tạo nên cảm xúc tích cực của khách hàng, như là:
+
+\begin{itemize}
+    \item "Chất lượng" và "Uy tín" là 2 từ được nhắc nhiều nằm trong top các cảm xúc tích cực, điều này cho thấy sản phẩm hoặc dịch vụ của doanh nghiệp đang đáp ứng tốt các tiêu chuẩn chất lượng và xây dựng được niềm tin với khách hàng.
+    \item Tốc độ và sự mới mẻ: từ "nhanh", "nhanh chóng", "mới" là những từ cũng được nhắc nhiều, điều này cho thấy khách hàng đánh giá cao sự nhanh nhẹn trong dịch vụ (như giao hàng nhanh, phản hồi nhanh) và sự mới mẻ trong sản phẩm.
+    \item Sự hài lòng và trải nghiệm của khách hàng: "Hài lòng", "Tuyệt vời", "Cảm ơn", "Nhiệt tình" là các từ thể hiện mức độ hài lòng cao của khách hàng với trải nghiệm họ nhận được.
+    \item Giá trị kinh tế: Các từ như "Rẻ" và "Hợp lý" cho thấy khách hàng cũng quan tâm đến giá trị và tính kinh tế của sản phẩm/dịch vụ.
+\end{itemize}
+
+
+\begin{figure}[htb]
+    \centering
+    \begin{subfigure}
+        \centering
+        \includegraphics[scale=0.55]{images/negative_cloud.png}
+        %\caption{Positive Cloud}
+    \end{subfigure}
+    \hfill
+    \begin{subfigure}
+        \centering
+        \includegraphics[scale=0.4]{images/top20_negative.png}
+        %\caption{Top 20 Positive}
+    \end{subfigure}
+    \caption{Biểu đồ word cloud và top 20 từ tiêu cực}
+    \label{negative_words_cloud}
+\end{figure}
+
+Bên cạnh các cảm xúc tích cực, đồ thị trực quan hóa tiêu cực được thể hiện ở hình \ref{negative_words_cloud} cũng đã nói lên các yếu tố có thể ảnh hưởng đến sự phát triển của doanh nghiệp, như là:
+
+\begin{itemize}
+    \item Chất lượng sản phẩm/dịch vụ: về vấn đề kỹ thuật "kém", "cũ", "hư", "không tốt", "lỗi", "hỏng". Khách hàng không hài lòng khi sản phẩm/dịch vụ không đáp ứng kỳ vọng về chất lượng và gặp trực trặc kỹ thuật với các sản phẩm.
+    \item Độ tin cậy và trung thực. Các từ như "lừa đảo", "thất vọng", "ko đúng", "giao sai", Khách hàng cảm thấy bị lừa dối và thông tin không chính xác, phản ánh cảm xúc tiêu cực tổng thể về trải nghiệm với thương hiệu.
+\end{itemize}
+
+Cuối cùng, nhóm em sẽ phân tích cảm xúc của khách hàng trên 15 thương hiệu điện thoại di động được thể hiện ở hình \ref{Sentiment_brandname}.
+
+\begin{center}
+    \begin{figure}[htp] % Các option h: here (đặt tại đây), p: page (đặt ở top next page), t: top, b:bottom
+        \centering
+        \includegraphics[scale = 0.8]{images/Sentiment_brandname.png}
+        \caption{Tỷ lệ phần trăm theo cảm xúc cho từng thương hiệu}
+        \label{Sentiment_brandname}
+    \end{figure}
+\end{center}
+
+Hình \ref{Sentiment_brandname} thể hiện tỷ lệ đánh giá tích cực và tiêu cực của 15 thương hiệu điện thoại di động, cho thấy một bức tranh tổng thể khá tích cực trong ngành. Tất cả các thương hiệu đều có tỷ lệ đánh giá tích cực vượt trội so với tiêu cực, với Realme dẫn đầu ở mức gần 95\% đánh giá tích cực. Nhóm dẫn đầu bao gồm  LG, Sony, Vsmart, Vivo, Oppo với tỷ lệ tích cực trên 90\%, trong khi đa số các thương hiệu như Apple, Samsung nằm ở mức 80-90\%. Đáng chú ý, Huawei và Xiaomi có tỷ lệ đánh giá tiêu cực cao nhất, trên 20\%, cho thấy họ đang đối mặt với một số thách thức về hình ảnh và sự hài lòng của khách hàng. Kết quả này phản ánh sự cạnh tranh gay gắt trong thị trường smartphone, đồng thời chỉ ra rằng các thương hiệu Trung Quốc như Realme, Oppo, Vivo đang tạo được ấn tượng tốt, trong khi các thương hiệu lớn truyền thống như Apple, Samsung vẫn duy trì được vị thế vững chắc nhưng có thể đang phải đối mặt với kỳ vọng cao hơn từ người dùng.

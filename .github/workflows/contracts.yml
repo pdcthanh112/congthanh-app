@@ -1,0 +1,40 @@
+# Contract: proto (lint + breaking + code sinh khớp), cấu hình sinh tự động, OpenAPI lint.
+name: contracts
+on:
+  pull_request:
+    paths: ["backend/app/ecommerce/api/**", "backend/app/ecommerce/libs/go/proto/**", "backend/app/ecommerce/buf*.yaml", "backend/app/ecommerce/platform/gateway/**", "backend/app/ecommerce/tools/scripts/**"]
+permissions: {contents: read, pull-requests: write}
+defaults:
+  run: {working-directory: backend/app/ecommerce}
+jobs:
+  proto:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v5
+        with: {fetch-depth: 0}
+      - uses: bufbuild/buf-action@v1
+        with:
+          input: backend/app/ecommerce
+          lint: true
+          format: true
+          breaking: true
+          breaking_against: "${{ github.event.repository.clone_url }}#branch=main,subdir=backend/app/ecommerce"
+          push: false
+      - uses: actions/setup-go@v6
+        with: {go-version: "1.26.x"}
+      - name: code Go sinh từ proto phải khớp
+        run: |
+          go install google.golang.org/protobuf/cmd/protoc-gen-go@latest google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest
+          buf generate && git diff --exit-code -- libs/go/proto
+  generated-config:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v5
+      - run: pip install pyyaml==6.0.3
+      - run: python3 -I tools/scripts/gen-apisix-routes.py --check
+      - run: python3 -I tools/scripts/gen-asyncapi.py --check
+  openapi:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v5
+      - run: npx -y @stoplight/spectral-cli@6 lint --ruleset tests/contract/.spectral.yaml api/openapi/*.yaml

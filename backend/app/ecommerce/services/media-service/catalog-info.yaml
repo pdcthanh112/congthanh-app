@@ -1,0 +1,23 @@
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: media-service
+  description: Tải file lên S3/R2 bằng URL ký sẵn
+  tags:
+  - go
+  annotations:
+    github.com/project-slug: pdcthanh112/CongThanhApp
+    backstage.io/source-location: url:https://github.com/pdcthanh112/CongThanhApp/tree/main/backend/app/ecommerce/services/media-service
+    argocd/app-selector: app.kubernetes.io/name=media-service
+    grafana/dashboard-selector: tags @> 'media-service'
+    backstage.io/techdocs-ref: dir:../../docs
+spec:
+  type: service
+  lifecycle: production
+  owner: team-ecommerce
+  system: ecommerce
+  providesApis:
+  - media-api-rest
+  dependsOn:
+  - resource:ecom-postgres
+  - resource:ecom-media-bucket

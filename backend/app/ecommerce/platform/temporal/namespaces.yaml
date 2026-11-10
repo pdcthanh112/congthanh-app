@@ -1,0 +1,7 @@
+namespaces:
+  - name: ecommerce
+    retention: 30d
+task_queues:
+  - name: checkout        # checkout-service
+  - name: refund          # payment-service
+  - name: fulfillment     # shipping-service

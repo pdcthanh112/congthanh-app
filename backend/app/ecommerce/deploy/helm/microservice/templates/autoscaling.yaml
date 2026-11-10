@@ -1,0 +1,52 @@
+{{- if .Values.keda.enabled }}
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: {{ include "ms.name" . }}
+  labels: {{- include "ms.labels" . | nindent 4 }}
+spec:
+  scaleTargetRef:
+    {{- if .Values.rollout.enabled }}
+    apiVersion: argoproj.io/v1alpha1
+    kind: Rollout
+    {{- else }}
+    apiVersion: apps/v1
+    kind: Deployment
+    {{- end }}
+    name: {{ include "ms.name" . }}
+  minReplicaCount: {{ .Values.keda.minReplicas }}
+  maxReplicaCount: {{ .Values.keda.maxReplicas }}
+  triggers:
+    - type: kafka
+      metadata:
+        bootstrapServers: {{ .Values.keda.kafka.bootstrapServers }}
+        consumerGroup: {{ required "keda.kafka.consumerGroup" .Values.keda.kafka.consumerGroup }}
+        topic: {{ required "keda.kafka.topic" .Values.keda.kafka.topic }}
+        lagThreshold: {{ .Values.keda.kafka.lagThreshold | quote }}
+    - type: cpu
+      metricType: Utilization
+      metadata: {value: {{ .Values.autoscaling.targetCPU | quote }}}
+{{- else if .Values.autoscaling.enabled }}
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: {{ include "ms.name" . }}
+  labels: {{- include "ms.labels" . | nindent 4 }}
+spec:
+  scaleTargetRef:
+    {{- if .Values.rollout.enabled }}
+    apiVersion: argoproj.io/v1alpha1
+    kind: Rollout
+    {{- else }}
+    apiVersion: apps/v1
+    kind: Deployment
+    {{- end }}
+    name: {{ include "ms.name" . }}
+  minReplicas: {{ .Values.autoscaling.minReplicas }}
+  maxReplicas: {{ .Values.autoscaling.maxReplicas }}
+  metrics:
+    - type: Resource
+      resource: {name: cpu, target: {type: Utilization, averageUtilization: {{ .Values.autoscaling.targetCPU }}}}
+  behavior:
+    scaleDown: {stabilizationWindowSeconds: 300}
+{{- end }}

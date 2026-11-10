@@ -1,0 +1,25 @@
+# search-service: giá trị chung mọi môi trường. Ghi đè theo môi trường ở values-<env>.yaml.
+nameOverride: search-service
+runtime: go
+image:
+  repository: ghcr.io/pdcthanh112/congthanhapp/search-service
+ports:
+  http: 5013
+  grpc: 9098
+env:
+  KAFKA_BROKERS: ecom-kafka-bootstrap.messaging.svc.cluster.local:9092
+  OPENSEARCH_URL: https://ecom-search.data.svc.cluster.local:9200
+  OPENSEARCH_INDEX: products
+  JWT_JWKS_URL: http://keycloak-service.identity.svc.cluster.local:8080/realms/ecommerce/protocol/openid-connect/certs
+secretEnv:
+- name: OPENSEARCH_USERNAME
+  key: ecommerce/search-service
+  property: opensearch_username
+- name: OPENSEARCH_PASSWORD
+  key: ecommerce/search-service
+  property: opensearch_password
+keda:
+  enabled: true
+  kafka:
+    consumerGroup: search-service
+    topic: ecom.product.events

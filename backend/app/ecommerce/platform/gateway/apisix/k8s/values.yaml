@@ -1,0 +1,33 @@
+# Helm values cho chart apisix/apisix (gateway + ingress controller), namespace gateway.
+#   helm upgrade --install apisix apisix/apisix -n gateway -f values.yaml
+replicaCount: 3
+autoscaling: {enabled: true, minReplicas: 3, maxReplicas: 20, targetCPUUtilizationPercentage: 70}
+service:
+  type: LoadBalancer
+  annotations:
+    service.beta.kubernetes.io/aws-load-balancer-type: external
+    service.beta.kubernetes.io/aws-load-balancer-nlb-target-type: ip
+    service.beta.kubernetes.io/aws-load-balancer-scheme: internet-facing
+apisix:
+  enableIPv6: false
+  pluginAttrs:
+    prometheus: {export_addr: {ip: 0.0.0.0, port: 9091}}
+    opentelemetry:
+      resource: {service.name: apisix}
+      collector: {address: otel-collector.observability.svc.cluster.local:4318}
+  vault:
+    enabled: true
+    host: http://vault.vault.svc.cluster.local:8200
+    timeout: 10
+    prefix: kv/apisix
+  prometheus:
+    enabled: true
+    serviceMonitor: {enabled: true, namespace: gateway}
+etcd:
+  replicaCount: 3
+  persistence: {enabled: true, size: 8Gi}
+ingress-controller:
+  enabled: true
+  config:
+    apisix: {serviceNamespace: gateway}
+    kubernetes: {ingressClass: apisix}

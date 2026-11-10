@@ -1,0 +1,387 @@
+# Quyền tối thiểu: mỗi service một KafkaUser (SCRAM), secret đồng bộ sang namespace service qua ESO.
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaUser
+metadata:
+  name: inventory-service
+  namespace: messaging
+  labels:
+    strimzi.io/cluster: ecom
+spec:
+  authentication:
+    type: scram-sha-512
+  authorization:
+    type: simple
+    acls:
+    - resource:
+        type: topic
+        name: ecom.order.events
+      operations:
+      - Read
+      - Describe
+    - resource:
+        type: topic
+        name: ecom.order.events.dlq
+      operations:
+      - Write
+      - Describe
+    - resource:
+        type: group
+        name: inventory-service
+      operations:
+      - Read
+    - resource:
+        type: topic
+        name: ecom.inventory.events
+      operations:
+      - Write
+      - Describe
+---
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaUser
+metadata:
+  name: cart-service
+  namespace: messaging
+  labels:
+    strimzi.io/cluster: ecom
+spec:
+  authentication:
+    type: scram-sha-512
+  authorization:
+    type: simple
+    acls:
+    - resource:
+        type: topic
+        name: ecom.order.events
+      operations:
+      - Read
+      - Describe
+    - resource:
+        type: topic
+        name: ecom.order.events.dlq
+      operations:
+      - Write
+      - Describe
+    - resource:
+        type: group
+        name: cart-service
+      operations:
+      - Read
+---
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaUser
+metadata:
+  name: order-service
+  namespace: messaging
+  labels:
+    strimzi.io/cluster: ecom
+spec:
+  authentication:
+    type: scram-sha-512
+  authorization:
+    type: simple
+    acls:
+    - resource:
+        type: topic
+        name: ecom.inventory.events
+      operations:
+      - Read
+      - Describe
+    - resource:
+        type: topic
+        name: ecom.inventory.events.dlq
+      operations:
+      - Write
+      - Describe
+    - resource:
+        type: topic
+        name: ecom.payment.events
+      operations:
+      - Read
+      - Describe
+    - resource:
+        type: topic
+        name: ecom.payment.events.dlq
+      operations:
+      - Write
+      - Describe
+    - resource:
+        type: topic
+        name: ecom.cart.events
+      operations:
+      - Read
+      - Describe
+    - resource:
+        type: topic
+        name: ecom.cart.events.dlq
+      operations:
+      - Write
+      - Describe
+    - resource:
+        type: group
+        name: order-service
+      operations:
+      - Read
+---
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaUser
+metadata:
+  name: payment-service
+  namespace: messaging
+  labels:
+    strimzi.io/cluster: ecom
+spec:
+  authentication:
+    type: scram-sha-512
+  authorization:
+    type: simple
+    acls:
+    - resource:
+        type: topic
+        name: ecom.order.events
+      operations:
+      - Read
+      - Describe
+    - resource:
+        type: topic
+        name: ecom.order.events.dlq
+      operations:
+      - Write
+      - Describe
+    - resource:
+        type: group
+        name: payment-service
+      operations:
+      - Read
+---
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaUser
+metadata:
+  name: promotion-service
+  namespace: messaging
+  labels:
+    strimzi.io/cluster: ecom
+spec:
+  authentication:
+    type: scram-sha-512
+  authorization:
+    type: simple
+    acls:
+    - resource:
+        type: topic
+        name: ecom.order.events
+      operations:
+      - Read
+      - Describe
+    - resource:
+        type: topic
+        name: ecom.order.events.dlq
+      operations:
+      - Write
+      - Describe
+    - resource:
+        type: group
+        name: promotion-service
+      operations:
+      - Read
+---
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaUser
+metadata:
+  name: debezium-connect
+  namespace: messaging
+  labels:
+    strimzi.io/cluster: ecom
+spec:
+  authentication:
+    type: scram-sha-512
+  authorization:
+    type: simple
+    acls:
+    - resource:
+        type: group
+        name: debezium-connect
+      operations:
+      - Read
+    - resource:
+        type: topic
+        name: ecom.inventory.events
+      operations:
+      - Write
+      - Describe
+    - resource:
+        type: topic
+        name: ecom.order.events
+      operations:
+      - Write
+      - Describe
+    - resource:
+        type: topic
+        name: ecom.payment.events
+      operations:
+      - Write
+      - Describe
+    - resource:
+        type: topic
+        name: ecom.cart.events
+      operations:
+      - Write
+      - Describe
+    - resource:
+        type: topic
+        name: ecom.product.events
+      operations:
+      - Write
+      - Describe
+    - resource:
+        type: topic
+        name: ecom.promotion.events
+      operations:
+      - Write
+      - Describe
+    - resource:
+        type: topic
+        name: ecom.catalog.events
+      operations:
+      - Write
+      - Describe
+    - resource:
+        type: topic
+        name: ecom.customer.events
+      operations:
+      - Write
+      - Describe
+    - resource:
+        type: topic
+        name: ecom.review.events
+      operations:
+      - Write
+      - Describe
+    - resource:
+        type: topic
+        name: ecom.notification.events
+      operations:
+      - Write
+      - Describe
+    - resource:
+        type: topic
+        name: ecom.shipping.events
+      operations:
+      - Write
+      - Describe
+---
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaUser
+metadata:
+  name: search-service
+  namespace: messaging
+  labels:
+    strimzi.io/cluster: ecom
+spec:
+  authentication:
+    type: scram-sha-512
+  authorization:
+    type: simple
+    acls:
+    - resource:
+        type: topic
+        name: ecom.product.events
+      operations:
+      - Read
+      - Describe
+    - resource:
+        type: topic
+        name: ecom.product.events.dlq
+      operations:
+      - Write
+      - Describe
+    - resource:
+        type: group
+        name: search-service
+      operations:
+      - Read
+---
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaUser
+metadata:
+  name: webhook-service
+  namespace: messaging
+  labels:
+    strimzi.io/cluster: ecom
+spec:
+  authentication:
+    type: scram-sha-512
+  authorization:
+    type: simple
+    acls:
+    - resource:
+        type: topic
+        name: ecom.order.events
+      operations:
+      - Read
+      - Describe
+    - resource:
+        type: topic
+        name: ecom.order.events.dlq
+      operations:
+      - Write
+      - Describe
+    - resource:
+        type: topic
+        name: ecom.product.events
+      operations:
+      - Read
+      - Describe
+    - resource:
+        type: topic
+        name: ecom.product.events.dlq
+      operations:
+      - Write
+      - Describe
+    - resource:
+        type: topic
+        name: ecom.shipping.events
+      operations:
+      - Read
+      - Describe
+    - resource:
+        type: topic
+        name: ecom.shipping.events.dlq
+      operations:
+      - Write
+      - Describe
+    - resource:
+        type: group
+        name: webhook-service
+      operations:
+      - Read
+---
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaUser
+metadata:
+  name: shipping-service
+  namespace: messaging
+  labels:
+    strimzi.io/cluster: ecom
+spec:
+  authentication:
+    type: scram-sha-512
+  authorization:
+    type: simple
+    acls:
+    - resource:
+        type: topic
+        name: ecom.order.events
+      operations:
+      - Read
+      - Describe
+    - resource:
+        type: topic
+        name: ecom.order.events.dlq
+      operations:
+      - Write
+      - Describe
+    - resource:
+        type: group
+        name: shipping-service
+      operations:
+      - Read

@@ -1,0 +1,716 @@
+# SINH từ api/proto/ecommerce/*/v1/*_events.proto bằng tools/scripts/gen-asyncapi.py
+asyncapi: 3.0.0
+info:
+  title: CongThanhApp e-commerce events
+  version: 1.0.0
+  description: Event miền trên Kafka. Mỗi record là ecommerce.common.v1.EventEnvelope
+    (Protobuf) bọc event trong `payload` (Any). Header ce_type = tên đầy đủ của event,
+    traceparent = W3C trace context. Key = aggregate id.
+defaultContentType: application/x-protobuf
+servers:
+  local:
+    host: localhost:29092
+    protocol: kafka
+  prod:
+    host: ecom-kafka-bootstrap.messaging.svc.cluster.local:9092
+    protocol: kafka
+    security:
+    - type: scramSha512
+channels:
+  cartEvents:
+    address: ecom.cart.events
+    messages:
+      CartItemAdded:
+        $ref: '#/components/messages/cart.CartItemAdded'
+      CartItemRemoved:
+        $ref: '#/components/messages/cart.CartItemRemoved'
+      CartCleared:
+        $ref: '#/components/messages/cart.CartCleared'
+    description: 'Event của cart-service; DLQ: ecom.cart.events.dlq'
+  catalogEvents:
+    address: ecom.catalog.events
+    messages:
+      CategoryUpserted:
+        $ref: '#/components/messages/catalog.CategoryUpserted'
+      BrandUpserted:
+        $ref: '#/components/messages/catalog.BrandUpserted'
+      ProductTagsChanged:
+        $ref: '#/components/messages/catalog.ProductTagsChanged'
+    description: 'Event của catalog-service; DLQ: ecom.catalog.events.dlq'
+  customerEvents:
+    address: ecom.customer.events
+    messages:
+      WishlistItemAdded:
+        $ref: '#/components/messages/customer.WishlistItemAdded'
+      WishlistItemRemoved:
+        $ref: '#/components/messages/customer.WishlistItemRemoved'
+    description: 'Event của customer-service; DLQ: ecom.customer.events.dlq'
+  inventoryEvents:
+    address: ecom.inventory.events
+    messages:
+      InventoryReserved:
+        $ref: '#/components/messages/inventory.InventoryReserved'
+      InventoryReservationFailed:
+        $ref: '#/components/messages/inventory.InventoryReservationFailed'
+      InventoryReleased:
+        $ref: '#/components/messages/inventory.InventoryReleased'
+      InventoryCommitted:
+        $ref: '#/components/messages/inventory.InventoryCommitted'
+      StockLevelChanged:
+        $ref: '#/components/messages/inventory.StockLevelChanged'
+      LowStockDetected:
+        $ref: '#/components/messages/inventory.LowStockDetected'
+      FlashSaleClaimed:
+        $ref: '#/components/messages/inventory.FlashSaleClaimed'
+    description: 'Event của inventory-service; DLQ: ecom.inventory.events.dlq'
+  messageEvents:
+    address: ecom.message.events
+    messages:
+      MessageSent:
+        $ref: '#/components/messages/message.MessageSent'
+    description: 'Event của message-service; DLQ: ecom.message.events.dlq'
+  orderEvents:
+    address: ecom.order.events
+    messages:
+      OrderPlaced:
+        $ref: '#/components/messages/order.OrderPlaced'
+      ShippingAddress:
+        $ref: '#/components/messages/order.ShippingAddress'
+      OrderConfirmed:
+        $ref: '#/components/messages/order.OrderConfirmed'
+      OrderCancelled:
+        $ref: '#/components/messages/order.OrderCancelled'
+    description: 'Event của order-service; DLQ: ecom.order.events.dlq'
+  paymentEvents:
+    address: ecom.payment.events
+    messages:
+      PaymentAuthorized:
+        $ref: '#/components/messages/payment.PaymentAuthorized'
+      PaymentFailed:
+        $ref: '#/components/messages/payment.PaymentFailed'
+      PaymentRefunded:
+        $ref: '#/components/messages/payment.PaymentRefunded'
+    description: 'Event của payment-service; DLQ: ecom.payment.events.dlq'
+  productEvents:
+    address: ecom.product.events
+    messages:
+      ProductUpserted:
+        $ref: '#/components/messages/product.ProductUpserted'
+      ProductDeleted:
+        $ref: '#/components/messages/product.ProductDeleted'
+    description: 'Event của product-service; DLQ: ecom.product.events.dlq'
+  promotionEvents:
+    address: ecom.promotion.events
+    messages:
+      PromotionActivated:
+        $ref: '#/components/messages/promotion.PromotionActivated'
+      PromotionExpired:
+        $ref: '#/components/messages/promotion.PromotionExpired'
+      PromotionRedeemed:
+        $ref: '#/components/messages/promotion.PromotionRedeemed'
+      RedemptionCancelled:
+        $ref: '#/components/messages/promotion.RedemptionCancelled'
+    description: 'Event của promotion-service; DLQ: ecom.promotion.events.dlq'
+  reviewEvents:
+    address: ecom.review.events
+    messages:
+      ReviewSubmitted:
+        $ref: '#/components/messages/review.ReviewSubmitted'
+      ReviewModerated:
+        $ref: '#/components/messages/review.ReviewModerated'
+      ReviewReplied:
+        $ref: '#/components/messages/review.ReviewReplied'
+      ProductRatingChanged:
+        $ref: '#/components/messages/review.ProductRatingChanged'
+    description: 'Event của review-service; DLQ: ecom.review.events.dlq'
+  shippingEvents:
+    address: ecom.shipping.events
+    messages:
+      ShipmentCreated:
+        $ref: '#/components/messages/shipping.ShipmentCreated'
+      ShipmentStatusChanged:
+        $ref: '#/components/messages/shipping.ShipmentStatusChanged'
+    description: 'Event của shipping; DLQ: ecom.shipping.events.dlq'
+operations:
+  publishCartEvents:
+    action: send
+    channel:
+      $ref: '#/channels/cartEvents'
+    summary: cart-service ghi qua outbox → Debezium
+  publishCatalogEvents:
+    action: send
+    channel:
+      $ref: '#/channels/catalogEvents'
+    summary: catalog-service ghi qua outbox → Debezium
+  publishCustomerEvents:
+    action: send
+    channel:
+      $ref: '#/channels/customerEvents'
+    summary: customer-service ghi qua outbox → Debezium
+  publishInventoryEvents:
+    action: send
+    channel:
+      $ref: '#/channels/inventoryEvents'
+    summary: inventory-service ghi qua outbox → Debezium
+  publishMessageEvents:
+    action: send
+    channel:
+      $ref: '#/channels/messageEvents'
+    summary: message-service ghi qua outbox → Debezium
+  publishOrderEvents:
+    action: send
+    channel:
+      $ref: '#/channels/orderEvents'
+    summary: order-service ghi qua outbox → Debezium
+  publishPaymentEvents:
+    action: send
+    channel:
+      $ref: '#/channels/paymentEvents'
+    summary: payment-service ghi qua outbox → Debezium
+  publishProductEvents:
+    action: send
+    channel:
+      $ref: '#/channels/productEvents'
+    summary: product-service ghi qua outbox → Debezium
+  publishPromotionEvents:
+    action: send
+    channel:
+      $ref: '#/channels/promotionEvents'
+    summary: promotion-service ghi qua outbox → Debezium
+  publishReviewEvents:
+    action: send
+    channel:
+      $ref: '#/channels/reviewEvents'
+    summary: review-service ghi qua outbox → Debezium
+  publishShippingEvents:
+    action: send
+    channel:
+      $ref: '#/channels/shippingEvents'
+    summary: shipping ghi qua outbox → Debezium
+components:
+  messages:
+    cart.CartItemAdded:
+      name: CartItemAdded
+      title: ecommerce.cart.v1.CartItemAdded
+      payload:
+        schemaFormat: application/vnd.google.protobuf;version=3
+        schema:
+          $ref: ../../api/proto/ecommerce/cart/v1/cart_events.proto
+      headers:
+        type: object
+        properties:
+          ce_type:
+            type: string
+            const: ecommerce.cart.v1.CartItemAdded
+          traceparent:
+            type: string
+    cart.CartItemRemoved:
+      name: CartItemRemoved
+      title: ecommerce.cart.v1.CartItemRemoved
+      payload:
+        schemaFormat: application/vnd.google.protobuf;version=3
+        schema:
+          $ref: ../../api/proto/ecommerce/cart/v1/cart_events.proto
+      headers:
+        type: object
+        properties:
+          ce_type:
+            type: string
+            const: ecommerce.cart.v1.CartItemRemoved
+          traceparent:
+            type: string
+    cart.CartCleared:
+      name: CartCleared
+      title: ecommerce.cart.v1.CartCleared
+      payload:
+        schemaFormat: application/vnd.google.protobuf;version=3
+        schema:
+          $ref: ../../api/proto/ecommerce/cart/v1/cart_events.proto
+      headers:
+        type: object
+        properties:
+          ce_type:
+            type: string
+            const: ecommerce.cart.v1.CartCleared
+          traceparent:
+            type: string
+    catalog.CategoryUpserted:
+      name: CategoryUpserted
+      title: ecommerce.catalog.v1.CategoryUpserted
+      payload:
+        schemaFormat: application/vnd.google.protobuf;version=3
+        schema:
+          $ref: ../../api/proto/ecommerce/catalog/v1/catalog_events.proto
+      headers:
+        type: object
+        properties:
+          ce_type:
+            type: string
+            const: ecommerce.catalog.v1.CategoryUpserted
+          traceparent:
+            type: string
+    catalog.BrandUpserted:
+      name: BrandUpserted
+      title: ecommerce.catalog.v1.BrandUpserted
+      payload:
+        schemaFormat: application/vnd.google.protobuf;version=3
+        schema:
+          $ref: ../../api/proto/ecommerce/catalog/v1/catalog_events.proto
+      headers:
+        type: object
+        properties:
+          ce_type:
+            type: string
+            const: ecommerce.catalog.v1.BrandUpserted
+          traceparent:
+            type: string
+    catalog.ProductTagsChanged:
+      name: ProductTagsChanged
+      title: ecommerce.catalog.v1.ProductTagsChanged
+      payload:
+        schemaFormat: application/vnd.google.protobuf;version=3
+        schema:
+          $ref: ../../api/proto/ecommerce/catalog/v1/catalog_events.proto
+      headers:
+        type: object
+        properties:
+          ce_type:
+            type: string
+            const: ecommerce.catalog.v1.ProductTagsChanged
+          traceparent:
+            type: string
+    customer.WishlistItemAdded:
+      name: WishlistItemAdded
+      title: ecommerce.customer.v1.WishlistItemAdded
+      payload:
+        schemaFormat: application/vnd.google.protobuf;version=3
+        schema:
+          $ref: ../../api/proto/ecommerce/customer/v1/customer_events.proto
+      headers:
+        type: object
+        properties:
+          ce_type:
+            type: string
+            const: ecommerce.customer.v1.WishlistItemAdded
+          traceparent:
+            type: string
+    customer.WishlistItemRemoved:
+      name: WishlistItemRemoved
+      title: ecommerce.customer.v1.WishlistItemRemoved
+      payload:
+        schemaFormat: application/vnd.google.protobuf;version=3
+        schema:
+          $ref: ../../api/proto/ecommerce/customer/v1/customer_events.proto
+      headers:
+        type: object
+        properties:
+          ce_type:
+            type: string
+            const: ecommerce.customer.v1.WishlistItemRemoved
+          traceparent:
+            type: string
+    inventory.InventoryReserved:
+      name: InventoryReserved
+      title: ecommerce.inventory.v1.InventoryReserved
+      payload:
+        schemaFormat: application/vnd.google.protobuf;version=3
+        schema:
+          $ref: ../../api/proto/ecommerce/inventory/v1/inventory_events.proto
+      headers:
+        type: object
+        properties:
+          ce_type:
+            type: string
+            const: ecommerce.inventory.v1.InventoryReserved
+          traceparent:
+            type: string
+    inventory.InventoryReservationFailed:
+      name: InventoryReservationFailed
+      title: ecommerce.inventory.v1.InventoryReservationFailed
+      payload:
+        schemaFormat: application/vnd.google.protobuf;version=3
+        schema:
+          $ref: ../../api/proto/ecommerce/inventory/v1/inventory_events.proto
+      headers:
+        type: object
+        properties:
+          ce_type:
+            type: string
+            const: ecommerce.inventory.v1.InventoryReservationFailed
+          traceparent:
+            type: string
+    inventory.InventoryReleased:
+      name: InventoryReleased
+      title: ecommerce.inventory.v1.InventoryReleased
+      payload:
+        schemaFormat: application/vnd.google.protobuf;version=3
+        schema:
+          $ref: ../../api/proto/ecommerce/inventory/v1/inventory_events.proto
+      headers:
+        type: object
+        properties:
+          ce_type:
+            type: string
+            const: ecommerce.inventory.v1.InventoryReleased
+          traceparent:
+            type: string
+    inventory.InventoryCommitted:
+      name: InventoryCommitted
+      title: ecommerce.inventory.v1.InventoryCommitted
+      payload:
+        schemaFormat: application/vnd.google.protobuf;version=3
+        schema:
+          $ref: ../../api/proto/ecommerce/inventory/v1/inventory_events.proto
+      headers:
+        type: object
+        properties:
+          ce_type:
+            type: string
+            const: ecommerce.inventory.v1.InventoryCommitted
+          traceparent:
+            type: string
+    inventory.StockLevelChanged:
+      name: StockLevelChanged
+      title: ecommerce.inventory.v1.StockLevelChanged
+      payload:
+        schemaFormat: application/vnd.google.protobuf;version=3
+        schema:
+          $ref: ../../api/proto/ecommerce/inventory/v1/inventory_events.proto
+      headers:
+        type: object
+        properties:
+          ce_type:
+            type: string
+            const: ecommerce.inventory.v1.StockLevelChanged
+          traceparent:
+            type: string
+    inventory.LowStockDetected:
+      name: LowStockDetected
+      title: ecommerce.inventory.v1.LowStockDetected
+      payload:
+        schemaFormat: application/vnd.google.protobuf;version=3
+        schema:
+          $ref: ../../api/proto/ecommerce/inventory/v1/inventory_events.proto
+      headers:
+        type: object
+        properties:
+          ce_type:
+            type: string
+            const: ecommerce.inventory.v1.LowStockDetected
+          traceparent:
+            type: string
+    inventory.FlashSaleClaimed:
+      name: FlashSaleClaimed
+      title: ecommerce.inventory.v1.FlashSaleClaimed
+      payload:
+        schemaFormat: application/vnd.google.protobuf;version=3
+        schema:
+          $ref: ../../api/proto/ecommerce/inventory/v1/inventory_events.proto
+      headers:
+        type: object
+        properties:
+          ce_type:
+            type: string
+            const: ecommerce.inventory.v1.FlashSaleClaimed
+          traceparent:
+            type: string
+    message.MessageSent:
+      name: MessageSent
+      title: ecommerce.message.v1.MessageSent
+      payload:
+        schemaFormat: application/vnd.google.protobuf;version=3
+        schema:
+          $ref: ../../api/proto/ecommerce/message/v1/message_events.proto
+      headers:
+        type: object
+        properties:
+          ce_type:
+            type: string
+            const: ecommerce.message.v1.MessageSent
+          traceparent:
+            type: string
+    order.OrderPlaced:
+      name: OrderPlaced
+      title: ecommerce.order.v1.OrderPlaced
+      payload:
+        schemaFormat: application/vnd.google.protobuf;version=3
+        schema:
+          $ref: ../../api/proto/ecommerce/order/v1/order_events.proto
+      headers:
+        type: object
+        properties:
+          ce_type:
+            type: string
+            const: ecommerce.order.v1.OrderPlaced
+          traceparent:
+            type: string
+    order.ShippingAddress:
+      name: ShippingAddress
+      title: ecommerce.order.v1.ShippingAddress
+      payload:
+        schemaFormat: application/vnd.google.protobuf;version=3
+        schema:
+          $ref: ../../api/proto/ecommerce/order/v1/order_events.proto
+      headers:
+        type: object
+        properties:
+          ce_type:
+            type: string
+            const: ecommerce.order.v1.ShippingAddress
+          traceparent:
+            type: string
+    order.OrderConfirmed:
+      name: OrderConfirmed
+      title: ecommerce.order.v1.OrderConfirmed
+      payload:
+        schemaFormat: application/vnd.google.protobuf;version=3
+        schema:
+          $ref: ../../api/proto/ecommerce/order/v1/order_events.proto
+      headers:
+        type: object
+        properties:
+          ce_type:
+            type: string
+            const: ecommerce.order.v1.OrderConfirmed
+          traceparent:
+            type: string
+    order.OrderCancelled:
+      name: OrderCancelled
+      title: ecommerce.order.v1.OrderCancelled
+      payload:
+        schemaFormat: application/vnd.google.protobuf;version=3
+        schema:
+          $ref: ../../api/proto/ecommerce/order/v1/order_events.proto
+      headers:
+        type: object
+        properties:
+          ce_type:
+            type: string
+            const: ecommerce.order.v1.OrderCancelled
+          traceparent:
+            type: string
+    payment.PaymentAuthorized:
+      name: PaymentAuthorized
+      title: ecommerce.payment.v1.PaymentAuthorized
+      payload:
+        schemaFormat: application/vnd.google.protobuf;version=3
+        schema:
+          $ref: ../../api/proto/ecommerce/payment/v1/payment_events.proto
+      headers:
+        type: object
+        properties:
+          ce_type:
+            type: string
+            const: ecommerce.payment.v1.PaymentAuthorized
+          traceparent:
+            type: string
+    payment.PaymentFailed:
+      name: PaymentFailed
+      title: ecommerce.payment.v1.PaymentFailed
+      payload:
+        schemaFormat: application/vnd.google.protobuf;version=3
+        schema:
+          $ref: ../../api/proto/ecommerce/payment/v1/payment_events.proto
+      headers:
+        type: object
+        properties:
+          ce_type:
+            type: string
+            const: ecommerce.payment.v1.PaymentFailed
+          traceparent:
+            type: string
+    payment.PaymentRefunded:
+      name: PaymentRefunded
+      title: ecommerce.payment.v1.PaymentRefunded
+      payload:
+        schemaFormat: application/vnd.google.protobuf;version=3
+        schema:
+          $ref: ../../api/proto/ecommerce/payment/v1/payment_events.proto
+      headers:
+        type: object
+        properties:
+          ce_type:
+            type: string
+            const: ecommerce.payment.v1.PaymentRefunded
+          traceparent:
+            type: string
+    product.ProductUpserted:
+      name: ProductUpserted
+      title: ecommerce.product.v1.ProductUpserted
+      payload:
+        schemaFormat: application/vnd.google.protobuf;version=3
+        schema:
+          $ref: ../../api/proto/ecommerce/product/v1/product_events.proto
+      headers:
+        type: object
+        properties:
+          ce_type:
+            type: string
+            const: ecommerce.product.v1.ProductUpserted
+          traceparent:
+            type: string
+    product.ProductDeleted:
+      name: ProductDeleted
+      title: ecommerce.product.v1.ProductDeleted
+      payload:
+        schemaFormat: application/vnd.google.protobuf;version=3
+        schema:
+          $ref: ../../api/proto/ecommerce/product/v1/product_events.proto
+      headers:
+        type: object
+        properties:
+          ce_type:
+            type: string
+            const: ecommerce.product.v1.ProductDeleted
+          traceparent:
+            type: string
+    promotion.PromotionActivated:
+      name: PromotionActivated
+      title: ecommerce.promotion.v1.PromotionActivated
+      payload:
+        schemaFormat: application/vnd.google.protobuf;version=3
+        schema:
+          $ref: ../../api/proto/ecommerce/promotion/v1/promotion_events.proto
+      headers:
+        type: object
+        properties:
+          ce_type:
+            type: string
+            const: ecommerce.promotion.v1.PromotionActivated
+          traceparent:
+            type: string
+    promotion.PromotionExpired:
+      name: PromotionExpired
+      title: ecommerce.promotion.v1.PromotionExpired
+      payload:
+        schemaFormat: application/vnd.google.protobuf;version=3
+        schema:
+          $ref: ../../api/proto/ecommerce/promotion/v1/promotion_events.proto
+      headers:
+        type: object
+        properties:
+          ce_type:
+            type: string
+            const: ecommerce.promotion.v1.PromotionExpired
+          traceparent:
+            type: string
+    promotion.PromotionRedeemed:
+      name: PromotionRedeemed
+      title: ecommerce.promotion.v1.PromotionRedeemed
+      payload:
+        schemaFormat: application/vnd.google.protobuf;version=3
+        schema:
+          $ref: ../../api/proto/ecommerce/promotion/v1/promotion_events.proto
+      headers:
+        type: object
+        properties:
+          ce_type:
+            type: string
+            const: ecommerce.promotion.v1.PromotionRedeemed
+          traceparent:
+            type: string
+    promotion.RedemptionCancelled:
+      name: RedemptionCancelled
+      title: ecommerce.promotion.v1.RedemptionCancelled
+      payload:
+        schemaFormat: application/vnd.google.protobuf;version=3
+        schema:
+          $ref: ../../api/proto/ecommerce/promotion/v1/promotion_events.proto
+      headers:
+        type: object
+        properties:
+          ce_type:
+            type: string
+            const: ecommerce.promotion.v1.RedemptionCancelled
+          traceparent:
+            type: string
+    review.ReviewSubmitted:
+      name: ReviewSubmitted
+      title: ecommerce.review.v1.ReviewSubmitted
+      payload:
+        schemaFormat: application/vnd.google.protobuf;version=3
+        schema:
+          $ref: ../../api/proto/ecommerce/review/v1/review_events.proto
+      headers:
+        type: object
+        properties:
+          ce_type:
+            type: string
+            const: ecommerce.review.v1.ReviewSubmitted
+          traceparent:
+            type: string
+    review.ReviewModerated:
+      name: ReviewModerated
+      title: ecommerce.review.v1.ReviewModerated
+      payload:
+        schemaFormat: application/vnd.google.protobuf;version=3
+        schema:
+          $ref: ../../api/proto/ecommerce/review/v1/review_events.proto
+      headers:
+        type: object
+        properties:
+          ce_type:
+            type: string
+            const: ecommerce.review.v1.ReviewModerated
+          traceparent:
+            type: string
+    review.ReviewReplied:
+      name: ReviewReplied
+      title: ecommerce.review.v1.ReviewReplied
+      payload:
+        schemaFormat: application/vnd.google.protobuf;version=3
+        schema:
+          $ref: ../../api/proto/ecommerce/review/v1/review_events.proto
+      headers:
+        type: object
+        properties:
+          ce_type:
+            type: string
+            const: ecommerce.review.v1.ReviewReplied
+          traceparent:
+            type: string
+    review.ProductRatingChanged:
+      name: ProductRatingChanged
+      title: ecommerce.review.v1.ProductRatingChanged
+      payload:
+        schemaFormat: application/vnd.google.protobuf;version=3
+        schema:
+          $ref: ../../api/proto/ecommerce/review/v1/review_events.proto
+      headers:
+        type: object
+        properties:
+          ce_type:
+            type: string
+            const: ecommerce.review.v1.ProductRatingChanged
+          traceparent:
+            type: string
+    shipping.ShipmentCreated:
+      name: ShipmentCreated
+      title: ecommerce.shipping.v1.ShipmentCreated
+      payload:
+        schemaFormat: application/vnd.google.protobuf;version=3
+        schema:
+          $ref: ../../api/proto/ecommerce/shipping/v1/shipping_events.proto
+      headers:
+        type: object
+        properties:
+          ce_type:
+            type: string
+            const: ecommerce.shipping.v1.ShipmentCreated
+          traceparent:
+            type: string
+    shipping.ShipmentStatusChanged:
+      name: ShipmentStatusChanged
+      title: ecommerce.shipping.v1.ShipmentStatusChanged
+      payload:
+        schemaFormat: application/vnd.google.protobuf;version=3
+        schema:
+          $ref: ../../api/proto/ecommerce/shipping/v1/shipping_events.proto
+      headers:
+        type: object
+        properties:
+          ce_type:
+            type: string
+            const: ecommerce.shipping.v1.ShipmentStatusChanged
+          traceparent:
+            type: string

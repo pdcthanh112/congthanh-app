@@ -1,0 +1,43 @@
+\part{System requirement}
+% \label{Chapter2}
+
+\section{Kỹ thuật phân tích Ước lượng hồi quy tuyến tính OLS}
+Trong thống kê, bình phương tối thiểu thông thường (OLS) là một loại phương pháp bình phương tối thiểu tuyến tính để chọn các tham số chưa biết trong mô hình hồi quy tuyến tính bằng cách nguyên tắc bình phương tối thiểu: cực tiểu hóa tổng bình phương của các sai phân giữa biến phụ thuộc quan sát (giá trị của biến quan sát) trong tập dữ liệu đầu vào và đầu ra của hàm (tuyến tính) của biến độc lập. Một số nguồn coi OLS là hồi quy tuyến tính.
+
+Về mặt hình học, đây được coi là tổng các khoảng cách bình phương, song song với trục của biến phụ thuộc, giữa mỗi điểm dữ liệu trong tập hợp và điểm tương ứng trên bề mặt hồi quy—sự khác biệt càng nhỏ thì mô hình càng phù hợp với dữ liệu hơn . Công cụ ước tính kết quả có thể được biểu thị bằng một công thức đơn giản, đặc biệt trong trường hợp hồi quy tuyến tính đơn giản, trong đó có một biến hồi quy duy nhất ở phía bên phải của phương trình hồi quy.
+
+Công cụ ước tính OLS phù hợp với các tác động cố định cấp một khi các biến hồi quy là ngoại sinh và hình thành tính cộng tuyến hoàn hảo (điều kiện xếp hạng), phù hợp với ước tính phương sai của phần dư khi các biến hồi quy có khoảnh khắc thứ tư hữu hạn của Gauss–Markov định lý tối ưu trong lớp các công cụ ước lượng tuyến tính không thiên vị khi các sai số có tính chất đồng nhất và không tương quan về mặt chuỗi. Trong những điều kiện này, phương pháp OLS cung cấp ước tính trung bình không sai lệch bằng phương sai tối thiểu khi các sai số có phương sai hữu hạn. Theo giả định bổ sung rằng các lỗi thường được phân phối với giá trị trung bình bằng 0, OLS là công cụ ước tính khả năng tối đa vượt trội hơn bất kỳ công cụ ước tính không thiên vị phi tuyến tính nào.
+\begin{enumerate}
+    \item Mô hình hồi quy tuyến tính:
+    $Y = \beta_0 + \beta_1 X_1 + \beta_2 X_2 + \dots + \beta_k X_k +\epsilon$
+
+    \item Ước lượng các hệ số hồi quy:
+
+    \item Ước lượng phương sai của phần dư:
+    $s^2 = \frac{(\mathbf{Y} - \mathbf{X}\boldsymbol{\beta})^\top (\mathbf{Y} - \mathbf{X}\boldsymbol{\beta})}{n - k - 1}$
+
+    \item Ước lượng ma trận phương sai - hiệp phương sai của các hệ số hồi quy:
+    $\text{Var}(\boldsymbol{\beta}) = s^2 (\mathbf{X}^\top \mathbf{X})^{-1}$
+
+    \begin{itemize}
+        \item Kiểm định t-statistic:
+        $t = \frac{\beta_j}{\text{SE}(\beta_j)}$
+    
+        \item Kiểm định F-statistic:
+        $F = \frac{(\text{ESS} / k)}{(\text{RSS} / (n - k - 1))}$
+    \end{itemize}
+    
+\end{enumerate}
+\section{Kỹ thuật xử lý ngôn ngữ tự nhiên}
+
+Xử lý ngôn ngữ tự nhiên (NLP) là lĩnh vực nghiên cứu và ứng dụng các phương pháp để máy tính có thể hiểu, phân tích và sản xuất ngôn ngữ tự nhiên một cách tự động. Báo cáo này sẽ chỉ trình bày các khái niệm và kỹ thuật cơ bản trong quy trình xử lý văn bản và ngôn ngữ tự nhiên mà không cần đến các mô hình học máy phức tạp.
+
+Đầu tiên khái niệm về text và word khác nhau như thế nào. Đối với "text", được hiểu là tập hợp văn bản hoặc đoạn văn bản được xem là một đơn vị lớn hơn, thường bao gồm nhiều câu hoặc nhiều cụm từ, Trái lại, "word"  là đơn vị nhỏ nhất trong xử lý ngôn ngữ, là thành phần cơ bản nhất của văn bản mà có thể được phân tích độc lập. 
+
+Việc tách từ (tokenization) đối với tiếng Anh thường dựa vào dấu câu và khoảng trắng giữa các từ. Tuy nhiên, trong các ngôn ngữ khác chẳng hạn như Tiếng Việt, việc này sẽ phức tạp hơn vì các từ không nhất thiết được ngăn cách bởi khoảng trắng rõ ràng được hiểu như là từ ghép. Mỗi token có thể là một từ, một cụm từ, hoặc thậm chí là một ký tự tuỳ thuộc vào cách tokenization được thiết lập. Quá trình này là bước quan trọng đầu tiên trong xử lý văn bản để máy tính có thể hiểu và xử lý dữ liệu ngôn ngữ tự nhiên. Chúng em đã sử dụng thư viện \textbf{underthesea} để tách từ Tiếng việt đây là dự án nghiên cứu về bài toán tách từ tiếng Việt, được phát triển bởi nhóm nghiên cứu xử lý ngôn ngữ tự nhiên tiếng Việt. Quy trình tách từ trong underthesea thực hiện thông qua 2 bước: 
+\begin{enumerate}
+    \item Tiền xử lý: Trước khi bắt đầu quá trình tách từ chính thức, văn bản được xử lý để chuẩn bị cho tokenization. Văn bản được tách thành các câu và từ (tokenize) sử dụng regular expression (regex - là một công cụ mạnh mẽ cho việc phân tích và xử lý chuỗi). Đây là giai đoạn để phân đoạn văn bản thành các câu và từ dựa trên các quy tắc về cú pháp ngôn ngữ.
+    \item Gán nhãn chuỗi: Sau khi văn bản đã được tiền xử lý và tách thành các đơn vị câu và từ, bước tiếp theo là gán nhãn cho các từ. Mỗi từ trong văn bản sẽ được gán một nhãn tương ứng, ví dụ như "danh từ", "động từ", "tính từ", "trạng từ", "giới từ" v.v. Đây là một bài toán gán nhãn chuỗi (sequence labeling) trong xử lý ngôn ngữ tự nhiên. Quá trình gán nhãn này sử dụng các mô hình máy học đã được huấn luyện để nhận diện và phân loại từng từ dựa trên ngữ cảnh và văn phong ngữ liệu của tiếng Việt.
+\end{enumerate}
+
+Các kỹ thuật bên cạnh khác như loại bỏ dấu câu, chuẩn hóa văn bản, loại bỏ stop words, loại bỏ các biểu tượng emoji và các dấu câu đặc biệt được áp dụng để làm sạch và chuẩn bị dữ liệu cho các phân tích và ứng dụng tiếp sau của nhóm em.

@@ -1,0 +1,157 @@
+# Service NestJS + BFF + supergraph GraphQL (đợt 3).
+name: ci-node
+on:
+  pull_request:
+    paths:
+      - "backend/app/ecommerce/services/*/package.json"
+      - "backend/app/ecommerce/services/**/*.ts"
+      - "backend/app/ecommerce/services/**/drizzle/**"
+      - "backend/app/ecommerce/services/node.Dockerfile"
+      - "backend/app/ecommerce/libs/ts/**"
+      - "backend/app/ecommerce/api/proto/**"
+      - "backend/app/ecommerce/platform/graphql/**"
+      - "backend/app/ecommerce/package.json"
+      - "backend/app/ecommerce/package-lock.json"
+      - "frontend/ecommerce/src/graphql/**"
+      - ".github/workflows/ci-node.yml"
+  push:
+    branches: [main]
+    paths:
+      - "backend/app/ecommerce/services/**/*.ts"
+      - "backend/app/ecommerce/libs/ts/**"
+      - "backend/app/ecommerce/platform/graphql/**"
+      - "backend/app/ecommerce/package-lock.json"
+permissions: {contents: read}
+concurrency: {group: "${{ github.workflow }}-${{ github.ref }}", cancel-in-progress: true}
+defaults:
+  run: {working-directory: backend/app/ecommerce}
+
+jobs:
+  check:
+    runs-on: ubuntu-24.04
+    services:
+      postgres:
+        image: pgvector/pgvector:0.8.1-pg18-trixie
+        env: {POSTGRES_PASSWORD: postgres, POSTGRES_DB: test}
+        ports: ["5432:5432"]
+        options: --health-cmd "pg_isready -U postgres" --health-interval 5s --health-retries 20
+      valkey:
+        image: valkey/valkey:8.1-alpine
+        ports: ["6379:6379"]
+    env:
+      # Test tích hợp (Drizzle + Postgres thật) bật khi có biến này; mỗi service dùng schema riêng.
+      TEST_DATABASE_URL: postgres://postgres:postgres@localhost:5432/test
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with: {node-version: "24", cache: npm, cache-dependency-path: backend/app/ecommerce/package-lock.json}
+      - uses: bufbuild/buf-action@v1
+        with: {setup_only: true}
+      - run: npm ci
+      # Sinh code TS từ proto rồi build theo thứ tự workspace (proto → shared → platform → clients → service).
+      - run: npm run build
+      - run: npm run typecheck
+      # Biome (format + lint) và dependency-cruiser (luật lục giác, không import chéo service).
+      - run: npm run lint
+      - run: npm test
+      - name: migration Drizzle khớp schema (không quên generate)
+        run: |
+          for s in catalog-service customer-service review-service notification-service message-service; do
+            (cd services/$s && npx drizzle-kit check && npx drizzle-kit generate --name ci-drift)
+          done
+          # generate sinh file mới nếu schema.ts đổi mà chưa có migration tương ứng.
+          test -z "$(git status --porcelain -- 'services/*/drizzle')" || { git status --short -- 'services/*/drizzle'; exit 1; }
+      - name: schema.graphql của từng subgraph đã cập nhật
+        run: |
+          npm run schema:emit --workspaces --if-present
+          git diff --exit-code -- 'services/*/schema.graphql'
+      - name: compose supergraph (Cosmo wgc) và so với bản đã commit
+        run: npm run supergraph:check
+      - name: truy vấn e2e (Hurl) khớp supergraph
+        run: node tools/scripts/validate-hurl-graphql.mjs tests/e2e/graphql.hurl
+      - name: operation GraphQL của frontend storefront khớp supergraph
+        run: node ../../../frontend/ecommerce/scripts/validate-graphql.mjs platform/graphql/storefront/supergraph.graphql
+      - name: router config hợp lệ theo schema của Cosmo Router
+        run: pip install --quiet jsonschema pyyaml && python3 tools/scripts/validate-router-config.py
+      - name: route APISIX sinh từ routes.yaml đã cập nhật
+        run: python3 tools/scripts/gen-apisix-routes.py --check
+
+  image:
+    if: github.event_name == 'push'
+    needs: check
+    runs-on: ubuntu-24.04
+    permissions: {contents: read, packages: write, id-token: write}
+    strategy:
+      fail-fast: false
+      matrix:
+        service: [catalog-service, customer-service, review-service, notification-service, message-service, storefront-bff, backoffice-bff]
+    steps:
+      - uses: actions/checkout@v5
+      # Tag = 12 ký tự đầu của SHA, giống image Go/Java, để workflow release tìm được digest.
+      - id: sha
+        run: echo "short=${GITHUB_SHA::12}" >> "$GITHUB_OUTPUT"
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with: {registry: ghcr.io, username: "${{ github.actor }}", password: "${{ secrets.GITHUB_TOKEN }}"}
+      - uses: sigstore/cosign-installer@v3
+      - uses: anchore/sbom-action/download-syft@v0
+      - name: build & push (một Dockerfile chung, distroless nonroot, multi-arch)
+        id: build
+        uses: docker/build-push-action@v6
+        with:
+          context: backend/app/ecommerce
+          file: backend/app/ecommerce/services/node.Dockerfile
+          build-args: SERVICE=${{ matrix.service }}
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ghcr.io/${{ github.repository_owner }}/congthanhapp/${{ matrix.service }}:${{ steps.sha.outputs.short }}
+          cache-from: type=gha,scope=${{ matrix.service }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.service }}
+      - name: trivy scan
+        uses: aquasecurity/trivy-action@0.33.1
+        with:
+          image-ref: "ghcr.io/${{ github.repository_owner }}/congthanhapp/${{ matrix.service }}@${{ steps.build.outputs.digest }}"
+          severity: "CRITICAL,HIGH"
+          exit-code: "1"
+          ignore-unfixed: true
+      - name: sign + SBOM attestation (Cosign keyless)
+        env: {IMAGE: "ghcr.io/${{ github.repository_owner }}/congthanhapp/${{ matrix.service }}@${{ steps.build.outputs.digest }}"}
+        run: |
+          syft "$IMAGE" -o spdx-json > sbom.spdx.json
+          cosign sign --yes "$IMAGE"
+          cosign attest --yes --type spdxjson --predicate sbom.spdx.json "$IMAGE"
+
+  router-image:
+    if: github.event_name == 'push'
+    needs: check
+    runs-on: ubuntu-24.04
+    permissions: {contents: read, packages: write, id-token: write}
+    strategy:
+      matrix:
+        include:
+          - {graph: storefront, name: graphql-router}
+          - {graph: backoffice, name: graphql-router-backoffice}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with: {node-version: "24", cache: npm, cache-dependency-path: backend/app/ecommerce/package-lock.json}
+      - run: npm ci
+      # Execution config sinh từ supergraph.graphql đã kiểm ở job check; đóng gói vào image router.
+      - run: npm run build && npm run schema:emit --workspaces --if-present && npm run supergraph
+      # Tag = 12 ký tự đầu của SHA, giống image Go/Java, để workflow release tìm được digest.
+      - id: sha
+        run: echo "short=${GITHUB_SHA::12}" >> "$GITHUB_OUTPUT"
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with: {registry: ghcr.io, username: "${{ github.actor }}", password: "${{ secrets.GITHUB_TOKEN }}"}
+      - uses: sigstore/cosign-installer@v3
+      - id: build
+        uses: docker/build-push-action@v6
+        with:
+          context: backend/app/ecommerce/platform/graphql
+          file: backend/app/ecommerce/platform/graphql/router/Dockerfile
+          build-args: GRAPH=${{ matrix.graph }}
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ghcr.io/${{ github.repository_owner }}/congthanhapp/${{ matrix.name }}:${{ steps.sha.outputs.short }}
+      - run: cosign sign --yes "ghcr.io/${{ github.repository_owner }}/congthanhapp/${{ matrix.name }}@${{ steps.build.outputs.digest }}"

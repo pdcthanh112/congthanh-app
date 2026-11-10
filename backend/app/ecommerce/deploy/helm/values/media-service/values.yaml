@@ -1,0 +1,21 @@
+# media-service: giá trị chung mọi môi trường. Ghi đè theo môi trường ở values-<env>.yaml.
+nameOverride: media-service
+runtime: go
+image:
+  repository: ghcr.io/pdcthanh112/congthanhapp/media-service
+ports:
+  http: 5007
+env:
+  DB_SCHEMA: media
+  S3_BUCKET: congthanhapp-ecommerce-media
+  S3_REGION: ap-southeast-1
+  MEDIA_PUBLIC_URL: https://cdn.congthanhapp.com/
+  JWT_JWKS_URL: http://keycloak-service.identity.svc.cluster.local:8080/realms/ecommerce/protocol/openid-connect/certs
+secretEnv:
+- name: DATABASE_URL
+  key: ecommerce/media-service
+  property: database_url
+# Credential S3 lấy từ IRSA (ServiceAccount gắn role IAM chỉ được ghi/xoá trong bucket media), không cần access key.
+serviceAccount:
+  annotations:
+    eks.amazonaws.com/role-arn: arn:aws:iam::000000000000:role/congthanhapp-media-service

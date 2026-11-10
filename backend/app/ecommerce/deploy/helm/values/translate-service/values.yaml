@@ -1,0 +1,19 @@
+# translate-service: dịch nội dung bằng Claude (FastAPI). Ghi đè theo môi trường ở values-<env>.yaml.
+nameOverride: translate-service
+runtime: python
+image:
+  repository: ghcr.io/pdcthanh112/congthanhapp/translate-service
+ports:
+  http: 5017
+env:
+  ANTHROPIC_MODEL: claude-opus-5-5
+  ANTHROPIC_EFFORT: low
+  VALKEY_URL: redis://ecom-valkey.data.svc.cluster.local:6379/5
+  JWT_JWKS_URL: http://keycloak-service.identity.svc.cluster.local:8080/realms/ecommerce/protocol/openid-connect/certs
+secretEnv:
+- name: ANTHROPIC_API_KEY
+  key: ecommerce/translate-service
+  property: anthropic_api_key
+resources:
+  requests: {cpu: 50m, memory: 128Mi}
+  limits: {memory: 256Mi}

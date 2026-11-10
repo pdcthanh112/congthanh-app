@@ -1,0 +1,124 @@
+# ------------------------------------------------------
+# THIS FILE WAS AUTOMATICALLY GENERATED (DO NOT MODIFY)
+# ------------------------------------------------------
+
+extend schema @link(url: "https://specs.apollo.dev/federation/v2.14", import: ["@authenticated", "@cacheTag", "@composeDirective", "@context", "@cost", "@extends", "@external", "@fromContext", "@inaccessible", "@interfaceObject", "@key", "@listSize", "@override", "@policy", "@provides", "@requires", "@requiresScopes", "@shareable", "@tag"])
+
+schema {
+  query: Query
+  mutation: Mutation
+  subscription: Subscription
+}
+
+"""
+A date-time string at UTC, such as 2019-12-03T09:54:33Z, compliant with the date-time format.
+"""
+scalar DateTime
+
+type Mutation {
+  """Số thông báo vừa đánh dấu đã đọc"""
+  markNotificationsRead(
+    """Bỏ trống = tất cả"""
+    ids: [ID!]
+  ): Int!
+  registerFcmToken(platform: String! = "android", token: String!): Boolean!
+  registerWebPush(subscription: WebPushInput!): Boolean!
+  """CSKH/Admin gửi thông báo cho một người dùng"""
+  sendNotification(input: SendNotificationInput!): Notification
+  """Gỡ thiết bị khi đăng xuất"""
+  unregisterDevice(fcmToken: String, webPushEndpoint: String): Boolean!
+  updateNotificationPreferences(clearQuietHours: Boolean! = false, quietHours: QuietHoursInput, settings: [SettingInput!]! = []): NotificationPreferences!
+}
+
+type Notification {
+  body: String!
+  category: NotificationCategory!
+  createdAt: DateTime!
+  id: ID!
+  link: String
+  readAt: DateTime
+  title: String!
+  type: String!
+}
+
+enum NotificationCategory {
+  INVENTORY
+  MESSAGE
+  ORDER
+  PAYMENT
+  PROMOTION
+  REVIEW
+  SYSTEM
+  WISHLIST
+}
+
+enum NotificationChannel {
+  EMAIL
+  FCM
+  IN_APP
+  SMS
+  WEB_PUSH
+}
+
+type NotificationPage {
+  items: [Notification!]!
+  total: Int!
+}
+
+type NotificationPreferences {
+  quietHours: QuietHours
+  settings: [NotificationSetting!]!
+}
+
+type NotificationSetting {
+  category: NotificationCategory!
+  channel: NotificationChannel!
+  """false với nhóm giao dịch (đơn hàng, thanh toán) qua in-app/email"""
+  editable: Boolean!
+  enabled: Boolean!
+}
+
+type Query {
+  myNotificationPreferences: NotificationPreferences!
+  myNotifications(page: Int! = 1, size: Int! = 20, unreadOnly: Boolean! = false): NotificationPage!
+  unreadNotificationCount: Int!
+}
+
+type QuietHours {
+  end: String!
+  start: String!
+  timezone: String!
+}
+
+input QuietHoursInput {
+  """HH:mm, có thể qua ngày"""
+  end: String!
+  """HH:mm"""
+  start: String!
+  timezone: String! = "Asia/Ho_Chi_Minh"
+}
+
+input SendNotificationInput {
+  body: String!
+  channels: [NotificationChannel!]! = [IN_APP]
+  link: String
+  title: String!
+  userId: ID!
+}
+
+input SettingInput {
+  category: NotificationCategory!
+  channel: NotificationChannel!
+  enabled: Boolean!
+}
+
+type Subscription {
+  """Thông báo mới của người đang đăng nhập (graphql-ws qua router)"""
+  notificationAdded: Notification!
+}
+
+input WebPushInput {
+  auth: String!
+  endpoint: String!
+  p256dh: String!
+}

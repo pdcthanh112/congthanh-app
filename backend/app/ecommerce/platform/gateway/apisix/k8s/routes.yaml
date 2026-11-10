@@ -1,0 +1,528 @@
+# FILE SINH TỰ ĐỘNG từ platform/gateway/routes.yaml — đừng sửa tay.
+apiVersion: apisix.apache.org/v2
+kind: ApisixRoute
+metadata:
+  name: cart
+  namespace: gateway
+spec:
+  ingressClassName: apisix
+  http:
+  - name: cart
+    match:
+      paths:
+      - /api/ecommerce/carts*
+    backends:
+    - serviceName: cart-service
+      servicePort: 80
+      resolveGranularity: service
+    plugins:
+    - name: limit-count
+      enable: true
+      config:
+        count: 300
+        time_window: 60
+        key: remote_addr
+        rejected_code: 429
+        policy: redis
+        redis_host: valkey.data.svc.cluster.local
+        allow_degradation: true
+    - name: openid-connect
+      enable: true
+      config:
+        discovery: http://keycloak.identity.svc.cluster.local/realms/ecommerce/.well-known/openid-configuration
+        client_id: apisix-gateway
+        client_secret: $secret://vault/apisix/keycloak-client-secret
+        bearer_only: true
+        use_jwks: true
+        set_userinfo_header: false
+---
+apiVersion: apisix.apache.org/v2
+kind: ApisixRoute
+metadata:
+  name: inventory
+  namespace: gateway
+spec:
+  ingressClassName: apisix
+  http:
+  - name: inventory
+    match:
+      paths:
+      - /api/ecommerce/inventory*
+      - /api/ecommerce/warehouses*
+    backends:
+    - serviceName: inventory-service
+      servicePort: 80
+      resolveGranularity: service
+    plugins:
+    - name: limit-count
+      enable: true
+      config:
+        count: 300
+        time_window: 60
+        key: remote_addr
+        rejected_code: 429
+        policy: redis
+        redis_host: valkey.data.svc.cluster.local
+        allow_degradation: true
+---
+apiVersion: apisix.apache.org/v2
+kind: ApisixRoute
+metadata:
+  name: flash-sale
+  namespace: gateway
+spec:
+  ingressClassName: apisix
+  http:
+  - name: flash-sale
+    match:
+      paths:
+      - /api/ecommerce/flash-sales*
+    backends:
+    - serviceName: inventory-service
+      servicePort: 80
+      resolveGranularity: service
+    plugins:
+    - name: limit-count
+      enable: true
+      config:
+        count: 5
+        time_window: 10
+        key: consumer_name
+        rejected_code: 429
+        policy: redis
+        redis_host: valkey.data.svc.cluster.local
+        allow_degradation: true
+    - name: limit-conn
+      enable: true
+      config:
+        conn: 2000
+        burst: 200
+        default_conn_delay: 0.1
+        key: server_addr
+        rejected_code: 503
+    - name: openid-connect
+      enable: true
+      config:
+        discovery: http://keycloak.identity.svc.cluster.local/realms/ecommerce/.well-known/openid-configuration
+        client_id: apisix-gateway
+        client_secret: $secret://vault/apisix/keycloak-client-secret
+        bearer_only: true
+        use_jwks: true
+        set_userinfo_header: false
+---
+apiVersion: apisix.apache.org/v2
+kind: ApisixRoute
+metadata:
+  name: order
+  namespace: gateway
+spec:
+  ingressClassName: apisix
+  http:
+  - name: order
+    match:
+      paths:
+      - /api/ecommerce/orders*
+      - /api/ecommerce/checkout*
+    backends:
+    - serviceName: order-service
+      servicePort: 80
+      resolveGranularity: service
+    plugins:
+    - name: limit-count
+      enable: true
+      config:
+        count: 300
+        time_window: 60
+        key: remote_addr
+        rejected_code: 429
+        policy: redis
+        redis_host: valkey.data.svc.cluster.local
+        allow_degradation: true
+    - name: openid-connect
+      enable: true
+      config:
+        discovery: http://keycloak.identity.svc.cluster.local/realms/ecommerce/.well-known/openid-configuration
+        client_id: apisix-gateway
+        client_secret: $secret://vault/apisix/keycloak-client-secret
+        bearer_only: true
+        use_jwks: true
+        set_userinfo_header: false
+---
+apiVersion: apisix.apache.org/v2
+kind: ApisixRoute
+metadata:
+  name: media
+  namespace: gateway
+spec:
+  ingressClassName: apisix
+  http:
+  - name: media
+    match:
+      paths:
+      - /api/ecommerce/media*
+    backends:
+    - serviceName: media-service
+      servicePort: 80
+      resolveGranularity: service
+    plugins:
+    - name: limit-count
+      enable: true
+      config:
+        count: 300
+        time_window: 60
+        key: remote_addr
+        rejected_code: 429
+        policy: redis
+        redis_host: valkey.data.svc.cluster.local
+        allow_degradation: true
+---
+apiVersion: apisix.apache.org/v2
+kind: ApisixRoute
+metadata:
+  name: product
+  namespace: gateway
+spec:
+  ingressClassName: apisix
+  http:
+  - name: product
+    match:
+      paths:
+      - /api/ecommerce/products*
+    backends:
+    - serviceName: product-service
+      servicePort: 80
+      resolveGranularity: service
+    plugins:
+    - name: limit-count
+      enable: true
+      config:
+        count: 300
+        time_window: 60
+        key: remote_addr
+        rejected_code: 429
+        policy: redis
+        redis_host: valkey.data.svc.cluster.local
+        allow_degradation: true
+---
+apiVersion: apisix.apache.org/v2
+kind: ApisixRoute
+metadata:
+  name: payment
+  namespace: gateway
+spec:
+  ingressClassName: apisix
+  http:
+  - name: payment
+    match:
+      paths:
+      - /api/ecommerce/payment*
+    backends:
+    - serviceName: payment-service
+      servicePort: 80
+      resolveGranularity: service
+    plugins:
+    - name: limit-count
+      enable: true
+      config:
+        count: 300
+        time_window: 60
+        key: remote_addr
+        rejected_code: 429
+        policy: redis
+        redis_host: valkey.data.svc.cluster.local
+        allow_degradation: true
+---
+apiVersion: apisix.apache.org/v2
+kind: ApisixRoute
+metadata:
+  name: promotion
+  namespace: gateway
+spec:
+  ingressClassName: apisix
+  http:
+  - name: promotion
+    match:
+      paths:
+      - /api/ecommerce/promotions*
+    backends:
+    - serviceName: promotion-service
+      servicePort: 80
+      resolveGranularity: service
+    plugins:
+    - name: limit-count
+      enable: true
+      config:
+        count: 300
+        time_window: 60
+        key: remote_addr
+        rejected_code: 429
+        policy: redis
+        redis_host: valkey.data.svc.cluster.local
+        allow_degradation: true
+---
+apiVersion: apisix.apache.org/v2
+kind: ApisixRoute
+metadata:
+  name: search
+  namespace: gateway
+spec:
+  ingressClassName: apisix
+  http:
+  - name: search
+    match:
+      paths:
+      - /api/ecommerce/search*
+    backends:
+    - serviceName: search-service
+      servicePort: 80
+      resolveGranularity: service
+    plugins:
+    - name: limit-count
+      enable: true
+      config:
+        count: 300
+        time_window: 60
+        key: remote_addr
+        rejected_code: 429
+        policy: redis
+        redis_host: valkey.data.svc.cluster.local
+        allow_degradation: true
+---
+apiVersion: apisix.apache.org/v2
+kind: ApisixRoute
+metadata:
+  name: supplier
+  namespace: gateway
+spec:
+  ingressClassName: apisix
+  http:
+  - name: supplier
+    match:
+      paths:
+      - /api/ecommerce/suppliers*
+    backends:
+    - serviceName: supplier-service
+      servicePort: 80
+      resolveGranularity: service
+    plugins:
+    - name: limit-count
+      enable: true
+      config:
+        count: 300
+        time_window: 60
+        key: remote_addr
+        rejected_code: 429
+        policy: redis
+        redis_host: valkey.data.svc.cluster.local
+        allow_degradation: true
+---
+apiVersion: apisix.apache.org/v2
+kind: ApisixRoute
+metadata:
+  name: shipping
+  namespace: gateway
+spec:
+  ingressClassName: apisix
+  http:
+  - name: shipping
+    match:
+      paths:
+      - /api/ecommerce/shipping*
+    backends:
+    - serviceName: shipping-service
+      servicePort: 80
+      resolveGranularity: service
+    plugins:
+    - name: limit-count
+      enable: true
+      config:
+        count: 300
+        time_window: 60
+        key: remote_addr
+        rejected_code: 429
+        policy: redis
+        redis_host: valkey.data.svc.cluster.local
+        allow_degradation: true
+---
+apiVersion: apisix.apache.org/v2
+kind: ApisixRoute
+metadata:
+  name: translate
+  namespace: gateway
+spec:
+  ingressClassName: apisix
+  http:
+  - name: translate
+    match:
+      paths:
+      - /api/ecommerce/translate*
+    backends:
+    - serviceName: translate-service
+      servicePort: 80
+      resolveGranularity: service
+    plugins:
+    - name: limit-count
+      enable: true
+      config:
+        count: 60
+        time_window: 60
+        key: remote_addr
+        rejected_code: 429
+        policy: redis
+        redis_host: valkey.data.svc.cluster.local
+        allow_degradation: true
+---
+apiVersion: apisix.apache.org/v2
+kind: ApisixRoute
+metadata:
+  name: tax
+  namespace: gateway
+spec:
+  ingressClassName: apisix
+  http:
+  - name: tax
+    match:
+      paths:
+      - /api/ecommerce/tax*
+    backends:
+    - serviceName: tax-service
+      servicePort: 80
+      resolveGranularity: service
+    plugins:
+    - name: limit-count
+      enable: true
+      config:
+        count: 300
+        time_window: 60
+        key: remote_addr
+        rejected_code: 429
+        policy: redis
+        redis_host: valkey.data.svc.cluster.local
+        allow_degradation: true
+---
+apiVersion: apisix.apache.org/v2
+kind: ApisixRoute
+metadata:
+  name: webhook
+  namespace: gateway
+spec:
+  ingressClassName: apisix
+  http:
+  - name: webhook
+    match:
+      paths:
+      - /api/ecommerce/webhooks*
+    backends:
+    - serviceName: webhook-service
+      servicePort: 80
+      resolveGranularity: service
+    plugins:
+    - name: limit-count
+      enable: true
+      config:
+        count: 300
+        time_window: 60
+        key: remote_addr
+        rejected_code: 429
+        policy: redis
+        redis_host: valkey.data.svc.cluster.local
+        allow_degradation: true
+    - name: openid-connect
+      enable: true
+      config:
+        discovery: http://keycloak.identity.svc.cluster.local/realms/ecommerce/.well-known/openid-configuration
+        client_id: apisix-gateway
+        client_secret: $secret://vault/apisix/keycloak-client-secret
+        bearer_only: true
+        use_jwks: true
+        set_userinfo_header: false
+---
+apiVersion: apisix.apache.org/v2
+kind: ApisixRoute
+metadata:
+  name: chatbot
+  namespace: gateway
+spec:
+  ingressClassName: apisix
+  http:
+  - name: chatbot
+    match:
+      paths:
+      - /api/ecommerce/chatbot*
+    backends:
+    - serviceName: chatbot-service
+      servicePort: 80
+      resolveGranularity: service
+    plugins:
+    - name: limit-count
+      enable: true
+      config:
+        count: 20
+        time_window: 60
+        key: remote_addr
+        rejected_code: 429
+        policy: redis
+        redis_host: valkey.data.svc.cluster.local
+        allow_degradation: true
+---
+apiVersion: apisix.apache.org/v2
+kind: ApisixRoute
+metadata:
+  name: graphql
+  namespace: gateway
+spec:
+  ingressClassName: apisix
+  http:
+  - name: graphql
+    match:
+      paths:
+      - /graphql
+    websocket: true
+    backends:
+    - serviceName: graphql-router
+      servicePort: 80
+      resolveGranularity: service
+    plugins:
+    - name: limit-count
+      enable: true
+      config:
+        count: 300
+        time_window: 60
+        key: remote_addr
+        rejected_code: 429
+        policy: redis
+        redis_host: valkey.data.svc.cluster.local
+        allow_degradation: true
+---
+apiVersion: apisix.apache.org/v2
+kind: ApisixRoute
+metadata:
+  name: graphql-admin
+  namespace: gateway
+spec:
+  ingressClassName: apisix
+  http:
+  - name: graphql-admin
+    match:
+      paths:
+      - /admin/graphql
+    websocket: true
+    backends:
+    - serviceName: graphql-router-backoffice
+      servicePort: 80
+      resolveGranularity: service
+    plugins:
+    - name: limit-count
+      enable: true
+      config:
+        count: 600
+        time_window: 60
+        key: remote_addr
+        rejected_code: 429
+        policy: redis
+        redis_host: valkey.data.svc.cluster.local
+        allow_degradation: true
+    - name: proxy-rewrite
+      enable: true
+      config:
+        uri: /graphql

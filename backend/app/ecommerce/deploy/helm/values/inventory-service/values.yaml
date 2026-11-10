@@ -1,0 +1,28 @@
+# inventory-service: giá trị chung mọi môi trường. Ghi đè theo môi trường ở values-<env>.yaml.
+nameOverride: inventory-service
+runtime: go
+image:
+  repository: ghcr.io/pdcthanh112/congthanhapp/inventory-service
+ports:
+  http: 5014
+  grpc: 9092
+env:
+  DB_SCHEMA: inventory
+  KAFKA_BROKERS: ecom-kafka-bootstrap.messaging.svc.cluster.local:9092
+  UNLEASH_URL: http://unleash.platform.svc.cluster.local:4242/api
+  JWT_JWKS_URL: http://keycloak-service.identity.svc.cluster.local:8080/realms/ecommerce/protocol/openid-connect/certs
+secretEnv:
+- name: DATABASE_URL
+  key: ecommerce/inventory-service
+  property: database_url
+- name: REDIS_URL
+  key: ecommerce/inventory-service
+  property: redis_url
+- name: UNLEASH_TOKEN
+  key: ecommerce/inventory-service
+  property: unleash_token
+keda:
+  enabled: true
+  kafka:
+    consumerGroup: inventory-service
+    topic: ecom.order.events

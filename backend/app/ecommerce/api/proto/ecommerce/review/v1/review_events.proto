@@ -1,0 +1,45 @@
+syntax = "proto3";
+
+package ecommerce.review.v1;
+
+import "google/protobuf/timestamp.proto";
+
+option java_multiple_files = true;
+option java_package = "com.congthanh.reviewservice.grpc";
+
+// Event của review-service (aggregatetype "review" → topic ecom.review.events).
+// product-service/search-service cập nhật điểm trung bình để sắp xếp/lọc; notification báo seller có đánh giá mới.
+
+message ReviewSubmitted {
+  string review_id = 1;
+  string product_id = 2;
+  string customer_id = 3;
+  string order_id = 4;
+  int32 rating = 5;
+  google.protobuf.Timestamp submitted_at = 6;
+}
+
+message ReviewModerated {
+  string review_id = 1;
+  string product_id = 2;
+  // PUBLISHED | HIDDEN
+  string status = 3;
+  string reason = 4;
+  string moderator_id = 5;
+}
+
+message ReviewReplied {
+  string review_id = 1;
+  string product_id = 2;
+  string customer_id = 3;
+  string seller_id = 4;
+}
+
+// Điểm tổng hợp sau mỗi thay đổi (key = product_id, chỉ cần bản mới nhất: topic có thể compact).
+message ProductRatingChanged {
+  string product_id = 1;
+  int64 review_count = 2;
+  double average_rating = 3;
+  // Số lượng theo sao: index 0 = 1 sao ... index 4 = 5 sao.
+  repeated int64 star_counts = 4;
+}

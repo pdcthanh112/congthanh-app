@@ -1,0 +1,24 @@
+syntax = "proto3";
+
+package ecommerce.shipping.v1;
+
+option java_multiple_files = true;
+option java_package = "com.congthanh.ecom.shipping.v1";
+
+// Topic: ecom.shipping.events (key = shipment_id)
+
+message ShipmentCreated {
+  string shipment_id = 1;
+  string order_id = 2;
+  string customer_id = 3;
+}
+
+message ShipmentStatusChanged {
+  string shipment_id = 1;
+  string order_id = 2;
+  string customer_id = 3;
+  string from_status = 4;
+  string to_status = 5;
+  string tracking_number = 6;
+  string carrier = 7;
+}

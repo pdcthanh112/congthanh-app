@@ -1,0 +1,308 @@
+---
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaTopic
+metadata:
+  name: catalog-v1-product-created
+  labels:
+    strimzi.io/cluster: ecom-kafka
+spec:
+  topicName: catalog.v1.product-created
+  partitions: 12
+  replicas: 3
+  config:
+    retention.ms: 604800000
+    min.insync.replicas: 2
+---
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaTopic
+metadata:
+  name: catalog-v1-product-updated
+  labels:
+    strimzi.io/cluster: ecom-kafka
+spec:
+  topicName: catalog.v1.product-updated
+  partitions: 12
+  replicas: 3
+  config:
+    retention.ms: 604800000
+    min.insync.replicas: 2
+---
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaTopic
+metadata:
+  name: catalog-v1-product-price-changed
+  labels:
+    strimzi.io/cluster: ecom-kafka
+spec:
+  topicName: catalog.v1.product-price-changed
+  partitions: 12
+  replicas: 3
+  config:
+    retention.ms: 604800000
+    min.insync.replicas: 2
+---
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaTopic
+metadata:
+  name: inventory-v1-stock-reserved
+  labels:
+    strimzi.io/cluster: ecom-kafka
+spec:
+  topicName: inventory.v1.stock-reserved
+  partitions: 12
+  replicas: 3
+  config:
+    retention.ms: 604800000
+    min.insync.replicas: 2
+---
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaTopic
+metadata:
+  name: inventory-v1-stock-released
+  labels:
+    strimzi.io/cluster: ecom-kafka
+spec:
+  topicName: inventory.v1.stock-released
+  partitions: 12
+  replicas: 3
+  config:
+    retention.ms: 604800000
+    min.insync.replicas: 2
+---
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaTopic
+metadata:
+  name: inventory-v1-stock-depleted
+  labels:
+    strimzi.io/cluster: ecom-kafka
+spec:
+  topicName: inventory.v1.stock-depleted
+  partitions: 12
+  replicas: 3
+  config:
+    retention.ms: 604800000
+    min.insync.replicas: 2
+---
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaTopic
+metadata:
+  name: order-v1-order-created
+  labels:
+    strimzi.io/cluster: ecom-kafka
+spec:
+  topicName: order.v1.order-created
+  partitions: 12
+  replicas: 3
+  config:
+    retention.ms: 604800000
+    min.insync.replicas: 2
+---
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaTopic
+metadata:
+  name: order-v1-order-confirmed
+  labels:
+    strimzi.io/cluster: ecom-kafka
+spec:
+  topicName: order.v1.order-confirmed
+  partitions: 12
+  replicas: 3
+  config:
+    retention.ms: 604800000
+    min.insync.replicas: 2
+---
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaTopic
+metadata:
+  name: order-v1-order-cancelled
+  labels:
+    strimzi.io/cluster: ecom-kafka
+spec:
+  topicName: order.v1.order-cancelled
+  partitions: 12
+  replicas: 3
+  config:
+    retention.ms: 604800000
+    min.insync.replicas: 2
+---
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaTopic
+metadata:
+  name: order-v1-order-shipped
+  labels:
+    strimzi.io/cluster: ecom-kafka
+spec:
+  topicName: order.v1.order-shipped
+  partitions: 12
+  replicas: 3
+  config:
+    retention.ms: 604800000
+    min.insync.replicas: 2
+---
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaTopic
+metadata:
+  name: order-v1-order-delivered
+  labels:
+    strimzi.io/cluster: ecom-kafka
+spec:
+  topicName: order.v1.order-delivered
+  partitions: 12
+  replicas: 3
+  config:
+    retention.ms: 604800000
+    min.insync.replicas: 2
+---
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaTopic
+metadata:
+  name: payment-v1-payment-authorized
+  labels:
+    strimzi.io/cluster: ecom-kafka
+spec:
+  topicName: payment.v1.payment-authorized
+  partitions: 12
+  replicas: 3
+  config:
+    retention.ms: 604800000
+    min.insync.replicas: 2
+---
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaTopic
+metadata:
+  name: payment-v1-payment-captured
+  labels:
+    strimzi.io/cluster: ecom-kafka
+spec:
+  topicName: payment.v1.payment-captured
+  partitions: 12
+  replicas: 3
+  config:
+    retention.ms: 604800000
+    min.insync.replicas: 2
+---
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaTopic
+metadata:
+  name: payment-v1-payment-failed
+  labels:
+    strimzi.io/cluster: ecom-kafka
+spec:
+  topicName: payment.v1.payment-failed
+  partitions: 12
+  replicas: 3
+  config:
+    retention.ms: 604800000
+    min.insync.replicas: 2
+---
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaTopic
+metadata:
+  name: payment-v1-payment-refunded
+  labels:
+    strimzi.io/cluster: ecom-kafka
+spec:
+  topicName: payment.v1.payment-refunded
+  partitions: 12
+  replicas: 3
+  config:
+    retention.ms: 604800000
+    min.insync.replicas: 2
+---
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaTopic
+metadata:
+  name: pricing-v1-promotion-activated
+  labels:
+    strimzi.io/cluster: ecom-kafka
+spec:
+  topicName: pricing.v1.promotion-activated
+  partitions: 12
+  replicas: 3
+  config:
+    retention.ms: 604800000
+    min.insync.replicas: 2
+---
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaTopic
+metadata:
+  name: pricing-v1-voucher-redeemed
+  labels:
+    strimzi.io/cluster: ecom-kafka
+spec:
+  topicName: pricing.v1.voucher-redeemed
+  partitions: 12
+  replicas: 3
+  config:
+    retention.ms: 604800000
+    min.insync.replicas: 2
+---
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaTopic
+metadata:
+  name: cart-v1-cart-abandoned
+  labels:
+    strimzi.io/cluster: ecom-kafka
+spec:
+  topicName: cart.v1.cart-abandoned
+  partitions: 12
+  replicas: 3
+  config:
+    retention.ms: 604800000
+    min.insync.replicas: 2
+---
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaTopic
+metadata:
+  name: user-v1-user-registered
+  labels:
+    strimzi.io/cluster: ecom-kafka
+spec:
+  topicName: user.v1.user-registered
+  partitions: 12
+  replicas: 3
+  config:
+    retention.ms: 604800000
+    min.insync.replicas: 2
+---
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaTopic
+metadata:
+  name: user-v1-user-updated
+  labels:
+    strimzi.io/cluster: ecom-kafka
+spec:
+  topicName: user.v1.user-updated
+  partitions: 12
+  replicas: 3
+  config:
+    retention.ms: 604800000
+    min.insync.replicas: 2
+---
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaTopic
+metadata:
+  name: shipping-v1-shipment-created
+  labels:
+    strimzi.io/cluster: ecom-kafka
+spec:
+  topicName: shipping.v1.shipment-created
+  partitions: 12
+  replicas: 3
+  config:
+    retention.ms: 604800000
+    min.insync.replicas: 2
+---
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaTopic
+metadata:
+  name: shipping-v1-shipment-delivered
+  labels:
+    strimzi.io/cluster: ecom-kafka
+spec:
+  topicName: shipping.v1.shipment-delivered
+  partitions: 12
+  replicas: 3
+  config:
+    retention.ms: 604800000
+    min.insync.replicas: 2

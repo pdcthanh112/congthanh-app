@@ -1,0 +1,54 @@
+# Mỗi thư mục deploy/helm/values/<service> × mỗi cluster (label env=dev|staging|prod) → 1 Application.
+# Thêm service mới = thêm thư mục values, không cần sửa file này.
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: ecommerce-services
+  namespace: argocd
+spec:
+  goTemplate: true
+  goTemplateOptions: ["missingkey=error"]
+  generators:
+    - matrix:
+        generators:
+          - clusters:
+              selector:
+                matchExpressions:
+                  [
+                    {
+                      key: env,
+                      operator: In,
+                      values: [dev, test, staging, prod],
+                    },
+                  ]
+          - git:
+              repoURL: https://github.com/pdcthanh112/CongThanhApp.git
+              revision: main
+              directories:
+                [{ path: backend/app/ecommerce/deploy/helm/values/* }]
+  template:
+    metadata:
+      name: '{{ .path.basename }}-{{ index .metadata.labels "env" }}'
+      labels: { app.kubernetes.io/part-of: congthanhapp-ecommerce }
+      annotations:
+        notifications.argoproj.io/subscribe.on-sync-failed.slack: ecommerce-deploys
+    spec:
+      project: ecommerce
+      source:
+        repoURL: https://github.com/pdcthanh112/CongThanhApp.git
+        targetRevision: main
+        path: backend/app/ecommerce/deploy/helm/microservice
+        helm:
+          releaseName: "{{ .path.basename }}"
+          valueFiles:
+            - "../values/{{ .path.basename }}/values.yaml"
+            - '../values/{{ .path.basename }}/values-{{ index .metadata.labels "env" }}.yaml'
+          ignoreMissingValueFiles: true
+      destination:
+        server: "{{ .server }}"
+        namespace: ecommerce
+      syncPolicy:
+        automated: { prune: true, selfHeal: true }
+        syncOptions: [CreateNamespace=false, ServerSideApply=true]
+        retry:
+          { limit: 5, backoff: { duration: 10s, factor: 2, maxDuration: 3m } }

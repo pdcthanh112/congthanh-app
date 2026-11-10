@@ -1,0 +1,20 @@
+syntax = "proto3";
+
+package ecommerce.catalog.v1;
+
+option java_multiple_files = true;
+option java_outer_classname = "BrandServiceProto";
+option java_package = "com.congthanh.catalogservice.grpc";
+
+message BrandRequest {
+  string brandId = 1;
+}
+
+message BrandResponse {
+  int32 id = 1;
+  string name = 2;
+}
+
+service BrandService {
+  rpc GetBrandById(BrandRequest) returns (BrandResponse) {}
+}

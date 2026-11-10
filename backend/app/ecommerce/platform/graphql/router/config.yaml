@@ -1,0 +1,130 @@
+# WunderGraph Cosmo Router (Go, Apache-2.0): một cấu hình dùng chung cho hai router.
+# Biến môi trường: ROUTER_JWKS_URL, OTEL_EXPORTER_OTLP_ENDPOINT, ROUTER_CORS_ORIGINS ("https://a","https://b").
+#   storefront → mount platform/graphql/storefront/config.json vào /config/config.json, cổng 4000
+#   backoffice → mount platform/graphql/backoffice/config.json vào /config/config.json, cổng 4001 (ngoài)
+# config.json sinh bởi `npm run supergraph` (wgc router compose), không cần control plane.
+# Kiểm tra: tools/scripts/validate-router-config.py (theo JSON schema chính thức của router 0.350.0).
+version: "1"
+
+listen_addr: 0.0.0.0:4000
+graphql_path: /graphql
+health_check_path: /health
+liveness_check_path: /health/live
+readiness_check_path: /health/ready
+log_level: info
+json_log: true
+dev_mode: false
+# Client đi qua router: tắt introspection/playground ở production (bật bằng env khi chạy local).
+introspection_enabled: false
+playground_enabled: false
+# Lỗi từ subgraph trả nguyên message + extensions.code (DomainError đã được chuẩn hoá ở subgraph).
+subgraph_error_propagation:
+  mode: pass-through
+  propagate_status_codes: false
+  allowed_extension_fields: [code, reason]
+
+execution_config:
+  file:
+    path: /config/config.json
+    watch: true
+
+headers:
+  all:
+    request:
+      # Subgraph tự xác thực lại token (defense in depth) nên router chuyển tiếp nguyên header.
+      - op: propagate
+        named: Authorization
+      - op: propagate
+        named: X-Request-Id
+      - op: propagate
+        named: X-Forwarded-For
+      - op: propagate
+        named: Accept-Language
+
+authentication:
+  jwt:
+    jwks:
+      # Router thay các biến dạng $-ngoặc-nhọn bằng biến môi trường khi đọc file.
+      - url: ${ROUTER_JWKS_URL}
+        refresh_interval: 1m
+        algorithms: [RS256]
+    header_sources:
+      - {type: header, name: Authorization, value_prefixes: ["Bearer "]}
+
+authorization:
+  # Không bắt buộc đăng nhập ở router: danh mục/sản phẩm là public; subgraph quyết định theo @Public/@Roles.
+  require_authentication: false
+  # Token gửi lên mà sai/hết hạn thì router luôn trả 401 trước khi tới subgraph (không cần cờ riêng).
+  # Cờ này dành cho trường có @authenticated/@requiresScopes: thiếu quyền thì từ chối cả truy vấn.
+  reject_operation_if_unauthorized: true
+
+websocket:
+  enabled: true
+  forward_upgrade_headers:
+    enabled: true
+    allow_list: [Authorization]
+  # Trình duyệt không đặt được header khi mở WebSocket: token gửi trong connection_init
+  # ({"Authorization": "Bearer ..."}), router chuyển nguyên payload xuống subgraph và subgraph kiểm chữ ký
+  # (libs/ts/platform graphql/subscriptions.ts). Không bật websocket.authentication.from_initial_payload:
+  # ở router 0.350 authenticator đó báo lỗi với mọi request HTTP không có payload, làm truy vấn ẩn danh
+  # (danh mục, sản phẩm) bị 401.
+  forward_initial_payload: true
+
+security:
+  complexity_limits:
+    mode: enforce
+    depth:
+      enabled: true
+      limit: 12
+    total_fields:
+      enabled: true
+      limit: 500
+    root_fields:
+      enabled: true
+      limit: 20
+    root_field_aliases:
+      enabled: true
+      limit: 10
+  operation_name_length_limit: 128
+
+traffic_shaping:
+  router:
+    max_request_body_size: 2MB
+  all:
+    request_timeout: 10s
+    dial_timeout: 2s
+    # Chỉ thử lại truy vấn (query); mutation không bao giờ được router thử lại.
+    retry:
+      enabled: true
+      algorithm: backoff_jitter
+      max_attempts: 3
+      interval: 100ms
+      max_duration: 2s
+
+cors:
+  enabled: true
+  # Danh sách origin, phân tách bằng dấu phẩy trong một chuỗi YAML flow.
+  allow_origins: [${ROUTER_CORS_ORIGINS}]
+  allow_methods: [GET, POST, OPTIONS]
+  allow_headers: [Authorization, Content-Type, X-Request-Id, Accept-Language]
+  allow_credentials: true
+  max_age: 5m
+
+telemetry:
+  service_name: graphql-router
+  tracing:
+    enabled: true
+    sampling_rate: 1
+    exporters:
+      - exporter: grpc
+        endpoint: ${OTEL_EXPORTER_OTLP_ENDPOINT}
+  metrics:
+    otlp:
+      enabled: true
+      exporters:
+        - exporter: grpc
+          endpoint: ${OTEL_EXPORTER_OTLP_ENDPOINT}
+    prometheus:
+      enabled: true
+      listen_addr: 0.0.0.0:8088
+      path: /metrics

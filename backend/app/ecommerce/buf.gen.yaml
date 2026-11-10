@@ -1,0 +1,15 @@
+# Sinh code từ api/proto:  make proto   (hoặc: buf generate)
+# Java được sinh trong Gradle (libs/java/proto), TypeScript trong libs/ts/proto.
+version: v2
+managed:
+  enabled: true
+  override:
+    - file_option: go_package_prefix
+      value: github.com/pdcthanh112/CongThanhApp/backend/app/ecommerce/libs/go/proto
+plugins:
+  - local: protoc-gen-go
+    out: libs/go/proto
+    opt: module=github.com/pdcthanh112/CongThanhApp/backend/app/ecommerce/libs/go/proto
+  - local: protoc-gen-go-grpc
+    out: libs/go/proto
+    opt: module=github.com/pdcthanh112/CongThanhApp/backend/app/ecommerce/libs/go/proto

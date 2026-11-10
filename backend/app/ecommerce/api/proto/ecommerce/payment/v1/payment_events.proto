@@ -1,0 +1,28 @@
+syntax = "proto3";
+
+package ecommerce.payment.v1;
+
+import "ecommerce/common/v1/money.proto";
+
+option java_multiple_files = true;
+option java_package = "com.congthanh.ecom.payment.v1";
+
+// Topic: ecom.payment.events (key = order_id)
+
+message PaymentAuthorized {
+  string payment_id = 1;
+  string order_id = 2;
+  ecommerce.common.v1.Money amount = 3;
+  string provider = 4;
+}
+
+message PaymentFailed {
+  string order_id = 1;
+  string reason = 2;
+}
+
+message PaymentRefunded {
+  string payment_id = 1;
+  string order_id = 2;
+  ecommerce.common.v1.Money amount = 3;
+}

@@ -1,0 +1,108 @@
+# ------------------------------------------------------
+# THIS FILE WAS AUTOMATICALLY GENERATED (DO NOT MODIFY)
+# ------------------------------------------------------
+
+extend schema @link(url: "https://specs.apollo.dev/federation/v2.14", import: ["@authenticated", "@cacheTag", "@composeDirective", "@context", "@cost", "@extends", "@external", "@fromContext", "@inaccessible", "@interfaceObject", "@key", "@listSize", "@override", "@policy", "@provides", "@requires", "@requiresScopes", "@shareable", "@tag"])
+
+schema {
+  query: Query
+  mutation: Mutation
+}
+
+"""
+A date-time string at UTC, such as 2019-12-03T09:54:33Z, compliant with the date-time format.
+"""
+scalar DateTime
+
+input EditReviewInput {
+  content: String
+  mediaUrls: [String!]! = []
+  rating: Int!
+  title: String
+}
+
+type Mutation {
+  deleteMyReview(id: ID!): Boolean!
+  editReview(id: ID!, input: EditReviewInput!, version: Int!): Review!
+  """Đánh dấu "hữu ích" (mỗi người một lần)"""
+  markReviewHelpful(id: ID!): Boolean!
+  moderateReview(id: ID!, reason: String, status: ReviewStatus!, version: Int!): Review!
+  replyToReview(id: ID!, reply: String!, version: Int!): Review!
+  submitReview(input: SubmitReviewInput!): Review!
+}
+
+"""Sản phẩm đã mua chưa đánh giá"""
+type PendingReview {
+  orderId: ID!
+  product: Product!
+  purchasedAt: DateTime
+}
+
+type Product @key(fields: "id") {
+  id: ID!
+  ratingSummary: RatingSummary!
+  reviews(page: Int! = 1, rating: Int, size: Int! = 10, sort: ReviewSort! = HELPFUL, withMedia: Boolean! = false): ReviewPage!
+}
+
+type Query {
+  """Backoffice: lọc đánh giá để kiểm duyệt"""
+  adminReviews(page: Int! = 1, productId: ID, rating: Int, size: Int! = 20, status: ReviewStatus): ReviewPage!
+  """Sản phẩm đã mua đang chờ khách đánh giá"""
+  myPendingReviews(limit: Int! = 20): [PendingReview!]!
+  myReviews(page: Int! = 1, size: Int! = 10): ReviewPage!
+}
+
+type RatingSummary {
+  average: Float!
+  count: Int!
+  """Số lượng theo sao, phần tử 0 = 1 sao ... 4 = 5 sao"""
+  stars: [Int!]!
+}
+
+type Review @key(fields: "id") {
+  """Tên người viết (đã che bớt với người khác)"""
+  authorName: String!
+  content: String
+  createdAt: DateTime!
+  helpfulCount: Int!
+  id: ID!
+  mediaUrls: [String!]!
+  """Chỉ tác giả và admin thấy"""
+  moderationReason: String
+  product: Product!
+  rating: Int!
+  repliedAt: DateTime
+  sellerReply: String
+  status: ReviewStatus!
+  title: String
+  updatedAt: DateTime!
+  """Luôn true: chỉ người đã mua mới viết được"""
+  verifiedPurchase: Boolean!
+  version: Int!
+}
+
+type ReviewPage {
+  items: [Review!]!
+  total: Int!
+}
+
+enum ReviewSort {
+  HELPFUL
+  NEWEST
+  RATING_HIGH
+  RATING_LOW
+}
+
+enum ReviewStatus {
+  HIDDEN
+  PUBLISHED
+}
+
+input SubmitReviewInput {
+  content: String
+  mediaUrls: [String!]! = []
+  orderId: ID!
+  productId: ID!
+  rating: Int!
+  title: String
+}

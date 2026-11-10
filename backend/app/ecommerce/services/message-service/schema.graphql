@@ -1,0 +1,105 @@
+# ------------------------------------------------------
+# THIS FILE WAS AUTOMATICALLY GENERATED (DO NOT MODIFY)
+# ------------------------------------------------------
+
+extend schema @link(url: "https://specs.apollo.dev/federation/v2.14", import: ["@authenticated", "@cacheTag", "@composeDirective", "@context", "@cost", "@extends", "@external", "@fromContext", "@inaccessible", "@interfaceObject", "@key", "@listSize", "@override", "@policy", "@provides", "@requires", "@requiresScopes", "@shareable", "@tag"])
+
+schema {
+  query: Query
+  mutation: Mutation
+  subscription: Subscription
+}
+
+"""Sự kiện realtime: tin mới (message) hoặc đang gõ (typingUserId)"""
+type ChatEvent {
+  conversationId: ID!
+  message: ChatMessage
+  typingUserId: ID
+}
+
+type ChatMessage {
+  attachments: [String!]!
+  body: String!
+  clientMessageId: String
+  conversationId: ID!
+  createdAt: DateTime!
+  id: ID!
+  senderId: ID!
+  """
+  Số thứ tự tăng dần trong hội thoại (dùng cho phân trang và đánh dấu đã đọc)
+  """
+  seq: Int!
+}
+
+type Conversation {
+  """
+  Id người bán, hoặc "support"
+  """
+  counterpartId: ID!
+  createdAt: DateTime!
+  customerId: ID!
+  id: ID!
+  kind: ConversationKind!
+  lastMessageAt: DateTime
+  lastMessagePreview: String
+  lastSeq: Int!
+  orderId: ID
+  product: Product
+  """Số tin chưa đọc của người đang xem"""
+  unread: Int!
+}
+
+enum ConversationKind {
+  SELLER
+  SUPPORT
+}
+
+type ConversationPage {
+  items: [Conversation!]!
+  total: Int!
+}
+
+"""
+A date-time string at UTC, such as 2019-12-03T09:54:33Z, compliant with the date-time format.
+"""
+scalar DateTime
+
+input MessageInput {
+  attachments: [String!]! = []
+  body: String! = ""
+  """Id do client sinh (uuid) để gửi lại không bị trùng"""
+  clientMessageId: String
+}
+
+type Mutation {
+  """Hỏi người bán về sản phẩm (mở hội thoại hoặc dùng lại hội thoại cũ)"""
+  contactSeller(message: MessageInput!, productId: ID!): StartConversationResult!
+  contactSupport(message: MessageInput!, orderId: ID): StartConversationResult!
+  markConversationRead(conversationId: ID!, seq: Int!): Boolean!
+  sendMessage(conversationId: ID!, message: MessageInput!): ChatMessage!
+  """Báo "đang gõ" (không lưu, chỉ đẩy realtime)"""
+  sendTyping(conversationId: ID!): Boolean!
+}
+
+type Product @key(fields: "id") {
+  id: ID!
+}
+
+type Query {
+  conversation(id: ID!): Conversation!
+  """Tin nhắn, mới nhất trước; cuộn lên bằng beforeSeq"""
+  messages(beforeSeq: Int, conversationId: ID!, limit: Int! = 30): [ChatMessage!]!
+  """Hội thoại của tôi (nhân viên hỗ trợ thấy cả hàng chờ hỗ trợ)"""
+  myConversations(page: Int! = 1, size: Int! = 20): ConversationPage!
+  unreadMessageCount: Int!
+}
+
+type StartConversationResult {
+  conversation: Conversation!
+  message: ChatMessage!
+}
+
+type Subscription {
+  """Tin mới và trạng thái đang gõ trong mọi hội thoại của tôi"""
+  chatEvents: ChatEvent!
+}

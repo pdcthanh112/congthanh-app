@@ -1,0 +1,15 @@
+{
+  "name": "staff",
+  "version": "1.0.0",
+  "description": "Desktop application for staff of CongThanh company",
+  "main": "main.ts",
+  "scripts": {
+    "start": "electron .",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Cong Thanh",
+  "license": "MIT",
+  "devDependencies": {
+    "electron": "^25.3.0"
+  }
+}

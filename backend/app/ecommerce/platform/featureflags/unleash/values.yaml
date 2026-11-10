@@ -1,0 +1,10 @@
+# Helm unleash/unleash: feature flag server; service dùng OpenFeature SDK + Unleash provider.
+replicaCount: 2
+dbConfig:
+  host: unleash-db-rw.platform.svc.cluster.local
+  database: unleash
+  user: unleash
+  existingSecret: unleash-db-app
+  existingSecretKey: password
+env:
+  - {name: AUTH_TYPE, value: open-source}

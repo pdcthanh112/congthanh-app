@@ -1,0 +1,2 @@
+com.congthanh.platform.autoconfigure.PlatformAutoConfiguration
+com.congthanh.platform.temporal.TemporalAutoConfiguration

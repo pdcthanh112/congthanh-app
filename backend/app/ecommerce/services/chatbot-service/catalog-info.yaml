@@ -1,0 +1,24 @@
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: chatbot-service
+  description: Trợ lý mua sắm (FastAPI, Claude hoặc Ollama, RAG trên search-service)
+  tags:
+  - python
+  annotations:
+    github.com/project-slug: pdcthanh112/CongThanhApp
+    backstage.io/source-location: url:https://github.com/pdcthanh112/CongThanhApp/tree/main/backend/app/ecommerce/services/chatbot-service
+    argocd/app-selector: app.kubernetes.io/name=chatbot-service
+    grafana/dashboard-selector: tags @> 'chatbot-service'
+    backstage.io/techdocs-ref: dir:../../docs
+spec:
+  type: service
+  lifecycle: production
+  owner: team-ecommerce
+  system: ecommerce
+  providesApis:
+  - chatbot-api-rest
+  consumesApis:
+  - search-api-rest
+  dependsOn:
+  - resource:ecom-valkey

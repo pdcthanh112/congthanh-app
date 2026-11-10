@@ -1,0 +1,61 @@
+# Kyverno: chính sách bắt buộc cho namespace ecommerce (supply chain + vận hành).
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: verify-image-signatures
+  annotations:
+    policies.kyverno.io/description: Chỉ chạy image đã ký bằng Cosign keyless từ GitHub Actions của repo và có SBOM attestation.
+spec:
+  validationFailureAction: Enforce
+  webhookTimeoutSeconds: 30
+  rules:
+    - name: cosign-keyless
+      match: {any: [{resources: {kinds: [Pod], namespaces: [ecommerce]}}]}
+      verifyImages:
+        - imageReferences: ["ghcr.io/pdcthanh112/congthanhapp/*"]
+          mutateDigest: true
+          attestors:
+            - entries:
+                - keyless:
+                    subject: "https://github.com/pdcthanh112/CongThanhApp/.github/workflows/*"
+                    issuer: https://token.actions.githubusercontent.com
+                    rekor: {url: https://rekor.sigstore.dev}
+          attestations:
+            - type: https://spdx.dev/Document
+              attestors:
+                - entries:
+                    - keyless:
+                        subject: "https://github.com/pdcthanh112/CongThanhApp/.github/workflows/*"
+                        issuer: https://token.actions.githubusercontent.com
+---
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: workload-hardening
+spec:
+  validationFailureAction: Enforce
+  background: true
+  rules:
+    - name: disallow-latest-tag
+      match: {any: [{resources: {kinds: [Pod], namespaces: [ecommerce]}}]}
+      validate:
+        message: "Không dùng tag :latest, hãy pin theo digest hoặc version."
+        pattern: {spec: {containers: [{image: "!*:latest"}]}}
+    - name: require-requests-limits
+      match: {any: [{resources: {kinds: [Pod], namespaces: [ecommerce]}}]}
+      validate:
+        message: "Container phải khai báo requests cpu/memory và limits memory."
+        pattern: {spec: {containers: [{resources: {requests: {cpu: "?*", memory: "?*"}, limits: {memory: "?*"}}}]}}
+    - name: require-probes
+      match: {any: [{resources: {kinds: [Pod], namespaces: [ecommerce]}}]}
+      validate:
+        message: "Container phải có readinessProbe và livenessProbe."
+        pattern: {spec: {containers: [{readinessProbe: {}, livenessProbe: {}}]}}
+    - name: run-as-non-root
+      match: {any: [{resources: {kinds: [Pod], namespaces: [ecommerce]}}]}
+      validate:
+        message: "Pod phải chạy non-root, read-only root filesystem, không privilege escalation."
+        pattern:
+          spec:
+            securityContext: {runAsNonRoot: true}
+            containers: [{securityContext: {allowPrivilegeEscalation: false, readOnlyRootFilesystem: true}}]

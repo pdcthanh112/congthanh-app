@@ -1,0 +1,182 @@
+# ------------------------------------------------------
+# THIS FILE WAS AUTOMATICALLY GENERATED (DO NOT MODIFY)
+# ------------------------------------------------------
+
+extend schema @link(url: "https://specs.apollo.dev/federation/v2.14", import: ["@authenticated", "@cacheTag", "@composeDirective", "@context", "@cost", "@extends", "@external", "@fromContext", "@inaccessible", "@interfaceObject", "@key", "@listSize", "@override", "@policy", "@provides", "@requires", "@requiresScopes", "@shareable", "@tag"])
+
+schema {
+  query: Query
+  mutation: Mutation
+}
+
+input AdjustInventoryInput {
+  """Số dương = nhập thêm, âm = trừ đi"""
+  change: Int!
+  kind: AdjustmentKind!
+  productId: ID!
+  reason: String!
+  """Bỏ trống = kho mặc định"""
+  warehouseId: String
+}
+
+"""
+RESTOCK/FOUND/RETURN phải tăng; DAMAGE/LOSS phải giảm; CORRECTION tuỳ chiều
+"""
+enum AdjustmentKind {
+  CORRECTION
+  DAMAGE
+  FOUND
+  LOSS
+  RESTOCK
+  RETURN
+}
+
+type Category @key(fields: "id", resolvable: false) {
+  id: ID!
+}
+
+type CustomerCart {
+  customerId: ID!
+  id: ID!
+  lines: [CustomerCartLine!]!
+}
+
+type CustomerCartLine {
+  addedAt: DateTime
+  id: ID!
+  product: Product!
+  quantity: Int!
+}
+
+"""
+A date-time string at UTC, such as 2019-12-03T09:54:33Z, compliant with the date-time format.
+"""
+scalar DateTime
+
+type InventoryAdjustment {
+  newQuantity: Int!
+  stock: StockLevel
+}
+
+type Money @shareable {
+  amount: Float!
+  """ISO 4217"""
+  currency: String!
+  formatted: String!
+}
+
+type Mutation {
+  """SELLER chỉ điều chỉnh sản phẩm của mình"""
+  adjustInventory(input: AdjustInventoryInput!): InventoryAdjustment!
+  adminCancelOrder(orderCode: String!, reason: String!): Order!
+}
+
+type Order {
+  cancelReason: String
+  discount: Money!
+  lines: [OrderLine!]!
+  note: String
+  orderCode: String!
+  orderId: ID!
+  paymentMethod: String
+  placedAt: DateTime!
+  promotionCode: String
+  shippingAddress: OrderAddress
+  status: String!
+  subtotal: Money!
+  total: Money!
+  updatedAt: DateTime
+}
+
+type OrderAddress {
+  city: String!
+  country: String!
+  district: String
+  fullName: String!
+  line1: String!
+  line2: String
+  phone: String!
+  postalCode: String
+  ward: String
+}
+
+type OrderLine {
+  name: String!
+  product: Product
+  quantity: Int!
+  sku: String
+  total: Money!
+  unitPrice: Money!
+}
+
+"""Sản phẩm, góc nhìn quản trị"""
+type Product @key(fields: "id") {
+  active: Boolean!
+  brandName: String
+  categories: [Category!]!
+  id: ID!
+  name: String!
+  originalPrice: Money!
+  price: Money!
+  sellerId: ID!
+  sku: String!
+  slug: String
+  """Trạng thái biên tập ở product-service"""
+  status: String
+  stock: StockLevel
+  thumbnail: String
+}
+
+type ProductPage {
+  items: [Product!]!
+  limit: Int!
+  page: Int!
+  totalItems: Int!
+  totalPages: Int!
+}
+
+type Promotion {
+  code: String!
+  description: String!
+  endDate: DateTime
+  id: ID!
+  startDate: DateTime
+  status: String!
+  type: String!
+  usageLimit: Int!
+  """Phần trăm hoặc số tiền tuỳ type"""
+  value: Float!
+}
+
+type Query {
+  """Xem đơn bất kỳ (order-service cho phép ADMIN/SUPPORT)"""
+  adminOrder(orderCode: String!): Order!
+  """Theo id hoặc slug (đúng một trong hai)"""
+  adminProduct(id: ID, slug: String): Product
+  adminProducts(categoryId: ID, limit: Int! = 50, page: Int! = 1): ProductPage!
+  customerCart(customerId: ID!): CustomerCart
+  """Tồn kho theo danh sách sản phẩm (tối đa 200)"""
+  inventoryLevels(productIds: [ID!]!): [StockLevel!]!
+  promotion(code: String!): Promotion!
+}
+
+"""Tồn kho đầy đủ cho người vận hành"""
+type StockLevel {
+  available: Int!
+  """available <= reorderPoint"""
+  needsReorder: Boolean!
+  productId: ID!
+  reorderPoint: Int!
+  """Đang giữ cho đơn chưa thanh toán xong"""
+  reserved: Int!
+  status: StockStatus!
+  total: Int!
+}
+
+enum StockStatus {
+  BACKORDER
+  DISCONTINUED
+  IN_STOCK
+  LOW_STOCK
+  OUT_OF_STOCK
+}

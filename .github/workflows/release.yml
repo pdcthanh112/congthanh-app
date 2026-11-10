@@ -1,0 +1,32 @@
+# Tag vX.Y.Z → lấy digest image đã ký của commit đó, mở PR cập nhật values-prod.yaml (ArgoCD deploy khi merge).
+name: release
+on:
+  push:
+    tags: ["v*.*.*"]
+permissions: {contents: write, pull-requests: write, packages: read, id-token: write}
+jobs:
+  promote:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v5
+      - uses: sigstore/cosign-installer@v3
+      - uses: mikefarah/yq@v4
+      - name: lấy digest và xác minh chữ ký
+        working-directory: backend/app/ecommerce
+        run: |
+          sha=${GITHUB_SHA::12}
+          for d in deploy/helm/values/*/; do
+            svc=$(basename "$d")
+            img=ghcr.io/${{ github.repository_owner }}/congthanhapp/$svc
+            digest=$(docker buildx imagetools inspect "$img:$sha" --format '{{json .Manifest.Digest}}' | tr -d '"') || continue
+            cosign verify "$img@$digest" \
+              --certificate-identity-regexp "https://github.com/${{ github.repository }}/.github/workflows/.*" \
+              --certificate-oidc-issuer https://token.actions.githubusercontent.com > /dev/null
+            yq -i ".image.digest = \"$digest\" | .image.tag = \"${GITHUB_REF_NAME}\"" "$d/values-prod.yaml"
+          done
+      - uses: peter-evans/create-pull-request@v7
+        with:
+          branch: release/${{ github.ref_name }}
+          title: "release: ${{ github.ref_name }} lên prod"
+          body: Cập nhật digest image (đã xác minh chữ ký Cosign) cho values-prod. Merge để ArgoCD canary lên prod.
+          commit-message: "release: promote ${{ github.ref_name }} to prod"

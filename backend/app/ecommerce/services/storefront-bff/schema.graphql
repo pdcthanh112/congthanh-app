@@ -1,0 +1,229 @@
+# ------------------------------------------------------
+# THIS FILE WAS AUTOMATICALLY GENERATED (DO NOT MODIFY)
+# ------------------------------------------------------
+
+extend schema @link(url: "https://specs.apollo.dev/federation/v2.14", import: ["@authenticated", "@cacheTag", "@composeDirective", "@context", "@cost", "@extends", "@external", "@fromContext", "@inaccessible", "@interfaceObject", "@key", "@listSize", "@override", "@policy", "@provides", "@requires", "@requiresScopes", "@shareable", "@tag"])
+
+schema {
+  query: Query
+  mutation: Mutation
+}
+
+type Cart {
+  """Mọi dòng đều mua được và giỏ không rỗng"""
+  checkoutReady: Boolean!
+  """null khi khách chưa có giỏ"""
+  id: ID
+  itemCount: Int!
+  lines: [CartLine!]!
+  """Tạm tính các dòng mua được"""
+  subtotal: Money!
+}
+
+type CartLine {
+  addedAt: DateTime
+  id: ID!
+  issue: CartLineIssue
+  lineTotal: Money
+  """null nếu sản phẩm đã bị xoá"""
+  product: Product
+  purchasable: Boolean!
+  quantity: Int!
+  unitPrice: Money
+}
+
+enum CartLineIssue {
+  INSUFFICIENT_STOCK
+  OUT_OF_STOCK
+  UNAVAILABLE
+}
+
+type Category @key(fields: "id", resolvable: false) {
+  id: ID!
+}
+
+input CheckoutInput {
+  """
+  Sinh một lần cho mỗi lần bấm "Đặt hàng" (16-64 ký tự); gửi lại không tạo đơn mới
+  """
+  idempotencyKey: String!
+  note: String
+  paymentMethod: PaymentMethod!
+  """Token thẻ từ SDK cổng thanh toán (không gửi số thẻ)"""
+  paymentToken: String
+  promotionCode: String
+  """Bắt buộc với thanh toán online: trang quay về sau khi trả tiền"""
+  returnUrl: String
+  """Bỏ trống = địa chỉ mặc định"""
+  shippingAddressId: ID
+}
+
+type CheckoutProgress {
+  failureReason: String
+  orderCode: String!
+  orderStatus: String!
+  """Có khi cần chuyển khách sang cổng thanh toán"""
+  paymentRedirectUrl: String
+  step: String
+}
+
+type CheckoutResult {
+  """Theo dõi tiến trình bằng checkoutProgress(orderCode)"""
+  checkoutUrl: String!
+  discount: Money!
+  orderCode: String!
+  orderId: ID!
+  status: String!
+  total: Money!
+}
+
+"""
+A date-time string at UTC, such as 2019-12-03T09:54:33Z, compliant with the date-time format.
+"""
+scalar DateTime
+
+type Money @shareable {
+  amount: Float!
+  """ISO 4217"""
+  currency: String!
+  """
+  Đã định dạng theo vi-VN, ví dụ "1.250.000 ₫"
+  """
+  formatted: String!
+}
+
+type Mutation {
+  addToCart(productId: ID!, quantity: Int! = 1): Cart!
+  """Huỷ đơn khi chưa giao cho vận chuyển"""
+  cancelOrder(orderCode: String!, reason: String): Order!
+  """Đặt hàng từ giỏ mặc định"""
+  checkout(input: CheckoutInput!): CheckoutResult!
+  clearCart: Cart!
+  removeCartItem(itemId: ID!): Cart!
+  """quantity = 0 thì xoá dòng"""
+  updateCartItem(itemId: ID!, quantity: Int!): Cart!
+}
+
+type Order {
+  cancelReason: String
+  discount: Money!
+  lines: [OrderLine!]!
+  note: String
+  orderCode: String!
+  orderId: ID!
+  paymentMethod: String
+  placedAt: DateTime!
+  promotionCode: String
+  shippingAddress: OrderAddress
+  status: String!
+  subtotal: Money!
+  total: Money!
+  updatedAt: DateTime
+}
+
+type OrderAddress {
+  city: String!
+  country: String!
+  district: String
+  fullName: String!
+  line1: String!
+  line2: String
+  phone: String!
+  postalCode: String
+  ward: String
+}
+
+type OrderLine {
+  """Tên tại thời điểm đặt"""
+  name: String!
+  """null nếu sản phẩm đã bị xoá"""
+  product: Product
+  quantity: Int!
+  sku: String
+  total: Money!
+  unitPrice: Money!
+}
+
+type OrderSummary {
+  itemCount: Int!
+  orderCode: String!
+  placedAt: DateTime!
+  status: String!
+  total: Money!
+}
+
+enum PaymentMethod {
+  CASH_ON_DELIVERY
+  CREDIT_CARD
+  MOMO
+  PAYPAL
+  STRIPE
+  VN_PAY
+}
+
+"""Sản phẩm (dữ liệu gốc ở product-service)"""
+type Product @key(fields: "id") {
+  active: Boolean!
+  brandName: String
+  categories: [Category!]!
+  description: String
+  """Phần trăm giảm so với giá gốc (0 nếu không giảm)"""
+  discountPercent: Int!
+  id: ID!
+  images: [String!]!
+  name: String!
+  originalPrice: Money!
+  price: Money!
+  sellerId: ID!
+  sku: String!
+  slug: String
+  """null khi inventory-service tạm không trả lời"""
+  stock: Stock
+  thumbnail: String
+}
+
+type ProductPage {
+  items: [Product!]!
+  limit: Int!
+  page: Int!
+  totalItems: Int!
+  totalPages: Int!
+}
+
+type PromotionQuote {
+  discount: Money
+  reason: String
+  subtotal: Money!
+  total: Money!
+  valid: Boolean!
+}
+
+type Query {
+  """Tiến trình saga đặt hàng (poll mỗi 1-2 giây)"""
+  checkoutProgress(orderCode: String!): CheckoutProgress!
+  myCart: Cart!
+  myOrders(limit: Int! = 20): [OrderSummary!]!
+  order(orderCode: String!): Order!
+  """Tìm theo id hoặc slug (đúng một trong hai)"""
+  product(id: ID, slug: String): Product
+  """Danh sách sản phẩm, lọc theo danh mục nếu có"""
+  products(categoryId: ID, limit: Int! = 20, page: Int! = 1): ProductPage!
+  """Thử mã giảm giá trên giỏ hiện tại"""
+  quotePromotion(code: String!): PromotionQuote!
+  """Tìm theo từ khoá (tên sản phẩm)"""
+  searchProducts(keyword: String!): [Product!]!
+}
+
+type Stock {
+  """Số lượng còn bán được (đã trừ hàng đang giữ)"""
+  available: Int!
+  status: StockStatus!
+}
+
+enum StockStatus {
+  BACKORDER
+  DISCONTINUED
+  IN_STOCK
+  LOW_STOCK
+  OUT_OF_STOCK
+}

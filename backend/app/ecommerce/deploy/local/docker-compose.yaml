@@ -1,0 +1,546 @@
+# Toàn bộ stack chạy trên máy dev. Chạy từ thư mục gốc platform (backend/app/ecommerce):
+#   make up                      # hạ tầng lõi + app Go
+#   make up PROFILES="observability workflow"   # thêm nhóm tuỳ chọn
+# Profiles: (mặc định) lõi | observability | workflow | analytics | apps-java | apps-node | apps-python | ollama
+# apps-python cần ANTHROPIC_API_KEY trong môi trường (hoặc chatbot chạy LLM_PROVIDER=ollama với profile ollama).
+# apps-node cần supergraph đã compose: npm run build && npm run schema:emit --workspaces --if-present && npm run supergraph
+name: congthanhapp
+x-go-env: &go-env
+  DATABASE_URL: postgres://postgres:postgres@postgres:5432/ecommerce?sslmode=disable
+  KAFKA_BROKERS: kafka:9092
+  UNLEASH_URL: http://unleash:4242/api
+  UNLEASH_TOKEN: default:development.unleash-insecure-api-token
+  OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4317
+  JWT_JWKS_URL: http://keycloak:8080/realms/ecommerce/protocol/openid-connect/certs
+  LOG_FORMAT: text
+x-node-env: &node-env
+  DATABASE_URL: postgres://postgres:postgres@postgres:5432/ecommerce
+  MIGRATE_ON_START: "true"
+  OIDC_ISSUER_URI: http://keycloak:8080/realms/ecommerce
+  JWT_JWKS_URL: http://keycloak:8080/realms/ecommerce/protocol/openid-connect/certs
+  OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4317
+  LOG_FORMAT: pretty
+x-python-env: &python-env
+  JWT_JWKS_URL: http://keycloak:8080/realms/ecommerce/protocol/openid-connect/certs
+  OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4317
+  ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+  LOG_FORMAT: text
+x-python-build: &python-build
+  context: ../..
+  dockerfile: services/python.Dockerfile
+x-node-build: &node-build
+  context: ../..
+  dockerfile: services/node.Dockerfile
+
+services:
+  # ---------------- lõi dữ liệu ----------------
+  postgres:
+    build: ./postgres
+    environment: {POSTGRES_PASSWORD: postgres}
+    ports: ["5432:5432"]
+    volumes: [pgdata:/var/lib/postgresql]
+    healthcheck: {test: ["CMD-SHELL", "pg_isready -U postgres"], interval: 5s, retries: 20}
+
+  valkey:
+    image: valkey/valkey:8.1-alpine
+    ports: ["6379:6379"]
+    healthcheck: {test: ["CMD", "valkey-cli", "ping"], interval: 5s}
+
+  kafka:
+    image: apache/kafka:4.1.0
+    ports: ["29092:29092"]
+    environment:
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_LISTENERS: PLAINTEXT://:9092,CONTROLLER://:9093,HOST://:29092
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,HOST://localhost:29092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,CONTROLLER:PLAINTEXT,HOST:PLAINTEXT
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 --list"]
+      interval: 10s
+      retries: 20
+
+  schema-registry:
+    image: apicurio/apicurio-registry:3.1.0
+    ports: ["8085:8080"]
+    environment:
+      APICURIO_STORAGE_KIND: sql
+      APICURIO_STORAGE_SQL_KIND: postgresql
+      APICURIO_DATASOURCE_URL: jdbc:postgresql://postgres:5432/registry
+      APICURIO_DATASOURCE_USERNAME: postgres
+      APICURIO_DATASOURCE_PASSWORD: postgres
+      APICURIO_RULES_GLOBAL_COMPATIBILITY: BACKWARD
+    depends_on: {postgres: {condition: service_healthy}}
+
+  connect:
+    image: quay.io/debezium/connect:3.3
+    ports: ["8083:8083"]
+    environment:
+      BOOTSTRAP_SERVERS: kafka:9092
+      GROUP_ID: debezium-local
+      CONFIG_STORAGE_TOPIC: connect_configs
+      OFFSET_STORAGE_TOPIC: connect_offsets
+      STATUS_STORAGE_TOPIC: connect_status
+    depends_on: {kafka: {condition: service_healthy}, postgres: {condition: service_healthy}}
+    healthcheck: {test: ["CMD", "curl", "-sf", "localhost:8083/connectors"], interval: 10s, retries: 30}
+
+  # Đăng ký connector outbox (chạy một lần, idempotent nhờ PUT).
+  connect-init:
+    image: curlimages/curl:8.16.0
+    depends_on: {connect: {condition: service_healthy}, inventory-service: {condition: service_started}, cart-service: {condition: service_started}}
+    volumes: ["../../platform/messaging/debezium/local:/connectors:ro"]
+    entrypoint: ["sh", "-c"]
+    # Mỗi file là config của một connector; PUT /connectors/<tên>/config là idempotent.
+    command:
+      - |
+        for f in /connectors/inventory-outbox.json /connectors/cart-outbox.json; do
+          name=$$(basename $$f .json)
+          curl -sf -X PUT -H 'Content-Type: application/json' --data @$$f http://connect:8083/connectors/$$name/config >/dev/null && echo "registered $$name"
+        done
+    restart: "no"
+
+  connect-init-go:
+    profiles: [apps-go]
+    image: curlimages/curl:8.16.0
+    depends_on: {connect: {condition: service_healthy}, shipping-service: {condition: service_started}}
+    volumes: ["../../platform/messaging/debezium/local:/connectors:ro"]
+    entrypoint: ["sh", "-c"]
+    command:
+      - |
+        until curl -sf http://shipping-service:5016/health/ready >/dev/null; do sleep 2; done
+        curl -sf -X PUT -H 'Content-Type: application/json' --data @/connectors/shipping-outbox.json http://connect:8083/connectors/shipping-outbox/config >/dev/null && echo "registered shipping-outbox"
+    restart: "no"
+
+  # ---------------- danh tính, gateway, feature flag ----------------
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.4
+    command: ["start-dev", "--import-realm", "--health-enabled=true", "--metrics-enabled=true"]
+    ports: ["8180:8080"]
+    environment:
+      KC_BOOTSTRAP_ADMIN_USERNAME: admin
+      KC_BOOTSTRAP_ADMIN_PASSWORD: admin
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://postgres:5432/keycloak
+      KC_DB_USERNAME: postgres
+      KC_DB_PASSWORD: postgres
+      KEYCLOAK_GATEWAY_SECRET: local-gateway-secret
+      ORDER_SERVICE_CLIENT_SECRET: local-order-secret
+      NOTIFICATION_SERVICE_CLIENT_SECRET: local-notification-secret
+    volumes: ["../../platform/identity/keycloak/realms:/opt/keycloak/data/import:ro"]
+    depends_on: {postgres: {condition: service_healthy}}
+
+  apisix:
+    image: apache/apisix:3.14.1-debian
+    ports: ["9080:9080", "9091:9091"]
+    environment: {APISIX_STAND_ALONE: "true", KEYCLOAK_GATEWAY_SECRET: local-gateway-secret}
+    volumes:
+      - ../../platform/gateway/apisix/config.yaml:/usr/local/apisix/conf/config.yaml:ro
+      - ../../platform/gateway/apisix/apisix.yaml:/usr/local/apisix/conf/apisix.yaml:ro
+    depends_on: [keycloak, valkey]
+
+  unleash:
+    image: unleashorg/unleash-server:7
+    ports: ["4242:4242"]
+    environment:
+      DATABASE_URL: postgres://postgres:postgres@postgres:5432/unleash
+      DATABASE_SSL: "false"
+      INIT_CLIENT_API_TOKENS: default:development.unleash-insecure-api-token
+      IMPORT_FILE: /flags/flags.json
+      IMPORT_DROP_BEFORE_IMPORT: "false"
+    volumes: ["../../platform/featureflags/unleash:/flags:ro"]
+    depends_on: {postgres: {condition: service_healthy}}
+
+  openfga:
+    image: openfga/openfga:v1.10
+    command: run
+    ports: ["8089:8080"]
+    environment:
+      OPENFGA_DATASTORE_ENGINE: postgres
+      OPENFGA_DATASTORE_URI: postgres://postgres:postgres@postgres:5432/openfga?sslmode=disable
+    depends_on: {openfga-migrate: {condition: service_completed_successfully}}
+  openfga-migrate:
+    image: openfga/openfga:v1.10
+    command: migrate
+    environment:
+      OPENFGA_DATASTORE_ENGINE: postgres
+      OPENFGA_DATASTORE_URI: postgres://postgres:postgres@postgres:5432/openfga?sslmode=disable
+    depends_on: {postgres: {condition: service_healthy}}
+
+  # ---------------- app Go ----------------
+  inventory-service:
+    build: {context: ../.., dockerfile: services/inventory-service/Dockerfile}
+    ports: ["5014:5014", "9092:9092"]
+    environment:
+      <<: *go-env
+      REDIS_URL: redis://valkey:6379/0
+    depends_on: {postgres: {condition: service_healthy}, kafka: {condition: service_healthy}, valkey: {condition: service_healthy}}
+
+  cart-service:
+    build: {context: ../.., dockerfile: services/cart-service/Dockerfile}
+    ports: ["5002:5002", "19091:19091"]
+    environment:
+      <<: *go-env
+      INVENTORY_GRPC_ADDR: inventory-service:9092
+      PRODUCT_GRPC_ADDR: product-service:29090
+    depends_on: {postgres: {condition: service_healthy}, kafka: {condition: service_healthy}}
+
+  # ---------------- app Go mới (profile apps-go): make up PROFILES=apps-go ----------------
+  tax-service:
+    profiles: [apps-go]
+    build: {context: ../.., dockerfile: services/tax-service/Dockerfile}
+    ports: ["5022:5022", "9096:9096"]
+    environment: {<<: *go-env, DB_SCHEMA: tax}
+    depends_on: {postgres: {condition: service_healthy}}
+
+  shipping-service:
+    profiles: [apps-go]
+    build: {context: ../.., dockerfile: services/shipping-service/Dockerfile}
+    ports: ["5016:5016", "9097:9097"]
+    environment: {<<: *go-env, DB_SCHEMA: shipping}
+    depends_on: {postgres: {condition: service_healthy}, kafka: {condition: service_healthy}}
+
+  webhook-service:
+    profiles: [apps-go]
+    build: {context: ../.., dockerfile: services/webhook-service/Dockerfile}
+    ports: ["5023:5023"]
+    # Cho phép URL http:// và địa chỉ nội bộ để thử với requestbin chạy local.
+    environment: {<<: *go-env, DB_SCHEMA: webhook, WEBHOOK_ALLOW_INSECURE: "true"}
+    depends_on: {postgres: {condition: service_healthy}, kafka: {condition: service_healthy}}
+
+  search-service:
+    profiles: [apps-go]
+    build: {context: ../.., dockerfile: services/search-service/Dockerfile}
+    ports: ["5013:5013", "9098:9098"]
+    environment: {<<: *go-env, OPENSEARCH_URL: "http://opensearch:9200"}
+    depends_on: {opensearch: {condition: service_healthy}, kafka: {condition: service_healthy}}
+
+  opensearch:
+    profiles: [apps-go]
+    image: opensearchproject/opensearch:3.9.0
+    environment:
+      discovery.type: single-node
+      DISABLE_SECURITY_PLUGIN: "true"   # chỉ local; cluster thật bật TLS + user riêng cho search-service
+      OPENSEARCH_JAVA_OPTS: -Xms512m -Xmx512m
+    ports: ["9200:9200"]
+    healthcheck: {test: ["CMD-SHELL", "curl -sf localhost:9200/_cluster/health || exit 1"], interval: 10s, retries: 30}
+
+  media-service:
+    profiles: [apps-go]
+    build: {context: ../.., dockerfile: services/media-service/Dockerfile}
+    ports: ["5007:5007"]
+    environment:
+      <<: *go-env
+      DB_SCHEMA: media
+      S3_ENDPOINT: http://minio:9000
+      # Trình duyệt tải lên qua localhost:9000 nên URL ký phải dùng host đó.
+      S3_PRESIGN_ENDPOINT: http://localhost:9000
+      S3_PATH_STYLE: "true"
+      S3_REGION: us-east-1
+      S3_BUCKET: ecommerce-media
+      S3_ACCESS_KEY: minioadmin
+      S3_SECRET_KEY: minioadmin
+      MEDIA_PUBLIC_URL: http://localhost:9000/ecommerce-media/
+    depends_on: {postgres: {condition: service_healthy}, minio-init: {condition: service_completed_successfully}}
+
+  # Bản phát hành cộng đồng cuối cùng có image Docker (MinIO đã ngừng phát image miễn phí).
+  minio:
+    profiles: [apps-go]
+    image: minio/minio:RELEASE.2025-09-07T16-13-09Z
+    command: server /data --console-address :9001
+    environment: {MINIO_ROOT_USER: minioadmin, MINIO_ROOT_PASSWORD: minioadmin}
+    ports: ["9000:9000", "9001:9001"]
+    healthcheck: {test: ["CMD", "mc", "ready", "local"], interval: 5s, retries: 20}
+
+  # Tạo bucket, cho đọc công khai (ảnh sản phẩm/đánh giá) và CORS cho upload từ trình duyệt.
+  minio-init:
+    profiles: [apps-go]
+    image: minio/minio:RELEASE.2025-09-07T16-13-09Z
+    depends_on: {minio: {condition: service_healthy}}
+    entrypoint: ["sh", "-c"]
+    command:
+      - |
+        mc alias set local http://minio:9000 minioadmin minioadmin &&
+        mc mb --ignore-existing local/ecommerce-media &&
+        mc anonymous set download local/ecommerce-media
+    restart: "no"
+
+  # ---------------- app Java (profile apps-java) ----------------
+  # Cần thêm profile workflow (Temporal): make up PROFILES="workflow apps-java"
+  mongo:
+    profiles: [apps-java]
+    image: mongo:8.0
+    ports: ["27017:27017"]
+  product-service:
+    profiles: [apps-java]
+    build: {context: ../.., dockerfile: services/product-service/Dockerfile}
+    ports: ["5008:5008", "29090:29090"]
+    environment:
+      <<: &java-env
+        OIDC_ISSUER_URI: http://keycloak:8080/realms/ecommerce
+        JWT_JWKS_URL: http://keycloak:8080/realms/ecommerce/protocol/openid-connect/certs
+        OTLP_TRACES_ENDPOINT: http://otel-collector:4318/v1/traces
+        DATABASE_USER: postgres
+        DATABASE_PASSWORD: postgres
+        KAFKA_BROKERS: kafka:9092
+        TEMPORAL_ADDRESS: temporal:7233
+        TEMPORAL_NAMESPACE: ecommerce
+        LOG_FORMAT: ""
+      DATABASE_URL: jdbc:postgresql://postgres:5432/ecommerce?currentSchema=product_service
+      MONGODB_URI: mongodb://mongo:27017/ecommerce_product
+      REDIS_URL: redis://valkey:6379/1
+      CATALOG_GRPC_ADDR: catalog-service:19092
+    depends_on: {postgres: {condition: service_healthy}, valkey: {condition: service_healthy}, mongo: {condition: service_started}}
+  order-service:
+    profiles: [apps-java]
+    build: {context: ../.., dockerfile: services/order-service/Dockerfile}
+    ports: ["5006:5006", "19090:19090"]
+    environment:
+      <<: *java-env
+      DATABASE_URL: jdbc:postgresql://postgres:5432/ecommerce?currentSchema=order_service
+      PRODUCT_GRPC_ADDR: product-service:29090
+      PROMOTION_GRPC_ADDR: promotion-service:9095
+      INVENTORY_GRPC_ADDR: inventory-service:9092
+    depends_on: {postgres: {condition: service_healthy}}
+  payment-service:
+    profiles: [apps-java]
+    build: {context: ../.., dockerfile: services/payment-service/Dockerfile}
+    ports: ["5018:5018"]
+    environment:
+      <<: *java-env
+      DATABASE_URL: jdbc:postgresql://postgres:5432/ecommerce?currentSchema=payment_service
+      # Cổng giả lập: token tok_decline bị từ chối, tok_redirect đi qua trang thanh toán giả.
+      PAYMENT_SANDBOX_ENABLED: "true"
+      PAYMENT_PUBLIC_BASE_URL: http://localhost:5018
+    depends_on: {postgres: {condition: service_healthy}}
+  promotion-service:
+    profiles: [apps-java]
+    build: {context: ../.., dockerfile: services/promotion-service/Dockerfile}
+    ports: ["5009:5009", "9095:9095"]
+    environment:
+      <<: *java-env
+      DATABASE_URL: jdbc:postgresql://postgres:5432/ecommerce?currentSchema=promotion_service
+    depends_on: {postgres: {condition: service_healthy}, kafka: {condition: service_healthy}}
+
+  # ---------------- app NestJS + GraphQL (profile apps-node) ----------------
+  # Một Dockerfile chung (services/node.Dockerfile), chọn service bằng build arg SERVICE.
+  catalog-service:
+    profiles: [apps-node]
+    build: {<<: *node-build, args: {SERVICE: catalog-service}}
+    ports: ["5003:5003", "19092:19092"]
+    environment: {<<: *node-env, PRODUCT_GRPC_ADDR: "product-service:29090"}
+    depends_on: {postgres: {condition: service_healthy}}
+  customer-service:
+    profiles: [apps-node]
+    build: {<<: *node-build, args: {SERVICE: customer-service}}
+    ports: ["5004:5004", "19094:19094"]
+    environment: {<<: *node-env}
+    depends_on: {postgres: {condition: service_healthy}}
+  review-service:
+    profiles: [apps-node]
+    build: {<<: *node-build, args: {SERVICE: review-service}}
+    ports: ["5010:5010"]
+    environment: {<<: *node-env, PRODUCT_GRPC_ADDR: "product-service:29090", KAFKA_BROKERS: "kafka:9092"}
+    depends_on: {postgres: {condition: service_healthy}, kafka: {condition: service_healthy}}
+  notification-service:
+    profiles: [apps-node]
+    build: {<<: *node-build, args: {SERVICE: notification-service}}
+    ports: ["5011:5011"]
+    environment:
+      <<: *node-env
+      KAFKA_BROKERS: kafka:9092
+      VALKEY_URL: redis://valkey:6379/2
+      KEYCLOAK_URL: http://keycloak:8080
+      KEYCLOAK_CLIENT_SECRET: local-notification-secret
+      # Email đi vào Mailpit (xem ở http://localhost:8025); SMS chạy dry-run (ghi log).
+      SMTP_URL: smtp://mailpit:1025
+      SMS_ENABLED: "false"
+    depends_on: {postgres: {condition: service_healthy}, kafka: {condition: service_healthy}, valkey: {condition: service_healthy}}
+  message-service:
+    profiles: [apps-node]
+    build: {<<: *node-build, args: {SERVICE: message-service}}
+    ports: ["5012:5012"]
+    environment: {<<: *node-env, PRODUCT_GRPC_ADDR: "product-service:29090", VALKEY_URL: "redis://valkey:6379/3"}
+    depends_on: {postgres: {condition: service_healthy}, valkey: {condition: service_healthy}}
+  storefront-bff:
+    profiles: [apps-node]
+    build: {<<: *node-build, args: {SERVICE: storefront-bff}}
+    ports: ["5020:5020"]
+    environment:
+      <<: *node-env
+      PRODUCT_GRPC_ADDR: product-service:29090
+      PRODUCT_REST_URL: http://product-service:5008
+      CART_GRPC_ADDR: cart-service:19091
+      CART_REST_URL: http://cart-service:5002
+      INVENTORY_GRPC_ADDR: inventory-service:9092
+      PROMOTION_GRPC_ADDR: promotion-service:9095
+      ORDER_REST_URL: http://order-service:5006
+      CUSTOMER_GRPC_ADDR: customer-service:19094
+  backoffice-bff:
+    profiles: [apps-node]
+    build: {<<: *node-build, args: {SERVICE: backoffice-bff}}
+    ports: ["5021:5021"]
+    environment:
+      <<: *node-env
+      PRODUCT_GRPC_ADDR: product-service:29090
+      PRODUCT_REST_URL: http://product-service:5008
+      CART_GRPC_ADDR: cart-service:19091
+      CART_REST_URL: http://cart-service:5002
+      INVENTORY_GRPC_ADDR: inventory-service:9092
+      PROMOTION_GRPC_ADDR: promotion-service:9095
+      ORDER_REST_URL: http://order-service:5006
+  # Cosmo Router: cùng config.yaml, mỗi router một execution config (platform/graphql/<graph>/config.json).
+  graphql-router:
+    profiles: [apps-node]
+    image: ghcr.io/wundergraph/cosmo/router:0.350.0
+    ports: ["4000:4000"]
+    environment: &router-env
+      CONFIG_PATH: /config/router.yaml
+      ROUTER_JWKS_URL: http://keycloak:8080/realms/ecommerce/protocol/openid-connect/certs
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://otel-collector:4317
+      ROUTER_CORS_ORIGINS: '"http://localhost:3000"'
+      # Local: bật introspection/playground (production tắt trong config.yaml).
+      INTROSPECTION_ENABLED: "true"
+      PLAYGROUND_ENABLED: "true"
+    volumes:
+      - ../../platform/graphql/router/config.yaml:/config/router.yaml:ro
+      - ../../platform/graphql/storefront/config.json:/config/config.json:ro
+    depends_on: [storefront-bff, catalog-service, customer-service, review-service, notification-service, message-service]
+  graphql-router-backoffice:
+    profiles: [apps-node]
+    image: ghcr.io/wundergraph/cosmo/router:0.350.0
+    ports: ["4001:4000"]
+    environment: {<<: *router-env, ROUTER_CORS_ORIGINS: '"http://localhost:3001"'}
+    volumes:
+      - ../../platform/graphql/router/config.yaml:/config/router.yaml:ro
+      - ../../platform/graphql/backoffice/config.json:/config/config.json:ro
+    depends_on: [backoffice-bff, catalog-service, review-service, notification-service, message-service]
+  # Connector outbox của service NestJS: chờ service sẵn sàng (đã chạy migration tạo bảng outbox) rồi đăng ký.
+  connect-init-node:
+    profiles: [apps-node]
+    image: curlimages/curl:8.16.0
+    depends_on: {connect: {condition: service_healthy}, catalog-service: {condition: service_started}, customer-service: {condition: service_started}, review-service: {condition: service_started}, message-service: {condition: service_started}}
+    volumes: ["../../platform/messaging/debezium/local:/connectors:ro"]
+    entrypoint: ["sh", "-c"]
+    command:
+      - |
+        for target in catalog-service:5003 customer-service:5004 review-service:5010 message-service:5012; do
+          name=$$(echo $$target | cut -d- -f1)
+          until curl -sf http://$$target/health/ready >/dev/null; do sleep 2; done
+          curl -sf -X PUT -H 'Content-Type: application/json' --data @/connectors/$$name-outbox.json http://connect:8083/connectors/$$name-outbox/config >/dev/null && echo "registered $$name-outbox"
+        done
+    restart: "no"
+  # ---------------- app Python (profile apps-python) ----------------
+  translate-service:
+    profiles: [apps-python]
+    build: {<<: *python-build, args: {SERVICE: translate-service}}
+    ports: ["5017:5017"]
+    environment: {<<: *python-env, HTTP_PORT: "5017", VALKEY_URL: "redis://valkey:6379/5"}
+    depends_on: {valkey: {condition: service_healthy}}
+  chatbot-service:
+    profiles: [apps-python]
+    build: {<<: *python-build, args: {SERVICE: chatbot-service}}
+    ports: ["5024:5024"]
+    environment:
+      <<: *python-env
+      HTTP_PORT: "5024"
+      # Không có ANTHROPIC_API_KEY: đặt LLM_PROVIDER=ollama và bật profile ollama.
+      LLM_PROVIDER: ${CHATBOT_LLM_PROVIDER:-anthropic}
+      OLLAMA_URL: http://ollama:11434
+      SEARCH_URL: http://search-service:5013
+      VALKEY_URL: redis://valkey:6379/6
+    depends_on: {valkey: {condition: service_healthy}}
+  supplier-service:
+    profiles: [apps-python]
+    build: {<<: *python-build, args: {SERVICE: supplier-service}}
+    ports: ["5019:5019"]
+    environment: {<<: *python-env, HTTP_PORT: "5019", DATABASE_URL: "postgres://postgres:postgres@postgres:5432/ecommerce", DB_SCHEMA: supplier}
+    entrypoint: ["sh", "-c"]
+    command: ["python manage.py migrate_schema && exec python -m gunicorn -c config/gunicorn.py config.wsgi"]
+    depends_on: {postgres: {condition: service_healthy}}
+  # Model tự host cho chatbot (thay Spring AI + Ollama cũ). Lần đầu: docker compose exec ollama ollama pull mistral
+  ollama:
+    profiles: [ollama]
+    image: ollama/ollama:0.12.6
+    ports: ["11434:11434"]
+    volumes: ["ollama:/root/.ollama"]
+
+  mailpit:
+    profiles: [apps-node]
+    image: axllent/mailpit:v1.27
+    ports: ["8025:8025", "1025:1025"]
+
+  # ---------------- observability (profile observability) ----------------
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.137.0
+    command: ["--config=/etc/otelcol/config.yaml"]
+    ports: ["4317:4317", "4318:4318"]
+    volumes: ["../../platform/observability/otel-collector/otelcol-config.yaml:/etc/otelcol/config.yaml:ro"]
+  prometheus:
+    profiles: [observability]
+    image: prom/prometheus:v3.7.0
+    command: ["--config.file=/etc/prometheus/prometheus.yaml", "--web.enable-remote-write-receiver", "--enable-feature=exemplar-storage"]
+    ports: ["9090:9090"]
+    volumes: ["../../platform/observability/prometheus:/etc/prometheus:ro"]
+  tempo:
+    profiles: [observability]
+    image: grafana/tempo:2.9.0
+    command: ["-config.file=/etc/tempo.yaml"]
+    volumes: ["../../platform/observability/tempo/tempo-local.yaml:/etc/tempo.yaml:ro"]
+  loki:
+    profiles: [observability]
+    image: grafana/loki:3.5.0
+    command: ["-config.file=/etc/loki/local-config.yaml"]
+    volumes: ["../../platform/observability/loki/loki-local.yaml:/etc/loki/local-config.yaml:ro"]
+  pyroscope:
+    profiles: [observability]
+    image: grafana/pyroscope:1.15.0
+    ports: ["4040:4040"]
+  grafana:
+    profiles: [observability]
+    image: grafana/grafana:12.2.0
+    ports: ["3000:3000"]
+    environment: {GF_AUTH_ANONYMOUS_ENABLED: "true", GF_AUTH_ANONYMOUS_ORG_ROLE: Admin}
+    volumes: ["../../platform/observability/grafana/provisioning:/etc/grafana/provisioning:ro"]
+
+  # ---------------- workflow (profile workflow) ----------------
+  temporal:
+    profiles: [workflow]
+    image: temporalio/auto-setup:1.29.1
+    ports: ["7233:7233"]
+    environment:
+      DB: postgres12
+      DB_PORT: "5432"
+      POSTGRES_USER: postgres
+      POSTGRES_PWD: postgres
+      POSTGRES_SEEDS: postgres
+      DBNAME: temporal
+      VISIBILITY_DBNAME: temporal_visibility
+      DEFAULT_NAMESPACE: ecommerce
+    depends_on: {postgres: {condition: service_healthy}}
+  temporal-ui:
+    profiles: [workflow]
+    image: temporalio/ui:2.42.1
+    ports: ["8233:8080"]
+    environment: {TEMPORAL_ADDRESS: temporal:7233}
+
+  # ---------------- analytics (profile analytics) ----------------
+  clickhouse:
+    profiles: [analytics]
+    image: clickhouse/clickhouse-server:25.9
+    ports: ["8123:8123"]
+    ulimits: {nofile: {soft: 262144, hard: 262144}}
+  scylla:
+    profiles: [analytics]
+    image: scylladb/scylla:2025.3
+    command: ["--smp", "1", "--memory", "750M", "--overprovisioned", "1"]
+    ports: ["9042:9042"]
+
+volumes:
+  pgdata: {}
+  ollama: {}

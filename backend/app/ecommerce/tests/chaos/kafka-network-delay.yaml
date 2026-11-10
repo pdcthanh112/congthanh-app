@@ -1,0 +1,15 @@
+# Trễ mạng 300ms tới Kafka trong 5 phút. Kỳ vọng: outbox giữ event, Debezium đuổi kịp sau đó,
+# không mất/nhân đôi event (consumer idempotent), KEDA scale consumer khi lag tăng.
+apiVersion: chaos-mesh.org/v1alpha1
+kind: NetworkChaos
+metadata:
+  name: kafka-delay
+  namespace: messaging
+spec:
+  action: delay
+  mode: all
+  selector:
+    namespaces: [messaging]
+    labelSelectors: {strimzi.io/cluster: ecom}
+  delay: {latency: 300ms, jitter: 50ms, correlation: "25"}
+  duration: 5m

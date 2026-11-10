@@ -1,0 +1,54 @@
+{
+  "name": "congthanhapp-ecommerce",
+  "private": true,
+  "type": "module",
+  "packageManager": "npm@11.6.2",
+  "engines": {
+    "node": ">=24"
+  },
+  "workspaces": [
+    "libs/ts/proto-gen",
+    "libs/ts/shared",
+    "libs/ts/platform",
+    "libs/ts/clients",
+    "services/catalog-service",
+    "services/customer-service",
+    "services/review-service",
+    "services/notification-service",
+    "services/message-service",
+    "services/storefront-bff",
+    "services/backoffice-bff"
+  ],
+  "scripts": {
+    "proto": "npm run generate -w @ecom/proto",
+    "build": "npm run build --workspaces --if-present",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "test": "vitest run",
+    "lint": "biome check . && depcruise --config .dependency-cruiser.cjs services/*/src libs/ts/*/src",
+    "format": "biome check --write .",
+    "supergraph": "node tools/scripts/compose-supergraph.mjs",
+    "supergraph:check": "node tools/scripts/compose-supergraph.mjs --check"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.6.6",
+    "@swc/core": "^1.16.22",
+    "@types/node": "^24.10.0",
+    "dependency-cruiser": "^18.7.2",
+    "pino-pretty": "^13.2.0",
+    "typescript": "~6.0.3",
+    "unplugin-swc": "^2.0.0",
+    "vitest": "^5.1.0",
+    "wgc": "^0.133.7"
+  },
+  "allowScripts": {
+    "@confluentinc/kafka-javascript": true,
+    "@swc/core": true,
+    "@biomejs/biome": true,
+    "esbuild": true,
+    "@bufbuild/buf": true,
+    "core-js": false,
+    "@apollo/protobufjs": false,
+    "protobufjs": false,
+    "@firebase/util": false
+  }
+}

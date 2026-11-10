@@ -1,0 +1,51 @@
+# notification-service: thông báo đa kênh (in-app, email, SMS, web push, FCM) và subscription realtime.
+# Giá trị chung mọi môi trường; ghi đè theo môi trường ở values-<env>.yaml.
+nameOverride: notification-service
+runtime: node
+image:
+  repository: ghcr.io/pdcthanh112/congthanhapp/notification-service
+ports:
+  http: 5011
+migrations:
+  enabled: true
+env:
+  OIDC_ISSUER_URI: "http://keycloak-service.identity.svc.cluster.local:8080/realms/ecommerce"
+  JWT_JWKS_URL: "http://keycloak-service.identity.svc.cluster.local:8080/realms/ecommerce/protocol/openid-connect/certs"
+  DB_SCHEMA: notification_service
+  KAFKA_BROKERS: "ecom-kafka-bootstrap.messaging.svc.cluster.local:9092"
+  VALKEY_URL: "redis://valkey.data.svc.cluster.local:6379/2"
+  APP_URL: "https://congthanh.vn"
+  KEYCLOAK_URL: "http://keycloak-service.identity.svc.cluster.local:8080"
+  KEYCLOAK_REALM: ecommerce
+  KEYCLOAK_CLIENT_ID: notification-service
+  MAIL_FROM: "CongThanh <no-reply@congthanh.vn>"
+  VAPID_SUBJECT: "mailto:admin@congthanh.vn"
+secretEnv:
+- name: DATABASE_URL
+  key: ecommerce/notification-service
+  property: database_url
+- name: KEYCLOAK_CLIENT_SECRET
+  key: ecommerce/notification-service
+  property: keycloak_client_secret
+- name: SMTP_URL
+  key: ecommerce/notification-service
+  property: smtp_url
+- name: SMS_WEBHOOK_URL
+  key: ecommerce/notification-service
+  property: sms_webhook_url
+- name: SMS_API_KEY
+  key: ecommerce/notification-service
+  property: sms_api_key
+- name: VAPID_PUBLIC_KEY
+  key: ecommerce/notification-service
+  property: vapid_public_key
+- name: VAPID_PRIVATE_KEY
+  key: ecommerce/notification-service
+  property: vapid_private_key
+- name: FCM_SERVICE_ACCOUNT_JSON
+  key: ecommerce/notification-service
+  property: fcm_service_account_json
+resources:
+  requests: {cpu: 100m, memory: 192Mi}
+  limits: {memory: 384Mi}
+# Worker gửi thông báo chạy trong mọi pod (claim bằng SKIP LOCKED nên không gửi trùng).

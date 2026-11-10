@@ -1,0 +1,21 @@
+# backoffice-bff: BFF quản trị/người bán: sản phẩm + tồn kho, điều chỉnh kho, hỗ trợ khách.
+# Giá trị chung mọi môi trường; ghi đè theo môi trường ở values-<env>.yaml.
+nameOverride: backoffice-bff
+runtime: node
+image:
+  repository: ghcr.io/pdcthanh112/congthanhapp/backoffice-bff
+ports:
+  http: 5021
+env:
+  OIDC_ISSUER_URI: "http://keycloak-service.identity.svc.cluster.local:8080/realms/ecommerce"
+  JWT_JWKS_URL: "http://keycloak-service.identity.svc.cluster.local:8080/realms/ecommerce/protocol/openid-connect/certs"
+  PRODUCT_GRPC_ADDR: "product-service:29090"
+  PRODUCT_REST_URL: "http://product-service"
+  CART_GRPC_ADDR: "cart-service:19091"
+  CART_REST_URL: "http://cart-service"
+  INVENTORY_GRPC_ADDR: "inventory-service:9092"
+  PROMOTION_GRPC_ADDR: "promotion-service:9095"
+  ORDER_REST_URL: "http://order-service"
+resources:
+  requests: {cpu: 100m, memory: 192Mi}
+  limits: {memory: 384Mi}

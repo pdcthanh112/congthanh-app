@@ -1,0 +1,18 @@
+# Prometheus local: nhận metrics đẩy từ OTel Collector (remote write, cần --web.enable-remote-write-receiver)
+# và scrape vài endpoint không dùng OTLP.
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+rule_files:
+  - /etc/prometheus/alert-rules.yaml
+  - /etc/prometheus/slo-rules.yaml
+scrape_configs:
+  - job_name: otel-collector
+    static_configs: [{targets: ["otel-collector:8888"]}]
+  - job_name: apisix
+    metrics_path: /apisix/prometheus/metrics
+    static_configs: [{targets: ["apisix:9091"]}]
+  - job_name: spring-actuator
+    metrics_path: /actuator/prometheus
+    static_configs:
+      - targets: ["product-service:5008", "order-service:5006", "payment-service:5018", "promotion-service:5009"]

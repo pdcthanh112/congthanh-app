@@ -1,0 +1,30 @@
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: ecommerce
+  namespace: argocd
+spec:
+  description: Các microservice e-commerce
+  sourceRepos: [https://github.com/pdcthanh112/CongThanhApp.git]
+  destinations:
+    - {server: "*", namespace: ecommerce}
+  clusterResourceWhitelist: []
+  namespaceResourceWhitelist: [{group: "*", kind: "*"}]
+  roles:
+    - name: developers
+      policies: ["p, proj:ecommerce:developers, applications, sync, ecommerce/*-dev, allow"]
+      groups: [ecommerce-developers]
+  syncWindows:
+    # Không tự deploy prod giờ cao điểm (20h-23h) trừ khi bấm tay.
+    - {kind: deny, schedule: "0 20 * * *", duration: 3h, applications: ["*-prod"], manualSync: true}
+---
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: platform
+  namespace: argocd
+spec:
+  description: Hạ tầng nền (gateway, mesh, messaging, observability, security, data)
+  sourceRepos: ["*"]
+  destinations: [{server: "*", namespace: "*"}]
+  clusterResourceWhitelist: [{group: "*", kind: "*"}]

@@ -1,0 +1,553 @@
+# Sinh bởi tools/scripts/compose-supergraph.mjs từ graph.yaml — không sửa tay.
+schema {
+  query: Query
+  mutation: Mutation
+  subscription: Subscription
+}
+
+input AdjustInventoryInput {
+  """Số dương = nhập thêm, âm = trừ đi"""
+  change: Int!
+  kind: AdjustmentKind!
+  productId: ID!
+  reason: String!
+  """Bỏ trống = kho mặc định"""
+  warehouseId: String
+}
+
+"""
+RESTOCK/FOUND/RETURN phải tăng; DAMAGE/LOSS phải giảm; CORRECTION tuỳ chiều
+"""
+enum AdjustmentKind {
+  CORRECTION
+  DAMAGE
+  FOUND
+  LOSS
+  RESTOCK
+  RETURN
+}
+
+"""Danh mục sản phẩm (cây tối đa 5 cấp)"""
+type Category {
+  id: ID!
+  children: [Category!]!
+  createdAt: DateTime!
+  description: String
+  image: String
+  name: String!
+  parent: Category
+  parentId: ID
+  """Breadcrumb từ gốc tới danh mục này"""
+  path: [Category!]!
+  slug: String!
+  sortOrder: Int!
+  status: CategoryStatus!
+  updatedAt: DateTime!
+  """Gửi kèm khi sửa để chống ghi đè (optimistic locking)"""
+  version: Int!
+}
+
+type CustomerCart {
+  customerId: ID!
+  id: ID!
+  lines: [CustomerCartLine!]!
+}
+
+type CustomerCartLine {
+  addedAt: DateTime
+  id: ID!
+  product: Product!
+  quantity: Int!
+}
+
+"""
+A date-time string at UTC, such as 2019-12-03T09:54:33Z, compliant with the date-time format.
+"""
+scalar DateTime
+
+type InventoryAdjustment {
+  newQuantity: Int!
+  stock: StockLevel
+}
+
+type Money {
+  amount: Float!
+  """ISO 4217"""
+  currency: String!
+  formatted: String!
+}
+
+type Mutation {
+  """SELLER chỉ điều chỉnh sản phẩm của mình"""
+  adjustInventory(input: AdjustInventoryInput!): InventoryAdjustment!
+  adminCancelOrder(orderCode: String!, reason: String!): Order!
+  createBrand(input: BrandInput!): Brand!
+  createCategory(input: CreateCategoryInput!): Category!
+  """Tạo tag (trùng tên thì trả tag đã có)"""
+  createTag(name: String!): Tag!
+  moveCategory(input: MoveCategoryInput!): Category!
+  setCategoryActive(active: Boolean!, id: ID!, version: Int!): Category!
+  """Gán toàn bộ tag cho sản phẩm; seller chỉ sửa sản phẩm của mình"""
+  setProductTags(productId: ID!, tagIds: [Int!]!): [Tag!]!
+  updateBrand(id: Int!, input: BrandInput!): Brand!
+  updateCategory(input: UpdateCategoryInput!): Category!
+  updateTag(id: Int!, name: String, status: TagStatus): Tag!
+  deleteMyReview(id: ID!): Boolean!
+  editReview(id: ID!, input: EditReviewInput!, version: Int!): Review!
+  """Đánh dấu "hữu ích" (mỗi người một lần)"""
+  markReviewHelpful(id: ID!): Boolean!
+  moderateReview(id: ID!, reason: String, status: ReviewStatus!, version: Int!): Review!
+  replyToReview(id: ID!, reply: String!, version: Int!): Review!
+  submitReview(input: SubmitReviewInput!): Review!
+  """Số thông báo vừa đánh dấu đã đọc"""
+  markNotificationsRead(
+    """Bỏ trống = tất cả"""
+    ids: [ID!]
+  ): Int!
+  registerFcmToken(platform: String! = "android", token: String!): Boolean!
+  registerWebPush(subscription: WebPushInput!): Boolean!
+  """CSKH/Admin gửi thông báo cho một người dùng"""
+  sendNotification(input: SendNotificationInput!): Notification
+  """Gỡ thiết bị khi đăng xuất"""
+  unregisterDevice(fcmToken: String, webPushEndpoint: String): Boolean!
+  updateNotificationPreferences(clearQuietHours: Boolean! = false, quietHours: QuietHoursInput, settings: [SettingInput!]! = []): NotificationPreferences!
+  """Hỏi người bán về sản phẩm (mở hội thoại hoặc dùng lại hội thoại cũ)"""
+  contactSeller(message: MessageInput!, productId: ID!): StartConversationResult!
+  contactSupport(message: MessageInput!, orderId: ID): StartConversationResult!
+  markConversationRead(conversationId: ID!, seq: Int!): Boolean!
+  sendMessage(conversationId: ID!, message: MessageInput!): ChatMessage!
+  """Báo "đang gõ" (không lưu, chỉ đẩy realtime)"""
+  sendTyping(conversationId: ID!): Boolean!
+}
+
+type Order {
+  cancelReason: String
+  discount: Money!
+  lines: [OrderLine!]!
+  note: String
+  orderCode: String!
+  orderId: ID!
+  paymentMethod: String
+  placedAt: DateTime!
+  promotionCode: String
+  shippingAddress: OrderAddress
+  status: String!
+  subtotal: Money!
+  total: Money!
+  updatedAt: DateTime
+}
+
+type OrderAddress {
+  city: String!
+  country: String!
+  district: String
+  fullName: String!
+  line1: String!
+  line2: String
+  phone: String!
+  postalCode: String
+  ward: String
+}
+
+type OrderLine {
+  name: String!
+  product: Product
+  quantity: Int!
+  sku: String
+  total: Money!
+  unitPrice: Money!
+}
+
+"""Sản phẩm, góc nhìn quản trị"""
+type Product {
+  active: Boolean!
+  brandName: String
+  categories: [Category!]!
+  id: ID!
+  name: String!
+  originalPrice: Money!
+  price: Money!
+  sellerId: ID!
+  sku: String!
+  slug: String
+  """Trạng thái biên tập ở product-service"""
+  status: String
+  stock: StockLevel
+  thumbnail: String
+  tags: [Tag!]!
+  ratingSummary: RatingSummary!
+  reviews(page: Int! = 1, rating: Int, size: Int! = 10, sort: ReviewSort! = HELPFUL, withMedia: Boolean! = false): ReviewPage!
+}
+
+type ProductPage {
+  items: [Product!]!
+  limit: Int!
+  page: Int!
+  totalItems: Int!
+  totalPages: Int!
+}
+
+type Promotion {
+  code: String!
+  description: String!
+  endDate: DateTime
+  id: ID!
+  startDate: DateTime
+  status: String!
+  type: String!
+  usageLimit: Int!
+  """Phần trăm hoặc số tiền tuỳ type"""
+  value: Float!
+}
+
+type Query {
+  """Xem đơn bất kỳ (order-service cho phép ADMIN/SUPPORT)"""
+  adminOrder(orderCode: String!): Order!
+  """Theo id hoặc slug (đúng một trong hai)"""
+  adminProduct(id: ID, slug: String): Product
+  adminProducts(categoryId: ID, limit: Int! = 50, page: Int! = 1): ProductPage!
+  customerCart(customerId: ID!): CustomerCart
+  """Tồn kho theo danh sách sản phẩm (tối đa 200)"""
+  inventoryLevels(productIds: [ID!]!): [StockLevel!]!
+  promotion(code: String!): Promotion!
+  brand(id: Int!): Brand
+  brands(includeInactive: Boolean! = false): [Brand!]!
+  """Danh mục con của parentId (bỏ trống = danh mục gốc)"""
+  categories(includeInactive: Boolean! = false, parentId: ID): [Category!]!
+  category(id: ID, slug: String): Category
+  countries: [Country!]!
+  country(isoCode: String!): Country
+  tags(page: Int! = 1, size: Int! = 20, status: TagStatus): TagPage!
+  """Backoffice: lọc đánh giá để kiểm duyệt"""
+  adminReviews(page: Int! = 1, productId: ID, rating: Int, size: Int! = 20, status: ReviewStatus): ReviewPage!
+  """Sản phẩm đã mua đang chờ khách đánh giá"""
+  myPendingReviews(limit: Int! = 20): [PendingReview!]!
+  myReviews(page: Int! = 1, size: Int! = 10): ReviewPage!
+  myNotificationPreferences: NotificationPreferences!
+  myNotifications(page: Int! = 1, size: Int! = 20, unreadOnly: Boolean! = false): NotificationPage!
+  unreadNotificationCount: Int!
+  conversation(id: ID!): Conversation!
+  """Tin nhắn, mới nhất trước; cuộn lên bằng beforeSeq"""
+  messages(beforeSeq: Int, conversationId: ID!, limit: Int! = 30): [ChatMessage!]!
+  """Hội thoại của tôi (nhân viên hỗ trợ thấy cả hàng chờ hỗ trợ)"""
+  myConversations(page: Int! = 1, size: Int! = 20): ConversationPage!
+  unreadMessageCount: Int!
+}
+
+"""Tồn kho đầy đủ cho người vận hành"""
+type StockLevel {
+  available: Int!
+  """available <= reorderPoint"""
+  needsReorder: Boolean!
+  productId: ID!
+  reorderPoint: Int!
+  """Đang giữ cho đơn chưa thanh toán xong"""
+  reserved: Int!
+  status: StockStatus!
+  total: Int!
+}
+
+enum StockStatus {
+  BACKORDER
+  DISCONTINUED
+  IN_STOCK
+  LOW_STOCK
+  OUT_OF_STOCK
+}
+
+type Brand {
+  active: Boolean!
+  id: Int!
+  image: String
+  name: String!
+  slug: String!
+}
+
+input BrandInput {
+  active: Boolean
+  image: String
+  name: String!
+  slug: String
+}
+
+enum CategoryStatus {
+  ACTIVE
+  INACTIVE
+}
+
+type Country {
+  currencyCode: String
+  currencySymbol: String
+  id: Int!
+  """ISO 3166-1 alpha-2"""
+  isoCode: String!
+  isoCode3: String
+  locale: String
+  name: String!
+  nameOrigin: String
+  phoneCode: String
+  timezone: String
+}
+
+input CreateCategoryInput {
+  description: String
+  image: String
+  name: String!
+  parentId: ID
+  slug: String
+  sortOrder: Int
+}
+
+input MoveCategoryInput {
+  id: ID!
+  """null = chuyển lên gốc"""
+  parentId: ID
+  version: Int!
+}
+
+type Tag {
+  id: Int!
+  name: String!
+  status: TagStatus!
+}
+
+type TagPage {
+  items: [Tag!]!
+  page: Int!
+  size: Int!
+  total: Int!
+}
+
+enum TagStatus {
+  ACTIVE
+  INACTIVE
+}
+
+input UpdateCategoryInput {
+  description: String
+  id: ID!
+  image: String
+  name: String!
+  slug: String
+  sortOrder: Int
+  version: Int!
+}
+
+input EditReviewInput {
+  content: String
+  mediaUrls: [String!]! = []
+  rating: Int!
+  title: String
+}
+
+"""Sản phẩm đã mua chưa đánh giá"""
+type PendingReview {
+  orderId: ID!
+  product: Product!
+  purchasedAt: DateTime
+}
+
+type RatingSummary {
+  average: Float!
+  count: Int!
+  """Số lượng theo sao, phần tử 0 = 1 sao ... 4 = 5 sao"""
+  stars: [Int!]!
+}
+
+type Review {
+  """Tên người viết (đã che bớt với người khác)"""
+  authorName: String!
+  content: String
+  createdAt: DateTime!
+  helpfulCount: Int!
+  id: ID!
+  mediaUrls: [String!]!
+  """Chỉ tác giả và admin thấy"""
+  moderationReason: String
+  product: Product!
+  rating: Int!
+  repliedAt: DateTime
+  sellerReply: String
+  status: ReviewStatus!
+  title: String
+  updatedAt: DateTime!
+  """Luôn true: chỉ người đã mua mới viết được"""
+  verifiedPurchase: Boolean!
+  version: Int!
+}
+
+type ReviewPage {
+  items: [Review!]!
+  total: Int!
+}
+
+enum ReviewSort {
+  HELPFUL
+  NEWEST
+  RATING_HIGH
+  RATING_LOW
+}
+
+enum ReviewStatus {
+  HIDDEN
+  PUBLISHED
+}
+
+input SubmitReviewInput {
+  content: String
+  mediaUrls: [String!]! = []
+  orderId: ID!
+  productId: ID!
+  rating: Int!
+  title: String
+}
+
+type Notification {
+  body: String!
+  category: NotificationCategory!
+  createdAt: DateTime!
+  id: ID!
+  link: String
+  readAt: DateTime
+  title: String!
+  type: String!
+}
+
+enum NotificationCategory {
+  INVENTORY
+  MESSAGE
+  ORDER
+  PAYMENT
+  PROMOTION
+  REVIEW
+  SYSTEM
+  WISHLIST
+}
+
+enum NotificationChannel {
+  EMAIL
+  FCM
+  IN_APP
+  SMS
+  WEB_PUSH
+}
+
+type NotificationPage {
+  items: [Notification!]!
+  total: Int!
+}
+
+type NotificationPreferences {
+  quietHours: QuietHours
+  settings: [NotificationSetting!]!
+}
+
+type NotificationSetting {
+  category: NotificationCategory!
+  channel: NotificationChannel!
+  """false với nhóm giao dịch (đơn hàng, thanh toán) qua in-app/email"""
+  editable: Boolean!
+  enabled: Boolean!
+}
+
+type QuietHours {
+  end: String!
+  start: String!
+  timezone: String!
+}
+
+input QuietHoursInput {
+  """HH:mm, có thể qua ngày"""
+  end: String!
+  """HH:mm"""
+  start: String!
+  timezone: String! = "Asia/Ho_Chi_Minh"
+}
+
+input SendNotificationInput {
+  body: String!
+  channels: [NotificationChannel!]! = [IN_APP]
+  link: String
+  title: String!
+  userId: ID!
+}
+
+input SettingInput {
+  category: NotificationCategory!
+  channel: NotificationChannel!
+  enabled: Boolean!
+}
+
+type Subscription {
+  """Thông báo mới của người đang đăng nhập (graphql-ws qua router)"""
+  notificationAdded: Notification!
+  """Tin mới và trạng thái đang gõ trong mọi hội thoại của tôi"""
+  chatEvents: ChatEvent!
+}
+
+input WebPushInput {
+  auth: String!
+  endpoint: String!
+  p256dh: String!
+}
+
+"""Sự kiện realtime: tin mới (message) hoặc đang gõ (typingUserId)"""
+type ChatEvent {
+  conversationId: ID!
+  message: ChatMessage
+  typingUserId: ID
+}
+
+type ChatMessage {
+  attachments: [String!]!
+  body: String!
+  clientMessageId: String
+  conversationId: ID!
+  createdAt: DateTime!
+  id: ID!
+  senderId: ID!
+  """
+  Số thứ tự tăng dần trong hội thoại (dùng cho phân trang và đánh dấu đã đọc)
+  """
+  seq: Int!
+}
+
+type Conversation {
+  """
+  Id người bán, hoặc "support"
+  """
+  counterpartId: ID!
+  createdAt: DateTime!
+  customerId: ID!
+  id: ID!
+  kind: ConversationKind!
+  lastMessageAt: DateTime
+  lastMessagePreview: String
+  lastSeq: Int!
+  orderId: ID
+  product: Product
+  """Số tin chưa đọc của người đang xem"""
+  unread: Int!
+}
+
+enum ConversationKind {
+  SELLER
+  SUPPORT
+}
+
+type ConversationPage {
+  items: [Conversation!]!
+  total: Int!
+}
+
+input MessageInput {
+  attachments: [String!]! = []
+  body: String! = ""
+  """Id do client sinh (uuid) để gửi lại không bị trùng"""
+  clientMessageId: String
+}
+
+type StartConversationResult {
+  conversation: Conversation!
+  message: ChatMessage!
+}

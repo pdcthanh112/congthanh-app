@@ -1,0 +1,26 @@
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: inventory-service
+  description: Tồn kho, kho hàng, giữ chỗ, flash sale
+  tags:
+  - go
+  annotations:
+    github.com/project-slug: pdcthanh112/CongThanhApp
+    backstage.io/source-location: url:https://github.com/pdcthanh112/CongThanhApp/tree/main/backend/app/ecommerce/services/inventory-service
+    argocd/app-selector: app.kubernetes.io/name=inventory-service
+    grafana/dashboard-selector: tags @> 'inventory-service'
+    backstage.io/techdocs-ref: dir:../../docs
+spec:
+  type: service
+  lifecycle: production
+  owner: team-ecommerce
+  system: ecommerce
+  providesApis:
+  - inventory-api-grpc
+  - inventory-api-rest
+  consumesApis:
+  - product-api-grpc
+  dependsOn:
+  - resource:ecom-postgres
+  - resource:ecom-kafka

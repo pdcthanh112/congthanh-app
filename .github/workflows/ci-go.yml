@@ -1,0 +1,88 @@
+name: ci-go
+on:
+  pull_request:
+    paths: ["backend/app/ecommerce/libs/go/**", "backend/app/ecommerce/services/*-service/go.*", "backend/app/ecommerce/services/**/*.go", "backend/app/ecommerce/go.work", ".github/workflows/ci-go.yml"]
+  push:
+    branches: [main]
+    paths: ["backend/app/ecommerce/libs/go/**", "backend/app/ecommerce/services/**/*.go", "backend/app/ecommerce/services/*-service/go.*"]
+permissions: {contents: read}
+concurrency: {group: "${{ github.workflow }}-${{ github.ref }}", cancel-in-progress: true}
+defaults:
+  run: {working-directory: backend/app/ecommerce}
+env:
+  GOTOOLCHAIN: local
+
+jobs:
+  test:
+    runs-on: ubuntu-24.04
+    strategy:
+      fail-fast: false
+      matrix:
+        module: [libs/go/platform, services/cart-service, services/inventory-service, services/tax-service, services/search-service, services/media-service, services/webhook-service, services/shipping-service]
+    services:
+      postgres:
+        image: pgvector/pgvector:0.8.1-pg18-trixie
+        env: {POSTGRES_PASSWORD: postgres, POSTGRES_DB: test}
+        ports: ["5432:5432"]
+        options: --health-cmd "pg_isready -U postgres" --health-interval 5s --health-retries 20
+      valkey:
+        image: valkey/valkey:8.1-alpine
+        ports: ["6379:6379"]
+    env:
+      TEST_DATABASE_URL: postgres://postgres:postgres@localhost:5432/test?sslmode=disable
+      TEST_REDIS_URL: redis://localhost:6379/15
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-go@v6
+        with: {go-version: "1.26.x", cache-dependency-path: "backend/app/ecommerce/${{ matrix.module }}/go.sum"}
+      - name: vet
+        working-directory: backend/app/ecommerce/${{ matrix.module }}
+        run: go vet ./...
+      - name: domain không được phụ thuộc adapter (hexagonal)
+        working-directory: backend/app/ecommerce/${{ matrix.module }}
+        run: |
+          if [ -d internal/domain ]; then
+            ! go list -deps ./internal/domain/... | grep -E '/internal/(adapter|app)|pgx|redis|grpc|franz' 
+          fi
+      - uses: golangci/golangci-lint-action@v8
+        with: {version: v2.5, working-directory: "backend/app/ecommerce/${{ matrix.module }}"}
+      - name: test
+        working-directory: backend/app/ecommerce/${{ matrix.module }}
+        run: go test -race -count=1 -coverprofile=cover.out ./...
+      - name: govulncheck
+        working-directory: backend/app/ecommerce/${{ matrix.module }}
+        run: go run golang.org/x/vuln/cmd/govulncheck@latest ./...
+
+  image:
+    if: github.event_name == 'push'
+    needs: test
+    runs-on: ubuntu-24.04
+    permissions: {contents: read, packages: write, id-token: write}
+    strategy:
+      matrix:
+        service: [cart-service, inventory-service, tax-service, search-service, media-service, webhook-service, shipping-service]
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-go@v6
+        with: {go-version: "1.26.x"}
+      - uses: ko-build/setup-ko@v0.9
+      - uses: sigstore/cosign-installer@v3
+      - uses: anchore/sbom-action/download-syft@v0
+      - name: build & push (ko, distroless, multi-arch)
+        id: ko
+        working-directory: backend/app/ecommerce/services/${{ matrix.service }}
+        env:
+          KO_DOCKER_REPO: ghcr.io/${{ github.repository_owner }}/congthanhapp/${{ matrix.service }}
+          KO_DEFAULTBASEIMAGE: gcr.io/distroless/static-debian12:nonroot
+          GOWORK: "off"
+        run: |
+          img=$(ko build ./cmd/server --bare --platform=linux/amd64,linux/arm64 --sbom=none --tags=${GITHUB_SHA::12})
+          echo "image=$img" >> "$GITHUB_OUTPUT"
+      - name: trivy scan
+        uses: aquasecurity/trivy-action@0.33.1
+        with: {image-ref: "${{ steps.ko.outputs.image }}", severity: "CRITICAL,HIGH", exit-code: "1", ignore-unfixed: true}
+      - name: sign + SBOM attestation (Cosign keyless)
+        run: |
+          syft "${{ steps.ko.outputs.image }}" -o spdx-json > sbom.spdx.json
+          cosign sign --yes "${{ steps.ko.outputs.image }}"
+          cosign attest --yes --type spdxjson --predicate sbom.spdx.json "${{ steps.ko.outputs.image }}"

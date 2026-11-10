@@ -1,0 +1,42 @@
+syntax = "proto3";
+
+package ecommerce.customer.v1;
+
+option java_multiple_files = true;
+option java_package = "com.congthanh.customerservice.grpc";
+
+// customer-service (NestJS). order-service gọi khi checkout để chụp lại địa chỉ giao hàng
+// (đơn hàng lưu bản sao, khách sửa/xoá địa chỉ sau đó không ảnh hưởng đơn cũ).
+service CustomerService {
+  rpc GetShippingAddress(GetShippingAddressRequest) returns (ShippingAddress);
+  rpc GetDefaultShippingAddress(GetDefaultShippingAddressRequest) returns (ShippingAddress);
+}
+
+message GetShippingAddressRequest {
+  string customer_id = 1;
+  string address_id = 2;
+}
+
+message GetDefaultShippingAddressRequest {
+  string customer_id = 1;
+}
+
+message ShippingAddress {
+  string id = 1;
+  string customer_id = 2;
+  string full_name = 3;
+  string phone_number = 4;
+  // HOME | OFFICE | OTHER
+  string label = 5;
+  // ISO 3166-1 alpha-2
+  string country_code = 6;
+  // Mã tỉnh/thành, quận/huyện, phường/xã (dùng cho tính phí ship và giới hạn vùng giao).
+  string province_code = 7;
+  string district_code = 8;
+  string ward_code = 9;
+  string address_line = 10;
+  string postal_code = 11;
+  double latitude = 12;
+  double longitude = 13;
+  bool is_default = 14;
+}

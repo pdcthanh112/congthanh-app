@@ -1,0 +1,60 @@
+# Các service Go (giai đoạn 2). Cần hạ tầng trong docker-compose.yaml chạy trước:
+#   docker compose up -d postgres
+#   docker compose -f docker-compose.go.yaml up --build
+services:
+  inventory-service:
+    build:
+      context: ..
+      dockerfile: services/inventory-service/Dockerfile
+    environment:
+      DATABASE_URL: postgres://postgres:${POSTGRES_PASSWORD:-123456}@postgres_container:5432/postgres?sslmode=disable
+      LOG_FORMAT: text
+    ports:
+      - "5014:5014"
+      - "9092:9092"
+    networks: [congthanhapp-network]
+    restart: unless-stopped
+
+  cart-service:
+    build:
+      context: ..
+      dockerfile: services/cart-service/Dockerfile
+    environment:
+      DATABASE_URL: postgres://postgres:${POSTGRES_PASSWORD:-123456}@postgres_container:5432/postgres?sslmode=disable
+      INVENTORY_GRPC_ADDR: inventory-service:9092
+      PRODUCT_GRPC_ADDR: ${PRODUCT_GRPC_ADDR:-host.docker.internal:29090}
+      LOG_FORMAT: text
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    ports:
+      - "5002:5002"
+      - "19091:19091"
+    depends_on: [inventory-service]
+    networks: [congthanhapp-network]
+    restart: unless-stopped
+
+  api-gateway:
+    build:
+      context: ..
+      dockerfile: services/api-gateway/Dockerfile
+    environment:
+      CART_SERVICE_URL: http://cart-service:5002
+      INVENTORY_SERVICE_URL: http://inventory-service:5014
+      # Các service Java còn chạy trên máy host
+      PRODUCT_SERVICE_URL: http://host.docker.internal:5008
+      ORDER_SERVICE_URL: http://host.docker.internal:5006
+      PROMOTION_SERVICE_URL: http://host.docker.internal:5009
+      PAYMENT_SERVICE_URL: http://host.docker.internal:5008
+      LOG_FORMAT: text
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    ports:
+      - "8080:8080"
+    depends_on: [cart-service, inventory-service]
+    networks: [congthanhapp-network]
+    restart: unless-stopped
+
+networks:
+  congthanhapp-network:
+    external: true
+    name: app-network

@@ -1,0 +1,41 @@
+# Backstage Software Template: tạo service Go mới theo đúng khuôn hexagonal của inventory/cart.
+apiVersion: scaffolder.backstage.io/v1beta3
+kind: Template
+metadata:
+  name: go-hexagonal-service
+  title: Go service (hexagonal)
+  description: Service Go với domain/app/adapter, outbox, OTel, Helm values và catalog-info.
+spec:
+  owner: team-platform
+  type: service
+  parameters:
+    - title: Thông tin service
+      required: [name, httpPort, grpcPort]
+      properties:
+        name: {type: string, pattern: "^[a-z][a-z0-9-]+-service$", description: "vd. shipping-service"}
+        httpPort: {type: integer, default: 8080}
+        grpcPort: {type: integer, default: 9090}
+        domain: {type: string, description: "tên miền event, vd. shipping → topic ecom.shipping.events"}
+  steps:
+    - id: fetch
+      action: fetch:template
+      input:
+        url: ./skeleton
+        targetPath: backend/app/ecommerce/services/${{ parameters.name }}
+        values: ${{ parameters }}
+    - id: values
+      action: fetch:template
+      input:
+        url: ./helm-values
+        targetPath: backend/app/ecommerce/deploy/helm/values/${{ parameters.name }}
+        values: ${{ parameters }}
+    - id: pr
+      action: publish:github:pull-request
+      input:
+        repoUrl: github.com?owner=pdcthanh112&repo=CongThanhApp
+        branchName: scaffold/${{ parameters.name }}
+        title: "feat: scaffold ${{ parameters.name }}"
+        description: Tạo từ template go-hexagonal-service.
+  output:
+    links:
+      - {title: Pull request, url: "${{ steps.pr.output.remoteUrl }}"}

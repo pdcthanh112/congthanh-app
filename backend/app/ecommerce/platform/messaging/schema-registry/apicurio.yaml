@@ -1,0 +1,22 @@
+# Apicurio Registry (tương thích Confluent Schema Registry API /apis/ccompat/v7) lưu schema Protobuf
+# của mọi event. Rule BACKWARD compatibility áp dụng toàn cục → producer không thể phá consumer.
+apiVersion: registry.apicur.io/v1
+kind: ApicurioRegistry3
+metadata:
+  name: schema-registry
+  namespace: messaging
+spec:
+  app:
+    replicas: 2
+    storage:
+      type: postgresql
+      sql:
+        dataSource:
+          url: jdbc:postgresql://registry-db-rw.messaging.svc.cluster.local:5432/registry
+          username: registry
+          password: {name: registry-db-app, key: password}
+    env:
+      - {name: APICURIO_RULES_GLOBAL_COMPATIBILITY, value: BACKWARD}
+      - {name: APICURIO_RULES_GLOBAL_VALIDITY, value: FULL}
+  ui:
+    enabled: true

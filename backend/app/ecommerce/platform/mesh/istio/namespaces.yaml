@@ -1,0 +1,20 @@
+# Namespace ứng dụng chạy trong ambient mesh. Service chạy chung namespace "ecommerce".
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: ecommerce
+  labels:
+    istio.io/dataplane-mode: ambient
+    istio.io/use-waypoint: ecommerce-waypoint
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: gateway
+  labels: {istio.io/dataplane-mode: ambient}
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: identity
+  labels: {istio.io/dataplane-mode: ambient}

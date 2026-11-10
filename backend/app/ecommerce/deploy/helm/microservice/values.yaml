@@ -1,0 +1,80 @@
+# Giá trị mặc định; mỗi service ghi đè trong deploy/helm/values/<service>/values*.yaml.
+nameOverride: ""
+image:
+  repository: ghcr.io/pdcthanh112/congthanhapp/SERVICE
+  tag: ""            # CI ghi digest/version; không bao giờ dùng latest (Kyverno chặn)
+  digest: ""
+  pullPolicy: IfNotPresent
+
+# go | java | node | python | router — quyết định probe và biến môi trường mặc định
+runtime: go
+
+# Init container chạy migration trước app (service NestJS: node dist/migrate.js).
+migrations:
+  enabled: false
+  command: ["/nodejs/bin/node", "dist/migrate.js"]
+
+# Ghi đè CMD của image (vd. Django chạy gunicorn thay cho mặc định `python -m app`).
+args: []
+
+ports:
+  http: 8080
+  grpc: 0            # 0 = không mở gRPC
+
+env: {}              # biến môi trường thường
+secretEnv: []        # tên key lấy từ Vault qua ExternalSecret: [{name: DATABASE_URL, key: ecommerce/x, property: database_url}]
+
+resources:
+  requests: {cpu: 100m, memory: 128Mi}
+  limits: {memory: 256Mi}
+
+probes:
+  readinessPath: /health/ready
+  livenessPath: /health/live
+
+# Rollout tiến dần bằng Argo Rollouts (canary + phân tích tự động từ Prometheus).
+rollout:
+  enabled: true
+  steps:
+    - setWeight: 10
+    - pause: {duration: 2m}
+    - analysis: {templates: [{templateName: "{{ include \"ms.name\" . }}-success-rate"}]}
+    - setWeight: 50
+    - pause: {duration: 5m}
+    - analysis: {templates: [{templateName: "{{ include \"ms.name\" . }}-success-rate"}]}
+  successRateThreshold: 0.99
+
+replicas: 2
+autoscaling:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 20
+  targetCPU: 70
+# KEDA: scale theo lag Kafka (consumer) — khi bật, thay HPA.
+keda:
+  enabled: false
+  minReplicas: 2
+  maxReplicas: 30
+  kafka:
+    bootstrapServers: ecom-kafka-bootstrap.messaging.svc.cluster.local:9092
+    consumerGroup: ""
+    topic: ""
+    lagThreshold: "100"
+
+pdb:
+  minAvailable: 1
+
+serviceMonitor:
+  enabled: false     # metrics chủ yếu đẩy qua OTLP; bật cho Java actuator
+  path: /actuator/prometheus
+
+otel:
+  endpoint: http://otel-collector.observability.svc.cluster.local:4317
+  javaAutoInstrumentation: false   # true → annotation OTel Operator inject Java agent
+
+serviceAccount:
+  annotations: {}
+
+topologySpread: true
+nodeSelector: {}
+tolerations: []

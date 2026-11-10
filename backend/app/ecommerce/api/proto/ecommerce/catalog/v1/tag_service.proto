@@ -1,0 +1,30 @@
+syntax = "proto3";
+
+package ecommerce.catalog.v1;
+
+import "google/protobuf/timestamp.proto";
+
+option java_multiple_files = true;
+option java_outer_classname = "TagServiceProto";
+option java_package = "com.congthanh.catalogservice.grpc";
+
+message TagRequest {
+  int64 tagId = 1;
+}
+
+message TagResponse {
+  int64 id = 1;
+  string name = 2;
+  google.protobuf.Timestamp createdAt = 3;
+  google.protobuf.Timestamp updatedAt = 4;
+  string status = 5;
+}
+
+service TagService {
+  rpc GetTagById(TagRequest) returns (TagResponse) {}
+}
+
+//enum TagStatus {
+//  ACTIVE = 0;
+//  INACTIVE = 1;
+//}

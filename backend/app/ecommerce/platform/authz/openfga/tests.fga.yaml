@@ -1,0 +1,20 @@
+# Chạy: fga model test --tests platform/authz/openfga/tests.fga.yaml
+model_file: ./model.fga
+tuples:
+  - {user: platform:main, relation: platform, object: order:o1}
+  - {user: user:bob, relation: support, object: platform:main}
+  - {user: user:alice, relation: buyer, object: order:o1}
+  - {user: store:s1, relation: store, object: order:o1}
+  - {user: user:seller, relation: owner, object: store:s1}
+tests:
+  - name: order-permissions
+    check:
+      - user: user:alice
+        object: order:o1
+        assertions: {can_view: true, can_cancel: true, can_refund: false}
+      - user: user:seller
+        object: order:o1
+        assertions: {can_view: true, can_cancel: false}
+      - user: user:bob
+        object: order:o1
+        assertions: {can_view: true, can_refund: false}

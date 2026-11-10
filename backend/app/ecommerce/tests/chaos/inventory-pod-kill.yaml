@@ -1,0 +1,18 @@
+# Chaos Mesh: giết ngẫu nhiên 1 pod inventory-service mỗi 2 phút trong 10 phút.
+# Kỳ vọng: SLO inventory-reserve-availability không bị đốt quá 1% ngân sách (retry ở Istio waypoint + PDB).
+apiVersion: chaos-mesh.org/v1alpha1
+kind: Schedule
+metadata:
+  name: inventory-pod-kill
+  namespace: ecommerce
+spec:
+  schedule: "*/2 * * * *"
+  historyLimit: 5
+  concurrencyPolicy: Forbid
+  type: PodChaos
+  podChaos:
+    action: pod-kill
+    mode: one
+    selector:
+      namespaces: [ecommerce]
+      labelSelectors: {app.kubernetes.io/name: inventory-service}

@@ -1,0 +1,14 @@
+# Grafana Alloy: eBPF profiling mọi pod → Pyroscope (không cần sửa code).
+alloy:
+  securityContext: {privileged: true, runAsUser: 0}
+  configMap:
+    content: |
+      discovery.kubernetes "pods" { role = "pod" }
+      pyroscope.ebpf "default" {
+        targets    = discovery.kubernetes.pods.targets
+        forward_to = [pyroscope.write.backend.receiver]
+      }
+      pyroscope.write "backend" {
+        endpoint { url = "http://pyroscope.observability.svc.cluster.local:4040" }
+      }
+controller: {type: daemonset, hostPID: true}

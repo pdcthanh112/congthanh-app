@@ -1,0 +1,38 @@
+# Keycloak qua Keycloak Operator (namespace identity). DB: cluster CloudNativePG "keycloak-db".
+apiVersion: k8s.keycloak.org/v2alpha1
+kind: Keycloak
+metadata:
+  name: keycloak
+  namespace: identity
+spec:
+  instances: 2
+  db:
+    vendor: postgres
+    host: keycloak-db-rw.identity.svc.cluster.local
+    database: keycloak
+    usernameSecret: {name: keycloak-db-app, key: username}
+    passwordSecret: {name: keycloak-db-app, key: password}
+  http:
+    httpEnabled: true   # TLS kết thúc ở APISIX; trong mesh đã có mTLS (Istio Ambient)
+  hostname:
+    hostname: https://auth.congthanh.vn
+  proxy:
+    headers: xforwarded
+  features:
+    enabled: [token-exchange, admin-fine-grained-authz]
+  additionalOptions:
+    - {name: metrics-enabled, value: "true"}
+    - {name: tracing-enabled, value: "true"}
+    - {name: tracing-endpoint, value: "http://otel-collector.observability.svc.cluster.local:4317"}
+---
+apiVersion: k8s.keycloak.org/v2alpha1
+kind: KeycloakRealmImport
+metadata:
+  name: ecommerce
+  namespace: identity
+spec:
+  keycloakCRName: keycloak
+  placeholders:
+    KEYCLOAK_GATEWAY_SECRET: {secret: {name: keycloak-client-secrets, key: apisix-gateway}}
+    ORDER_SERVICE_CLIENT_SECRET: {secret: {name: keycloak-client-secrets, key: order-service}}
+  # realm: nội dung platform/identity/keycloak/realms/ecommerce-realm.json (kustomize nhúng vào)

@@ -1,0 +1,51 @@
+syntax = "proto3";
+
+package ecommerce.cart.v1;
+
+import "google/protobuf/timestamp.proto";
+
+option java_multiple_files = true;
+option java_package = "com.congthanh.cartservice.grpc";
+
+service CartService {
+  rpc GetCart(GetCartRequest) returns (Cart);
+  rpc GetDefaultCart(GetDefaultCartRequest) returns (Cart);
+  rpc ClearCart(ClearCartRequest) returns (ClearCartResponse);
+}
+
+message Cart {
+  int64 id = 1;
+  string name = 2;
+  string customer_id = 3;
+  string status = 4;
+  bool is_default = 5;
+  repeated CartItem items = 6;
+  google.protobuf.Timestamp created_at = 7;
+  google.protobuf.Timestamp updated_at = 8;
+}
+
+message CartItem {
+  int64 id = 1;
+  string product_id = 2;
+  int32 quantity = 3;
+  google.protobuf.Timestamp created_at = 4;
+}
+
+message GetCartRequest {
+  int64 cart_id = 1;
+}
+
+message GetDefaultCartRequest {
+  string customer_id = 1;
+}
+
+message ClearCartRequest {
+  int64 cart_id = 1;
+  // Empty = remove every item; otherwise only these products (e.g. after checkout).
+  repeated string product_ids = 2;
+}
+
+message ClearCartResponse {
+  bool success = 1;
+  int32 removed_items = 2;
+}

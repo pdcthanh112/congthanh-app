@@ -1,0 +1,15 @@
+# dev: 1 replica, không canary, image tag do CI ghi (sha).
+image:
+  tag: dev
+rollout:
+  enabled: false
+replicas: 1
+autoscaling:
+  enabled: false
+keda:
+  enabled: false
+pdb:
+  minAvailable: 0
+topologySpread: false
+env:
+  LOG_LEVEL: debug

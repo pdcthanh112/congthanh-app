@@ -1,0 +1,49 @@
+# Waypoint L7 cho namespace ecommerce (retry, timeout, outlier detection cho gRPC nội bộ).
+apiVersion: gateway.networking.k8s.io/v1
+kind: Gateway
+metadata:
+  name: ecommerce-waypoint
+  namespace: ecommerce
+  labels: {istio.io/waypoint-for: service}
+spec:
+  gatewayClassName: istio-waypoint
+  listeners:
+    - {name: mesh, port: 15008, protocol: HBONE}
+---
+apiVersion: networking.istio.io/v1
+kind: DestinationRule
+metadata:
+  name: grpc-defaults
+  namespace: ecommerce
+spec:
+  host: "*.ecommerce.svc.cluster.local"
+  trafficPolicy:
+    connectionPool:
+      http: {http2MaxRequests: 1000, maxRequestsPerConnection: 0}
+    outlierDetection:
+      consecutive5xxErrors: 5
+      interval: 10s
+      baseEjectionTime: 30s
+      maxEjectionPercent: 50
+---
+apiVersion: networking.istio.io/v1
+kind: VirtualService
+metadata:
+  name: inventory-service
+  namespace: ecommerce
+spec:
+  hosts: [inventory-service.ecommerce.svc.cluster.local]
+  http:
+    - route: [{destination: {host: inventory-service.ecommerce.svc.cluster.local}}]
+      timeout: 3s
+      retries: {attempts: 2, perTryTimeout: 1s, retryOn: "unavailable,resource-exhausted,reset"}
+---
+apiVersion: telemetry.istio.io/v1
+kind: Telemetry
+metadata:
+  name: mesh-tracing
+  namespace: istio-system
+spec:
+  tracing:
+    - providers: [{name: otel-tracing}]
+      randomSamplingPercentage: 20

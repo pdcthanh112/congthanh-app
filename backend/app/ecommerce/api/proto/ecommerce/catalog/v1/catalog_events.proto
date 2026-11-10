@@ -1,0 +1,35 @@
+syntax = "proto3";
+
+package ecommerce.catalog.v1;
+
+import "google/protobuf/timestamp.proto";
+
+option java_multiple_files = true;
+option java_package = "com.congthanh.catalogservice.grpc";
+
+// Event của catalog-service (aggregatetype "catalog" → topic ecom.catalog.events).
+// product-service/search-service dùng để cập nhật read model (tên, slug, cây danh mục).
+
+message CategoryUpserted {
+  string category_id = 1;
+  string name = 2;
+  string slug = 3;
+  string parent_id = 4;
+  // ACTIVE | INACTIVE
+  string status = 5;
+  // Đường dẫn từ gốc tới danh mục này (id), để lọc theo nhánh mà không cần gọi lại catalog.
+  repeated string path = 6;
+  google.protobuf.Timestamp updated_at = 7;
+}
+
+message BrandUpserted {
+  int64 brand_id = 1;
+  string name = 2;
+  string slug = 3;
+  string image = 4;
+}
+
+message ProductTagsChanged {
+  string product_id = 1;
+  repeated int64 tag_ids = 2;
+}

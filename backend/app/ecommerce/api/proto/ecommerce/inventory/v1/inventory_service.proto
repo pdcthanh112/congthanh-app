@@ -1,0 +1,224 @@
+syntax = "proto3";
+
+package ecommerce.inventory.v1;
+
+option java_multiple_files = true;
+option java_outer_classname = "InventoryServiceProto";
+option java_package = "com.congthanh.inventoryservice.grpc";
+
+service InventoryService {
+  rpc GetInventoryByProduct(InventoryRequest) returns (InventoryResponse) {}
+  rpc CheckAvailability(CheckAvailabilityRequest) returns (CheckAvailabilityResponse);
+  rpc ReserveInventory(ReserveInventoryRequest) returns (ReserveInventoryResponse);
+  rpc ReleaseInventory(ReleaseInventoryRequest) returns (ReleaseInventoryResponse);
+  rpc CommitReservation(CommitReservationRequest) returns (CommitReservationResponse);
+  rpc GetInventoryLevel(GetInventoryLevelRequest) returns (GetInventoryLevelResponse);
+  rpc AdjustInventory(AdjustInventoryRequest) returns (AdjustInventoryResponse);
+}
+
+message Inventory {
+  int64 id = 1;
+  string sku = 2;
+  int64 stock = 3;
+}
+
+message InventoryRequest {
+  string sku = 1;
+}
+
+message InventoryResponse {
+  int64 id = 1;
+  string sku = 2;
+  int64 stock = 3;
+}
+
+message CheckAvailabilityRequest {
+  repeated InventoryItem items = 1;
+  string warehouse_id = 2; // Optional: kiểm tra tại kho cụ thể
+}
+
+message InventoryItem {
+  string product_id = 1;
+  int32 quantity = 2;
+  string variant_id = 3; // Optional: nếu sản phẩm có variants
+}
+
+message CheckAvailabilityResponse {
+  bool all_available = 1;
+  repeated AvailabilityResult results = 2;
+  repeated string unavailable_products = 3;
+}
+
+message AvailabilityResult {
+  string product_id = 1;
+  int32 requested_quantity = 2;
+  int32 available_quantity = 3;
+  bool is_available = 4;
+  int32 reserved_quantity = 5;
+  int32 in_transit_quantity = 6;
+  repeated WarehouseStock warehouse_stocks = 7;
+}
+
+message WarehouseStock {
+  string warehouse_id = 1;
+  string warehouse_name = 2;
+  int32 quantity = 3;
+  string location = 4;
+}
+
+// ============= Reserve Inventory =============
+message ReserveInventoryRequest {
+  string reservation_id = 1; // Saga ID hoặc Order ID
+  repeated InventoryItem items = 2;
+  string customer_id = 3;
+  int64 expiry_time = 4; // Unix timestamp - thời gian hết hạn reservation
+  ReservationType reservation_type = 5;
+
+  enum ReservationType {
+    ORDER = 0;
+    CART = 1;
+    QUOTE = 2;
+  }
+}
+
+message ReserveInventoryResponse {
+  bool success = 1;
+  string reservation_id = 2;
+  repeated ReservationResult results = 3;
+  string message = 4;
+  int64 reserved_at = 5;
+  int64 expires_at = 6;
+}
+
+message ReservationResult {
+  string product_id = 1;
+  int32 requested_quantity = 2;
+  int32 reserved_quantity = 3;
+  bool fully_reserved = 4;
+  string warehouse_id = 5;
+  string error_message = 6;
+}
+
+// ============= Release Inventory =============
+message ReleaseInventoryRequest {
+  string reservation_id = 1;
+  repeated string product_ids = 2; // Empty = release all
+  string reason = 3;
+  ReleaseType release_type = 4;
+
+  enum ReleaseType {
+    CANCEL = 0;
+    TIMEOUT = 1;
+    PARTIAL = 2;
+    COMPLETE = 3;
+  }
+}
+
+message ReleaseInventoryResponse {
+  bool success = 1;
+  string reservation_id = 2;
+  repeated ReleaseResult results = 3;
+  string message = 4;
+  int64 released_at = 5;
+}
+
+message ReleaseResult {
+  string product_id = 1;
+  int32 released_quantity = 2;
+  bool success = 3;
+  string error_message = 4;
+}
+
+// ============= Commit Reservation =============
+message CommitReservationRequest {
+  string reservation_id = 1;
+  string order_id = 2;
+  repeated InventoryItem items = 3; // Có thể khác với reservation ban đầu
+}
+
+message CommitReservationResponse {
+  bool success = 1;
+  string reservation_id = 2;
+  repeated CommitResult results = 3;
+  string message = 4;
+  int64 committed_at = 5;
+}
+
+message CommitResult {
+  string product_id = 1;
+  int32 committed_quantity = 2;
+  int32 new_available_quantity = 3;
+  bool success = 4;
+  string error_message = 5;
+}
+
+// ============= Get Inventory Level =============
+message GetInventoryLevelRequest {
+  repeated string product_ids = 1;
+  string warehouse_id = 2; // Optional
+  bool include_reserved = 3;
+  bool include_in_transit = 4;
+}
+
+message GetInventoryLevelResponse {
+  repeated InventoryLevel levels = 1;
+}
+
+message InventoryLevel {
+  string product_id = 1;
+  int32 available_quantity = 2;
+  int32 reserved_quantity = 3;
+  int32 in_transit_quantity = 4;
+  int32 total_quantity = 5;
+  int32 reorder_point = 6;
+  int32 reorder_quantity = 7;
+  InventoryStatus status = 8;
+  int64 last_updated = 9;
+
+  enum InventoryStatus {
+    IN_STOCK = 0;
+    LOW_STOCK = 1;
+    OUT_OF_STOCK = 2;
+    BACKORDER = 3;
+    DISCONTINUED = 4;
+  }
+}
+
+// ============= Adjust Inventory =============
+message AdjustInventoryRequest {
+  repeated InventoryAdjustment adjustments = 1;
+  string reason = 2;
+  string reference_id = 3;
+  string adjusted_by = 4; // User ID
+}
+
+message InventoryAdjustment {
+  string product_id = 1;
+  int32 quantity_change = 2; // Positive or negative
+  string warehouse_id = 3;
+  AdjustmentType adjustment_type = 4;
+
+  enum AdjustmentType {
+    RESTOCK = 0;
+    DAMAGE = 1;
+    LOSS = 2;
+    FOUND = 3;
+    RETURN = 4;
+    CORRECTION = 5;
+  }
+}
+
+message AdjustInventoryResponse {
+  bool success = 1;
+  repeated AdjustmentResult results = 2;
+  string message = 3;
+}
+
+message AdjustmentResult {
+  string product_id = 1;
+  int32 old_quantity = 2;
+  int32 adjustment = 3;
+  int32 new_quantity = 4;
+  bool success = 5;
+  string error_message = 6;
+}

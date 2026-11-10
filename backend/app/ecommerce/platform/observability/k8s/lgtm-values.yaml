@@ -1,0 +1,24 @@
+# Helm grafana/lgtm-distributed: Loki + Grafana + Tempo + Mimir, lưu trữ S3.
+grafana:
+  enabled: true
+  sidecar: {dashboards: {enabled: true, searchNamespace: ALL}, datasources: {enabled: true}}
+  grafana.ini:
+    auth.generic_oauth:
+      enabled: true
+      name: Keycloak
+      client_id: grafana
+      auth_url: https://auth.congthanh.vn/realms/ecommerce/protocol/openid-connect/auth
+      token_url: https://auth.congthanh.vn/realms/ecommerce/protocol/openid-connect/token
+      api_url: https://auth.congthanh.vn/realms/ecommerce/protocol/openid-connect/userinfo
+      role_attribute_path: contains(roles[*], 'ADMIN') && 'Admin' || 'Viewer'
+loki:
+  loki:
+    storage: {type: s3, bucketNames: {chunks: congthanhapp-loki, ruler: congthanhapp-loki}}
+    limits_config: {retention_period: 720h, allow_structured_metadata: true}
+tempo:
+  storage: {trace: {backend: s3, s3: {bucket: congthanhapp-tempo, endpoint: s3.ap-southeast-1.amazonaws.com}}}
+  metricsGenerator: {enabled: true}
+mimir:
+  mimir:
+    structuredConfig:
+      blocks_storage: {backend: s3, s3: {bucket_name: congthanhapp-mimir, endpoint: s3.ap-southeast-1.amazonaws.com}}

@@ -1,0 +1,13 @@
+version: "2"
+run:
+  timeout: 5m
+linters:
+  default: standard
+  enable: [bodyclose, errorlint, gosec, misspell, nilerr, noctx, rowserrcheck, sqlclosecheck, unconvert, revive]
+  settings:
+    gosec:
+      excludes: [G115] # chuyển đổi int an toàn đã kiểm tra ở domain
+  exclusions:
+    paths: [libs/go/proto]
+formatters:
+  enable: [gofmt, goimports]

@@ -1,0 +1,22 @@
+# storefront-bff: BFF khách hàng: Product, giỏ hàng, đặt hàng (gom gRPC/REST của Go/Java).
+# Giá trị chung mọi môi trường; ghi đè theo môi trường ở values-<env>.yaml.
+nameOverride: storefront-bff
+runtime: node
+image:
+  repository: ghcr.io/pdcthanh112/congthanhapp/storefront-bff
+ports:
+  http: 5020
+env:
+  OIDC_ISSUER_URI: "http://keycloak-service.identity.svc.cluster.local:8080/realms/ecommerce"
+  JWT_JWKS_URL: "http://keycloak-service.identity.svc.cluster.local:8080/realms/ecommerce/protocol/openid-connect/certs"
+  PRODUCT_GRPC_ADDR: "product-service:29090"
+  PRODUCT_REST_URL: "http://product-service"
+  CART_GRPC_ADDR: "cart-service:19091"
+  CART_REST_URL: "http://cart-service"
+  INVENTORY_GRPC_ADDR: "inventory-service:9092"
+  PROMOTION_GRPC_ADDR: "promotion-service:9095"
+  ORDER_REST_URL: "http://order-service"
+  CUSTOMER_GRPC_ADDR: "customer-service:19094"
+resources:
+  requests: {cpu: 100m, memory: 192Mi}
+  limits: {memory: 384Mi}

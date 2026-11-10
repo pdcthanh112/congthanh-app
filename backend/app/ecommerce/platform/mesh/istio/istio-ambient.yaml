@@ -1,0 +1,18 @@
+apiVersion: install.istio.io/v1alpha1
+kind: IstioOperator
+spec:
+  profile: ambient
+  meshConfig:
+    accessLogFile: /dev/stdout
+    enableTracing: true
+    defaultConfig:
+      tracing: {}
+    extensionProviders:
+      - name: otel-tracing
+        opentelemetry:
+          service: otel-collector.observability.svc.cluster.local
+          port: 4317
+  values:
+    pilot:
+      env:
+        PILOT_ENABLE_AMBIENT: "true"

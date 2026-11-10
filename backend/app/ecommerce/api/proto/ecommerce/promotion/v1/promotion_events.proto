@@ -1,0 +1,32 @@
+syntax = "proto3";
+
+package ecommerce.promotion.v1;
+
+option java_multiple_files = true;
+option java_package = "com.congthanh.promotionservice.grpc";
+
+// Topic: ecom.promotion.events (key = promotion_id)
+
+message PromotionActivated {
+  string promotion_id = 1;
+  string code = 2;
+  int64 starts_at = 3;
+  int64 ends_at = 4;
+}
+
+message PromotionExpired {
+  string promotion_id = 1;
+}
+
+message PromotionRedeemed {
+  string promotion_id = 1;
+  string code = 2;
+  string order_id = 3;
+  string customer_id = 4;
+}
+
+message RedemptionCancelled {
+  string promotion_id = 1;
+  string order_id = 2;
+  string reason = 3;
+}

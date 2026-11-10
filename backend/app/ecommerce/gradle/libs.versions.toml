@@ -1,0 +1,49 @@
+[versions]
+jdk = "25"
+spring-boot = "4.1.2"
+temporal = "1.40.0"
+resilience4j = "2.4.0"
+archunit = "1.5.1"
+jib = "3.5.4"
+springdoc = "3.2.0"
+modelmapper = "3.2.8"
+jjwt = "0.13.0"
+java-jwt = "4.6.2"
+aws-sdk = "2.57.11"
+protoc = "4.36.2"
+grpcJava = "1.84.1"
+protobuf-plugin = "0.10.1"
+logstash-encoder = "9.0"
+commons-collections4 = "4.6.0"
+stripe = "34.1.0"
+paypal-rest = "1.14.0"
+javax-annotation = "1.3.2"
+
+[libraries]
+spring-boot-bom = { module = "org.springframework.boot:spring-boot-dependencies", version.ref = "spring-boot" }
+spring-boot-gradle-plugin = { module = "org.springframework.boot:spring-boot-gradle-plugin", version.ref = "spring-boot" }
+protobuf-gradle-plugin = { module = "com.google.protobuf:protobuf-gradle-plugin", version.ref = "protobuf-plugin" }
+temporal-bom = { module = "io.temporal:temporal-bom", version.ref = "temporal" }
+temporal-sdk = { module = "io.temporal:temporal-sdk" }
+temporal-opentracing = { module = "io.temporal:temporal-opentracing" }
+temporal-testing = { module = "io.temporal:temporal-testing" }
+resilience4j-spring-boot4 = { module = "io.github.resilience4j:resilience4j-spring-boot4", version.ref = "resilience4j" }
+archunit-junit5 = { module = "com.tngtech.archunit:archunit-junit5", version.ref = "archunit" }
+jib-gradle-plugin = { module = "com.google.cloud.tools:jib-gradle-plugin", version.ref = "jib" }
+springdoc-webmvc-ui = { module = "org.springdoc:springdoc-openapi-starter-webmvc-ui", version.ref = "springdoc" }
+modelmapper = { module = "org.modelmapper:modelmapper", version.ref = "modelmapper" }
+jjwt-api = { module = "io.jsonwebtoken:jjwt-api", version.ref = "jjwt" }
+jjwt-impl = { module = "io.jsonwebtoken:jjwt-impl", version.ref = "jjwt" }
+jjwt-jackson = { module = "io.jsonwebtoken:jjwt-jackson", version.ref = "jjwt" }
+java-jwt = { module = "com.auth0:java-jwt", version.ref = "java-jwt" }
+aws-sdk-bom = { module = "software.amazon.awssdk:bom", version.ref = "aws-sdk" }
+aws-sdk-s3 = { module = "software.amazon.awssdk:s3" }
+protobuf-java = { module = "com.google.protobuf:protobuf-java", version.ref = "protoc" }
+protobuf-java-util = { module = "com.google.protobuf:protobuf-java-util", version.ref = "protoc" }
+grpc-protobuf = { module = "io.grpc:grpc-protobuf", version.ref = "grpcJava" }
+grpc-stub = { module = "io.grpc:grpc-stub", version.ref = "grpcJava" }
+javax-annotation-api = { module = "javax.annotation:javax.annotation-api", version.ref = "javax-annotation" }
+logstash-logback-encoder = { module = "net.logstash.logback:logstash-logback-encoder", version.ref = "logstash-encoder" }
+commons-collections4 = { module = "org.apache.commons:commons-collections4", version.ref = "commons-collections4" }
+stripe-java = { module = "com.stripe:stripe-java", version.ref = "stripe" }
+paypal-rest-sdk = { module = "com.paypal.sdk:rest-api-sdk", version.ref = "paypal-rest" }

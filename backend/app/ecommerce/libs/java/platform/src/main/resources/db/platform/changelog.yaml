@@ -1,0 +1,9 @@
+# Bảng dùng chung của libs/java/platform: outbox (Debezium), processed_events (consumer chống trùng),
+# idempotency_keys (header Idempotency-Key). Master changelog của mỗi service include file này đầu tiên.
+databaseChangeLog:
+  - include:
+      file: db/platform/001-outbox.sql
+  - include:
+      file: db/platform/002-processed-events.sql
+  - include:
+      file: db/platform/003-idempotency-keys.sql

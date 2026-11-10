@@ -1,0 +1,18 @@
+{{- $root := . -}}
+{{- $names := list (include "ms.name" .) -}}
+{{- if .Values.rollout.enabled }}{{- $names = append $names (printf "%s-canary" (include "ms.name" .)) -}}{{- end }}
+{{- range $names }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ . }}
+  labels: {{- include "ms.labels" $root | nindent 4 }}
+spec:
+  selector: {{- include "ms.selector" $root | nindent 4 }}
+  ports:
+    - {name: http, port: 80, targetPort: http, appProtocol: http}
+    {{- if $root.Values.ports.grpc }}
+    - {name: grpc, port: {{ $root.Values.ports.grpc }}, targetPort: grpc, appProtocol: grpc}
+    {{- end }}
+{{- end }}

@@ -1,0 +1,41 @@
+# APISIX chế độ standalone (không cần etcd) cho môi trường local.
+# Route nằm trong apisix.yaml (sinh từ platform/gateway/routes.yaml).
+# Trên K8s dùng APISIX Ingress Controller + ApisixRoute (xem k8s/).
+apisix:
+  node_listen: 9080
+  enable_admin: false
+  ssl:
+    enable: false
+deployment:
+  role: data_plane
+  role_data_plane:
+    config_provider: yaml
+nginx_config:
+  error_log_level: warn
+  envs:
+    - KEYCLOAK_GATEWAY_SECRET
+plugins:
+  - real-ip
+  - request-id
+  - cors
+  - opentelemetry
+  - prometheus
+  - openid-connect
+  - limit-count
+  - limit-conn
+  - limit-req
+  - proxy-rewrite
+  - api-breaker
+plugin_attr:
+  prometheus:
+    export_addr: {ip: 0.0.0.0, port: 9091}
+  opentelemetry:
+    resource:
+      service.name: apisix
+    collector:
+      address: otel-collector:4318
+      request_timeout: 3
+    trace_id_source: x-request-id
+    batch_span_processor:
+      max_export_batch_size: 64
+      inactive_timeout: 2

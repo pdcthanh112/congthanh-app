@@ -1,0 +1,99 @@
+# ------------------------------------------------------
+# THIS FILE WAS AUTOMATICALLY GENERATED (DO NOT MODIFY)
+# ------------------------------------------------------
+
+extend schema @link(url: "https://specs.apollo.dev/federation/v2.14", import: ["@authenticated", "@cacheTag", "@composeDirective", "@context", "@cost", "@extends", "@external", "@fromContext", "@inaccessible", "@interfaceObject", "@key", "@listSize", "@override", "@policy", "@provides", "@requires", "@requiresScopes", "@shareable", "@tag"])
+
+schema {
+  query: Query
+  mutation: Mutation
+}
+
+input AddressInput {
+  addressLine: String!
+  countryCode: String! = "VN"
+  districtCode: String
+  fullName: String!
+  label: AddressLabel! = HOME
+  latitude: Float
+  longitude: Float
+  phoneNumber: String!
+  postalCode: String
+  provinceCode: String
+  wardCode: String
+}
+
+enum AddressLabel {
+  HOME
+  OFFICE
+  OTHER
+}
+
+type Customer @key(fields: "id") {
+  defaultShippingAddress: ShippingAddress
+  id: ID!
+  recentSearches(limit: Int! = 10): [SearchEntry!]!
+  shippingAddresses: [ShippingAddress!]!
+  wishlist(page: Int! = 1, size: Int! = 20): WishlistPage!
+}
+
+"""
+A date-time string at UTC, such as 2019-12-03T09:54:33Z, compliant with the date-time format.
+"""
+scalar DateTime
+
+type Mutation {
+  addShippingAddress(input: AddressInput!, makeDefault: Boolean! = false): ShippingAddress!
+  addToWishlist(productId: ID!): Boolean!
+  clearSearchHistory: Boolean!
+  deleteShippingAddress(id: ID!): Boolean!
+  """Ghi từ khoá vừa tìm (storefront gọi sau khi tìm kiếm)"""
+  recordSearch(keyword: String!): Boolean!
+  removeFromWishlist(productId: ID!): Boolean!
+  removeSearch(keyword: String!): Boolean!
+  setDefaultShippingAddress(id: ID!): ShippingAddress!
+  updateShippingAddress(id: ID!, input: AddressInput!): ShippingAddress!
+}
+
+type Product @key(fields: "id") {
+  id: ID!
+  inWishlist: Boolean!
+}
+
+type Query {
+  """Khách đang đăng nhập"""
+  me: Customer!
+}
+
+type SearchEntry {
+  keyword: String!
+  searchedAt: DateTime!
+}
+
+type ShippingAddress {
+  addressLine: String!
+  """ISO 3166-1 alpha-2"""
+  countryCode: String!
+  districtCode: String
+  fullName: String!
+  id: ID!
+  isDefault: Boolean!
+  label: AddressLabel!
+  latitude: Float
+  longitude: Float
+  phoneNumber: String!
+  postalCode: String
+  provinceCode: String
+  updatedAt: DateTime!
+  wardCode: String
+}
+
+type WishlistItem {
+  addedAt: DateTime!
+  product: Product!
+}
+
+type WishlistPage {
+  items: [WishlistItem!]!
+  total: Int!
+}

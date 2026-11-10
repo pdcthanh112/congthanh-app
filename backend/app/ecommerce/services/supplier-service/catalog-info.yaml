@@ -1,0 +1,22 @@
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: supplier-service
+  description: Gian hàng người bán (Django + DRF)
+  tags:
+  - python
+  annotations:
+    github.com/project-slug: pdcthanh112/CongThanhApp
+    backstage.io/source-location: url:https://github.com/pdcthanh112/CongThanhApp/tree/main/backend/app/ecommerce/services/supplier-service
+    argocd/app-selector: app.kubernetes.io/name=supplier-service
+    grafana/dashboard-selector: tags @> 'supplier-service'
+    backstage.io/techdocs-ref: dir:../../docs
+spec:
+  type: service
+  lifecycle: production
+  owner: team-ecommerce
+  system: ecommerce
+  providesApis:
+  - supplier-api-rest
+  dependsOn:
+  - resource:ecom-postgres

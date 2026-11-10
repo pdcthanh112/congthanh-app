@@ -1,0 +1,143 @@
+# ------------------------------------------------------
+# THIS FILE WAS AUTOMATICALLY GENERATED (DO NOT MODIFY)
+# ------------------------------------------------------
+
+extend schema @link(url: "https://specs.apollo.dev/federation/v2.14", import: ["@authenticated", "@cacheTag", "@composeDirective", "@context", "@cost", "@extends", "@external", "@fromContext", "@inaccessible", "@interfaceObject", "@key", "@listSize", "@override", "@policy", "@provides", "@requires", "@requiresScopes", "@shareable", "@tag"])
+
+schema {
+  query: Query
+  mutation: Mutation
+}
+
+type Brand @key(fields: "id") {
+  active: Boolean!
+  id: Int!
+  image: String
+  name: String!
+  slug: String!
+}
+
+input BrandInput {
+  active: Boolean
+  image: String
+  name: String!
+  slug: String
+}
+
+"""Danh mục sản phẩm (cây tối đa 5 cấp)"""
+type Category @key(fields: "id") {
+  children: [Category!]!
+  createdAt: DateTime!
+  description: String
+  id: ID!
+  image: String
+  name: String!
+  parent: Category
+  parentId: ID
+  """Breadcrumb từ gốc tới danh mục này"""
+  path: [Category!]!
+  slug: String!
+  sortOrder: Int!
+  status: CategoryStatus!
+  updatedAt: DateTime!
+  """Gửi kèm khi sửa để chống ghi đè (optimistic locking)"""
+  version: Int!
+}
+
+enum CategoryStatus {
+  ACTIVE
+  INACTIVE
+}
+
+type Country @shareable {
+  currencyCode: String
+  currencySymbol: String
+  id: Int!
+  """ISO 3166-1 alpha-2"""
+  isoCode: String!
+  isoCode3: String
+  locale: String
+  name: String!
+  nameOrigin: String
+  phoneCode: String
+  timezone: String
+}
+
+input CreateCategoryInput {
+  description: String
+  image: String
+  name: String!
+  parentId: ID
+  slug: String
+  sortOrder: Int
+}
+
+"""
+A date-time string at UTC, such as 2019-12-03T09:54:33Z, compliant with the date-time format.
+"""
+scalar DateTime
+
+input MoveCategoryInput {
+  id: ID!
+  """null = chuyển lên gốc"""
+  parentId: ID
+  version: Int!
+}
+
+type Mutation {
+  createBrand(input: BrandInput!): Brand!
+  createCategory(input: CreateCategoryInput!): Category!
+  """Tạo tag (trùng tên thì trả tag đã có)"""
+  createTag(name: String!): Tag!
+  moveCategory(input: MoveCategoryInput!): Category!
+  setCategoryActive(active: Boolean!, id: ID!, version: Int!): Category!
+  """Gán toàn bộ tag cho sản phẩm; seller chỉ sửa sản phẩm của mình"""
+  setProductTags(productId: ID!, tagIds: [Int!]!): [Tag!]!
+  updateBrand(id: Int!, input: BrandInput!): Brand!
+  updateCategory(input: UpdateCategoryInput!): Category!
+  updateTag(id: Int!, name: String, status: TagStatus): Tag!
+}
+
+type Product @key(fields: "id") {
+  id: ID!
+  tags: [Tag!]!
+}
+
+type Query {
+  brand(id: Int!): Brand
+  brands(includeInactive: Boolean! = false): [Brand!]!
+  """Danh mục con của parentId (bỏ trống = danh mục gốc)"""
+  categories(includeInactive: Boolean! = false, parentId: ID): [Category!]!
+  category(id: ID, slug: String): Category
+  countries: [Country!]!
+  country(isoCode: String!): Country
+  tags(page: Int! = 1, size: Int! = 20, status: TagStatus): TagPage!
+}
+
+type Tag @key(fields: "id") {
+  id: Int!
+  name: String!
+  status: TagStatus!
+}
+
+type TagPage {
+  items: [Tag!]!
+  page: Int!
+  size: Int!
+  total: Int!
+}
+
+enum TagStatus {
+  ACTIVE
+  INACTIVE
+}
+
+input UpdateCategoryInput {
+  description: String
+  id: ID!
+  image: String
+  name: String!
+  slug: String
+  sortOrder: Int
+  version: Int!
+}

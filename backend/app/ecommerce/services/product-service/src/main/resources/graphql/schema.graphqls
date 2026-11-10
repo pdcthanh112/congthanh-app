@@ -1,0 +1,24 @@
+type Query {
+    product: [Product]
+}
+
+type Product {
+    id: ID!
+    name: [String]
+    category: String!
+    sku: String
+    gtin: String
+    thumbnail: String!
+    image: [ProductImage]
+    description: String
+    status: String
+    slug: String!
+    supplier: String
+}
+
+type ProductImage {
+    id: ID!
+    name: String
+    imagePath: String
+    alt: String
+}

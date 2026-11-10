@@ -1,0 +1,138 @@
+{
+  "metadata":  {
+    "title": "CongThanhApp - Ecommerce",
+    "description": "CongThanhApp - Ecommerce"
+  },
+  "common": {
+    "title": "CongThanh Ecommerce",
+    "hello": "Xin chào",
+    "welcome": "Chào mừng đến",
+    "all": "Tất cả",
+    "cart": "Giỏ hàng",
+    "add_to_cart": "Thêm vào giỏ hàng",
+    "add_to_wishlist": "Thêm vào danh sách yêu thích",
+    "remove_from_wishlist": "Xoá khỏi danh sách yêu thích",
+    "view_detail": "Xem chi tiết",
+    "manage_profile": "Quản lý hồ sơ",
+    "category": "danh mục",
+    "Category": "Danh mục",
+    "subcategory": "subcategory",
+    "Subcategory": "Subcategory",
+    "available": "có sẵn",
+    "sold_out": "Sold out",
+    "checkout": "Thanh toán",
+    "shipping": "Shipping",
+    "free": "Miễn phí",
+    "notification": "Thông báo",
+    "status": "Trạng thái",
+    "remove_this_item": "Xoá sản phẩm",
+    "in_stock": "Còn hàng",
+    "out_of_stock": "Hết hàng",
+    "active": "Hoạt động",
+    "inactive": "Không hoạt động",
+    "see_all": "Xem tất cả",
+    "increase": "Tăng",
+    "decrease": "Giảm",
+    "hide_password": "Ẩn mật khẩu",
+    "show_password": "Hiển thị mật khẩu",
+    "or": "hoặc",
+    "back": "Back",
+    "yes": "Đồng ý",
+    "no": "Không",
+    "back_to_home": "Quay về trang chủ",
+    "contact": "Liên hệ",
+    "follow": "Theo dõi",
+    "country": "Quốc gia",
+    "dob": "Ngày sinh",
+    "edit": "Chỉnh sửa"
+  },
+  "header": {
+    "your_shopping": "Mua sắm của bạn",
+    "view_your_cart": "Xem giỏ hàng",
+    "wishlist": "Danh sách yêu thích",
+    "history": "Lịch sử",
+    "your_account": "Tài khoản của bạn",
+    "account": "Tài khoản",
+    "orders": "Đơn hàng",
+    "recommendations": "Gợi ý",
+    "browsing_history": "Xem lịch sử",
+    "watchlist": "Danh sách xem",
+    "account_and_info": "Tài khoản & Thông tin"
+  },
+  "navbar": {
+    "today_deals": "Ưu đãi hôm nay",
+    "flash_sale": "Giảm giá thần tốc",
+    "gift_card": "Thẻ quà tặng",
+    "sale": "Khuyến mãi"
+  },
+  "sidebar": {
+    "help_and_settings": "Giúp đỡ & Cài đặt",
+    "your_account": "Tài khoản của bạn",
+    "customer_service": "Dịch vụ khách hàng"
+  },
+  "auth": {
+    "login": "Đăng nhập",
+    "register": "Đăng ký",
+    "logout": "Đăng xuất",
+    "login_with_social": "Đăng nhập bằng {social}",
+    "forgot_password": "Quên mật khẩu",
+    "remember_me": "Remember me",
+    "you_dont_have_an_account": "Bạn chưa có tài khoản?",
+    "register_now": "Đăng ký ngay",
+    "you_already_have_an_account": "Bạn đã có tài khoản?",
+    "email": "Email",
+    "name": "Tên",
+    "password": "Mật khẩu",
+    "confirm": "Xác nhận mật khẩu",
+    "phone": "Số điện thoại",
+    "gender": "Giới tính",
+    "date_of_birth": "Ngày sinh",
+    "address": "Địa chỉ",
+    "male": "Nam",
+    "female": "Nữ",
+    "other": "Khác",
+    "validation": {
+      "password": {
+        "length_require": "{field} phải từ 8 - 32 ký tự",
+        "lowercase_letter_require": "{field} phải có ít nhất 1 ký tự in thường",
+        "uppercase_letter_require": "{field} phải có ít nhất 1 ký tự in hoa",
+        "numberic_character_require": "{field} phải có ít nhất 1 ký tự in số",
+        "special_character_require": "{field} phải có ít nhất 1 ký tự in đặc biệt"
+      },
+      "field_required": "{field} là trường bắt buộc",
+      "field_invalid": "{field} không hợp lệ",
+      "not_match": "Mật khẩu không trùng khớp"
+    }
+  },
+  "product": {
+    "rating": "đánh giá",
+    "quantity": "số lượng",
+    "Quantity": "Số lượng",
+    "buy_now": "Mua ngay",
+    "sold": "đã bán",
+    "Sold": "Đã bán",
+    "product_detail": "chi tiết sẳn phẩm",
+    "product_description": "Chi tiết sản phẩm",
+    "price": "Giá",
+    "product_name": "Tên sản phẩm"
+  },
+  "cart": {
+    "create_new_cart": "Tạo giỏ hàng mới",
+    "your_cart": "Giỏ hàng của bạn",
+    "this_cart_have_no_item": "Không có sản phẩm trong giỏ hàng",
+    "view_cart": "Xem giỏ hàng",
+    "subtotal": "Tổng đơn hàng",
+    "please_signin_to_view_your_cart": "Vui lòng đăng nhập để xem giỏ hàng",
+    "cart_empty": "Giỏ hàng trống"
+  },
+  "wishlist": {
+    "add_item_successfully": "Thêm sản phẩm thành công",
+    "add_item_failed": "Thêm sản phẩm thất bạn",
+    "remove_item_successfully": "Xoá sản phẩm thành công",
+    "remove_item_failed": "Xoá sản phẩm thất bại",
+    "item_already_exists_in_wishlist": "Sản phẩm đã tồn tại trong danh sách yêu thích"
+  },
+  "placeholder": {
+    "input_field": "Nhập {field} của bạn"
+  }
+}

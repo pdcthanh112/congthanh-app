@@ -1,0 +1,64 @@
+syntax = "proto3";
+
+package ecommerce.tax.v1;
+
+import "ecommerce/common/v1/money.proto";
+
+option java_multiple_files = true;
+option java_package = "com.congthanh.taxservice.grpc";
+
+// tax-service (Go). order-service gọi khi checkout để tính thuế theo địa chỉ giao hàng.
+// Thuế suất chọn theo mức cụ thể nhất: mã bưu chính > tỉnh/thành > quốc gia.
+service TaxService {
+  rpc CalculateTax(CalculateTaxRequest) returns (CalculateTaxResponse);
+  rpc GetTaxRates(GetTaxRatesRequest) returns (GetTaxRatesResponse);
+}
+
+message TaxAddress {
+  // ISO 3166-1 alpha-2, ví dụ "VN".
+  string country_code = 1;
+  // Mã tỉnh/thành (cùng mã với customer-service), có thể trống.
+  string region_code = 2;
+  string postal_code = 3;
+}
+
+message TaxLine {
+  // Mã dòng của caller (ví dụ productId) để ghép kết quả.
+  string line_id = 1;
+  int64 tax_class_id = 2;
+  // Giá trị chịu thuế của cả dòng (đã trừ giảm giá).
+  ecommerce.common.v1.Money taxable_amount = 3;
+}
+
+message CalculateTaxRequest {
+  TaxAddress address = 1;
+  repeated TaxLine lines = 2;
+}
+
+message LineTax {
+  string line_id = 1;
+  // Phần trăm, ví dụ 10.0 = 10%.
+  double rate_percent = 2;
+  ecommerce.common.v1.Money tax = 3;
+}
+
+message CalculateTaxResponse {
+  repeated LineTax lines = 1;
+  ecommerce.common.v1.Money total_tax = 2;
+}
+
+message GetTaxRatesRequest {
+  repeated int64 tax_class_ids = 1;
+  TaxAddress address = 2;
+}
+
+message TaxClassRate {
+  int64 tax_class_id = 1;
+  double rate_percent = 2;
+  // false khi không có thuế suất nào khớp (coi như 0%).
+  bool matched = 3;
+}
+
+message GetTaxRatesResponse {
+  repeated TaxClassRate rates = 1;
+}

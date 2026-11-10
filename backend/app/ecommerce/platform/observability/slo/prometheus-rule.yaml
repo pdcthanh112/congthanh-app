@@ -1,0 +1,151 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: ecommerce-slo
+  namespace: observability
+spec:
+  groups:
+  - name: slo-checkout-availability
+    rules:
+    - record: slo:error_ratio:5m
+      labels:
+        slo: checkout-availability
+      expr: sum(rate(traces_span_metrics_calls_total{service_name="order-service",http_route=~"/api/ecommerce/checkout.*",status_code="STATUS_CODE_ERROR"}[5m])) / sum(rate(traces_span_metrics_calls_total{service_name="order-service",http_route=~"/api/ecommerce/checkout.*"}[5m]))
+    - record: slo:error_ratio:30m
+      labels:
+        slo: checkout-availability
+      expr: sum(rate(traces_span_metrics_calls_total{service_name="order-service",http_route=~"/api/ecommerce/checkout.*",status_code="STATUS_CODE_ERROR"}[30m])) / sum(rate(traces_span_metrics_calls_total{service_name="order-service",http_route=~"/api/ecommerce/checkout.*"}[30m]))
+    - record: slo:error_ratio:1h
+      labels:
+        slo: checkout-availability
+      expr: sum(rate(traces_span_metrics_calls_total{service_name="order-service",http_route=~"/api/ecommerce/checkout.*",status_code="STATUS_CODE_ERROR"}[1h])) / sum(rate(traces_span_metrics_calls_total{service_name="order-service",http_route=~"/api/ecommerce/checkout.*"}[1h]))
+    - record: slo:error_ratio:6h
+      labels:
+        slo: checkout-availability
+      expr: sum(rate(traces_span_metrics_calls_total{service_name="order-service",http_route=~"/api/ecommerce/checkout.*",status_code="STATUS_CODE_ERROR"}[6h])) / sum(rate(traces_span_metrics_calls_total{service_name="order-service",http_route=~"/api/ecommerce/checkout.*"}[6h]))
+    - alert: SLOBurnFast
+      labels:
+        slo: checkout-availability
+        severity: page
+      expr: slo:error_ratio:5m{slo="checkout-availability"} > 0.014400000000000001 and slo:error_ratio:1h{slo="checkout-availability"} > 0.014400000000000001
+      for: 2m
+      annotations:
+        summary: 'checkout-availability: đốt error budget nhanh (2% ngân sách/giờ)'
+        runbook_url: docs/runbooks/slo-burn.md
+    - alert: SLOBurnSlow
+      labels:
+        slo: checkout-availability
+        severity: ticket
+      expr: slo:error_ratio:30m{slo="checkout-availability"} > 0.006 and slo:error_ratio:6h{slo="checkout-availability"} > 0.006
+      for: 15m
+      annotations:
+        summary: 'checkout-availability: đốt error budget chậm (5% ngân sách/6 giờ)'
+        runbook_url: docs/runbooks/slo-burn.md
+  - name: slo-cart-availability
+    rules:
+    - record: slo:error_ratio:5m
+      labels:
+        slo: cart-availability
+      expr: sum(rate(traces_span_metrics_calls_total{service_name="cart-service",status_code="STATUS_CODE_ERROR"}[5m])) / sum(rate(traces_span_metrics_calls_total{service_name="cart-service"}[5m]))
+    - record: slo:error_ratio:30m
+      labels:
+        slo: cart-availability
+      expr: sum(rate(traces_span_metrics_calls_total{service_name="cart-service",status_code="STATUS_CODE_ERROR"}[30m])) / sum(rate(traces_span_metrics_calls_total{service_name="cart-service"}[30m]))
+    - record: slo:error_ratio:1h
+      labels:
+        slo: cart-availability
+      expr: sum(rate(traces_span_metrics_calls_total{service_name="cart-service",status_code="STATUS_CODE_ERROR"}[1h])) / sum(rate(traces_span_metrics_calls_total{service_name="cart-service"}[1h]))
+    - record: slo:error_ratio:6h
+      labels:
+        slo: cart-availability
+      expr: sum(rate(traces_span_metrics_calls_total{service_name="cart-service",status_code="STATUS_CODE_ERROR"}[6h])) / sum(rate(traces_span_metrics_calls_total{service_name="cart-service"}[6h]))
+    - alert: SLOBurnFast
+      labels:
+        slo: cart-availability
+        severity: page
+      expr: slo:error_ratio:5m{slo="cart-availability"} > 0.014400000000000001 and slo:error_ratio:1h{slo="cart-availability"} > 0.014400000000000001
+      for: 2m
+      annotations:
+        summary: 'cart-availability: đốt error budget nhanh (2% ngân sách/giờ)'
+        runbook_url: docs/runbooks/slo-burn.md
+    - alert: SLOBurnSlow
+      labels:
+        slo: cart-availability
+        severity: ticket
+      expr: slo:error_ratio:30m{slo="cart-availability"} > 0.006 and slo:error_ratio:6h{slo="cart-availability"} > 0.006
+      for: 15m
+      annotations:
+        summary: 'cart-availability: đốt error budget chậm (5% ngân sách/6 giờ)'
+        runbook_url: docs/runbooks/slo-burn.md
+  - name: slo-inventory-reserve-availability
+    rules:
+    - record: slo:error_ratio:5m
+      labels:
+        slo: inventory-reserve-availability
+      expr: sum(rate(traces_span_metrics_calls_total{service_name="inventory-service",span_name=~".*ReserveInventory",status_code="STATUS_CODE_ERROR"}[5m])) / sum(rate(traces_span_metrics_calls_total{service_name="inventory-service",span_name=~".*ReserveInventory"}[5m]))
+    - record: slo:error_ratio:30m
+      labels:
+        slo: inventory-reserve-availability
+      expr: sum(rate(traces_span_metrics_calls_total{service_name="inventory-service",span_name=~".*ReserveInventory",status_code="STATUS_CODE_ERROR"}[30m])) / sum(rate(traces_span_metrics_calls_total{service_name="inventory-service",span_name=~".*ReserveInventory"}[30m]))
+    - record: slo:error_ratio:1h
+      labels:
+        slo: inventory-reserve-availability
+      expr: sum(rate(traces_span_metrics_calls_total{service_name="inventory-service",span_name=~".*ReserveInventory",status_code="STATUS_CODE_ERROR"}[1h])) / sum(rate(traces_span_metrics_calls_total{service_name="inventory-service",span_name=~".*ReserveInventory"}[1h]))
+    - record: slo:error_ratio:6h
+      labels:
+        slo: inventory-reserve-availability
+      expr: sum(rate(traces_span_metrics_calls_total{service_name="inventory-service",span_name=~".*ReserveInventory",status_code="STATUS_CODE_ERROR"}[6h])) / sum(rate(traces_span_metrics_calls_total{service_name="inventory-service",span_name=~".*ReserveInventory"}[6h]))
+    - alert: SLOBurnFast
+      labels:
+        slo: inventory-reserve-availability
+        severity: page
+      expr: slo:error_ratio:5m{slo="inventory-reserve-availability"} > 0.007200000000000001 and slo:error_ratio:1h{slo="inventory-reserve-availability"} > 0.007200000000000001
+      for: 2m
+      annotations:
+        summary: 'inventory-reserve-availability: đốt error budget nhanh (2% ngân sách/giờ)'
+        runbook_url: docs/runbooks/slo-burn.md
+    - alert: SLOBurnSlow
+      labels:
+        slo: inventory-reserve-availability
+        severity: ticket
+      expr: slo:error_ratio:30m{slo="inventory-reserve-availability"} > 0.003 and slo:error_ratio:6h{slo="inventory-reserve-availability"} > 0.003
+      for: 15m
+      annotations:
+        summary: 'inventory-reserve-availability: đốt error budget chậm (5% ngân sách/6 giờ)'
+        runbook_url: docs/runbooks/slo-burn.md
+  - name: slo-flash-sale-claim-availability
+    rules:
+    - record: slo:error_ratio:5m
+      labels:
+        slo: flash-sale-claim-availability
+      expr: sum(rate(traces_span_metrics_calls_total{service_name="inventory-service",http_route=~".*claim",status_code="STATUS_CODE_ERROR"}[5m])) / sum(rate(traces_span_metrics_calls_total{service_name="inventory-service",http_route=~".*claim"}[5m]))
+    - record: slo:error_ratio:30m
+      labels:
+        slo: flash-sale-claim-availability
+      expr: sum(rate(traces_span_metrics_calls_total{service_name="inventory-service",http_route=~".*claim",status_code="STATUS_CODE_ERROR"}[30m])) / sum(rate(traces_span_metrics_calls_total{service_name="inventory-service",http_route=~".*claim"}[30m]))
+    - record: slo:error_ratio:1h
+      labels:
+        slo: flash-sale-claim-availability
+      expr: sum(rate(traces_span_metrics_calls_total{service_name="inventory-service",http_route=~".*claim",status_code="STATUS_CODE_ERROR"}[1h])) / sum(rate(traces_span_metrics_calls_total{service_name="inventory-service",http_route=~".*claim"}[1h]))
+    - record: slo:error_ratio:6h
+      labels:
+        slo: flash-sale-claim-availability
+      expr: sum(rate(traces_span_metrics_calls_total{service_name="inventory-service",http_route=~".*claim",status_code="STATUS_CODE_ERROR"}[6h])) / sum(rate(traces_span_metrics_calls_total{service_name="inventory-service",http_route=~".*claim"}[6h]))
+    - alert: SLOBurnFast
+      labels:
+        slo: flash-sale-claim-availability
+        severity: page
+      expr: slo:error_ratio:5m{slo="flash-sale-claim-availability"} > 0.07200000000000001 and slo:error_ratio:1h{slo="flash-sale-claim-availability"} > 0.07200000000000001
+      for: 2m
+      annotations:
+        summary: 'flash-sale-claim-availability: đốt error budget nhanh (2% ngân sách/giờ)'
+        runbook_url: docs/runbooks/slo-burn.md
+    - alert: SLOBurnSlow
+      labels:
+        slo: flash-sale-claim-availability
+        severity: ticket
+      expr: slo:error_ratio:30m{slo="flash-sale-claim-availability"} > 0.03 and slo:error_ratio:6h{slo="flash-sale-claim-availability"} > 0.03
+      for: 15m
+      annotations:
+        summary: 'flash-sale-claim-availability: đốt error budget chậm (5% ngân sách/6 giờ)'
+        runbook_url: docs/runbooks/slo-burn.md

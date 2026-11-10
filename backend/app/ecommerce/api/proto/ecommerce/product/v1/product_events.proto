@@ -1,0 +1,24 @@
+syntax = "proto3";
+
+package ecommerce.product.v1;
+
+import "ecommerce/common/v1/money.proto";
+
+option java_multiple_files = true;
+option java_package = "com.congthanh.productservice.grpc";
+
+// Topic: ecom.product.events (key = product_id). search-service dùng để cập nhật index.
+
+message ProductUpserted {
+  string product_id = 1;
+  string sku = 2;
+  string name = 3;
+  string slug = 4;
+  string category_id = 5;
+  ecommerce.common.v1.Money price = 6;
+  string status = 7;
+}
+
+message ProductDeleted {
+  string product_id = 1;
+}

@@ -1,0 +1,43 @@
+# ScyllaDB: lưu lịch sử chat của message-service (giai đoạn 3) — ghi nhiều, đọc theo hội thoại,
+# phân vùng theo conversation_id, TTL tự xoá. Không dùng cho dữ liệu cần transaction.
+apiVersion: scylla.scylladb.com/v1
+kind: ScyllaCluster
+metadata:
+  name: messages
+  namespace: data
+spec:
+  version: 2025.3.0
+  agentVersion: 3.5.0
+  datacenter:
+    name: ap-southeast-1
+    racks:
+      - name: a
+        members: 3
+        storage: {capacity: 200Gi, storageClassName: gp3}
+        resources:
+          requests: {cpu: "2", memory: 8Gi}
+          limits: {cpu: "2", memory: 8Gi}
+        placement:
+          nodeAffinity:
+            requiredDuringSchedulingIgnoredDuringExecution:
+              nodeSelectorTerms: [{matchExpressions: [{key: workload, operator: In, values: [scylla]}]}]
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: scylla-schema
+  namespace: data
+data:
+  messages.cql: |
+    CREATE KEYSPACE IF NOT EXISTS messaging
+      WITH replication = {'class': 'NetworkTopologyStrategy', 'ap-southeast-1': 3};
+    CREATE TABLE IF NOT EXISTS messaging.messages (
+      conversation_id uuid,
+      bucket          int,          -- yyyymm, chống partition quá lớn
+      message_id      timeuuid,
+      sender_id       text,
+      body            text,
+      attachments     list<text>,
+      PRIMARY KEY ((conversation_id, bucket), message_id)
+    ) WITH CLUSTERING ORDER BY (message_id DESC)
+      AND default_time_to_live = 31536000;

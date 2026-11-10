@@ -1,0 +1,23 @@
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: tax-service
+  description: Thuế suất theo vùng và tính thuế đơn hàng
+  tags:
+  - go
+  annotations:
+    github.com/project-slug: pdcthanh112/CongThanhApp
+    backstage.io/source-location: url:https://github.com/pdcthanh112/CongThanhApp/tree/main/backend/app/ecommerce/services/tax-service
+    argocd/app-selector: app.kubernetes.io/name=tax-service
+    grafana/dashboard-selector: tags @> 'tax-service'
+    backstage.io/techdocs-ref: dir:../../docs
+spec:
+  type: service
+  lifecycle: production
+  owner: team-ecommerce
+  system: ecommerce
+  providesApis:
+  - tax-api-grpc
+  - tax-api-rest
+  dependsOn:
+  - resource:ecom-postgres

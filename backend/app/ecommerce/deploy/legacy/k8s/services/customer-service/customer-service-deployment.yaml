@@ -1,0 +1,45 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: customer-service
+  name: customer-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: customer-service
+  strategy: {}
+  template:
+    metadata:
+
+      labels:
+        app: customer-service
+    spec:
+      containers:
+        - env:
+            - name: SPRING_DATASOURCE_URL
+              value: jdbc:postgresql://postgres-customer:5432/customer-service
+            - name: SPRING_PROFILES_ACTIVE
+              value: docker
+          image: saiupadhyayula007/customer-service:latest
+          name: customer-service
+          resources: {}
+      restartPolicy: Always
+status: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: customer-service
+  name: customer-service
+spec:
+  ports:
+    - name: "80"
+      port: 80
+      targetPort: 9191
+  selector:
+    app: customer-service
+status:
+  loadBalancer: {}
