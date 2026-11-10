@@ -2,7 +2,7 @@
 # Build context: thư mục gốc platform (backend/app/ecommerce)
 #   docker build -f services/webhook-service/Dockerfile -t congthanhapp/webhook-service .
 # CI dùng ko (xem .github/workflows/ci-go.yml) để build image không cần Dockerfile.
-FROM golang:1.26-alpine AS build
+FROM golang:1.27-alpine AS build
 ENV GOWORK=off CGO_ENABLED=0
 WORKDIR /src
 COPY libs/go libs/go
