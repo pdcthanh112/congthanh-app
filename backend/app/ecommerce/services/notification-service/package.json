@@ -24,7 +24,7 @@
     "dataloader": "^2.2.3",
     "drizzle-orm": "^0.45.4",
     "firebase-admin": "^14.5.0",
-    "graphql": "^16.15.0",
+    "graphql": "^17.0.2",
     "nodemailer": "^10.2.1",
     "reflect-metadata": "^0.2.2",
     "uuid": "^14.0.3",

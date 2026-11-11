@@ -23,7 +23,7 @@
     "@nestjs/graphql": "^14.2.0",
     "dataloader": "^2.2.3",
     "drizzle-orm": "^0.45.4",
-    "graphql": "^16.15.0",
+    "graphql": "^17.0.2",
     "ioredis": "^6.0.0",
     "reflect-metadata": "^0.2.2",
     "uuid": "^14.0.3",
