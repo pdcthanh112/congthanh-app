@@ -4,7 +4,7 @@
 # Mặc định chạy `python -m app` (service tự đọc cổng từ cấu hình); Django ghi đè CMD bằng gunicorn.
 ARG PYTHON_VERSION=3.13
 
-FROM ghcr.io/astral-sh/uv:0.9.5 AS uv
+FROM ghcr.io/astral-sh/uv:0.13.7 AS uv
 
 FROM python:${PYTHON_VERSION}-slim-bookworm AS build
 ARG SERVICE
