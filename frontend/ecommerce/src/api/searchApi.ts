@@ -3,7 +3,7 @@ import { gql } from '@/graphql/client';
 import { RecentSearchesQuery, RecordSearchMutation, RemoveSearchMutation } from '@/graphql/documents';
 import { ok } from '@/graphql/legacy';
 
-// Lịch sử tìm kiếm: customer-service qua supergraph. Gợi ý: search-service (OpenSearch) qua REST.
+// Lịch sử tìm kiếm: customer-service qua supergraph. Gợi ý: search-service (Elasticsearch) qua REST.
 export const getSearchHistory = async () => {
   const { me } = await gql(RecentSearchesQuery, { limit: 10 });
   return ok(me.recentSearches);

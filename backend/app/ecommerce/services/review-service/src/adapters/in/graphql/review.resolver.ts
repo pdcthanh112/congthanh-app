@@ -1,4 +1,4 @@
-import { CurrentPrincipal, hasAnyRole, type Principal, Role, Roles } from '@ecom/platform';
+import { CurrentPrincipal, hasAnyRole, type Principal, Role, Roles } from '@ecommerce/platform';
 import {
   Args,
   Context,

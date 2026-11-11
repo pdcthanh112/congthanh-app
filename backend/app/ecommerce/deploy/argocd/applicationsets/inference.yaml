@@ -1,0 +1,31 @@
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: ecommerce-inference
+  namespace: argocd
+spec:
+  goTemplate: true
+  goTemplateOptions: ["missingkey=error"]
+  generators:
+    - clusters:
+        selector:
+          matchExpressions:
+            - { key: env, operator: In, values: [staging, prod] }
+  template:
+    metadata:
+      name: 'inference-{{ index .metadata.labels "env" }}'
+      labels: { app.kubernetes.io/part-of: congthanhapp-ecommerce }
+      annotations:
+        argocd.argoproj.io/sync-wave: "5"
+    spec:
+      project: platform
+      source:
+        repoURL: https://github.com/pdcthanh112/CongThanhApp.git
+        targetRevision: main
+        path: 'backend/app/ecommerce/platform/inference/overlays/{{ index .metadata.labels "env" }}'
+      destination:
+        server: "{{ .server }}"
+        namespace: inference
+      syncPolicy:
+        automated: { prune: true, selfHeal: true }
+        syncOptions: [CreateNamespace=false, ServerSideApply=true]

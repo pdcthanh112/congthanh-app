@@ -3,11 +3,12 @@ package domain
 import "testing"
 
 var rates = []TaxRate{
-	{ID: 1, TaxClassID: 1, CountryCode: "VN", RatePercent: 10},
-	{ID: 2, TaxClassID: 1, CountryCode: "VN", RegionCode: "HCM", RatePercent: 8},
-	{ID: 3, TaxClassID: 1, CountryCode: "VN", RegionCode: "HCM", PostalCode: "700000", RatePercent: 7},
-	{ID: 4, TaxClassID: 1, CountryCode: "VN", PostalCode: "100000", RatePercent: 6},
-	{ID: 5, TaxClassID: 2, CountryCode: "VN", RatePercent: 5},
+	{ID: 1, TaxClassID: 1, CountryCode: "US", RatePercent: 0},
+	{ID: 2, TaxClassID: 1, CountryCode: "US", RegionCode: "CA", RatePercent: 7.25},
+	{ID: 3, TaxClassID: 1, CountryCode: "US", RegionCode: "CA", PostalCode: "94105", RatePercent: 8.625},
+	{ID: 4, TaxClassID: 1, CountryCode: "US", PostalCode: "10001", RatePercent: 8.875},
+	{ID: 5, TaxClassID: 2, CountryCode: "US", RegionCode: "IL", RatePercent: 1},
+	{ID: 6, TaxClassID: 1, CountryCode: "US", RegionCode: "IL", RatePercent: 6.25},
 }
 
 func TestBestRateMostSpecific(t *testing.T) {
@@ -16,11 +17,11 @@ func TestBestRateMostSpecific(t *testing.T) {
 		want int64
 		ok   bool
 	}{
-		{Address{"VN", "HN", ""}, 1, true},
-		{Address{"VN", "HCM", "711111"}, 2, true},
-		{Address{"VN", "HCM", "700000"}, 3, true},
-		{Address{"VN", "HN", "100000"}, 4, true},
-		{Address{"US", "CA", "94105"}, 0, false},
+		{Address{"US", "TX", ""}, 1, true},
+		{Address{"US", "CA", "94110"}, 2, true},
+		{Address{"US", "CA", "94105"}, 3, true},
+		{Address{"US", "NY", "10001"}, 4, true},
+		{Address{"CA", "ON", "M5V2T6"}, 0, false},
 	}
 	for _, c := range cases {
 		got, ok := BestRate(rates, 1, c.a)
@@ -32,28 +33,32 @@ func TestBestRateMostSpecific(t *testing.T) {
 
 func TestCalculate(t *testing.T) {
 	lines := []Line{
-		{LineID: "a", TaxClassID: 1, TaxableMinor: 199000, Currency: "VND"},
-		{LineID: "b", TaxClassID: 2, TaxableMinor: 50001, Currency: "VND"},
-		{LineID: "c", TaxClassID: 99, TaxableMinor: 1000, Currency: "VND"},
+		{LineID: "a", TaxClassID: 1, TaxableMinor: 19999, Currency: "USD"},
+		{LineID: "b", TaxClassID: 2, TaxableMinor: 5001, Currency: "USD"},
+		{LineID: "c", TaxClassID: 99, TaxableMinor: 1000, Currency: "USD"},
 	}
-	out, total, err := Calculate(rates, Address{"VN", "HN", ""}, lines)
+	// Illinois: 6.25% hàng thường, 1% thực phẩm (lớp Reduced).
+	out, total, err := Calculate(rates, Address{"US", "IL", ""}, lines)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if out[0].TaxMinor != 19900 || out[1].TaxMinor != 2500 || out[2].TaxMinor != 0 || total != 22400 {
+	if out[0].TaxMinor != 1250 || out[1].TaxMinor != 50 || out[2].TaxMinor != 0 || total != 1300 {
 		t.Fatalf("got %+v total=%d", out, total)
 	}
-	if _, _, err := Calculate(rates, Address{"VN", "", ""}, []Line{{Currency: "VND"}, {Currency: "USD"}}); err == nil {
+	if _, _, err := Calculate(rates, Address{"US", "", ""}, []Line{{Currency: "USD"}, {Currency: "EUR"}}); err == nil {
 		t.Fatal("mixed currency must fail")
 	}
 }
 
 func TestNormalizeValidate(t *testing.T) {
-	a := Address{" vn ", "hcm", "700 000"}.Normalize()
-	if a != (Address{"VN", "HCM", "700000"}) {
+	a := Address{" us ", "ca", " 94105-1234 "}.Normalize()
+	if a != (Address{"US", "CA", "94105"}) {
 		t.Fatalf("got %+v", a)
 	}
-	if (TaxRate{TaxClassID: 1, CountryCode: "VN", RatePercent: 101}).Validate() == nil {
+	if b := (Address{"gb", "", "SW1A 1AA"}).Normalize(); b.PostalCode != "SW1A1AA" {
+		t.Fatalf("got %+v", b)
+	}
+	if (TaxRate{TaxClassID: 1, CountryCode: "US", RatePercent: 101}).Validate() == nil {
 		t.Fatal("rate > 100 must fail")
 	}
 }

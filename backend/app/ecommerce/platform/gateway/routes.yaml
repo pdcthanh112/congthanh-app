@@ -9,6 +9,7 @@
 # Mọi service REST phục vụ dưới /api/ecommerce/... nên đường dẫn được chuyển nguyên vẹn.
 # exact: true   → khớp đúng đường dẫn (không thêm *)
 # websocket     → cho phép nâng cấp WebSocket (GraphQL subscription)
+# priority      → route trùng tiền tố thì số lớn hơn được xét trước (mặc định 0)
 # rewrite       → đổi đường dẫn trước khi chuyển tới upstream
 # catalog, customer, review, notification, message (NestJS) chỉ phục vụ GraphQL qua router, không có route REST.
 keycloak:
@@ -24,10 +25,26 @@ routes:
     port: 5014
     auth: required
     paths: [/api/ecommerce/flash-sales]
-    # Bảo vệ đợt flash sale: tối đa 5 lượt / 10s mỗi người dùng, 2000 kết nối đồng thời toàn route.
-    rate_limit: {count: 5, window: 10, key: consumer}
+    # Bảo vệ đợt flash sale: tối đa 10 lượt / 10s mỗi người dùng (đủ cho việc hỏi vị trí trong phòng chờ mỗi 2 giây
+    # cộng vài lượt giành), 2000 kết nối đồng thời toàn route.
+    rate_limit: {count: 10, window: 10, key: consumer}
     max_conn: 2000
   - {name: order,        service: order-service,        port: 5006, auth: required, paths: [/api/ecommerce/orders, /api/ecommerce/checkout]}
+  # Phiên checkout mới (/checkout/sessions) đi checkout-service; POST /checkout cũ vẫn ở order-service.
+  # Giới hạn theo người dùng để một client lỗi/bot không chiếm hết lượt đặt đơn lúc cao điểm; quá 1500 kết nối đồng
+  # thời thì gateway trả 503 ngay thay vì dồn hết xuống checkout-service.
+  - name: checkout
+    service: checkout-service
+    port: 5027
+    auth: required
+    priority: 10
+    paths: [/api/ecommerce/checkout/sessions]
+    rate_limit: {count: 30, window: 10, key: consumer}
+    max_conn: 1500
+  - {name: pricing,      service: pricing-service,      port: 5025, paths: [/api/ecommerce/pricing]}
+  # Chỉ API duyệt tay (ADMIN/FRAUD_ANALYST); /internal/fraud/assess không mở ra ngoài.
+  - {name: fraud,        service: fraud-service,        port: 5026, auth: required, paths: [/api/ecommerce/fraud]}
+  - {name: recommendation, service: recommendation-service, port: 5028, paths: [/api/ecommerce/recommendations]}
   - {name: media,        service: media-service,        port: 5007, paths: [/api/ecommerce/media]}
   - {name: product,      service: product-service,      port: 5008, paths: [/api/ecommerce/products]}
   - {name: payment,      service: payment-service,      port: 5018, paths: [/api/ecommerce/payment]}
@@ -48,6 +65,14 @@ routes:
     paths: [/api/ecommerce/chatbot]
     # Gọi LLM tốn tiền: giới hạn chặt theo IP.
     rate_limit: {count: 20, window: 60}
+  # MCP server cho AI agent: service tự trả 401 kèm resource_metadata (RFC 9728) để client MCP tìm Keycloak,
+  # nên gateway không chặn token (plugin openid-connect trả 401 không có metadata, làm hỏng luồng OAuth của client).
+  - name: commerce-mcp
+    service: commerce-mcp-service
+    port: 5030
+    exact: true
+    paths: [/api/ecommerce/mcp, /.well-known/oauth-protected-resource/api/ecommerce/mcp]
+    rate_limit: {count: 120, window: 60}
   # GraphQL: Cosmo Router ghép supergraph; router và subgraph tự xác thực JWT nên không chặn ở gateway.
   - {name: graphql,       service: graphql-router,            port: 4000, exact: true, websocket: true, paths: [/graphql]}
   - name: graphql-admin

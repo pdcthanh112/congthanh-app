@@ -14,23 +14,23 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 class OrderTest {
 
     private static final Instant NOW = Instant.parse("2026-11-09T00:00:00Z");
-    private static final Address ADDRESS = new Address("Thanh", "0900000000", "1 Le Loi", null,
-            "Ben Nghe", "Q1", "HCM", "VN", "700000");
-    private static final CheckoutDetails COD = new CheckoutDetails(PaymentMethod.CASH_ON_DELIVERY, null, null, null);
+    private static final Address ADDRESS = new Address("Alex Johnson", "+12125550100", "350 5th Ave", null,
+            null, null, "NY", "US", "10118");
+    private static final CheckoutDetails CARD = new CheckoutDetails(PaymentMethod.CARD, null, null, null);
 
     private static Order place(Money discount) {
         return Order.place("o-1", "CT-261109-AAAA0001", "c-1",
-                List.of(new OrderLine("p-1", "SKU1", "Áo", 2, Money.of("100000", "VND")),
-                        new OrderLine("p-2", "SKU2", "Quần", 1, Money.of("50000", "VND"))),
-                discount == null ? null : "SALE10", discount, COD, ADDRESS, null, null, "checkout-o-1", NOW);
+                List.of(new OrderLine("p-1", "SKU1", "T-Shirt", 2, Money.of("100", "USD")),
+                        new OrderLine("p-2", "SKU2", "Jeans", 1, Money.of("50", "USD"))),
+                discount == null ? null : "SALE10", discount, CARD, ADDRESS, null, null, "checkout-o-1", NOW);
     }
 
     @Test
     void placeComputesTotalsAndEmitsOrderPlaced() {
-        Order order = place(Money.of("25000", "VND"));
+        Order order = place(Money.of("25", "USD"));
 
-        assertThat(order.subtotal()).isEqualTo(Money.of("250000", "VND"));
-        assertThat(order.total()).isEqualTo(Money.of("225000", "VND"));
+        assertThat(order.subtotal()).isEqualTo(Money.of("250", "USD"));
+        assertThat(order.total()).isEqualTo(Money.of("225", "USD"));
         assertThat(order.status()).isEqualTo(OrderStatus.PENDING);
         assertThat(order.billingAddress()).isEqualTo(ADDRESS);
         assertThat(order.pullEvents()).singleElement().isInstanceOf(OrderEvent.OrderPlaced.class);
@@ -38,8 +38,23 @@ class OrderTest {
     }
 
     @Test
+    void totalIncludesShippingFeeAndTaxAndEventCarriesAddress() {
+        Order order = Order.place("o-2", "CT-261109-AAAA0002", "c-1",
+                List.of(new OrderLine("p-1", "SKU1", "T-Shirt", 2, Money.of("100", "USD"))),
+                "SALE10", Money.of("20", "USD"), Money.of("30", "USD"), Money.of("16", "USD"),
+                CARD, ADDRESS, null, null, "checkout-o-2", NOW);
+
+        assertThat(order.total()).isEqualTo(Money.of("226", "USD"));
+        assertThat(order.shippingFee()).isEqualTo(Money.of("30", "USD"));
+        assertThat(order.tax()).isEqualTo(Money.of("16", "USD"));
+        var placed = (OrderEvent.OrderPlaced) order.pullEvents().getFirst();
+        assertThat(placed.shippingAddress()).isEqualTo(ADDRESS);
+        assertThat(placed.total()).isEqualTo(order.total());
+    }
+
+    @Test
     void discountCannotExceedSubtotal() {
-        assertThatThrownBy(() -> place(Money.of("300000", "VND")))
+        assertThatThrownBy(() -> place(Money.of("300", "USD")))
                 .isInstanceOf(OrderException.class)
                 .extracting("kind").isEqualTo(OrderException.Kind.INVALID);
     }
@@ -47,9 +62,9 @@ class OrderTest {
     @Test
     void mixedCurrenciesAreRejected() {
         assertThatThrownBy(() -> Order.place("o-1", "c", "c-1",
-                List.of(new OrderLine("p-1", null, "A", 1, Money.of("1", "VND")),
+                List.of(new OrderLine("p-1", null, "A", 1, Money.of("1", "EUR")),
                         new OrderLine("p-2", null, "B", 1, Money.of("1", "USD"))),
-                null, null, COD, ADDRESS, null, null, "w", NOW))
+                null, null, CARD, ADDRESS, null, null, "w", NOW))
                 .isInstanceOf(OrderException.class);
     }
 

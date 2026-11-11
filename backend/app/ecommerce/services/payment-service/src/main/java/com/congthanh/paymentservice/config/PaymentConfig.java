@@ -1,17 +1,26 @@
 package com.congthanh.paymentservice.config;
 
-import com.congthanh.ecom.workflow.TaskQueues;
+import com.congthanh.ecommerce.workflow.TaskQueues;
 import com.congthanh.paymentservice.adapter.in.workflow.PaymentActivitiesImpl;
+import com.congthanh.paymentservice.domain.model.InstallmentPolicy;
 import com.congthanh.platform.security.KeycloakJwtRoles;
 import com.congthanh.platform.temporal.TemporalWorkerRegistration;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
 
 @Configuration
+@EnableConfigurationProperties(InstallmentProperties.class)
 class PaymentConfig {
+
+    @Bean
+    InstallmentPolicy installmentPolicy(InstallmentProperties props) {
+        return props.toPolicy();
+    }
 
     /** payment-service poll task queue "payment" (activity Payment.authorize/capture/refund). */
     @Bean
@@ -28,7 +37,9 @@ class PaymentConfig {
                         .requestMatchers("/actuator/health/**", "/actuator/prometheus", "/actuator/info").permitAll()
                         .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
                         // Callback từ cổng thanh toán: xác thực bằng chữ ký trong provider, không có JWT.
-                        .requestMatchers("/api/ecommerce/payment/vnpay/ipn", "/api/ecommerce/payment/paypal/**",
+                        // Đối tác trả góp hợp lệ cho một số tiền: trang sản phẩm/giỏ gọi cả khi chưa đăng nhập.
+                        .requestMatchers(HttpMethod.GET, "/api/ecommerce/payment/installment-options").permitAll()
+                        .requestMatchers("/api/ecommerce/payment/paypal/**",
                                 "/api/ecommerce/payment/webhooks/**", "/api/ecommerce/payment/sandbox/**").permitAll()
                         .requestMatchers("/api/ecommerce/payment/**").authenticated()
                         .anyRequest().denyAll())

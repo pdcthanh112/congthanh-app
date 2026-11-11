@@ -20,5 +20,5 @@ spec:
   - shipping-api-grpc
   - shipping-api-rest
   dependsOn:
-  - resource:ecom-postgres
-  - resource:ecom-kafka
+  - resource:ecommerce-postgres
+  - resource:ecommerce-kafka

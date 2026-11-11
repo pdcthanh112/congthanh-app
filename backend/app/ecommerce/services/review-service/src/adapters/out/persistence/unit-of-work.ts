@@ -1,12 +1,12 @@
 import { create } from '@bufbuild/protobuf';
 import { timestampFromDate } from '@bufbuild/protobuf/wkt';
-import { type Database, DB, markProcessed, OutboxWriter } from '@ecom/platform';
+import { type Database, DB, markProcessed, OutboxWriter } from '@ecommerce/platform';
 import {
   ProductRatingChangedSchema,
   ReviewModeratedSchema,
   ReviewRepliedSchema,
   ReviewSubmittedSchema,
-} from '@ecom/proto/ecommerce/review/v1/review_events_pb';
+} from '@ecommerce/proto/ecommerce/review/v1/review_events_pb';
 import { Inject, Injectable } from '@nestjs/common';
 import type { ReadRepositories, ReviewEvents, TransactionScope, UnitOfWork } from '../../../application/ports.js';
 import { averageOf, countOf, type RatingSummary } from '../../../domain/rating-summary.js';

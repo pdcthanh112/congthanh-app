@@ -6,7 +6,7 @@ func TestRoundTrip(t *testing.T) {
 	for _, c := range []struct {
 		minor int64
 		cur   string
-	}{{199000, "VND"}, {1999, "USD"}, {-250, "USD"}, {0, "EUR"}} {
+	}{{1500, "JPY"}, {1999, "USD"}, {-250, "USD"}, {0, "EUR"}} {
 		if got := ToMinor(FromMinor(c.minor, c.cur)); got != c.minor {
 			t.Fatalf("%v: got %d", c, got)
 		}

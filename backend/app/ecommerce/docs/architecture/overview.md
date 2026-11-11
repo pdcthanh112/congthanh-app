@@ -16,35 +16,51 @@ flowchart LR
   order -->|gRPC| payment[payment-service Java]
   subgraph data[Data]
     pg[(Postgres + outbox)]
-    valkey[(Valkey)]
+    redis[(Redis)]
   end
   cart & inv & order & product & payment --> pg
-  inv -->|Lua flash sale| valkey
+  inv -->|Lua flash sale| redis
   pg -->|WAL| dbz[Debezium] --> kafka[(Kafka)]
   kafka --> cart & inv & order
   kafka --> ch[(ClickHouse)] & lake[(Iceberg / S3)]
 ```
 
-## Luồng checkout (mục tiêu sau đợt 2)
+## Luồng checkout ([ADR 0012](../adr/0012-checkout-pricing-fraud-recommendation.md))
 
 ```mermaid
 sequenceDiagram
-  participant C as Client
+  participant C as Client (storefront-bff)
+  participant CK as checkout-service
+  participant PR as pricing / promotion / shipping / tax
+  participant F as fraud-service
   participant O as order-service
   participant T as Temporal
   participant I as inventory-service
   participant P as payment-service
   participant K as Kafka
-  C->>O: POST /checkout (Idempotency-Key)
-  O->>T: start CheckoutWorkflow(orderId)
-  T->>I: ReserveInventory(reservationId=orderId)
-  T->>P: AuthorizePayment
-  alt thanh toán lỗi
-    T->>I: ReleaseInventory (compensation)
-  else thành công
-    T->>I: CommitReservation
-    O-->>K: OrderPlaced (outbox)
-    K-->>cart: xoá sản phẩm đã đặt khỏi giỏ
+  C->>CK: POST /checkout/sessions (giỏ, địa chỉ, mã giảm giá)
+  CK->>PR: báo giá (gRPC)
+  C->>CK: POST /sessions/{id}/place (Idempotency-Key)
+  CK->>PR: báo giá lại (giá đổi → 409 PRICE_CHANGED)
+  CK->>F: POST /internal/fraud/assess
+  alt REJECT
+    CK-->>C: 422 FRAUD_REJECTED
+  else REVIEW
+    CK-->>C: 202 PENDING_REVIEW
+    F-->>K: FraudReviewDecided (sau khi duyệt tay)
+    K-->>CK: đặt tiếp hoặc huỷ phiên
+  else APPROVE
+    CK->>O: gRPC PlaceOrder (giá đã chốt, order id sinh trước)
+    O->>T: start CheckoutWorkflow (queue checkout-workflow, worker ở checkout-service)
+    T->>I: ReserveInventory
+    T->>P: AuthorizePayment
+    alt thanh toán lỗi
+      T->>I: ReleaseInventory (compensation)
+    else thành công
+      T->>I: CommitReservation
+      O-->>K: OrderPlaced (outbox)
+      K-->>cart: xoá sản phẩm đã đặt khỏi giỏ
+    end
   end
 ```
 

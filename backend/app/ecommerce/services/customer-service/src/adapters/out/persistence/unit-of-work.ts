@@ -1,10 +1,10 @@
 import { create } from '@bufbuild/protobuf';
 import { timestampFromDate } from '@bufbuild/protobuf/wkt';
-import { type Database, DB, OutboxWriter } from '@ecom/platform';
+import { type Database, DB, OutboxWriter } from '@ecommerce/platform';
 import {
   WishlistItemAddedSchema,
   WishlistItemRemovedSchema,
-} from '@ecom/proto/ecommerce/customer/v1/customer_events_pb';
+} from '@ecommerce/proto/ecommerce/customer/v1/customer_events_pb';
 import { Inject, Injectable } from '@nestjs/common';
 import type { CustomerEvents, ReadRepositories, TransactionScope, UnitOfWork } from '../../../application/ports.js';
 import {

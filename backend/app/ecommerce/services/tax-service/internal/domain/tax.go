@@ -29,13 +29,18 @@ type Address struct {
 	PostalCode  string `json:"postalCode"`
 }
 
-// Normalize viết hoa mã quốc gia/tỉnh và bỏ khoảng trắng mã bưu chính.
+// Normalize viết hoa mã quốc gia/bang, bỏ khoảng trắng mã bưu chính; ZIP+4 của Mỹ (94105-1234)
+// rút về 5 số vì thuế suất lưu theo ZIP 5 số.
 func (a Address) Normalize() Address {
-	return Address{
+	n := Address{
 		CountryCode: strings.ToUpper(strings.TrimSpace(a.CountryCode)),
 		RegionCode:  strings.ToUpper(strings.TrimSpace(a.RegionCode)),
 		PostalCode:  strings.ReplaceAll(strings.TrimSpace(a.PostalCode), " ", ""),
 	}
+	if n.CountryCode == "US" && len(n.PostalCode) == 10 && n.PostalCode[5] == '-' {
+		n.PostalCode = n.PostalCode[:5]
+	}
+	return n
 }
 
 func (a Address) Validate() error {

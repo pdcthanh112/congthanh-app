@@ -7,3 +7,6 @@ autoscaling:
   maxReplicas: 30
 pdb:
   minAvailable: 2
+# Số pod có sẵn trong các khung giờ ở deploy/helm/events/events-prod.yaml (flash sale, ngày sale lớn).
+scheduledScaling:
+  replicas: 8

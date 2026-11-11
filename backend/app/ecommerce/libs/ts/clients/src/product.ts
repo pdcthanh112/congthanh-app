@@ -1,6 +1,6 @@
-import { bearer, fromGrpcError, grpcClient, RestClient, resiliencePolicy } from '@ecom/platform';
-import { ProductService } from '@ecom/proto/ecommerce/product/v1/product_service_pb';
-import { fromDecimal, type Money } from '@ecom/shared';
+import { bearer, fromGrpcError, grpcClient, RestClient, resiliencePolicy } from '@ecommerce/platform';
+import { ProductService } from '@ecommerce/proto/ecommerce/product/v1/product_service_pb';
+import { fromDecimal, type Money } from '@ecommerce/shared';
 import { z } from 'zod';
 
 /** Thông tin gọn để hiển thị danh sách/giỏ hàng (gRPC GetProductsByIds, gọi theo lô). */
@@ -54,7 +54,7 @@ export class ProductClient {
   constructor(opts: ProductClientOptions) {
     this.grpc = grpcClient(ProductService, { address: opts.grpcAddress });
     this.rest = new RestClient({ baseUrl: opts.restBaseUrl, name: 'product-service' });
-    this.currency = opts.currency ?? 'VND';
+    this.currency = opts.currency ?? 'USD';
   }
 
   async byIds(ids: readonly string[], includeInactive = false): Promise<Map<string, ProductSummary>> {

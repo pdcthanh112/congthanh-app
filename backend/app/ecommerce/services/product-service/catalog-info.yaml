@@ -20,5 +20,5 @@ spec:
   - product-api-grpc
   consumesApis: []
   dependsOn:
-  - resource:ecom-postgres
-  - resource:ecom-kafka
+  - resource:ecommerce-postgres
+  - resource:ecommerce-kafka

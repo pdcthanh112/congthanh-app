@@ -1,0 +1,15 @@
+tetragon:
+  enablePolicyFilter: true
+  enableProcessCred: true
+  enableProcessNs: true
+  exportAllowList: |-
+    {"namespace":["ecommerce","streaming"],"event_set":["PROCESS_KPROBE","PROCESS_EXEC"],"binary_regex":["^/bin/(ba|da|z)?sh$","^/usr/bin/(ba|da|z)?sh$","busybox$","/(nc|ncat|curl|wget)$"]}
+    {"namespace":["ecommerce","streaming"],"event_set":["PROCESS_KPROBE"]}
+  exportDenyList: |-
+    {"health_check":true}
+  prometheus:
+    enabled: true
+    serviceMonitor: { enabled: true }
+tetragonOperator:
+  prometheus:
+    enabled: true

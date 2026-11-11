@@ -33,6 +33,7 @@ class PayPalProvider implements PaymentProvider {
     private final String clientId;
     private final String clientSecret;
     private final String callbackBase;
+    private final String brandName;
     private volatile String token;
     private volatile Instant tokenExpiry = Instant.EPOCH;
 
@@ -40,11 +41,13 @@ class PayPalProvider implements PaymentProvider {
                    @Value("${payment.paypal.client-secret}") String clientSecret,
                    @Value("${payment.paypal.base-url:https://api-m.sandbox.paypal.com}") String baseUrl,
                    @Value("${payment.public-base-url}") String callbackBase,
+                   @Value("${payment.paypal.brand-name:CongThanh Store}") String brandName,
                    RestClient.Builder builder) {
         this.http = builder.baseUrl(baseUrl).build();
         this.clientId = clientId;
         this.clientSecret = clientSecret;
         this.callbackBase = callbackBase;
+        this.brandName = brandName;
     }
 
     @Override
@@ -60,16 +63,18 @@ class PayPalProvider implements PaymentProvider {
     @Override
     public ProviderResult authorize(Payment payment, String paymentToken, String returnUrl, String clientIp) {
         String back = callbackBase + "/api/ecommerce/payment/paypal";
+        Map<String, Object> source = Map.of("paypal", Map.of("experience_context", Map.of(
+                "brand_name", brandName,
+                "return_url", back + "/return?orderId=" + payment.orderId(),
+                "cancel_url", back + "/cancel?orderId=" + payment.orderId(),
+                "user_action", "PAY_NOW")));
         Map<String, Object> body = Map.of(
                 "intent", "AUTHORIZE",
                 "purchase_units", List.of(Map.of(
                         "custom_id", payment.orderId(),
                         "amount", Map.of("currency_code", payment.amount().currency(),
                                 "value", value(payment.amount().amount(), payment.amount().currency())))),
-                "payment_source", Map.of("paypal", Map.of("experience_context", Map.of(
-                        "return_url", back + "/return?orderId=" + payment.orderId(),
-                        "cancel_url", back + "/cancel?orderId=" + payment.orderId(),
-                        "user_action", "PAY_NOW"))));
+                "payment_source", source);
         JsonNode order = post("/v2/checkout/orders", body, "create-" + payment.orderId());
         String approve = null;
         for (JsonNode link : order.path("links")) {

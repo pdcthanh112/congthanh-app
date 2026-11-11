@@ -1,4 +1,4 @@
-# Service Python (FastAPI: translate, chatbot; Django: supplier) + thư viện libs/python. Quản lý bằng uv.
+# Service Python (FastAPI: translate, chatbot, fraud, recommendation; MCP: commerce-mcp; Django: supplier) + thư viện libs/python. Quản lý bằng uv.
 name: ci-python
 on:
   pull_request:
@@ -6,6 +6,7 @@ on:
       - "backend/app/ecommerce/services/*/pyproject.toml"
       - "backend/app/ecommerce/services/*/uv.lock"
       - "backend/app/ecommerce/services/**/*.py"
+      - "backend/app/ecommerce/ai/**"
       - "backend/app/ecommerce/services/python.Dockerfile"
       - "backend/app/ecommerce/libs/python/**"
       - ".github/workflows/ci-python.yml"
@@ -14,6 +15,7 @@ on:
     paths:
       - "backend/app/ecommerce/services/**/*.py"
       - "backend/app/ecommerce/services/*/uv.lock"
+      - "backend/app/ecommerce/ai/**"
       - "backend/app/ecommerce/libs/python/**"
 permissions: {contents: read}
 concurrency: {group: "${{ github.workflow }}-${{ github.ref }}", cancel-in-progress: true}
@@ -26,15 +28,19 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        project: [libs/python/ecom-platform, services/translate-service, services/chatbot-service, services/supplier-service]
+        project: [libs/python/ecommerce-platform, services/translate-service, services/chatbot-service, services/supplier-service, services/fraud-service, services/recommendation-service, ai/commerce-mcp-service]
     services:
       postgres:
         image: pgvector/pgvector:0.8.1-pg18-trixie
         env: {POSTGRES_PASSWORD: postgres, POSTGRES_DB: test}
         ports: ["5432:5432"]
         options: --health-cmd "pg_isready -U postgres" --health-interval 5s --health-retries 20
+      redis:
+        image: redis:8.10-alpine
+        ports: ["6379:6379"]
     env:
       TEST_DATABASE_URL: postgres://postgres:postgres@localhost:5432/test
+      TEST_REDIS_URL: redis://localhost:6379/15
       ANTHROPIC_API_KEY: test-not-used   # test dùng client giả, không gọi API thật
     steps:
       - uses: actions/checkout@v5
@@ -60,11 +66,11 @@ jobs:
     if: github.event_name == 'push'
     needs: check
     runs-on: ubuntu-24.04
-    permissions: {contents: read, packages: write, id-token: write}
+    permissions: {contents: read, packages: write, id-token: write, attestations: write}
     strategy:
       fail-fast: false
       matrix:
-        service: [translate-service, chatbot-service, supplier-service]
+        service: [translate-service, chatbot-service, supplier-service, fraud-service, recommendation-service, commerce-mcp-service]
     steps:
       - uses: actions/checkout@v5
       # Tag = 12 ký tự đầu của SHA, giống image Go/Java/Node, để workflow release tìm được digest.
@@ -81,7 +87,10 @@ jobs:
         with:
           context: backend/app/ecommerce
           file: backend/app/ecommerce/services/python.Dockerfile
-          build-args: SERVICE=${{ matrix.service }}
+          # Service ngoài services/ (ai/...) truyền thư mục riêng; còn lại dùng mặc định services/<tên>.
+          build-args: |
+            SERVICE=${{ matrix.service }}
+            SERVICE_DIR=${{ matrix.service == 'commerce-mcp-service' && 'ai/commerce-mcp-service' || format('services/{0}', matrix.service) }}
           platforms: linux/amd64,linux/arm64
           push: true
           tags: ghcr.io/${{ github.repository_owner }}/congthanhapp/${{ matrix.service }}:${{ steps.sha.outputs.short }}
@@ -100,3 +109,6 @@ jobs:
           syft "$IMAGE" -o spdx-json > sbom.spdx.json
           cosign sign --yes "$IMAGE"
           cosign attest --yes --type spdxjson --predicate sbom.spdx.json "$IMAGE"
+      - name: SLSA provenance (GitHub artifact attestation, lưu cả vào registry)
+        uses: actions/attest-build-provenance@v3
+        with: {subject-name: "ghcr.io/${{ github.repository_owner }}/congthanhapp/${{ matrix.service }}", subject-digest: "${{ steps.build.outputs.digest }}", push-to-registry: true}

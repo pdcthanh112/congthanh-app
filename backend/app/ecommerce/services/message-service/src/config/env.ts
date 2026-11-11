@@ -1,9 +1,9 @@
-import { baseEnv, databaseEnv, loadEnv, valkeyEnv } from '@ecom/platform';
+import { baseEnv, databaseEnv, loadEnv, redisEnv } from '@ecommerce/platform';
 import { z } from 'zod';
 
 export const envSchema = baseEnv
   .merge(databaseEnv)
-  .merge(valkeyEnv)
+  .merge(redisEnv)
   .extend({
     SERVICE_NAME: z.string().default('message-service'),
     HTTP_PORT: z.coerce.number().default(5012),

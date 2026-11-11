@@ -12,8 +12,8 @@ env:
   OIDC_ISSUER_URI: "http://keycloak-service.identity.svc.cluster.local:8080/realms/ecommerce"
   JWT_JWKS_URL: "http://keycloak-service.identity.svc.cluster.local:8080/realms/ecommerce/protocol/openid-connect/certs"
   DB_SCHEMA: notification_service
-  KAFKA_BROKERS: "ecom-kafka-bootstrap.messaging.svc.cluster.local:9092"
-  VALKEY_URL: "redis://valkey.data.svc.cluster.local:6379/2"
+  KAFKA_BROKERS: "ecommerce-kafka-bootstrap.messaging.svc.cluster.local:9092"
+  REDIS_URL: "redis://redis.data.svc.cluster.local:6379/2"
   APP_URL: "https://congthanh.vn"
   KEYCLOAK_URL: "http://keycloak-service.identity.svc.cluster.local:8080"
   KEYCLOAK_REALM: ecommerce

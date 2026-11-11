@@ -1,4 +1,4 @@
-"""ProductSearch qua REST của search-service (OpenSearch)."""
+"""ProductSearch qua REST của search-service (Elasticsearch)."""
 
 from __future__ import annotations
 
@@ -21,7 +21,7 @@ class SearchServiceClient:
                 name=h["name"],
                 slug=h.get("slug", ""),
                 price=float(h.get("price", 0)),
-                currency=h.get("currency", "VND"),
+                currency=h.get("currency", "USD"),
             )
             for h in hits
             if h.get("status", "ACTIVE") == "ACTIVE"

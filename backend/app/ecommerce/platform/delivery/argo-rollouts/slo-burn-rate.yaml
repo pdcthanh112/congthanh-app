@@ -1,0 +1,29 @@
+# Phân tích nền cho mọi canary (chart microservice: rollout.sloBurn). Tính tốc độ đốt error budget của riêng
+# pod canary (span của service-name có rollouts-pod-template-hash = canary) trong 5 phút:
+#   burn = tỉ lệ lỗi / (1 - objective). Vượt burn-rate-limit (mặc định 14.4 = hết 2% budget/giờ) → huỷ rollout.
+# Không có lưu lượng (NaN) thì coi là đạt để canary ít tải không bị huỷ oan.
+apiVersion: argoproj.io/v1alpha1
+kind: ClusterAnalysisTemplate
+metadata:
+  name: slo-burn-rate
+spec:
+  args:
+  - name: service-name
+  - name: objective
+    value: "0.995"
+  - name: burn-rate-limit
+    value: "14.4"
+  metrics:
+  - name: error-budget-burn
+    interval: 1m
+    failureLimit: 2
+    successCondition: "isNaN(result[0]) || result[0] <= {{args.burn-rate-limit}}"
+    provider:
+      prometheus:
+        address: http://lgtm-mimir-nginx.observability/prometheus
+        query: |
+          (
+            sum(rate(traces_span_metrics_calls_total{service_name="{{args.service-name}}",span_kind="SPAN_KIND_SERVER",status_code="STATUS_CODE_ERROR"}[5m]))
+            /
+            sum(rate(traces_span_metrics_calls_total{service_name="{{args.service-name}}",span_kind="SPAN_KIND_SERVER"}[5m]))
+          ) / (1 - {{args.objective}})

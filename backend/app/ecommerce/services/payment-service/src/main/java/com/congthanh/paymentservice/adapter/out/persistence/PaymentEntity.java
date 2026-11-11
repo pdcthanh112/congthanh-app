@@ -40,6 +40,7 @@ public class PaymentEntity {
 
     String redirectUrl;
     String failureReason;
+    Instant authorizationExpiresAt;
 
     @Column(nullable = false)
     Instant createdAt;

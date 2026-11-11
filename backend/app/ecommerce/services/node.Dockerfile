@@ -16,7 +16,7 @@ COPY tsconfig.base.json buf.yaml buf.gen.yaml* ./
 COPY api/proto api/proto
 COPY libs/ts libs/ts
 COPY services/${SERVICE} services/${SERVICE}
-RUN npm run build -w @ecom/proto -w @ecom/shared -w @ecom/platform -w @ecom/clients -w @ecom/${SERVICE} && chmod -R a+rX /src/libs /src/services
+RUN npm run build -w @ecommerce/proto -w @ecommerce/shared -w @ecommerce/platform -w @ecommerce/clients -w @ecommerce/${SERVICE} && chmod -R a+rX /src/libs /src/services
 
 FROM node:${NODE_VERSION}-bookworm-slim AS prod-deps
 ARG SERVICE
@@ -24,8 +24,8 @@ WORKDIR /src
 COPY package.json package-lock.json ./
 COPY --parents libs/ts/*/package.json services/*/package.json ./
 # Chỉ dependency production của service này (+ thư viện workspace nó dùng). npm giữ nguyên bố cục
-# workspace: node_modules gốc, node_modules lồng (khi trùng tên khác phiên bản) và symlink @ecom/* → libs/ts.
-RUN --mount=type=cache,target=/root/.npm npm ci --omit=dev --no-audit --no-fund -w @ecom/${SERVICE} --include-workspace-root=false \
+# workspace: node_modules gốc, node_modules lồng (khi trùng tên khác phiên bản) và symlink @ecommerce/* → libs/ts.
+RUN --mount=type=cache,target=/root/.npm npm ci --omit=dev --no-audit --no-fund -w @ecommerce/${SERVICE} --include-workspace-root=false \
     && chmod -R a+rX /src   # COPY --parents tạo thư mục cha quyền 700; user nonroot cần đọc được
 
 FROM gcr.io/distroless/nodejs${NODE_VERSION}-debian12:nonroot
@@ -43,4 +43,4 @@ COPY --from=build /src/services/${SERVICE}/drizzl[e] ./services/${SERVICE}/drizz
 WORKDIR /app/services/${SERVICE}
 USER nonroot
 # Telemetry phải nạp trước mọi module để auto-instrumentation patch được pg, http, kafka...
-ENTRYPOINT ["/nodejs/bin/node", "--enable-source-maps", "--import", "@ecom/platform/telemetry", "dist/main.js"]
+ENTRYPOINT ["/nodejs/bin/node", "--enable-source-maps", "--import", "@ecommerce/platform/telemetry", "dist/main.js"]

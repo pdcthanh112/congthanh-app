@@ -1,5 +1,5 @@
-import { DomainError } from '@ecom/platform/errors';
-import { slugify } from './slug.js';
+import { DomainError } from "@ecommerce/platform/errors";
+import { slugify } from "./slug.js";
 
 export interface BrandProps {
   id: number;
@@ -15,11 +15,10 @@ export interface BrandDraft {
   image?: string | null | undefined;
 }
 
-/** Chuẩn hoá dữ liệu thương hiệu; id do Postgres cấp (bigint, product-service lưu dạng số). */
-export function normalizeBrand(draft: BrandDraft): Omit<BrandProps, 'id' | 'active'> {
+export function normalizeBrand(draft: BrandDraft): Omit<BrandProps, "id" | "active"> {
   const name = draft.name?.trim();
-  if (!name) throw DomainError.invalid('brand name is required');
+  if (!name) throw DomainError.invalid("brand name is required");
   const slug = slugify(draft.slug?.trim() || name);
-  if (!slug) throw DomainError.invalid('brand slug is empty');
+  if (!slug) throw DomainError.invalid("brand slug is empty");
   return { name, slug, image: draft.image ?? null };
 }

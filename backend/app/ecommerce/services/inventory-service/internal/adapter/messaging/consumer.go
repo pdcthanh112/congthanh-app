@@ -11,7 +11,7 @@ import (
 	"github.com/pdcthanh112/CongThanhApp/backend/app/ecommerce/services/inventory-service/internal/domain"
 )
 
-const TopicOrderEvents = "ecom.order.events"
+const TopicOrderEvents = "ecommerce.order.events"
 
 // Releaser là phần use case mà consumer cần.
 type Releaser interface {

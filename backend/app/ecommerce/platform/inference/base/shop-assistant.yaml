@@ -1,0 +1,35 @@
+# Endpoint trong cluster: http://shop-assistant-llm-predictor.inference.svc.cluster.local/openai/v1/chat/completions
+# (khớp cấu hình mặc định VLLM_URL/VLLM_PATH của chatbot-service). Chế độ Standard: Deployment + HPA, không cần Knative.
+apiVersion: serving.kserve.io/v1beta1
+kind: InferenceService
+metadata:
+  name: shop-assistant-llm
+  namespace: inference
+  annotations:
+    serving.kserve.io/deploymentMode: Standard
+    serving.kserve.io/autoscalerClass: hpa
+    serving.kserve.io/metric: cpu
+    serving.kserve.io/targetUtilizationPercentage: "80"
+spec:
+  predictor:
+    minReplicas: 1
+    maxReplicas: 2
+    # Thời gian tối đa một request (giây): câu trả lời dài stream lâu hơn mặc định 60s.
+    timeout: 600
+    nodeSelector: {workload: gpu-inference}
+    tolerations:
+    - {key: nvidia.com/gpu, operator: Exists, effect: NoSchedule}
+    model:
+      modelFormat: {name: huggingface}
+      # Qwen3-8B (Apache-2.0, tiếng Việt khá); đổi model chỉ cần sửa storageUri + --model_name giữ nguyên.
+      storageUri: hf://Qwen/Qwen3-8B
+      args:
+      - --model_name=shop-assistant
+      - --backend=vllm
+      - --dtype=bfloat16
+      - --max-model-len=8192
+      - --gpu-memory-utilization=0.90
+      - --enable-prefix-caching
+      resources:
+        requests: {cpu: "3", memory: 24Gi, nvidia.com/gpu: "1"}
+        limits: {memory: 28Gi, nvidia.com/gpu: "1"}

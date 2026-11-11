@@ -10,7 +10,7 @@ import (
 	"github.com/pdcthanh112/CongThanhApp/backend/app/ecommerce/services/search-service/internal/domain"
 )
 
-// Index là driven port tới công cụ tìm kiếm (OpenSearch).
+// Index là driven port tới công cụ tìm kiếm (Elasticsearch).
 type Index interface {
 	// Upsert/Delete dùng version (thời điểm event, nano giây) để bỏ event cũ đến muộn.
 	Upsert(ctx context.Context, p domain.Product, version int64) error

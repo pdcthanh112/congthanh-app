@@ -1,0 +1,26 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+- ../../base
+# Kargo cập nhật digest khi promote (Stage tương ứng).
+images:
+- name: ghcr.io/pdcthanh112/congthanhapp/stream-processor
+  newTag: main
+patches:
+- target: {kind: FlinkDeployment, name: stream-processor}
+  patch: |-
+    - op: replace
+      path: /spec/flinkConfiguration/execution.checkpointing.dir
+      value: s3://congthanhapp-dev-flink-state/checkpoints
+    - op: replace
+      path: /spec/flinkConfiguration/execution.checkpointing.savepoint-dir
+      value: s3://congthanhapp-dev-flink-state/savepoints
+    - op: replace
+      path: /spec/flinkConfiguration/high-availability.storageDir
+      value: s3://congthanhapp-dev-flink-state/ha
+    - op: replace
+      path: /spec/job/parallelism
+      value: 1
+    - op: replace
+      path: /spec/taskManager/resource/memory
+      value: 1536m

@@ -1,0 +1,30 @@
+{{- if and .Values.rollout.enabled (eq .Values.rollout.trafficRouting "gatewayAPI") }}
+
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: {{ include "ms.name" . }}
+  labels: {{- include "ms.labels" . | nindent 4 }}
+spec:
+  parentRefs:
+    - {group: "", kind: Service, name: {{ include "ms.name" . }}, port: 80}
+  rules:
+    - backendRefs:
+        - {name: {{ include "ms.name" . }}, port: 80, weight: 100}
+        - {name: {{ include "ms.name" . }}-canary, port: 80, weight: 0}
+{{- if .Values.ports.grpc }}
+---
+apiVersion: gateway.networking.k8s.io/v1
+kind: GRPCRoute
+metadata:
+  name: {{ include "ms.name" . }}-grpc
+  labels: {{- include "ms.labels" . | nindent 4 }}
+spec:
+  parentRefs:
+    - {group: "", kind: Service, name: {{ include "ms.name" . }}, port: {{ .Values.ports.grpc }}}
+  rules:
+    - backendRefs:
+        - {name: {{ include "ms.name" . }}, port: {{ .Values.ports.grpc }}, weight: 100}
+        - {name: {{ include "ms.name" . }}-canary, port: {{ .Values.ports.grpc }}, weight: 0}
+{{- end }}
+{{- end }}

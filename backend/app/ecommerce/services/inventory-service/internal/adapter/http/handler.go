@@ -54,9 +54,11 @@ func (h *Handler) Mount(r chi.Router) {
 
 		r.Route("/flash-sales/{saleId}/products/{productId}", func(r chi.Router) {
 			r.Use(auth.RequireAuth(h.verifier))
-			r.Method(http.MethodPost, "/start", H(h.startFlashSale))
+			r.With(h.requireAdmin).Method(http.MethodPost, "/start", H(h.startFlashSale))
+			r.Method(http.MethodPost, "/queue", H(h.flashSaleQueue))
+			r.Method(http.MethodGet, "/queue", H(h.flashSaleQueue))
 			r.Method(http.MethodPost, "/claim", H(h.claimFlashSale))
-			r.Method(http.MethodPost, "/end", H(h.endFlashSale))
+			r.With(h.requireAdmin).Method(http.MethodPost, "/end", H(h.endFlashSale))
 		})
 
 		r.Route("/warehouses", func(r chi.Router) {
@@ -336,4 +338,17 @@ func (h *Handler) deleteWarehouse(w http.ResponseWriter, r *http.Request) error 
 	}
 	httpx.OK[any](w, http.StatusOK, "Delete successfully", nil)
 	return nil
+}
+
+// requireAdmin: mở/đóng flash sale là thao tác vận hành, khách không được gọi.
+func (h *Handler) requireAdmin(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if h.verifier != nil {
+			if p, _ := auth.FromContext(r.Context()); !p.HasRole("ADMIN") {
+				httpx.Fail(w, r, httpx.Forbidden("requires role ADMIN"))
+				return
+			}
+		}
+		next.ServeHTTP(w, r)
+	})
 }

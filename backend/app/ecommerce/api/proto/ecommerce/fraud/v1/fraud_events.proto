@@ -1,0 +1,26 @@
+syntax = "proto3";
+
+package ecommerce.fraud.v1;
+
+import "ecommerce/common/v1/money.proto";
+
+option java_multiple_files = true;
+option java_package = "com.congthanh.ecommerce.fraud.v1";
+
+message FraudReviewRequested {
+  string assessment_id = 1;
+  string checkout_id = 2;
+  string customer_id = 3;
+  ecommerce.common.v1.Money amount = 4;
+  int32 score = 5;
+  repeated string reasons = 6;
+}
+
+message FraudReviewDecided {
+  string assessment_id = 1;
+  string checkout_id = 2;
+  string customer_id = 3;
+  string decision = 4;
+  string decided_by = 5;
+  string note = 6;
+}

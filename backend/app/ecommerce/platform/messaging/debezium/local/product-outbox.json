@@ -16,7 +16,7 @@
   "transforms": "outbox",
   "transforms.outbox.type": "io.debezium.transforms.outbox.EventRouter",
   "transforms.outbox.route.by.field": "aggregatetype",
-  "transforms.outbox.route.topic.replacement": "ecom.${routedByValue}.events",
+  "transforms.outbox.route.topic.replacement": "ecommerce.${routedByValue}.events",
   "transforms.outbox.table.field.event.key": "aggregateid",
   "transforms.outbox.table.field.event.payload": "payload",
   "transforms.outbox.table.fields.additional.placement": "type:header:ce_type,traceparent:header:traceparent,id:header:ce_id",

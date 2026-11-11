@@ -34,11 +34,11 @@ class MemCache:
 async def test_cache_and_dedupe():
     tr, cache = FakeTranslator(), MemCache()
     svc = TranslateService(tr, cache, 60, 10, 1000)
-    req = TranslateRequest(texts=("Áo", "Quần", "Áo", "  "), target="en")
-    assert await svc.translate(req) == ["[en]Áo", "[en]Quần", "[en]Áo", "  "]
-    assert tr.calls == [["Áo", "Quần"]]
+    req = TranslateRequest(texts=("Camiseta", "Vaqueros", "Camiseta", "  "), target="en")
+    assert await svc.translate(req) == ["[en]Camiseta", "[en]Vaqueros", "[en]Camiseta", "  "]
+    assert tr.calls == [["Camiseta", "Vaqueros"]]
     # Lần hai lấy hết từ cache.
-    assert await svc.translate(TranslateRequest(texts=("Quần",), target="en")) == ["[en]Quần"]
+    assert await svc.translate(TranslateRequest(texts=("Vaqueros",), target="en")) == ["[en]Vaqueros"]
     assert len(tr.calls) == 1
 
 
@@ -64,6 +64,6 @@ async def test_validation(req):
 
 def test_cache_key_varies():
     a = cache_key("m", TranslateRequest(texts=(), target="en"), "x")
-    assert a != cache_key("m", TranslateRequest(texts=(), target="vi"), "x")
+    assert a != cache_key("m", TranslateRequest(texts=(), target="es"), "x")
     assert a != cache_key("m", TranslateRequest(texts=(), target="en", format=Format.HTML), "x")
     assert a != cache_key("m2", TranslateRequest(texts=(), target="en"), "x")

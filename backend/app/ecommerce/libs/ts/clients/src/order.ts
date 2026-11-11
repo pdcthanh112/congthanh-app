@@ -1,4 +1,4 @@
-import { RestClient } from '@ecom/platform';
+import { RestClient } from '@ecommerce/platform';
 import { z } from 'zod';
 
 const MoneyDto = z.object({ amount: z.union([z.number(), z.string()]), currency: z.string() });

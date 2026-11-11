@@ -62,7 +62,7 @@ export class AddressInput {
   @Field() fullName!: string;
   @Field() phoneNumber!: string;
   @Field(() => AddressLabelGql, { defaultValue: AddressLabelGql.HOME }) label!: AddressLabelGql;
-  @Field({ defaultValue: 'VN' }) countryCode!: string;
+  @Field({ defaultValue: 'US' }) countryCode!: string;
   @Field(() => String, { nullable: true }) provinceCode?: string | null;
   @Field(() => String, { nullable: true }) districtCode?: string | null;
   @Field(() => String, { nullable: true }) wardCode?: string | null;

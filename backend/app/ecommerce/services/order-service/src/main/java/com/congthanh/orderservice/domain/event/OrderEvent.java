@@ -1,5 +1,6 @@
 package com.congthanh.orderservice.domain.event;
 
+import com.congthanh.orderservice.domain.model.Address;
 import com.congthanh.orderservice.domain.model.Money;
 import com.congthanh.orderservice.domain.model.OrderLine;
 
@@ -11,7 +12,7 @@ public sealed interface OrderEvent {
     String orderId();
 
     record OrderPlaced(String orderId, String customerId, List<OrderLine> lines, Money total,
-                       String checkoutWorkflowId) implements OrderEvent {
+                       String checkoutWorkflowId, Address shippingAddress) implements OrderEvent {
     }
 
     record OrderConfirmed(String orderId, String paymentId) implements OrderEvent {

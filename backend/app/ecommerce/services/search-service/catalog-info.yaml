@@ -2,7 +2,7 @@ apiVersion: backstage.io/v1alpha1
 kind: Component
 metadata:
   name: search-service
-  description: Tìm kiếm và gợi ý sản phẩm (OpenSearch)
+  description: Tìm kiếm và gợi ý sản phẩm (Elasticsearch)
   tags:
   - go
   annotations:
@@ -20,5 +20,5 @@ spec:
   - search-api-grpc
   - search-api-rest
   dependsOn:
-  - resource:ecom-kafka
-  - resource:ecom-opensearch
+  - resource:ecommerce-kafka
+  - resource:ecommerce-elasticsearch

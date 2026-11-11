@@ -1,7 +1,7 @@
-import { DomainError } from '@ecom/platform/errors';
-import { slugify } from './slug.js';
+import { DomainError } from "@ecommerce/platform/errors";
+import { slugify } from "./slug.js";
 
-export type CategoryStatus = 'ACTIVE' | 'INACTIVE';
+export type CategoryStatus = "ACTIVE" | "INACTIVE";
 
 export interface CategoryProps {
   id: string;
@@ -28,7 +28,6 @@ export interface CategoryDraft {
 
 const MAX_DEPTH = 5;
 
-/** Danh mục sản phẩm dạng cây. Bất biến: tên không rỗng, slug hợp lệ, không làm cha của chính mình. */
 export class Category {
   private constructor(private props: CategoryProps) {}
 
@@ -41,7 +40,7 @@ export class Category {
       description: draft.description ?? null,
       image: draft.image ?? null,
       parentId: draft.parentId ?? null,
-      status: 'ACTIVE',
+      status: "ACTIVE",
       sortOrder: draft.sortOrder ?? 0,
       createdAt: now,
       updatedAt: now,
@@ -53,7 +52,7 @@ export class Category {
     return new Category({ ...props });
   }
 
-  rename(draft: Omit<CategoryDraft, 'parentId'>, now: Date): void {
+  rename(draft: Omit<CategoryDraft, "parentId">, now: Date): void {
     const name = requireName(draft.name);
     this.props = {
       ...this.props,
@@ -72,22 +71,22 @@ export class Category {
    */
   moveTo(newParentId: string | null, ancestorsOfNewParent: readonly string[], now: Date): void {
     if (newParentId === this.props.id || ancestorsOfNewParent.includes(this.props.id)) {
-      throw DomainError.invalid('a category cannot be moved under itself or its descendants', 'CATEGORY_CYCLE');
+      throw DomainError.invalid("a category cannot be moved under itself or its descendants", "CATEGORY_CYCLE");
     }
     if (ancestorsOfNewParent.length + 1 > MAX_DEPTH) {
-      throw DomainError.invalid(`category tree is limited to ${MAX_DEPTH} levels`, 'CATEGORY_TOO_DEEP');
+      throw DomainError.invalid(`category tree is limited to ${MAX_DEPTH} levels`, "CATEGORY_TOO_DEEP");
     }
     this.props = { ...this.props, parentId: newParentId, updatedAt: now };
   }
 
   deactivate(now: Date): void {
-    if (this.props.status === 'INACTIVE') return;
-    this.props = { ...this.props, status: 'INACTIVE', updatedAt: now };
+    if (this.props.status === "INACTIVE") return;
+    this.props = { ...this.props, status: "INACTIVE", updatedAt: now };
   }
 
   activate(now: Date): void {
-    if (this.props.status === 'ACTIVE') return;
-    this.props = { ...this.props, status: 'ACTIVE', updatedAt: now };
+    if (this.props.status === "ACTIVE") return;
+    this.props = { ...this.props, status: "ACTIVE", updatedAt: now };
   }
 
   get id() {
@@ -109,19 +108,19 @@ export class Category {
 
 export function checkDepth(ancestorsOfParent: readonly string[]): void {
   if (ancestorsOfParent.length + 1 > MAX_DEPTH) {
-    throw DomainError.invalid(`category tree is limited to ${MAX_DEPTH} levels`, 'CATEGORY_TOO_DEEP');
+    throw DomainError.invalid(`category tree is limited to ${MAX_DEPTH} levels`, "CATEGORY_TOO_DEEP");
   }
 }
 
 function requireName(name: string): string {
   const n = name?.trim();
-  if (!n) throw DomainError.invalid('name is required');
-  if (n.length > 120) throw DomainError.invalid('name is at most 120 characters');
+  if (!n) throw DomainError.invalid("name is required");
+  if (n.length > 120) throw DomainError.invalid("name is at most 120 characters");
   return n;
 }
 
 function normalizeSlug(slug: string | null | undefined, name: string): string {
   const s = slugify(slug?.trim() || name);
-  if (!s) throw DomainError.invalid('slug is empty after normalisation');
+  if (!s) throw DomainError.invalid("slug is empty after normalisation");
   return s;
 }

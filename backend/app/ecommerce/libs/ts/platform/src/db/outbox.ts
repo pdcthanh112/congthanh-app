@@ -1,6 +1,6 @@
 import { create, type DescMessage, type MessageShape, toBinary } from '@bufbuild/protobuf';
 import { anyPack, timestampFromDate } from '@bufbuild/protobuf/wkt';
-import { type EventEnvelope, EventEnvelopeSchema } from '@ecom/proto/ecommerce/common/v1/event_envelope_pb';
+import { type EventEnvelope, EventEnvelopeSchema } from '@ecommerce/proto/ecommerce/common/v1/event_envelope_pb';
 import { trace } from '@opentelemetry/api';
 import { v7 as uuidv7 } from 'uuid';
 import type { Database } from './database.js';

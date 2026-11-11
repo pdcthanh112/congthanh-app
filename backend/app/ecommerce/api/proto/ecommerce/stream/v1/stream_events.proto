@@ -1,0 +1,46 @@
+syntax = "proto3";
+
+package ecommerce.stream.v1;
+
+import "google/protobuf/timestamp.proto";
+
+option java_multiple_files = true;
+option java_package = "com.congthanh.ecommerce.stream.v1";
+
+message CustomerRiskFeatures {
+  string customer_id = 1;
+  int32 orders_1h = 2;
+  // Tổng giá trị đơn trong 1 giờ, đơn vị nhỏ nhất của currency (chỉ cộng đơn cùng tiền tệ với đơn gần nhất).
+  int64 order_value_1h = 3;
+  string currency = 4;
+  int32 payment_failures_1h = 5;
+  int32 cancellations_24h = 6;
+  int32 distinct_addresses_24h = 7;
+  google.protobuf.Timestamp computed_at = 8;
+}
+
+// Topic ecommerce.stream.product-trending. Cửa sổ trượt 1 giờ, bước 5 phút (event time).
+// Bản ghi có window_end cũ hơn ~15 phút nghĩa là sản phẩm đã hết "nóng": coi điểm bằng 0.
+message ProductTrending {
+  string product_id = 1;
+  double score = 2;
+  int32 cart_adds = 3;
+  int32 orders = 4;
+  int32 units = 5;
+  int32 wishlist_adds = 6;
+  google.protobuf.Timestamp window_start = 7;
+  google.protobuf.Timestamp window_end = 8;
+}
+
+// Topic ecommerce.stream.stock-cover. Tồn khả dụng (cộng mọi kho) so với tốc độ bán 24 giờ.
+message StockCover {
+  string product_id = 1;
+  int32 available = 2;
+  int32 units_sold_24h = 3;
+  // Số giờ còn bán được với tốc độ hiện tại; âm = chưa đủ dữ liệu bán để ước lượng.
+  double hours_of_cover = 4;
+  bool at_risk = 5;
+  // true khi at_risk vừa đổi trạng thái so với bản ghi trước (consumer chỉ cảnh báo ở lần đổi này).
+  bool risk_changed = 6;
+  google.protobuf.Timestamp computed_at = 7;
+}

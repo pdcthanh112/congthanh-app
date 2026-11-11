@@ -7,7 +7,7 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * Một cổng thanh toán (Stripe, PayPal, VNPay, COD, sandbox). Mọi lệnh gửi idempotency key
+ * Một cổng thanh toán (Stripe, PayPal, sandbox). Mọi lệnh gửi idempotency key
  * suy ra từ orderId để retry không tạo giao dịch thứ hai phía cổng.
  */
 public interface PaymentProvider {
@@ -18,7 +18,7 @@ public interface PaymentProvider {
 
     ProviderResult authorize(Payment payment, String paymentToken, String returnUrl, String clientIp);
 
-    /** @return true nếu đã thu tiền; false nếu phương thức không có bước thu (COD thu khi giao). */
+    /** @return true nếu đã thu tiền; false nếu cổng không cần bước thu riêng (sandbox). */
     boolean capture(Payment payment);
 
     void voidAuthorization(Payment payment);
@@ -28,11 +28,6 @@ public interface PaymentProvider {
     /** Kiểm tra chữ ký callback và rút ra kết quả; chữ ký sai ném PaymentException INVALID. */
     default CallbackResult verifyCallback(Map<String, String> params) {
         throw new UnsupportedOperationException(name() + " has no callbacks");
-    }
-
-    /** Cổng "sale" thu tiền ngay khi khách trả (VNPay): không có authorize/capture tách rời. */
-    default boolean capturesImmediately() {
-        return false;
     }
 
     sealed interface ProviderResult {

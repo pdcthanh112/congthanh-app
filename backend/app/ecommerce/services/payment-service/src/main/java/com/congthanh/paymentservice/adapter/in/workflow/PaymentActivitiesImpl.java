@@ -1,10 +1,10 @@
 package com.congthanh.paymentservice.adapter.in.workflow;
 
-import com.congthanh.ecom.workflow.payment.AuthorizePaymentRequest;
-import com.congthanh.ecom.workflow.payment.PaymentActivities;
-import com.congthanh.ecom.workflow.payment.PaymentAuthorization;
-import com.congthanh.ecom.workflow.payment.PaymentFailures;
-import com.congthanh.ecom.workflow.payment.RefundPaymentRequest;
+import com.congthanh.ecommerce.workflow.payment.AuthorizePaymentRequest;
+import com.congthanh.ecommerce.workflow.payment.PaymentActivities;
+import com.congthanh.ecommerce.workflow.payment.PaymentAuthorization;
+import com.congthanh.ecommerce.workflow.payment.PaymentFailures;
+import com.congthanh.ecommerce.workflow.payment.RefundPaymentRequest;
 import com.congthanh.paymentservice.application.port.in.PaymentUseCases;
 import com.congthanh.paymentservice.application.port.in.PaymentUseCases.AuthorizeCommand;
 import com.congthanh.paymentservice.domain.exception.PaymentException;

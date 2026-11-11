@@ -52,6 +52,11 @@ class ProviderRegistry implements PaymentProviders {
         return p;
     }
 
+    @Override
+    public boolean supports(PaymentMethod method) {
+        return byMethod.containsKey(method);
+    }
+
     Set<PaymentMethod> availableMethods() {
         return byMethod.keySet();
     }

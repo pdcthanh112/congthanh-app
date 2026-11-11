@@ -24,7 +24,7 @@ spec:
         key: remote_addr
         rejected_code: 429
         policy: redis
-        redis_host: valkey.data.svc.cluster.local
+        redis_host: redis.data.svc.cluster.local
         allow_degradation: true
     - name: openid-connect
       enable: true
@@ -62,7 +62,7 @@ spec:
         key: remote_addr
         rejected_code: 429
         policy: redis
-        redis_host: valkey.data.svc.cluster.local
+        redis_host: redis.data.svc.cluster.local
         allow_degradation: true
 ---
 apiVersion: apisix.apache.org/v2
@@ -85,12 +85,12 @@ spec:
     - name: limit-count
       enable: true
       config:
-        count: 5
+        count: 10
         time_window: 10
         key: consumer_name
         rejected_code: 429
         policy: redis
-        redis_host: valkey.data.svc.cluster.local
+        redis_host: redis.data.svc.cluster.local
         allow_degradation: true
     - name: limit-conn
       enable: true
@@ -136,7 +136,7 @@ spec:
         key: remote_addr
         rejected_code: 429
         policy: redis
-        redis_host: valkey.data.svc.cluster.local
+        redis_host: redis.data.svc.cluster.local
         allow_degradation: true
     - name: openid-connect
       enable: true
@@ -147,6 +147,145 @@ spec:
         bearer_only: true
         use_jwks: true
         set_userinfo_header: false
+---
+apiVersion: apisix.apache.org/v2
+kind: ApisixRoute
+metadata:
+  name: checkout
+  namespace: gateway
+spec:
+  ingressClassName: apisix
+  http:
+  - name: checkout
+    priority: 10
+    match:
+      paths:
+      - /api/ecommerce/checkout/sessions*
+    backends:
+    - serviceName: checkout-service
+      servicePort: 80
+      resolveGranularity: service
+    plugins:
+    - name: limit-count
+      enable: true
+      config:
+        count: 30
+        time_window: 10
+        key: consumer_name
+        rejected_code: 429
+        policy: redis
+        redis_host: redis.data.svc.cluster.local
+        allow_degradation: true
+    - name: limit-conn
+      enable: true
+      config:
+        conn: 1500
+        burst: 150
+        default_conn_delay: 0.1
+        key: server_addr
+        rejected_code: 503
+    - name: openid-connect
+      enable: true
+      config:
+        discovery: http://keycloak.identity.svc.cluster.local/realms/ecommerce/.well-known/openid-configuration
+        client_id: apisix-gateway
+        client_secret: $secret://vault/apisix/keycloak-client-secret
+        bearer_only: true
+        use_jwks: true
+        set_userinfo_header: false
+---
+apiVersion: apisix.apache.org/v2
+kind: ApisixRoute
+metadata:
+  name: pricing
+  namespace: gateway
+spec:
+  ingressClassName: apisix
+  http:
+  - name: pricing
+    match:
+      paths:
+      - /api/ecommerce/pricing*
+    backends:
+    - serviceName: pricing-service
+      servicePort: 80
+      resolveGranularity: service
+    plugins:
+    - name: limit-count
+      enable: true
+      config:
+        count: 300
+        time_window: 60
+        key: remote_addr
+        rejected_code: 429
+        policy: redis
+        redis_host: redis.data.svc.cluster.local
+        allow_degradation: true
+---
+apiVersion: apisix.apache.org/v2
+kind: ApisixRoute
+metadata:
+  name: fraud
+  namespace: gateway
+spec:
+  ingressClassName: apisix
+  http:
+  - name: fraud
+    match:
+      paths:
+      - /api/ecommerce/fraud*
+    backends:
+    - serviceName: fraud-service
+      servicePort: 80
+      resolveGranularity: service
+    plugins:
+    - name: limit-count
+      enable: true
+      config:
+        count: 300
+        time_window: 60
+        key: remote_addr
+        rejected_code: 429
+        policy: redis
+        redis_host: redis.data.svc.cluster.local
+        allow_degradation: true
+    - name: openid-connect
+      enable: true
+      config:
+        discovery: http://keycloak.identity.svc.cluster.local/realms/ecommerce/.well-known/openid-configuration
+        client_id: apisix-gateway
+        client_secret: $secret://vault/apisix/keycloak-client-secret
+        bearer_only: true
+        use_jwks: true
+        set_userinfo_header: false
+---
+apiVersion: apisix.apache.org/v2
+kind: ApisixRoute
+metadata:
+  name: recommendation
+  namespace: gateway
+spec:
+  ingressClassName: apisix
+  http:
+  - name: recommendation
+    match:
+      paths:
+      - /api/ecommerce/recommendations*
+    backends:
+    - serviceName: recommendation-service
+      servicePort: 80
+      resolveGranularity: service
+    plugins:
+    - name: limit-count
+      enable: true
+      config:
+        count: 300
+        time_window: 60
+        key: remote_addr
+        rejected_code: 429
+        policy: redis
+        redis_host: redis.data.svc.cluster.local
+        allow_degradation: true
 ---
 apiVersion: apisix.apache.org/v2
 kind: ApisixRoute
@@ -173,7 +312,7 @@ spec:
         key: remote_addr
         rejected_code: 429
         policy: redis
-        redis_host: valkey.data.svc.cluster.local
+        redis_host: redis.data.svc.cluster.local
         allow_degradation: true
 ---
 apiVersion: apisix.apache.org/v2
@@ -201,7 +340,7 @@ spec:
         key: remote_addr
         rejected_code: 429
         policy: redis
-        redis_host: valkey.data.svc.cluster.local
+        redis_host: redis.data.svc.cluster.local
         allow_degradation: true
 ---
 apiVersion: apisix.apache.org/v2
@@ -229,7 +368,7 @@ spec:
         key: remote_addr
         rejected_code: 429
         policy: redis
-        redis_host: valkey.data.svc.cluster.local
+        redis_host: redis.data.svc.cluster.local
         allow_degradation: true
 ---
 apiVersion: apisix.apache.org/v2
@@ -257,7 +396,7 @@ spec:
         key: remote_addr
         rejected_code: 429
         policy: redis
-        redis_host: valkey.data.svc.cluster.local
+        redis_host: redis.data.svc.cluster.local
         allow_degradation: true
 ---
 apiVersion: apisix.apache.org/v2
@@ -285,7 +424,7 @@ spec:
         key: remote_addr
         rejected_code: 429
         policy: redis
-        redis_host: valkey.data.svc.cluster.local
+        redis_host: redis.data.svc.cluster.local
         allow_degradation: true
 ---
 apiVersion: apisix.apache.org/v2
@@ -313,7 +452,7 @@ spec:
         key: remote_addr
         rejected_code: 429
         policy: redis
-        redis_host: valkey.data.svc.cluster.local
+        redis_host: redis.data.svc.cluster.local
         allow_degradation: true
 ---
 apiVersion: apisix.apache.org/v2
@@ -341,7 +480,7 @@ spec:
         key: remote_addr
         rejected_code: 429
         policy: redis
-        redis_host: valkey.data.svc.cluster.local
+        redis_host: redis.data.svc.cluster.local
         allow_degradation: true
 ---
 apiVersion: apisix.apache.org/v2
@@ -369,7 +508,7 @@ spec:
         key: remote_addr
         rejected_code: 429
         policy: redis
-        redis_host: valkey.data.svc.cluster.local
+        redis_host: redis.data.svc.cluster.local
         allow_degradation: true
 ---
 apiVersion: apisix.apache.org/v2
@@ -397,7 +536,7 @@ spec:
         key: remote_addr
         rejected_code: 429
         policy: redis
-        redis_host: valkey.data.svc.cluster.local
+        redis_host: redis.data.svc.cluster.local
         allow_degradation: true
 ---
 apiVersion: apisix.apache.org/v2
@@ -425,7 +564,7 @@ spec:
         key: remote_addr
         rejected_code: 429
         policy: redis
-        redis_host: valkey.data.svc.cluster.local
+        redis_host: redis.data.svc.cluster.local
         allow_degradation: true
     - name: openid-connect
       enable: true
@@ -462,7 +601,36 @@ spec:
         key: remote_addr
         rejected_code: 429
         policy: redis
-        redis_host: valkey.data.svc.cluster.local
+        redis_host: redis.data.svc.cluster.local
+        allow_degradation: true
+---
+apiVersion: apisix.apache.org/v2
+kind: ApisixRoute
+metadata:
+  name: commerce-mcp
+  namespace: gateway
+spec:
+  ingressClassName: apisix
+  http:
+  - name: commerce-mcp
+    match:
+      paths:
+      - /api/ecommerce/mcp
+      - /.well-known/oauth-protected-resource/api/ecommerce/mcp
+    backends:
+    - serviceName: commerce-mcp-service
+      servicePort: 80
+      resolveGranularity: service
+    plugins:
+    - name: limit-count
+      enable: true
+      config:
+        count: 120
+        time_window: 60
+        key: remote_addr
+        rejected_code: 429
+        policy: redis
+        redis_host: redis.data.svc.cluster.local
         allow_degradation: true
 ---
 apiVersion: apisix.apache.org/v2
@@ -491,7 +659,7 @@ spec:
         key: remote_addr
         rejected_code: 429
         policy: redis
-        redis_host: valkey.data.svc.cluster.local
+        redis_host: redis.data.svc.cluster.local
         allow_degradation: true
 ---
 apiVersion: apisix.apache.org/v2
@@ -520,7 +688,7 @@ spec:
         key: remote_addr
         rejected_code: 429
         policy: redis
-        redis_host: valkey.data.svc.cluster.local
+        redis_host: redis.data.svc.cluster.local
         allow_degradation: true
     - name: proxy-rewrite
       enable: true

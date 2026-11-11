@@ -1,7 +1,7 @@
 import 'reflect-metadata';
 import { createServer, type Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
-import { bootstrap } from '@ecom/platform';
+import { bootstrap } from '@ecommerce/platform';
 import type { INestApplication } from '@nestjs/common';
 import { exportJWK, generateKeyPair, SignJWT } from 'jose';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
@@ -72,15 +72,15 @@ describe('storefront-bff GraphQL', () => {
     expect(r.data?.products.totalItems).toBe(3);
     expect(items[0]).toMatchObject({
       id: 'p1',
-      name: 'Áo thun',
+      name: 'Cotton T-Shirt',
       slug: 'slug-p1',
       images: ['/p1/1.jpg', '/p1/2.jpg'],
       discountPercent: 25,
-      price: { amount: 150000 },
+      price: { amount: 15 },
       categories: [{ id: '7' }],
       stock: { status: 'IN_STOCK', available: 10 },
     });
-    expect(items[0].price.formatted).toMatch(/150\.000/);
+    expect(items[0].price.formatted).toBe('$15.00');
     expect(f.calls.byIds - before.byIds).toBe(1);
     expect(f.calls.levels - before.levels).toBe(1);
   });
@@ -88,7 +88,7 @@ describe('storefront-bff GraphQL', () => {
   it('tra theo slug; không tồn tại trả null; phải chọn đúng một khoá', async () => {
     expect((await gql(`{ product(slug: "slug-p2") { id name } }`)).data?.product).toEqual({
       id: 'p2',
-      name: 'Quần jean',
+      name: 'Slim Jeans',
     });
     expect((await gql(`{ product(id: "nope") { id } }`)).data?.product).toBeNull();
     expect((await gql(`{ product { id } }`)).errors?.[0]?.extensions?.code).toBe('BAD_USER_INPUT');
@@ -105,8 +105,8 @@ describe('storefront-bff GraphQL', () => {
       },
     );
     expect(r.data?._entities).toEqual([
-      { id: 'p2', name: 'Quần jean', price: { amount: 450000 } },
-      { id: 'p1', name: 'Áo thun', price: { amount: 150000 } },
+      { id: 'p2', name: 'Slim Jeans', price: { amount: 45 } },
+      { id: 'p1', name: 'Cotton T-Shirt', price: { amount: 15 } },
     ]);
   });
 
@@ -126,22 +126,32 @@ describe('storefront-bff GraphQL', () => {
     expect(add.data?.addToCart).toMatchObject({
       itemCount: 2,
       checkoutReady: true,
-      subtotal: { amount: 300000 },
-      lines: [{ quantity: 2, product: { name: 'Áo thun' }, lineTotal: { amount: 300000 } }],
+      subtotal: { amount: 30 },
+      lines: [{ quantity: 2, product: { name: 'Cotton T-Shirt' }, lineTotal: { amount: 30 } }],
     });
 
-    const quote = await gql(`{ quotePromotion(code: "GIAM10") { valid total { amount } } }`, {}, true);
-    expect(quote.data?.quotePromotion).toEqual({ valid: true, total: { amount: 270000 } });
+    const quote = await gql(`{ quotePromotion(code: "SAVE10") { valid total { amount } } }`, {}, true);
+    expect(quote.data?.quotePromotion).toEqual({ valid: true, total: { amount: 27 } });
 
     const tooMany = await gql(`mutation { addToCart(productId: "p2", quantity: 5) { itemCount } }`, {}, true);
     expect(tooMany.errors?.[0]?.extensions).toMatchObject({ code: 'CONFLICT', reason: 'INSUFFICIENT_STOCK' });
 
     const co = await gql(
       `mutation($i: CheckoutInput!) { checkout(input: $i) { orderCode status total { formatted } } }`,
-      { i: { idempotencyKey: 'chk_0123456789abcdef', paymentMethod: 'CASH_ON_DELIVERY' } },
+      { i: { idempotencyKey: 'chk_0123456789abcdef', paymentMethod: 'CARD' } },
       true,
     );
-    expect(co.data?.checkout).toMatchObject({ orderCode: 'ORD-1', status: 'PENDING' });
+    expect(co.data?.checkout).toMatchObject({ orderCode: 'ORD-1', status: 'PLACED' });
+
+    const reco = await gql(
+      `{ product(id: "p1") { recommendations(kind: SIMILAR, limit: 2) { reason product { id name } } }
+         trendingProducts(limit: 3) { product { id } } }`,
+    );
+    expect(reco.errors).toBeUndefined();
+    expect(reco.data?.product.recommendations).toEqual([
+      { reason: 'SIMILAR', product: { id: 'p2', name: 'Slim Jeans' } },
+    ]);
+    expect(reco.data?.trendingProducts).toEqual([{ product: { id: 'p2' } }]);
 
     const order = await gql(
       `{ order(orderCode: "ORD-1") { status lines { name quantity product { id stock { available } } } }
@@ -150,7 +160,7 @@ describe('storefront-bff GraphQL', () => {
       true,
     );
     expect(order.errors).toBeUndefined();
-    expect(order.data?.order.lines[0]).toMatchObject({ name: 'Áo thun', quantity: 2, product: { id: 'p1' } });
-    expect(order.data?.myOrders).toEqual([{ orderCode: 'ORD-1', total: { amount: 300000 } }]);
+    expect(order.data?.order.lines[0]).toMatchObject({ name: 'Cotton T-Shirt', quantity: 2, product: { id: 'p1' } });
+    expect(order.data?.myOrders).toEqual([{ orderCode: 'ORD-1', total: { amount: 30 } }]);
   });
 });

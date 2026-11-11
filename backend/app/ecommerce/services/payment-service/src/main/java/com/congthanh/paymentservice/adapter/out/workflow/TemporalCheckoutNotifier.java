@@ -1,7 +1,7 @@
 package com.congthanh.paymentservice.adapter.out.workflow;
 
-import com.congthanh.ecom.workflow.checkout.CheckoutContract;
-import com.congthanh.ecom.workflow.checkout.PaymentCompleted;
+import com.congthanh.ecommerce.workflow.checkout.CheckoutContract;
+import com.congthanh.ecommerce.workflow.checkout.PaymentCompleted;
 import com.congthanh.paymentservice.application.port.out.CheckoutNotifier;
 import io.temporal.client.WorkflowClient;
 import io.temporal.client.WorkflowNotFoundException;

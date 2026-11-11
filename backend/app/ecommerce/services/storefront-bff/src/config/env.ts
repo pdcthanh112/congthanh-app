@@ -1,10 +1,10 @@
-import { baseEnv, loadEnv } from '@ecom/platform';
+import { baseEnv, loadEnv } from '@ecommerce/platform';
 import { z } from 'zod';
 
 export const envSchema = baseEnv.extend({
   SERVICE_NAME: z.string().default('storefront-bff'),
   HTTP_PORT: z.coerce.number().default(5020),
-  CURRENCY: z.string().length(3).default('VND'),
+  CURRENCY: z.string().length(3).default('USD'),
   PRODUCT_GRPC_ADDR: z.string().default('localhost:29090'),
   PRODUCT_REST_URL: z.url().default('http://localhost:5008'),
   CART_GRPC_ADDR: z.string().default('localhost:19091'),
@@ -12,6 +12,8 @@ export const envSchema = baseEnv.extend({
   INVENTORY_GRPC_ADDR: z.string().default('localhost:9092'),
   PROMOTION_GRPC_ADDR: z.string().default('localhost:9095'),
   ORDER_REST_URL: z.url().default('http://localhost:5006'),
+  CHECKOUT_REST_URL: z.url().default('http://localhost:5027'),
+  RECOMMENDATION_REST_URL: z.url().default('http://localhost:5028'),
   CUSTOMER_GRPC_ADDR: z.string().default('localhost:19094'),
 });
 export type Env = z.infer<typeof envSchema>;

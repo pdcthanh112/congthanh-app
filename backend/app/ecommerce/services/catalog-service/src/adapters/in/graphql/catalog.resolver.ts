@@ -1,4 +1,4 @@
-import { CurrentPrincipal, DomainError, hasAnyRole, type Principal, Public, Role, Roles } from '@ecom/platform';
+import { CurrentPrincipal, DomainError, hasAnyRole, type Principal, Public, Role, Roles } from '@ecommerce/platform';
 import { Inject } from '@nestjs/common';
 import {
   Args,

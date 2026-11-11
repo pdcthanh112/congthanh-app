@@ -11,7 +11,7 @@ schema {
 
 input AddressInput {
   addressLine: String!
-  countryCode: String! = "VN"
+  countryCode: String! = "US"
   districtCode: String
   fullName: String!
   label: AddressLabel! = HOME

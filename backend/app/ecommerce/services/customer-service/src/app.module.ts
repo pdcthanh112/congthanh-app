@@ -9,7 +9,7 @@ import {
   PlatformHealthModule,
   PlatformLoggerModule,
   subgraphConfig,
-} from '@ecom/platform';
+} from '@ecommerce/platform';
 import { type DynamicModule, Module } from '@nestjs/common';
 import { GraphQLModule } from '@nestjs/graphql';
 import { v7 as uuidv7 } from 'uuid';

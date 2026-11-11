@@ -1,5 +1,5 @@
 {
-  "name": "@ecom/clients",
+  "name": "@ecommerce/clients",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -18,9 +18,9 @@
   "dependencies": {
     "@bufbuild/protobuf": "^2.17.0",
     "@connectrpc/connect": "^2.3.0",
-    "@ecom/platform": "0.1.0",
-    "@ecom/proto": "0.1.0",
-    "@ecom/shared": "0.1.0",
+    "@ecommerce/platform": "0.1.0",
+    "@ecommerce/proto": "0.1.0",
+    "@ecommerce/shared": "0.1.0",
     "zod": "^4.6.7"
   }
 }

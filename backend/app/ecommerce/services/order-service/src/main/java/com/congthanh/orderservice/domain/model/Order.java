@@ -20,6 +20,8 @@ public final class Order {
     private final List<OrderLine> lines;
     private final Money subtotal;
     private final Money discount;
+    private final Money shippingFee;
+    private final Money tax;
     private final Money total;
     private final String promotionCode;
     private final CheckoutDetails checkout;
@@ -44,6 +46,10 @@ public final class Order {
         this.lines = List.copyOf(b.lines);
         this.subtotal = b.subtotal;
         this.discount = b.discount;
+        // Đơn tạo trước khi có phí giao/thuế (hoặc dựng trong test) coi như 0.
+        String cur = b.total == null ? null : b.total.currency();
+        this.shippingFee = b.shippingFee != null ? b.shippingFee : (cur == null ? null : Money.zero(cur));
+        this.tax = b.tax != null ? b.tax : (cur == null ? null : Money.zero(cur));
         this.total = b.total;
         this.promotionCode = b.promotionCode;
         this.checkout = b.checkout;
@@ -59,10 +65,22 @@ public final class Order {
         this.updatedAt = b.updatedAt;
     }
 
-    /** Đặt đơn mới: tính tổng từ các dòng hàng và giảm giá đã báo giá, phát OrderPlaced. */
+    /** Đặt đơn không có phí giao hàng/thuế (luồng cũ). */
     public static Order place(String id, String orderCode, String customerId, List<OrderLine> lines,
                               String promotionCode, Money discount, CheckoutDetails checkout,
                               Address shippingAddress, Address billingAddress, String note,
+                              String checkoutWorkflowId, Instant now) {
+        return place(id, orderCode, customerId, lines, promotionCode, discount, null, null, checkout,
+                shippingAddress, billingAddress, note, checkoutWorkflowId, now);
+    }
+
+    /**
+     * Đặt đơn mới: tổng = tạm tính − giảm giá + phí giao + thuế (phí giao/thuế do checkout-service báo giá),
+     * phát OrderPlaced.
+     */
+    public static Order place(String id, String orderCode, String customerId, List<OrderLine> lines,
+                              String promotionCode, Money discount, Money shippingFee, Money tax,
+                              CheckoutDetails checkout, Address shippingAddress, Address billingAddress, String note,
                               String checkoutWorkflowId, Instant now) {
         if (customerId == null || customerId.isBlank()) {
             throw OrderException.invalid("customerId is required");
@@ -82,15 +100,22 @@ public final class Order {
         if (appliedDiscount.isNegative() || appliedDiscount.isGreaterThan(subtotal)) {
             throw OrderException.invalid("discount must be between 0 and the subtotal");
         }
+        Money fee = shippingFee == null ? Money.zero(currency) : shippingFee;
+        Money appliedTax = tax == null ? Money.zero(currency) : tax;
+        if (fee.isNegative() || appliedTax.isNegative()) {
+            throw OrderException.invalid("shipping fee and tax must not be negative");
+        }
         Order order = new Builder()
                 .id(id).orderCode(orderCode).customerId(customerId).lines(lines)
-                .subtotal(subtotal).discount(appliedDiscount).total(subtotal.minus(appliedDiscount))
+                .subtotal(subtotal).discount(appliedDiscount).shippingFee(fee).tax(appliedTax)
+                .total(subtotal.minus(appliedDiscount).plus(fee).plus(appliedTax))
                 .promotionCode(promotionCode == null || promotionCode.isBlank() ? null : promotionCode)
                 .checkout(checkout).shippingAddress(shippingAddress)
                 .billingAddress(billingAddress == null ? shippingAddress : billingAddress)
                 .note(note).placedAt(now).updatedAt(now).status(OrderStatus.PENDING)
                 .build();
-        order.events.add(new OrderEvent.OrderPlaced(id, customerId, order.lines, order.total, checkoutWorkflowId));
+        order.events.add(new OrderEvent.OrderPlaced(id, customerId, order.lines, order.total, checkoutWorkflowId,
+                order.shippingAddress));
         return order;
     }
 
@@ -155,6 +180,8 @@ public final class Order {
     public List<OrderLine> lines() { return lines; }
     public Money subtotal() { return subtotal; }
     public Money discount() { return discount; }
+    public Money shippingFee() { return shippingFee; }
+    public Money tax() { return tax; }
     public Money total() { return total; }
     public String promotionCode() { return promotionCode; }
     public CheckoutDetails checkout() { return checkout; }
@@ -177,7 +204,7 @@ public final class Order {
     public static final class Builder {
         private String id, orderCode, customerId, promotionCode, note, reservationId, paymentId, cancelReason;
         private List<OrderLine> lines = List.of();
-        private Money subtotal, discount, total;
+        private Money subtotal, discount, shippingFee, tax, total;
         private CheckoutDetails checkout;
         private Address shippingAddress, billingAddress;
         private Instant placedAt, updatedAt;
@@ -190,6 +217,8 @@ public final class Order {
         public Builder lines(List<OrderLine> v) { lines = v; return this; }
         public Builder subtotal(Money v) { subtotal = v; return this; }
         public Builder discount(Money v) { discount = v; return this; }
+        public Builder shippingFee(Money v) { shippingFee = v; return this; }
+        public Builder tax(Money v) { tax = v; return this; }
         public Builder total(Money v) { total = v; return this; }
         public Builder promotionCode(String v) { promotionCode = v; return this; }
         public Builder checkout(CheckoutDetails v) { checkout = v; return this; }

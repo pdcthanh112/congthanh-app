@@ -1,4 +1,4 @@
-import { type Database, DB, markProcessed } from '@ecom/platform';
+import { type Database, DB, markProcessed } from '@ecommerce/platform';
 import { Inject, Injectable } from '@nestjs/common';
 import type { ReadRepositories, TransactionScope, UnitOfWork } from '../../../application/ports.js';
 import {

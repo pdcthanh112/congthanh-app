@@ -4,7 +4,7 @@
 apiVersion: postgresql.cnpg.io/v1
 kind: Cluster
 metadata:
-  name: ecom-db
+  name: ecommerce-db
   namespace: data
 spec:
   instances: 3
@@ -35,9 +35,13 @@ spec:
       - {name: payment_service, login: true, passwordSecret: {name: db-payment-service}}
       - {name: product_service, login: true, passwordSecret: {name: db-product-service}}
       - {name: promotion_service, login: true, passwordSecret: {name: db-promotion-service}}
+      - {name: checkout_service, login: true, passwordSecret: {name: db-checkout-service}}
+      - {name: pricing_service, login: true, passwordSecret: {name: db-pricing-service}}
+      - {name: fraud_service, login: true, passwordSecret: {name: db-fraud-service}}
+      - {name: recommendation_service, login: true, passwordSecret: {name: db-recommendation-service}}
   backup:
     barmanObjectStore:
-      destinationPath: s3://congthanhapp-pg-backup/ecom-db
+      destinationPath: s3://congthanhapp-pg-backup/ecommerce-db
       s3Credentials: {inheritFromIAMRole: true}
       wal: {compression: zstd}
     retentionPolicy: 30d
@@ -47,10 +51,10 @@ spec:
 apiVersion: postgresql.cnpg.io/v1
 kind: Pooler
 metadata:
-  name: ecom-db-pooler
+  name: ecommerce-db-pooler
   namespace: data
 spec:
-  cluster: {name: ecom-db}
+  cluster: {name: ecommerce-db}
   instances: 3
   type: rw
   pgbouncer:
@@ -60,8 +64,8 @@ spec:
 apiVersion: postgresql.cnpg.io/v1
 kind: ScheduledBackup
 metadata:
-  name: ecom-db-daily
+  name: ecommerce-db-daily
   namespace: data
 spec:
   schedule: "0 0 2 * * *"
-  cluster: {name: ecom-db}
+  cluster: {name: ecommerce-db}

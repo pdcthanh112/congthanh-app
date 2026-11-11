@@ -19,4 +19,16 @@ spec:
             sum(rate(traces_span_metrics_calls_total{service_name="{{ include "ms.name" . }}",span_kind="SPAN_KIND_SERVER",status_code!="STATUS_CODE_ERROR"}[2m]))
             /
             sum(rate(traces_span_metrics_calls_total{service_name="{{ include "ms.name" . }}",span_kind="SPAN_KIND_SERVER"}[2m]))
+    {{- if gt (int .Values.rollout.latencyP99Ms) 0 }}
+    - name: latency-p99
+      interval: 1m
+      count: 3
+      failureLimit: 1
+      successCondition: "result[0] <= {{ .Values.rollout.latencyP99Ms }}"
+      provider:
+        prometheus:
+          address: http://lgtm-mimir-nginx.observability/prometheus
+          query: |
+            histogram_quantile(0.99, sum by (le) (rate(traces_span_metrics_duration_milliseconds_bucket{service_name="{{ include "ms.name" . }}",span_kind="SPAN_KIND_SERVER"}[2m])))
+    {{- end }}
 {{- end }}

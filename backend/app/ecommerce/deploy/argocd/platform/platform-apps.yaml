@@ -6,9 +6,9 @@ metadata:
   name: istio-mesh
   namespace: argocd
   annotations:
-    argocd.argoproj.io/sync-wave: '-10'
+    argocd.argoproj.io/sync-wave: "-10"
   finalizers:
-  - resources-finalizers.argocd.argoproj.io
+    - resources-finalizers.argocd.argoproj.io
 spec:
   project: platform
   destination:
@@ -19,8 +19,8 @@ spec:
       prune: true
       selfHeal: true
     syncOptions:
-    - CreateNamespace=true
-    - ServerSideApply=true
+      - CreateNamespace=true
+      - ServerSideApply=true
   source:
     repoURL: https://github.com/pdcthanh112/CongThanhApp.git
     targetRevision: main
@@ -32,9 +32,9 @@ metadata:
   name: kyverno-policies
   namespace: argocd
   annotations:
-    argocd.argoproj.io/sync-wave: '-10'
+    argocd.argoproj.io/sync-wave: "-10"
   finalizers:
-  - resources-finalizers.argocd.argoproj.io
+    - resources-finalizers.argocd.argoproj.io
 spec:
   project: platform
   destination:
@@ -45,8 +45,8 @@ spec:
       prune: true
       selfHeal: true
     syncOptions:
-    - CreateNamespace=true
-    - ServerSideApply=true
+      - CreateNamespace=true
+      - ServerSideApply=true
   source:
     repoURL: https://github.com/pdcthanh112/CongThanhApp.git
     targetRevision: main
@@ -58,9 +58,9 @@ metadata:
   name: external-secrets-store
   namespace: argocd
   annotations:
-    argocd.argoproj.io/sync-wave: '-9'
+    argocd.argoproj.io/sync-wave: "-9"
   finalizers:
-  - resources-finalizers.argocd.argoproj.io
+    - resources-finalizers.argocd.argoproj.io
 spec:
   project: platform
   destination:
@@ -71,8 +71,8 @@ spec:
       prune: true
       selfHeal: true
     syncOptions:
-    - CreateNamespace=true
-    - ServerSideApply=true
+      - CreateNamespace=true
+      - ServerSideApply=true
   source:
     repoURL: https://github.com/pdcthanh112/CongThanhApp.git
     targetRevision: main
@@ -84,9 +84,9 @@ metadata:
   name: vault
   namespace: argocd
   annotations:
-    argocd.argoproj.io/sync-wave: '-9'
+    argocd.argoproj.io/sync-wave: "-9"
   finalizers:
-  - resources-finalizers.argocd.argoproj.io
+    - resources-finalizers.argocd.argoproj.io
 spec:
   project: platform
   destination:
@@ -97,18 +97,18 @@ spec:
       prune: true
       selfHeal: true
     syncOptions:
-    - CreateNamespace=true
-    - ServerSideApply=true
+      - CreateNamespace=true
+      - ServerSideApply=true
   sources:
-  - repoURL: https://helm.releases.hashicorp.com
-    chart: vault
-    targetRevision: 0.31.*
-    helm:
-      valueFiles:
-      - $values/backend/app/ecommerce/platform/secrets/vault/values.yaml
-  - repoURL: https://github.com/pdcthanh112/CongThanhApp.git
-    targetRevision: main
-    ref: values
+    - repoURL: https://helm.releases.hashicorp.com
+      chart: vault
+      targetRevision: 0.31.*
+      helm:
+        valueFiles:
+          - $values/backend/app/ecommerce/platform/secrets/vault/values.yaml
+    - repoURL: https://github.com/pdcthanh112/CongThanhApp.git
+      targetRevision: main
+      ref: values
 ---
 apiVersion: argoproj.io/v1alpha1
 kind: Application
@@ -116,9 +116,9 @@ metadata:
   name: keycloak
   namespace: argocd
   annotations:
-    argocd.argoproj.io/sync-wave: '-8'
+    argocd.argoproj.io/sync-wave: "-8"
   finalizers:
-  - resources-finalizers.argocd.argoproj.io
+    - resources-finalizers.argocd.argoproj.io
 spec:
   project: platform
   destination:
@@ -129,8 +129,8 @@ spec:
       prune: true
       selfHeal: true
     syncOptions:
-    - CreateNamespace=true
-    - ServerSideApply=true
+      - CreateNamespace=true
+      - ServerSideApply=true
   source:
     repoURL: https://github.com/pdcthanh112/CongThanhApp.git
     targetRevision: main
@@ -142,9 +142,9 @@ metadata:
   name: kafka
   namespace: argocd
   annotations:
-    argocd.argoproj.io/sync-wave: '-8'
+    argocd.argoproj.io/sync-wave: "-8"
   finalizers:
-  - resources-finalizers.argocd.argoproj.io
+    - resources-finalizers.argocd.argoproj.io
 spec:
   project: platform
   destination:
@@ -155,8 +155,8 @@ spec:
       prune: true
       selfHeal: true
     syncOptions:
-    - CreateNamespace=true
-    - ServerSideApply=true
+      - CreateNamespace=true
+      - ServerSideApply=true
   source:
     repoURL: https://github.com/pdcthanh112/CongThanhApp.git
     targetRevision: main
@@ -168,9 +168,9 @@ metadata:
   name: schema-registry
   namespace: argocd
   annotations:
-    argocd.argoproj.io/sync-wave: '-7'
+    argocd.argoproj.io/sync-wave: "-7"
   finalizers:
-  - resources-finalizers.argocd.argoproj.io
+    - resources-finalizers.argocd.argoproj.io
 spec:
   project: platform
   destination:
@@ -181,8 +181,8 @@ spec:
       prune: true
       selfHeal: true
     syncOptions:
-    - CreateNamespace=true
-    - ServerSideApply=true
+      - CreateNamespace=true
+      - ServerSideApply=true
   source:
     repoURL: https://github.com/pdcthanh112/CongThanhApp.git
     targetRevision: main
@@ -194,9 +194,9 @@ metadata:
   name: debezium
   namespace: argocd
   annotations:
-    argocd.argoproj.io/sync-wave: '-6'
+    argocd.argoproj.io/sync-wave: "-6"
   finalizers:
-  - resources-finalizers.argocd.argoproj.io
+    - resources-finalizers.argocd.argoproj.io
 spec:
   project: platform
   destination:
@@ -207,8 +207,8 @@ spec:
       prune: true
       selfHeal: true
     syncOptions:
-    - CreateNamespace=true
-    - ServerSideApply=true
+      - CreateNamespace=true
+      - ServerSideApply=true
   source:
     repoURL: https://github.com/pdcthanh112/CongThanhApp.git
     targetRevision: main
@@ -223,9 +223,9 @@ metadata:
   name: postgres
   namespace: argocd
   annotations:
-    argocd.argoproj.io/sync-wave: '-8'
+    argocd.argoproj.io/sync-wave: "-8"
   finalizers:
-  - resources-finalizers.argocd.argoproj.io
+    - resources-finalizers.argocd.argoproj.io
 spec:
   project: platform
   destination:
@@ -236,8 +236,8 @@ spec:
       prune: true
       selfHeal: true
     syncOptions:
-    - CreateNamespace=true
-    - ServerSideApply=true
+      - CreateNamespace=true
+      - ServerSideApply=true
   source:
     repoURL: https://github.com/pdcthanh112/CongThanhApp.git
     targetRevision: main
@@ -251,9 +251,9 @@ metadata:
   name: apisix
   namespace: argocd
   annotations:
-    argocd.argoproj.io/sync-wave: '-5'
+    argocd.argoproj.io/sync-wave: "-5"
   finalizers:
-  - resources-finalizers.argocd.argoproj.io
+    - resources-finalizers.argocd.argoproj.io
 spec:
   project: platform
   destination:
@@ -264,18 +264,18 @@ spec:
       prune: true
       selfHeal: true
     syncOptions:
-    - CreateNamespace=true
-    - ServerSideApply=true
+      - CreateNamespace=true
+      - ServerSideApply=true
   sources:
-  - repoURL: https://charts.apiseven.com
-    chart: apisix
-    targetRevision: 2.12.*
-    helm:
-      valueFiles:
-      - $values/backend/app/ecommerce/platform/gateway/apisix/k8s/values.yaml
-  - repoURL: https://github.com/pdcthanh112/CongThanhApp.git
-    targetRevision: main
-    ref: values
+    - repoURL: https://charts.apiseven.com
+      chart: apisix
+      targetRevision: 2.12.*
+      helm:
+        valueFiles:
+          - $values/backend/app/ecommerce/platform/gateway/apisix/k8s/values.yaml
+    - repoURL: https://github.com/pdcthanh112/CongThanhApp.git
+      targetRevision: main
+      ref: values
 ---
 apiVersion: argoproj.io/v1alpha1
 kind: Application
@@ -283,9 +283,9 @@ metadata:
   name: apisix-routes
   namespace: argocd
   annotations:
-    argocd.argoproj.io/sync-wave: '-4'
+    argocd.argoproj.io/sync-wave: "-4"
   finalizers:
-  - resources-finalizers.argocd.argoproj.io
+    - resources-finalizers.argocd.argoproj.io
 spec:
   project: platform
   destination:
@@ -296,8 +296,8 @@ spec:
       prune: true
       selfHeal: true
     syncOptions:
-    - CreateNamespace=true
-    - ServerSideApply=true
+      - CreateNamespace=true
+      - ServerSideApply=true
   source:
     repoURL: https://github.com/pdcthanh112/CongThanhApp.git
     targetRevision: main
@@ -311,9 +311,9 @@ metadata:
   name: temporal
   namespace: argocd
   annotations:
-    argocd.argoproj.io/sync-wave: '-5'
+    argocd.argoproj.io/sync-wave: "-5"
   finalizers:
-  - resources-finalizers.argocd.argoproj.io
+    - resources-finalizers.argocd.argoproj.io
 spec:
   project: platform
   destination:
@@ -324,18 +324,18 @@ spec:
       prune: true
       selfHeal: true
     syncOptions:
-    - CreateNamespace=true
-    - ServerSideApply=true
+      - CreateNamespace=true
+      - ServerSideApply=true
   sources:
-  - repoURL: https://go.temporal.io/helm-charts
-    chart: temporal
-    targetRevision: 0.66.*
-    helm:
-      valueFiles:
-      - $values/backend/app/ecommerce/platform/workflow/temporal/values.yaml
-  - repoURL: https://github.com/pdcthanh112/CongThanhApp.git
-    targetRevision: main
-    ref: values
+    - repoURL: https://go.temporal.io/helm-charts
+      chart: temporal
+      targetRevision: 0.66.*
+      helm:
+        valueFiles:
+          - $values/backend/app/ecommerce/platform/workflow/temporal/values.yaml
+    - repoURL: https://github.com/pdcthanh112/CongThanhApp.git
+      targetRevision: main
+      ref: values
 ---
 apiVersion: argoproj.io/v1alpha1
 kind: Application
@@ -343,9 +343,9 @@ metadata:
   name: openfga
   namespace: argocd
   annotations:
-    argocd.argoproj.io/sync-wave: '-5'
+    argocd.argoproj.io/sync-wave: "-5"
   finalizers:
-  - resources-finalizers.argocd.argoproj.io
+    - resources-finalizers.argocd.argoproj.io
 spec:
   project: platform
   destination:
@@ -356,18 +356,18 @@ spec:
       prune: true
       selfHeal: true
     syncOptions:
-    - CreateNamespace=true
-    - ServerSideApply=true
+      - CreateNamespace=true
+      - ServerSideApply=true
   sources:
-  - repoURL: https://openfga.github.io/helm-charts
-    chart: openfga
-    targetRevision: 0.2.*
-    helm:
-      valueFiles:
-      - $values/backend/app/ecommerce/platform/authz/openfga/values.yaml
-  - repoURL: https://github.com/pdcthanh112/CongThanhApp.git
-    targetRevision: main
-    ref: values
+    - repoURL: https://openfga.github.io/helm-charts
+      chart: openfga
+      targetRevision: 0.2.*
+      helm:
+        valueFiles:
+          - $values/backend/app/ecommerce/platform/authz/openfga/values.yaml
+    - repoURL: https://github.com/pdcthanh112/CongThanhApp.git
+      targetRevision: main
+      ref: values
 ---
 apiVersion: argoproj.io/v1alpha1
 kind: Application
@@ -375,9 +375,9 @@ metadata:
   name: unleash
   namespace: argocd
   annotations:
-    argocd.argoproj.io/sync-wave: '-5'
+    argocd.argoproj.io/sync-wave: "-5"
   finalizers:
-  - resources-finalizers.argocd.argoproj.io
+    - resources-finalizers.argocd.argoproj.io
 spec:
   project: platform
   destination:
@@ -388,18 +388,18 @@ spec:
       prune: true
       selfHeal: true
     syncOptions:
-    - CreateNamespace=true
-    - ServerSideApply=true
+      - CreateNamespace=true
+      - ServerSideApply=true
   sources:
-  - repoURL: https://docs.getunleash.io/helm-charts
-    chart: unleash
-    targetRevision: 5.*
-    helm:
-      valueFiles:
-      - $values/backend/app/ecommerce/platform/featureflags/unleash/values.yaml
-  - repoURL: https://github.com/pdcthanh112/CongThanhApp.git
-    targetRevision: main
-    ref: values
+    - repoURL: https://docs.getunleash.io/helm-charts
+      chart: unleash
+      targetRevision: 5.*
+      helm:
+        valueFiles:
+          - $values/backend/app/ecommerce/platform/featureflags/unleash/values.yaml
+    - repoURL: https://github.com/pdcthanh112/CongThanhApp.git
+      targetRevision: main
+      ref: values
 ---
 apiVersion: argoproj.io/v1alpha1
 kind: Application
@@ -407,9 +407,9 @@ metadata:
   name: lgtm
   namespace: argocd
   annotations:
-    argocd.argoproj.io/sync-wave: '-7'
+    argocd.argoproj.io/sync-wave: "-7"
   finalizers:
-  - resources-finalizers.argocd.argoproj.io
+    - resources-finalizers.argocd.argoproj.io
 spec:
   project: platform
   destination:
@@ -420,18 +420,18 @@ spec:
       prune: true
       selfHeal: true
     syncOptions:
-    - CreateNamespace=true
-    - ServerSideApply=true
+      - CreateNamespace=true
+      - ServerSideApply=true
   sources:
-  - repoURL: https://grafana.github.io/helm-charts
-    chart: lgtm-distributed
-    targetRevision: 2.*
-    helm:
-      valueFiles:
-      - $values/backend/app/ecommerce/platform/observability/k8s/lgtm-values.yaml
-  - repoURL: https://github.com/pdcthanh112/CongThanhApp.git
-    targetRevision: main
-    ref: values
+    - repoURL: https://grafana.github.io/helm-charts
+      chart: lgtm-distributed
+      targetRevision: 2.*
+      helm:
+        valueFiles:
+          - $values/backend/app/ecommerce/platform/observability/k8s/lgtm-values.yaml
+    - repoURL: https://github.com/pdcthanh112/CongThanhApp.git
+      targetRevision: main
+      ref: values
 ---
 apiVersion: argoproj.io/v1alpha1
 kind: Application
@@ -439,9 +439,9 @@ metadata:
   name: alloy
   namespace: argocd
   annotations:
-    argocd.argoproj.io/sync-wave: '-6'
+    argocd.argoproj.io/sync-wave: "-6"
   finalizers:
-  - resources-finalizers.argocd.argoproj.io
+    - resources-finalizers.argocd.argoproj.io
 spec:
   project: platform
   destination:
@@ -452,18 +452,18 @@ spec:
       prune: true
       selfHeal: true
     syncOptions:
-    - CreateNamespace=true
-    - ServerSideApply=true
+      - CreateNamespace=true
+      - ServerSideApply=true
   sources:
-  - repoURL: https://grafana.github.io/helm-charts
-    chart: alloy
-    targetRevision: 1.*
-    helm:
-      valueFiles:
-      - $values/backend/app/ecommerce/platform/observability/k8s/alloy-values.yaml
-  - repoURL: https://github.com/pdcthanh112/CongThanhApp.git
-    targetRevision: main
-    ref: values
+    - repoURL: https://grafana.github.io/helm-charts
+      chart: alloy
+      targetRevision: 1.*
+      helm:
+        valueFiles:
+          - $values/backend/app/ecommerce/platform/observability/k8s/alloy-values.yaml
+    - repoURL: https://github.com/pdcthanh112/CongThanhApp.git
+      targetRevision: main
+      ref: values
 ---
 apiVersion: argoproj.io/v1alpha1
 kind: Application
@@ -471,9 +471,9 @@ metadata:
   name: otel
   namespace: argocd
   annotations:
-    argocd.argoproj.io/sync-wave: '-6'
+    argocd.argoproj.io/sync-wave: "-6"
   finalizers:
-  - resources-finalizers.argocd.argoproj.io
+    - resources-finalizers.argocd.argoproj.io
 spec:
   project: platform
   destination:
@@ -484,8 +484,8 @@ spec:
       prune: true
       selfHeal: true
     syncOptions:
-    - CreateNamespace=true
-    - ServerSideApply=true
+      - CreateNamespace=true
+      - ServerSideApply=true
   source:
     repoURL: https://github.com/pdcthanh112/CongThanhApp.git
     targetRevision: main
@@ -499,9 +499,9 @@ metadata:
   name: slo
   namespace: argocd
   annotations:
-    argocd.argoproj.io/sync-wave: '-3'
+    argocd.argoproj.io/sync-wave: "-3"
   finalizers:
-  - resources-finalizers.argocd.argoproj.io
+    - resources-finalizers.argocd.argoproj.io
 spec:
   project: platform
   destination:
@@ -512,9 +512,112 @@ spec:
       prune: true
       selfHeal: true
     syncOptions:
-    - CreateNamespace=true
-    - ServerSideApply=true
+      - CreateNamespace=true
+      - ServerSideApply=true
   source:
     repoURL: https://github.com/pdcthanh112/CongThanhApp.git
     targetRevision: main
     path: backend/app/ecommerce/platform/observability/slo
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: delivery
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "-3"
+  finalizers:
+    - resources-finalizers.argocd.argoproj.io
+spec:
+  project: platform
+  destination:
+    server: https://kubernetes.default.svc
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - ServerSideApply=true
+  source:
+    repoURL: https://github.com/pdcthanh112/CongThanhApp.git
+    targetRevision: main
+    path: backend/app/ecommerce/platform/delivery
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: runtime-security
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "-9"
+  finalizers:
+    - resources-finalizers.argocd.argoproj.io
+spec:
+  project: platform
+  destination:
+    server: https://kubernetes.default.svc
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - ServerSideApply=true
+  source:
+    repoURL: https://github.com/pdcthanh112/CongThanhApp.git
+    targetRevision: main
+    path: backend/app/ecommerce/platform/security/tetragon
+    directory:
+      exclude: values.yaml
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: network-policies
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "-9"
+  finalizers:
+    - resources-finalizers.argocd.argoproj.io
+spec:
+  project: platform
+  destination:
+    server: https://kubernetes.default.svc
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - ServerSideApply=true
+  source:
+    repoURL: https://github.com/pdcthanh112/CongThanhApp.git
+    targetRevision: main
+    path: backend/app/ecommerce/platform/network/cilium
+    directory:
+      exclude: values.yaml
+---
+# Pyrra: operator + UI cho SLO (CRD ServiceLevelObjective); app "slo" chứa các SLO cụ thể.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: pyrra
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "-4"
+  finalizers:
+    - resources-finalizers.argocd.argoproj.io
+spec:
+  project: platform
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: observability
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true
+  source:
+    repoURL: https://github.com/pdcthanh112/CongThanhApp.git
+    targetRevision: main
+    path: backend/app/ecommerce/platform/observability/pyrra

@@ -1,0 +1,3 @@
+# Lịch sự kiện tải cao của staging: để trống, chỉ thêm khi diễn tập (load test tests/load/k6/flash-sale.js).
+scheduledScaling:
+  events: []

@@ -1,5 +1,3 @@
-// shipping-service: báo giá phí giao, tạo vận đơn từ ecom.order.events, in nhãn qua hãng vận chuyển,
-// cập nhật hành trình và phát ecom.shipping.events qua outbox (thay bản Java).
 package main
 
 import (

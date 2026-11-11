@@ -1,0 +1,4 @@
+# Cho phép `images:` của kustomize (và bước kustomize-set-image của Kargo) đổi spec.image của FlinkDeployment.
+images:
+- path: spec/image
+  kind: FlinkDeployment

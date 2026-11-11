@@ -1,4 +1,3 @@
-// Package messaging tiêu thụ ecom.product.events để cập nhật chỉ mục tìm kiếm.
 package messaging
 
 import (
@@ -15,7 +14,7 @@ import (
 	"github.com/pdcthanh112/CongThanhApp/backend/app/ecommerce/services/search-service/internal/domain"
 )
 
-const TopicProductEvents = "ecom.product.events"
+const TopicProductEvents = "ecommerce.product.events"
 
 var (
 	upsertedType = string((&productv1.ProductUpserted{}).ProtoReflect().Descriptor().FullName())
@@ -27,7 +26,6 @@ type Indexer interface {
 	Remove(ctx context.Context, id string, at time.Time) error
 }
 
-// Handler không dùng transaction DB: ghi OpenSearch theo version (thời điểm event) nên xử lý lại vẫn an toàn.
 func Handler(ix Indexer) func(ctx context.Context, _ pgx.Tx, env *commonv1.EventEnvelope) error {
 	return func(ctx context.Context, _ pgx.Tx, env *commonv1.EventEnvelope) error {
 		at := env.GetOccurredAt().AsTime()

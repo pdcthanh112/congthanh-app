@@ -1,0 +1,40 @@
+[project]
+name = "recommendation-service"
+version = "0.1.0"
+description = "Gợi ý sản phẩm: mua kèm, tương tự (pgvector), dành cho bạn, xu hướng."
+requires-python = ">=3.13"
+dependencies = [
+  "ecommerce-platform[fastapi]",
+  "ecommerce-proto",
+  "fastapi==0.162.0",
+  "uvicorn[standard]==0.54.0",
+  "pydantic==2.14.1",
+  "pydantic-settings==2.16.1",
+  "httpx==0.28.1",
+  "asyncpg==0.32.0",
+  "aiokafka==0.14.0",
+]
+
+[dependency-groups]
+dev = ["pytest==9.1.1", "pytest-asyncio==1.4.1", "httpx==0.28.1", "ruff==0.17.2"]
+
+[tool.uv.sources]
+ecommerce-platform = { path = "../../libs/python/ecommerce-platform", editable = true }
+ecommerce-proto = { path = "../../libs/python/ecommerce-proto", editable = true }
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+pythonpath = ["."]
+
+[tool.ruff]
+line-length = 120
+target-version = "py313"
+
+[tool.uv]
+# Chỉ nhận bản phát hành đã ra ít nhất 2 tuần (chính sách supply chain); nâng mốc khi cập nhật lock.
+exclude-newer = "2026-10-27T00:00:00Z"
+
+[tool.ruff.lint]
+# Bộ luật cố định trong repo, không phụ thuộc cấu hình ruff trên máy dev.
+select = ["E", "F", "W", "I", "B", "UP", "SIM", "RUF"]
+ignore = ["E501", "RUF001", "RUF002", "RUF003", "RUF012"]  # E501: độ dài dòng do ruff format lo

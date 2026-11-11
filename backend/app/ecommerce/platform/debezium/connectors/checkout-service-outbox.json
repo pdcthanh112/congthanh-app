@@ -4,7 +4,7 @@
     "connector.class": "io.debezium.connector.postgresql.PostgresConnector",
     "database.hostname": "postgres",
     "database.port": "5432",
-    "database.user": "ecom",
+    "database.user": "ecommerce",
     "database.password": "${file:/secrets/db.properties:password}",
     "database.dbname": "checkout_db",
     "topic.prefix": "checkout",

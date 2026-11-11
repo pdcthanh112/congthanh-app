@@ -1,0 +1,21 @@
+# Verify sau mỗi lần promote: 10 phút liên tục tỉ lệ lỗi server của toàn bộ service e-commerce dưới 1%.
+# Mỗi môi trường là một cluster với Mimir riêng, nên truy vấn không cần nhãn môi trường. Đạt → Freight "verified" và được phép lên Stage kế tiếp (staging/prod).
+apiVersion: argoproj.io/v1alpha1
+kind: AnalysisTemplate
+metadata:
+  name: ecommerce-health
+  namespace: congthanhapp
+spec:
+  metrics:
+  - name: error-ratio
+    interval: 2m
+    count: 5
+    failureLimit: 1
+    successCondition: "isNaN(result[0]) || result[0] < 0.01"
+    provider:
+      prometheus:
+        address: http://lgtm-mimir-nginx.observability/prometheus
+        query: |
+          sum(rate(traces_span_metrics_calls_total{span_kind="SPAN_KIND_SERVER",status_code="STATUS_CODE_ERROR"}[5m]))
+          /
+          sum(rate(traces_span_metrics_calls_total{span_kind="SPAN_KIND_SERVER"}[5m]))

@@ -8,4 +8,7 @@ public interface PaymentProviders {
     PaymentProvider forMethod(PaymentMethod method);
 
     PaymentProvider byName(String name);
+
+    /** Có cổng nào (kể cả sandbox) phụ trách phương thức này không. */
+    boolean supports(PaymentMethod method);
 }

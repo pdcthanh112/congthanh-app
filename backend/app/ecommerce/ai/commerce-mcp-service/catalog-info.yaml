@@ -1,0 +1,26 @@
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: commerce-mcp-service
+  description: MCP server cho agentic commerce (tìm sản phẩm, giỏ hàng, đơn hàng thay khách; OAuth scope + OpenFGA)
+  tags:
+  - python
+  - mcp
+  annotations:
+    github.com/project-slug: pdcthanh112/CongThanhApp
+    backstage.io/source-location: url:https://github.com/pdcthanh112/CongThanhApp/tree/main/backend/app/ecommerce/ai/commerce-mcp-service
+    argocd/app-selector: app.kubernetes.io/name=commerce-mcp-service
+    grafana/dashboard-selector: tags @> 'commerce-mcp-service'
+    backstage.io/techdocs-ref: dir:../../docs
+spec:
+  type: service
+  lifecycle: experimental
+  owner: team-ecommerce
+  system: ecommerce
+  consumesApis:
+  - search-api-rest
+  dependsOn:
+  - component:product-service
+  - component:cart-service
+  - component:order-service
+  - resource:openfga

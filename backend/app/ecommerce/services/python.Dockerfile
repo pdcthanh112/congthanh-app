@@ -8,17 +8,19 @@ FROM ghcr.io/astral-sh/uv:0.9.5 AS uv
 
 FROM python:${PYTHON_VERSION}-slim-bookworm AS build
 ARG SERVICE
+# Thư mục mã nguồn; mặc định services/<SERVICE>, service ngoài services/ (vd. ai/commerce-mcp-service) truyền riêng.
+ARG SERVICE_DIR=services/${SERVICE}
 COPY --from=uv /uv /usr/local/bin/uv
 ENV UV_COMPILE_BYTECODE=1 UV_LINK_MODE=copy UV_PYTHON_DOWNLOADS=never UV_PROJECT_ENVIRONMENT=/app/.venv
 WORKDIR /src
 COPY libs/python libs/python
 # Lớp dependency (theo uv.lock) tách khỏi code để cache khi chỉ sửa code.
-COPY services/${SERVICE}/pyproject.toml services/${SERVICE}/uv.lock services/${SERVICE}/
+COPY ${SERVICE_DIR}/pyproject.toml ${SERVICE_DIR}/uv.lock ${SERVICE_DIR}/
 RUN --mount=type=cache,target=/root/.cache/uv \
-    cd services/${SERVICE} && uv sync --locked --no-dev --no-install-project --no-editable
-COPY services/${SERVICE} services/${SERVICE}
+    cd ${SERVICE_DIR} && uv sync --locked --no-dev --no-install-project --no-editable
+COPY ${SERVICE_DIR} ${SERVICE_DIR}
 RUN --mount=type=cache,target=/root/.cache/uv \
-    cd services/${SERVICE} && uv sync --locked --no-dev --no-editable \
+    cd ${SERVICE_DIR} && uv sync --locked --no-dev --no-editable \
     && rm -rf tests .venv && cp -r . /app/src
 
 FROM python:${PYTHON_VERSION}-slim-bookworm

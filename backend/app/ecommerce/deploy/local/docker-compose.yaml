@@ -41,10 +41,10 @@ services:
     volumes: [pgdata:/var/lib/postgresql]
     healthcheck: {test: ["CMD-SHELL", "pg_isready -U postgres"], interval: 5s, retries: 20}
 
-  valkey:
-    image: valkey/valkey:8.1-alpine
+  redis:
+    image: redis:8.10-alpine
     ports: ["6379:6379"]
-    healthcheck: {test: ["CMD", "valkey-cli", "ping"], interval: 5s}
+    healthcheck: {test: ["CMD", "redis-cli", "ping"], interval: 5s}
 
   kafka:
     image: apache/kafka:4.1.0
@@ -108,13 +108,28 @@ services:
   connect-init-go:
     profiles: [apps-go]
     image: curlimages/curl:8.16.0
-    depends_on: {connect: {condition: service_healthy}, shipping-service: {condition: service_started}}
+    depends_on: {connect: {condition: service_healthy}, shipping-service: {condition: service_started}, pricing-service: {condition: service_started}}
     volumes: ["../../platform/messaging/debezium/local:/connectors:ro"]
     entrypoint: ["sh", "-c"]
+    # Chờ service chạy migration (bảng outbox phải có trước khi tạo publication).
     command:
       - |
         until curl -sf http://shipping-service:5016/health/ready >/dev/null; do sleep 2; done
         curl -sf -X PUT -H 'Content-Type: application/json' --data @/connectors/shipping-outbox.json http://connect:8083/connectors/shipping-outbox/config >/dev/null && echo "registered shipping-outbox"
+        until curl -sf http://pricing-service:5025/health/ready >/dev/null; do sleep 2; done
+        curl -sf -X PUT -H 'Content-Type: application/json' --data @/connectors/pricing-outbox.json http://connect:8083/connectors/pricing-outbox/config >/dev/null && echo "registered pricing-outbox"
+    restart: "no"
+
+  connect-init-python:
+    profiles: [apps-python]
+    image: curlimages/curl:8.16.0
+    depends_on: {connect: {condition: service_healthy}, fraud-service: {condition: service_started}}
+    volumes: ["../../platform/messaging/debezium/local:/connectors:ro"]
+    entrypoint: ["sh", "-c"]
+    command:
+      - |
+        until curl -sf http://fraud-service:5026/health/ready >/dev/null; do sleep 2; done
+        curl -sf -X PUT -H 'Content-Type: application/json' --data @/connectors/fraud-outbox.json http://connect:8083/connectors/fraud-outbox/config >/dev/null && echo "registered fraud-outbox"
     restart: "no"
 
   # ---------------- danh tính, gateway, feature flag ----------------
@@ -142,7 +157,7 @@ services:
     volumes:
       - ../../platform/gateway/apisix/config.yaml:/usr/local/apisix/conf/config.yaml:ro
       - ../../platform/gateway/apisix/apisix.yaml:/usr/local/apisix/conf/apisix.yaml:ro
-    depends_on: [keycloak, valkey]
+    depends_on: [keycloak, redis]
 
   unleash:
     image: unleashorg/unleash-server:7
@@ -178,8 +193,8 @@ services:
     ports: ["5014:5014", "9092:9092"]
     environment:
       <<: *go-env
-      REDIS_URL: redis://valkey:6379/0
-    depends_on: {postgres: {condition: service_healthy}, kafka: {condition: service_healthy}, valkey: {condition: service_healthy}}
+      REDIS_URL: redis://redis:6379/0
+    depends_on: {postgres: {condition: service_healthy}, kafka: {condition: service_healthy}, redis: {condition: service_healthy}}
 
   cart-service:
     build: {context: ../.., dockerfile: services/cart-service/Dockerfile}
@@ -213,20 +228,27 @@ services:
     environment: {<<: *go-env, DB_SCHEMA: webhook, WEBHOOK_ALLOW_INSECURE: "true"}
     depends_on: {postgres: {condition: service_healthy}, kafka: {condition: service_healthy}}
 
+  pricing-service:
+    profiles: [apps-go]
+    build: {context: ../.., dockerfile: services/pricing-service/Dockerfile}
+    ports: ["5025:5025", "9099:9099"]
+    environment: {<<: *go-env, DB_SCHEMA: pricing, REDIS_URL: "redis://redis:6379/7"}
+    depends_on: {postgres: {condition: service_healthy}, kafka: {condition: service_healthy}, redis: {condition: service_healthy}}
+
   search-service:
     profiles: [apps-go]
     build: {context: ../.., dockerfile: services/search-service/Dockerfile}
     ports: ["5013:5013", "9098:9098"]
-    environment: {<<: *go-env, OPENSEARCH_URL: "http://opensearch:9200"}
-    depends_on: {opensearch: {condition: service_healthy}, kafka: {condition: service_healthy}}
+    environment: {<<: *go-env, ELASTICSEARCH_URL: "http://elasticsearch:9200"}
+    depends_on: {elasticsearch: {condition: service_healthy}, kafka: {condition: service_healthy}}
 
-  opensearch:
+  elasticsearch:
     profiles: [apps-go]
-    image: opensearchproject/opensearch:3.9.0
+    image: elasticsearch:9.5.3
     environment:
       discovery.type: single-node
-      DISABLE_SECURITY_PLUGIN: "true"   # chỉ local; cluster thật bật TLS + user riêng cho search-service
-      OPENSEARCH_JAVA_OPTS: -Xms512m -Xmx512m
+      xpack.security.enabled: "false"   # chỉ local; Elastic Cloud bật TLS + API key riêng cho search-service
+      ES_JAVA_OPTS: -Xms512m -Xmx512m
     ports: ["9200:9200"]
     healthcheck: {test: ["CMD-SHELL", "curl -sf localhost:9200/_cluster/health || exit 1"], interval: 10s, retries: 30}
 
@@ -293,9 +315,9 @@ services:
         LOG_FORMAT: ""
       DATABASE_URL: jdbc:postgresql://postgres:5432/ecommerce?currentSchema=product_service
       MONGODB_URI: mongodb://mongo:27017/ecommerce_product
-      REDIS_URL: redis://valkey:6379/1
+      REDIS_URL: redis://redis:6379/1
       CATALOG_GRPC_ADDR: catalog-service:19092
-    depends_on: {postgres: {condition: service_healthy}, valkey: {condition: service_healthy}, mongo: {condition: service_started}}
+    depends_on: {postgres: {condition: service_healthy}, redis: {condition: service_healthy}, mongo: {condition: service_started}}
   order-service:
     profiles: [apps-java]
     build: {context: ../.., dockerfile: services/order-service/Dockerfile}
@@ -327,6 +349,50 @@ services:
       DATABASE_URL: jdbc:postgresql://postgres:5432/ecommerce?currentSchema=promotion_service
     depends_on: {postgres: {condition: service_healthy}, kafka: {condition: service_healthy}}
 
+  # Phiên checkout + saga Temporal (queue checkout-workflow). Cần thêm apps-go (pricing, tax, shipping) và apps-python (fraud).
+  checkout-service:
+    profiles: [apps-java]
+    build: {context: ../.., dockerfile: services/checkout-service/Dockerfile}
+    ports: ["5027:5027", "19095:19095"]
+    environment:
+      <<: *java-env
+      DATABASE_URL: jdbc:postgresql://postgres:5432/ecommerce?currentSchema=checkout_service
+      PRODUCT_GRPC_ADDR: product-service:29090
+      PRICING_GRPC_ADDR: pricing-service:9099
+      PROMOTION_GRPC_ADDR: promotion-service:9095
+      SHIPPING_GRPC_ADDR: shipping-service:9097
+      TAX_GRPC_ADDR: tax-service:9096
+      ORDER_GRPC_ADDR: order-service:19090
+      FRAUD_URL: http://fraud-service:5026
+    depends_on: {postgres: {condition: service_healthy}, kafka: {condition: service_healthy}}
+
+  # Flink stream-processor (profile streaming): JobManager chạy job từ /opt/flink/usrlib, TaskManager riêng.
+  # Web UI Flink: http://localhost:8091. Checkpoint lưu file trong volume (trên k8s là S3).
+  stream-jobmanager:
+    profiles: [streaming]
+    build: {context: ../.., dockerfile: data/streaming/stream-processor/Dockerfile}
+    command: standalone-job --job-classname com.congthanh.stream.StreamProcessorApp
+    ports: ["8091:8081"]
+    environment: &flink-env
+      KAFKA_BROKERS: kafka:9092
+      PIPELINES: all
+      FLINK_PROPERTIES: |
+        jobmanager.rpc.address: stream-jobmanager
+        parallelism.default: 1
+        taskmanager.numberOfTaskSlots: 4
+        state.backend.type: rocksdb
+        execution.checkpointing.dir: file:///flink-state/checkpoints
+        execution.checkpointing.interval: 30s
+    volumes: ["flink-state:/flink-state"]
+    depends_on: {kafka: {condition: service_healthy}}
+  stream-taskmanager:
+    profiles: [streaming]
+    build: {context: ../.., dockerfile: data/streaming/stream-processor/Dockerfile}
+    command: taskmanager
+    environment: *flink-env
+    volumes: ["flink-state:/flink-state"]
+    depends_on: [stream-jobmanager]
+
   # ---------------- app NestJS + GraphQL (profile apps-node) ----------------
   # Một Dockerfile chung (services/node.Dockerfile), chọn service bằng build arg SERVICE.
   catalog-service:
@@ -354,19 +420,19 @@ services:
     environment:
       <<: *node-env
       KAFKA_BROKERS: kafka:9092
-      VALKEY_URL: redis://valkey:6379/2
+      REDIS_URL: redis://redis:6379/2
       KEYCLOAK_URL: http://keycloak:8080
       KEYCLOAK_CLIENT_SECRET: local-notification-secret
       # Email đi vào Mailpit (xem ở http://localhost:8025); SMS chạy dry-run (ghi log).
       SMTP_URL: smtp://mailpit:1025
       SMS_ENABLED: "false"
-    depends_on: {postgres: {condition: service_healthy}, kafka: {condition: service_healthy}, valkey: {condition: service_healthy}}
+    depends_on: {postgres: {condition: service_healthy}, kafka: {condition: service_healthy}, redis: {condition: service_healthy}}
   message-service:
     profiles: [apps-node]
     build: {<<: *node-build, args: {SERVICE: message-service}}
     ports: ["5012:5012"]
-    environment: {<<: *node-env, PRODUCT_GRPC_ADDR: "product-service:29090", VALKEY_URL: "redis://valkey:6379/3"}
-    depends_on: {postgres: {condition: service_healthy}, valkey: {condition: service_healthy}}
+    environment: {<<: *node-env, PRODUCT_GRPC_ADDR: "product-service:29090", REDIS_URL: "redis://redis:6379/3"}
+    depends_on: {postgres: {condition: service_healthy}, redis: {condition: service_healthy}}
   storefront-bff:
     profiles: [apps-node]
     build: {<<: *node-build, args: {SERVICE: storefront-bff}}
@@ -380,6 +446,8 @@ services:
       INVENTORY_GRPC_ADDR: inventory-service:9092
       PROMOTION_GRPC_ADDR: promotion-service:9095
       ORDER_REST_URL: http://order-service:5006
+      CHECKOUT_REST_URL: http://checkout-service:5027
+      RECOMMENDATION_REST_URL: http://recommendation-service:5028
       CUSTOMER_GRPC_ADDR: customer-service:19094
   backoffice-bff:
     profiles: [apps-node]
@@ -440,8 +508,8 @@ services:
     profiles: [apps-python]
     build: {<<: *python-build, args: {SERVICE: translate-service}}
     ports: ["5017:5017"]
-    environment: {<<: *python-env, HTTP_PORT: "5017", VALKEY_URL: "redis://valkey:6379/5"}
-    depends_on: {valkey: {condition: service_healthy}}
+    environment: {<<: *python-env, HTTP_PORT: "5017", REDIS_URL: "redis://redis:6379/5"}
+    depends_on: {redis: {condition: service_healthy}}
   chatbot-service:
     profiles: [apps-python]
     build: {<<: *python-build, args: {SERVICE: chatbot-service}}
@@ -453,8 +521,27 @@ services:
       LLM_PROVIDER: ${CHATBOT_LLM_PROVIDER:-anthropic}
       OLLAMA_URL: http://ollama:11434
       SEARCH_URL: http://search-service:5013
-      VALKEY_URL: redis://valkey:6379/6
-    depends_on: {valkey: {condition: service_healthy}}
+      REDIS_URL: redis://redis:6379/6
+    depends_on: {redis: {condition: service_healthy}}
+  commerce-mcp-service:
+    profiles: [apps-python]
+    build: {<<: *python-build, args: {SERVICE: commerce-mcp-service, SERVICE_DIR: ai/commerce-mcp-service}}
+    ports: ["5030:5030"]
+    environment:
+      <<: *python-env
+      HTTP_PORT: "5030"
+      PUBLIC_URL: http://localhost:9080/api/ecommerce/mcp
+      ISSUER_URL: http://localhost:8180/realms/ecommerce
+      JWT_AUDIENCE: commerce-mcp
+      SEARCH_URL: http://search-service:5013
+      PRODUCT_URL: http://product-service:5008
+      CART_URL: http://cart-service:5002
+      ORDER_URL: http://order-service:5006
+      OPENFGA_URL: http://openfga:8080
+      # Tạo store + nạp model: make fga-init (in ra store/model id), rồi đặt vào .env.
+      OPENFGA_STORE_ID: ${OPENFGA_STORE_ID:-}
+      OPENFGA_MODEL_ID: ${OPENFGA_MODEL_ID:-}
+    depends_on: {openfga: {condition: service_started}}
   supplier-service:
     profiles: [apps-python]
     build: {<<: *python-build, args: {SERVICE: supplier-service}}
@@ -463,6 +550,33 @@ services:
     entrypoint: ["sh", "-c"]
     command: ["python manage.py migrate_schema && exec python -m gunicorn -c config/gunicorn.py config.wsgi"]
     depends_on: {postgres: {condition: service_healthy}}
+  fraud-service:
+    profiles: [apps-python]
+    build: {<<: *python-build, args: {SERVICE: fraud-service}}
+    ports: ["5026:5026"]
+    environment:
+      <<: *python-env
+      HTTP_PORT: "5026"
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/ecommerce
+      DB_SCHEMA: fraud
+      REDIS_URL: redis://redis:6379/8
+      KAFKA_BROKERS: kafka:9092
+    depends_on: {postgres: {condition: service_healthy}, redis: {condition: service_healthy}, kafka: {condition: service_healthy}}
+  recommendation-service:
+    profiles: [apps-python]
+    build: {<<: *python-build, args: {SERVICE: recommendation-service}}
+    ports: ["5028:5028"]
+    environment:
+      <<: *python-env
+      HTTP_PORT: "5028"
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/ecommerce
+      DB_SCHEMA: recommendation
+      KAFKA_BROKERS: kafka:9092
+      # Image postgres local có pgvector. EMBEDDINGS_PROVIDER=ollama + profile ollama để có embedding ngữ nghĩa.
+      VECTOR_ENABLED: "true"
+      EMBEDDINGS_PROVIDER: ${RECO_EMBEDDINGS_PROVIDER:-hashing}
+      OLLAMA_URL: http://ollama:11434
+    depends_on: {postgres: {condition: service_healthy}, kafka: {condition: service_healthy}}
   # Model tự host cho chatbot (thay Spring AI + Ollama cũ). Lần đầu: docker compose exec ollama ollama pull mistral
   ollama:
     profiles: [ollama]
@@ -544,3 +658,4 @@ services:
 volumes:
   pgdata: {}
   ollama: {}
+  flink-state: {}

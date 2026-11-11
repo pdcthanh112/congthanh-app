@@ -1,5 +1,3 @@
-import { dirname, join } from 'node:path';
-import { fileURLToPath } from 'node:url';
 import {
   type Database,
   DB,
@@ -9,27 +7,23 @@ import {
   PlatformHealthModule,
   PlatformLoggerModule,
   subgraphConfig,
-} from '@ecom/platform';
-import { type DynamicModule, Module } from '@nestjs/common';
-import { GraphQLModule } from '@nestjs/graphql';
-import { v7 as uuidv7 } from 'uuid';
-import {
-  BrandResolver,
-  CategoryResolver,
-  CountryResolver,
-  ProductTagsResolver,
-  TagResolver,
-} from './adapters/in/graphql/catalog.resolver.js';
-import { ProductRef } from './adapters/in/graphql/types.js';
-import { catalogGrpcRoutes } from './adapters/in/grpc/catalog.grpc.js';
-import * as schema from './adapters/out/persistence/schema.js';
-import { DrizzleUnitOfWork, readRepositories } from './adapters/out/persistence/unit-of-work.js';
-import { GrpcProductDirectory } from './adapters/out/product-directory.grpc.js';
-import { CatalogService } from './application/catalog.service.js';
-import { CLOCK, ID_GENERATOR, PRODUCT_DIRECTORY, READ_REPOSITORIES, UNIT_OF_WORK } from './application/ports.js';
-import type { Env } from './config/env.js';
+} from "@ecommerce/platform";
+import { type DynamicModule, Module } from "@nestjs/common";
+import { GraphQLModule } from "@nestjs/graphql";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
+import { v7 as uuidv7 } from "uuid";
+import { BrandResolver, CategoryResolver, CountryResolver, ProductTagsResolver, TagResolver } from "./adapters/in/graphql/catalog.resolver.js";
+import { ProductRef } from "./adapters/in/graphql/types.js";
+import { catalogGrpcRoutes } from "./adapters/in/grpc/catalog.grpc.js";
+import * as schema from "./adapters/out/persistence/schema.js";
+import { DrizzleUnitOfWork, readRepositories } from "./adapters/out/persistence/unit-of-work.js";
+import { GrpcProductDirectory } from "./adapters/out/product-directory.grpc.js";
+import { CatalogService } from "./application/catalog.service.js";
+import { CLOCK, ID_GENERATOR, PRODUCT_DIRECTORY, READ_REPOSITORIES, UNIT_OF_WORK } from "./application/ports.js";
+import type { Env } from "./config/env.js";
 
-const serviceDir = join(dirname(fileURLToPath(import.meta.url)), '..');
+const serviceDir = join(dirname(fileURLToPath(import.meta.url)), "..");
 
 @Module({})
 export class AppModule {
@@ -50,14 +44,13 @@ export class AppModule {
           applicationName: env.SERVICE_NAME,
           drizzleSchema: schema,
           migrateOnStart: env.MIGRATE_ON_START,
-          migrationsFolder: join(serviceDir, 'drizzle'),
+          migrationsFolder: join(serviceDir, "drizzle"),
         }),
         PlatformHealthModule.forRoot({ withPostgres: true }),
         GraphQLModule.forRoot(
           subgraphConfig({
             serviceDir,
-            production: env.NODE_ENV === 'production',
-            // Product chỉ được tham chiếu qua _entities nên phải khai báo là orphaned type.
+            production: env.NODE_ENV === "production",
             extra: { buildSchemaOptions: { orphanedTypes: [ProductRef] } },
           }),
         ),

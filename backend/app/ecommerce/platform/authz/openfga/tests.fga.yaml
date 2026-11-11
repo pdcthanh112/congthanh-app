@@ -18,3 +18,18 @@ tests:
       - user: user:bob
         object: order:o1
         assertions: {can_view: true, can_refund: false}
+  # commerce-mcp-service gửi quan hệ sở hữu dạng contextual tuple (lấy từ cart-service/order-service).
+  - name: cart-permissions-for-agents
+    tuples:
+      - {user: platform:main, relation: platform, object: cart:c1}
+      - {user: user:alice, relation: owner, object: cart:c1}
+    check:
+      - user: user:alice
+        object: cart:c1
+        assertions: {can_view: true, can_edit: true}
+      - user: user:bob
+        object: cart:c1
+        assertions: {can_view: true, can_edit: false}
+      - user: user:seller
+        object: cart:c1
+        assertions: {can_view: false, can_edit: false}

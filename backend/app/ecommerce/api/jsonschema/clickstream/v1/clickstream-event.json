@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://congthanh.vn/schemas/clickstream/v1/clickstream-event.json",
+  "title": "ClickstreamEvent",
+  "description": "Một hành vi người dùng trên web/app, do clickstream-collector ghi vào topic clickstream.events (key = session_id). Đăng ký trong Apicurio: group clickstream, artifact clickstream.events-value, rule BACKWARD.",
+  "type": "object",
+  "required": ["event_id", "event_type", "occurred_at", "session_id", "anonymous_id", "received_at"],
+  "properties": {
+    "event_id": {"type": "string", "format": "uuid", "description": "Client sinh, dùng để khử trùng lặp khi gửi lại."},
+    "event_type": {
+      "type": "string",
+      "enum": ["page_view", "product_view", "search", "add_to_cart", "remove_from_cart", "begin_checkout", "purchase"]
+    },
+    "occurred_at": {"type": "string", "format": "date-time", "description": "Thời điểm trên thiết bị (UTC)."},
+    "session_id": {"type": "string", "maxLength": 128},
+    "anonymous_id": {"type": "string", "maxLength": 128, "description": "ID thiết bị/cookie, có trước khi đăng nhập."},
+    "customer_id": {"type": ["string", "null"], "maxLength": 64, "description": "sub của Keycloak khi đã đăng nhập."},
+    "page_url": {"type": ["string", "null"], "maxLength": 2048},
+    "referrer": {"type": ["string", "null"], "maxLength": 2048},
+    "product_id": {"type": ["string", "null"], "maxLength": 64},
+    "quantity": {"type": ["integer", "null"], "minimum": 1},
+    "price": {"type": ["string", "null"], "pattern": "^[0-9]+(\\.[0-9]{1,4})?$", "description": "Số thập phân dạng chuỗi để không mất chính xác."},
+    "currency": {"type": ["string", "null"], "pattern": "^[A-Z]{3}$"},
+    "search_query": {"type": ["string", "null"], "maxLength": 256},
+    "order_id": {"type": ["string", "null"], "maxLength": 64},
+    "received_at": {"type": "string", "format": "date-time", "description": "Collector gắn khi nhận."},
+    "user_agent": {"type": ["string", "null"], "maxLength": 512, "description": "Collector gắn từ header."},
+    "ip_hash": {"type": ["string", "null"], "description": "SHA-256(salt + IP), không lưu IP gốc."}
+  },
+  "additionalProperties": false
+}

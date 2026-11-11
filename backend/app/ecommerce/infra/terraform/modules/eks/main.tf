@@ -42,6 +42,9 @@ module "karpenter" {
 
   cluster_name                    = module.eks.cluster_name
   create_pod_identity_association = true
+  # Tên cố định để EC2NodeClass trong Git (platform/inference) tham chiếu được, không phụ thuộc hậu tố ngẫu nhiên.
+  node_iam_role_name            = "${var.name}-karpenter-node"
+  node_iam_role_use_name_prefix = false
   node_iam_role_additional_policies = {
     AmazonSSMManagedInstanceCore = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
   }

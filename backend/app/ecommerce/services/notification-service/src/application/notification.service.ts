@@ -1,4 +1,4 @@
-import { DomainError } from '@ecom/platform/errors';
+import { DomainError } from '@ecommerce/platform/errors';
 import { Inject, Injectable } from '@nestjs/common';
 import { type Category, CHANNELS, type Channel, type Notification } from '../domain/notification.js';
 import { channelsFor, keyOf, type Preferences, type QuietHours, validateQuietHours } from '../domain/preferences.js';
@@ -61,7 +61,7 @@ export class NotificationService {
     );
   }
 
-  /** Đẩy realtime sau commit; lỗi Valkey không làm mất thông báo (vẫn có trong danh sách). */
+  /** Đẩy realtime sau commit; lỗi Redis không làm mất thông báo (vẫn có trong danh sách). */
   async publish(created: readonly (Notification | undefined)[]): Promise<void> {
     await Promise.allSettled(
       created.filter((n): n is Notification => !!n).map((n) => this.realtime.notificationCreated(n)),

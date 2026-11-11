@@ -27,13 +27,15 @@ public final class Payment {
     private PaymentStatus status;
     private String redirectUrl;
     private String failureReason;
+    private Instant authorizationExpiresAt;
     private Instant updatedAt;
 
     private final List<PaymentEvent> events = new ArrayList<>();
 
     private Payment(String id, String orderId, String customerId, Money amount, PaymentMethod method,
                     String provider, String providerRef, PaymentStatus status, String redirectUrl,
-                    String failureReason, Instant createdAt, Instant updatedAt, long version) {
+                    String failureReason, Instant authorizationExpiresAt, Instant createdAt, Instant updatedAt,
+                    long version) {
         this.id = Objects.requireNonNull(id);
         this.orderId = Objects.requireNonNull(orderId);
         this.customerId = customerId;
@@ -44,6 +46,7 @@ public final class Payment {
         this.status = status;
         this.redirectUrl = redirectUrl;
         this.failureReason = failureReason;
+        this.authorizationExpiresAt = authorizationExpiresAt;
         this.createdAt = createdAt;
         this.updatedAt = updatedAt;
         this.version = version;
@@ -55,35 +58,35 @@ public final class Payment {
             throw PaymentException.invalid("orderId is required");
         }
         return new Payment(id, orderId, customerId, amount, method, provider, null, PaymentStatus.INITIATED,
-                null, null, now, now, 0);
+                null, null, null, now, now, 0);
     }
 
     public static Payment rehydrate(String id, String orderId, String customerId, Money amount, PaymentMethod method,
                                     String provider, String providerRef, PaymentStatus status, String redirectUrl,
-                                    String failureReason, Instant createdAt, Instant updatedAt, long version) {
+                                    String failureReason, Instant authorizationExpiresAt, Instant createdAt,
+                                    Instant updatedAt, long version) {
         return new Payment(id, orderId, customerId, amount, method, provider, providerRef, status, redirectUrl,
-                failureReason, createdAt, updatedAt, version);
+                failureReason, authorizationExpiresAt, createdAt, updatedAt, version);
     }
 
     public void authorized(String providerRef, Instant now) {
+        authorized(providerRef, now, null);
+    }
+
+    /**
+     * @param expiresAt hạn chót phải capture (authorization của đối tác trả góp hết hạn sớm hơn thẻ); null nếu không rõ
+     */
+    public void authorized(String providerRef, Instant now, Instant expiresAt) {
         if (status == PaymentStatus.AUTHORIZED || status == PaymentStatus.CAPTURED) {
             return;
         }
         requireOneOf("authorize", PaymentStatus.INITIATED, PaymentStatus.PENDING_ACTION);
         this.providerRef = providerRef == null ? this.providerRef : providerRef;
         this.status = PaymentStatus.AUTHORIZED;
+        this.authorizationExpiresAt = expiresAt;
         this.redirectUrl = null;
         this.updatedAt = now;
-        events.add(new PaymentEvent.PaymentAuthorized(id, orderId, amount, provider));
-    }
-
-    /** Cổng kiểu "sale" (VNPay, MoMo): tiền đã trừ ngay khi khách trả, không có bước capture riêng. */
-    public void paidImmediately(String providerRef, Instant now) {
-        if (status == PaymentStatus.CAPTURED) {
-            return;
-        }
-        authorized(providerRef, now);
-        this.status = PaymentStatus.CAPTURED;
+        events.add(new PaymentEvent.PaymentAuthorized(id, orderId, amount, provider, method.name()));
     }
 
     public void actionRequired(String providerRef, String redirectUrl, Instant now) {
@@ -165,6 +168,7 @@ public final class Payment {
     public PaymentStatus status() { return status; }
     public String redirectUrl() { return redirectUrl; }
     public String failureReason() { return failureReason; }
+    public Instant authorizationExpiresAt() { return authorizationExpiresAt; }
     public Instant createdAt() { return createdAt; }
     public Instant updatedAt() { return updatedAt; }
     public long version() { return version; }

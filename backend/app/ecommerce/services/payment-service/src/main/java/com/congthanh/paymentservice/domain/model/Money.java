@@ -21,7 +21,7 @@ public record Money(BigDecimal amount, String currency) {
         }
     }
 
-    /** Số tiền ở đơn vị nhỏ nhất của tiền tệ (VND: đồng, USD: cent) như các cổng thanh toán yêu cầu. */
+    /** Số tiền ở đơn vị nhỏ nhất của tiền tệ (USD: cent, JPY: yen) như các cổng thanh toán yêu cầu. */
     public long minorUnits() {
         int digits = Math.max(0, Currency.getInstance(currency).getDefaultFractionDigits());
         return amount.setScale(digits, RoundingMode.HALF_UP).movePointRight(digits).longValueExact();

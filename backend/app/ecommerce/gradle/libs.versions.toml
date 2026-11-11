@@ -5,6 +5,8 @@ temporal = "1.40.0"
 resilience4j = "2.4.0"
 archunit = "1.5.1"
 jib = "3.5.4"
+# Khớp native-build-tools-plugin.version trong BOM Spring Boot 4.1.2.
+graalvm-native = "1.1.14"
 springdoc = "3.2.0"
 modelmapper = "3.2.8"
 jjwt = "0.13.0"
@@ -18,6 +20,8 @@ commons-collections4 = "4.6.0"
 stripe = "34.1.0"
 paypal-rest = "1.14.0"
 javax-annotation = "1.3.2"
+flink = "2.2.1"
+flink-kafka = "5.0.0-2.2"
 
 [libraries]
 spring-boot-bom = { module = "org.springframework.boot:spring-boot-dependencies", version.ref = "spring-boot" }
@@ -30,6 +34,7 @@ temporal-testing = { module = "io.temporal:temporal-testing" }
 resilience4j-spring-boot4 = { module = "io.github.resilience4j:resilience4j-spring-boot4", version.ref = "resilience4j" }
 archunit-junit5 = { module = "com.tngtech.archunit:archunit-junit5", version.ref = "archunit" }
 jib-gradle-plugin = { module = "com.google.cloud.tools:jib-gradle-plugin", version.ref = "jib" }
+graalvm-native-gradle-plugin = { module = "org.graalvm.buildtools:native-gradle-plugin", version.ref = "graalvm-native" }
 springdoc-webmvc-ui = { module = "org.springdoc:springdoc-openapi-starter-webmvc-ui", version.ref = "springdoc" }
 modelmapper = { module = "org.modelmapper:modelmapper", version.ref = "modelmapper" }
 jjwt-api = { module = "io.jsonwebtoken:jjwt-api", version.ref = "jjwt" }
@@ -47,3 +52,8 @@ logstash-logback-encoder = { module = "net.logstash.logback:logstash-logback-enc
 commons-collections4 = { module = "org.apache.commons:commons-collections4", version.ref = "commons-collections4" }
 stripe-java = { module = "com.stripe:stripe-java", version.ref = "stripe" }
 paypal-rest-sdk = { module = "com.paypal.sdk:rest-api-sdk", version.ref = "paypal-rest" }
+flink-streaming-java = { module = "org.apache.flink:flink-streaming-java", version.ref = "flink" }
+flink-clients = { module = "org.apache.flink:flink-clients", version.ref = "flink" }
+flink-connector-base = { module = "org.apache.flink:flink-connector-base", version.ref = "flink" }
+flink-connector-kafka = { module = "org.apache.flink:flink-connector-kafka", version.ref = "flink-kafka" }
+flink-test-utils = { module = "org.apache.flink:flink-test-utils", version.ref = "flink" }

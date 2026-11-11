@@ -6,7 +6,8 @@ image:
   digest: ""
   pullPolicy: IfNotPresent
 
-# go | java | node | python | router — quyết định probe và biến môi trường mặc định
+# go | java | java-native | node | python | router — quyết định probe và biến môi trường mặc định
+# java-native: image GraalVM (tag <sha>-native, build bằng bootBuildImage), khởi động nhanh như Go nên probe ngắn.
 runtime: go
 
 # Init container chạy migration trước app (service NestJS: node dist/migrate.js).
@@ -32,9 +33,12 @@ probes:
   readinessPath: /health/ready
   livenessPath: /health/live
 
-# Rollout tiến dần bằng Argo Rollouts (canary + phân tích tự động từ Prometheus).
+# Rollout tiến dần bằng Argo Rollouts (canary + phân tích tự động từ Prometheus/Mimir).
 rollout:
   enabled: true
+  # gatewayAPI: chia tải chính xác theo % bằng HTTPRoute/GRPCRoute (GAMMA) qua waypoint Istio, plugin
+  #             argoproj-labs/gatewayAPI chỉnh weight. "": chia theo số pod (canary 10% cần >= 10 pod mới đúng).
+  trafficRouting: gatewayAPI
   steps:
     - setWeight: 10
     - pause: {duration: 2m}
@@ -43,6 +47,14 @@ rollout:
     - pause: {duration: 5m}
     - analysis: {templates: [{templateName: "{{ include \"ms.name\" . }}-success-rate"}]}
   successRateThreshold: 0.99
+  # p99 độ trễ (ms) của canary phải dưới ngưỡng; 0 = không kiểm.
+  latencyP99Ms: 0
+  # Phân tích nền suốt quá trình canary: tốc độ đốt error budget (SLO) của canary.
+  # Đốt nhanh hơn burnRateLimit lần mức cho phép → huỷ rollout, quay về stable ngay.
+  sloBurn:
+    enabled: true
+    objective: 0.995
+    burnRateLimit: 14.4
 
 replicas: 2
 autoscaling:
@@ -56,10 +68,19 @@ keda:
   minReplicas: 2
   maxReplicas: 30
   kafka:
-    bootstrapServers: ecom-kafka-bootstrap.messaging.svc.cluster.local:9092
+    bootstrapServers: ecommerce-kafka-bootstrap.messaging.svc.cluster.local:9092
     consumerGroup: ""
     topic: ""
     lagThreshold: "100"
+
+# Scale trước theo lịch cho flash sale/ngày sale lớn: autoscale theo CPU phản ứng sau 1 tới 3 phút, trong khi tải
+# flash sale dồn về trong vài giây. Lịch (events) khai một lần cho cả hệ thống ở deploy/helm/events/events-<env>.yaml;
+# mỗi service chỉ khai replicas = số pod cần có sẵn trong khung giờ đó (0 = không tham gia).
+scheduledScaling:
+  replicas: 0
+  timezone: America/New_York
+  # - {name: black-friday, start: "30 23 26 11 *", end: "0 3 27 11 *"}   # cron 5 trường, theo timezone ở trên
+  events: []
 
 pdb:
   minAvailable: 1

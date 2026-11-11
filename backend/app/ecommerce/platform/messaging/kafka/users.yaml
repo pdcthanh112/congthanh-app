@@ -5,7 +5,7 @@ metadata:
   name: inventory-service
   namespace: messaging
   labels:
-    strimzi.io/cluster: ecom
+    strimzi.io/cluster: ecommerce
 spec:
   authentication:
     type: scram-sha-512
@@ -14,13 +14,13 @@ spec:
     acls:
     - resource:
         type: topic
-        name: ecom.order.events
+        name: ecommerce.order.events
       operations:
       - Read
       - Describe
     - resource:
         type: topic
-        name: ecom.order.events.dlq
+        name: ecommerce.order.events.dlq
       operations:
       - Write
       - Describe
@@ -31,7 +31,7 @@ spec:
       - Read
     - resource:
         type: topic
-        name: ecom.inventory.events
+        name: ecommerce.inventory.events
       operations:
       - Write
       - Describe
@@ -42,7 +42,7 @@ metadata:
   name: cart-service
   namespace: messaging
   labels:
-    strimzi.io/cluster: ecom
+    strimzi.io/cluster: ecommerce
 spec:
   authentication:
     type: scram-sha-512
@@ -51,13 +51,13 @@ spec:
     acls:
     - resource:
         type: topic
-        name: ecom.order.events
+        name: ecommerce.order.events
       operations:
       - Read
       - Describe
     - resource:
         type: topic
-        name: ecom.order.events.dlq
+        name: ecommerce.order.events.dlq
       operations:
       - Write
       - Describe
@@ -73,7 +73,7 @@ metadata:
   name: order-service
   namespace: messaging
   labels:
-    strimzi.io/cluster: ecom
+    strimzi.io/cluster: ecommerce
 spec:
   authentication:
     type: scram-sha-512
@@ -82,37 +82,37 @@ spec:
     acls:
     - resource:
         type: topic
-        name: ecom.inventory.events
+        name: ecommerce.inventory.events
       operations:
       - Read
       - Describe
     - resource:
         type: topic
-        name: ecom.inventory.events.dlq
+        name: ecommerce.inventory.events.dlq
       operations:
       - Write
       - Describe
     - resource:
         type: topic
-        name: ecom.payment.events
+        name: ecommerce.payment.events
       operations:
       - Read
       - Describe
     - resource:
         type: topic
-        name: ecom.payment.events.dlq
+        name: ecommerce.payment.events.dlq
       operations:
       - Write
       - Describe
     - resource:
         type: topic
-        name: ecom.cart.events
+        name: ecommerce.cart.events
       operations:
       - Read
       - Describe
     - resource:
         type: topic
-        name: ecom.cart.events.dlq
+        name: ecommerce.cart.events.dlq
       operations:
       - Write
       - Describe
@@ -128,7 +128,7 @@ metadata:
   name: payment-service
   namespace: messaging
   labels:
-    strimzi.io/cluster: ecom
+    strimzi.io/cluster: ecommerce
 spec:
   authentication:
     type: scram-sha-512
@@ -137,13 +137,13 @@ spec:
     acls:
     - resource:
         type: topic
-        name: ecom.order.events
+        name: ecommerce.order.events
       operations:
       - Read
       - Describe
     - resource:
         type: topic
-        name: ecom.order.events.dlq
+        name: ecommerce.order.events.dlq
       operations:
       - Write
       - Describe
@@ -159,7 +159,7 @@ metadata:
   name: promotion-service
   namespace: messaging
   labels:
-    strimzi.io/cluster: ecom
+    strimzi.io/cluster: ecommerce
 spec:
   authentication:
     type: scram-sha-512
@@ -168,13 +168,13 @@ spec:
     acls:
     - resource:
         type: topic
-        name: ecom.order.events
+        name: ecommerce.order.events
       operations:
       - Read
       - Describe
     - resource:
         type: topic
-        name: ecom.order.events.dlq
+        name: ecommerce.order.events.dlq
       operations:
       - Write
       - Describe
@@ -190,7 +190,7 @@ metadata:
   name: debezium-connect
   namespace: messaging
   labels:
-    strimzi.io/cluster: ecom
+    strimzi.io/cluster: ecommerce
 spec:
   authentication:
     type: scram-sha-512
@@ -204,67 +204,79 @@ spec:
       - Read
     - resource:
         type: topic
-        name: ecom.inventory.events
+        name: ecommerce.inventory.events
       operations:
       - Write
       - Describe
     - resource:
         type: topic
-        name: ecom.order.events
+        name: ecommerce.order.events
       operations:
       - Write
       - Describe
     - resource:
         type: topic
-        name: ecom.payment.events
+        name: ecommerce.payment.events
       operations:
       - Write
       - Describe
     - resource:
         type: topic
-        name: ecom.cart.events
+        name: ecommerce.cart.events
       operations:
       - Write
       - Describe
     - resource:
         type: topic
-        name: ecom.product.events
+        name: ecommerce.product.events
       operations:
       - Write
       - Describe
     - resource:
         type: topic
-        name: ecom.promotion.events
+        name: ecommerce.promotion.events
       operations:
       - Write
       - Describe
     - resource:
         type: topic
-        name: ecom.catalog.events
+        name: ecommerce.catalog.events
       operations:
       - Write
       - Describe
     - resource:
         type: topic
-        name: ecom.customer.events
+        name: ecommerce.customer.events
       operations:
       - Write
       - Describe
     - resource:
         type: topic
-        name: ecom.review.events
+        name: ecommerce.review.events
       operations:
       - Write
       - Describe
     - resource:
         type: topic
-        name: ecom.notification.events
+        name: ecommerce.notification.events
       operations:
       - Write
       - Describe
     - resource:
         type: topic
-        name: ecom.shipping.events
+        name: ecommerce.shipping.events
+      operations:
+      - Write
+      - Describe
+    - resource:
+        type: topic
+        name: ecommerce.pricing.events
+      operations:
+      - Write
+      - Describe
+    - resource:
+        type: topic
+        name: ecommerce.fraud.events
       operations:
       - Write
       - Describe
@@ -275,7 +287,7 @@ metadata:
   name: search-service
   namespace: messaging
   labels:
-    strimzi.io/cluster: ecom
+    strimzi.io/cluster: ecommerce
 spec:
   authentication:
     type: scram-sha-512
@@ -284,13 +296,13 @@ spec:
     acls:
     - resource:
         type: topic
-        name: ecom.product.events
+        name: ecommerce.product.events
       operations:
       - Read
       - Describe
     - resource:
         type: topic
-        name: ecom.product.events.dlq
+        name: ecommerce.product.events.dlq
       operations:
       - Write
       - Describe
@@ -306,7 +318,7 @@ metadata:
   name: webhook-service
   namespace: messaging
   labels:
-    strimzi.io/cluster: ecom
+    strimzi.io/cluster: ecommerce
 spec:
   authentication:
     type: scram-sha-512
@@ -315,37 +327,43 @@ spec:
     acls:
     - resource:
         type: topic
-        name: ecom.order.events
+        name: ecommerce.stream.stock-cover
       operations:
       - Read
       - Describe
     - resource:
         type: topic
-        name: ecom.order.events.dlq
+        name: ecommerce.order.events
+      operations:
+      - Read
+      - Describe
+    - resource:
+        type: topic
+        name: ecommerce.order.events.dlq
       operations:
       - Write
       - Describe
     - resource:
         type: topic
-        name: ecom.product.events
+        name: ecommerce.product.events
       operations:
       - Read
       - Describe
     - resource:
         type: topic
-        name: ecom.product.events.dlq
+        name: ecommerce.product.events.dlq
       operations:
       - Write
       - Describe
     - resource:
         type: topic
-        name: ecom.shipping.events
+        name: ecommerce.shipping.events
       operations:
       - Read
       - Describe
     - resource:
         type: topic
-        name: ecom.shipping.events.dlq
+        name: ecommerce.shipping.events.dlq
       operations:
       - Write
       - Describe
@@ -354,6 +372,54 @@ spec:
         name: webhook-service
       operations:
       - Read
+    - resource:
+        type: topic
+        name: ecommerce.payment.events
+      operations:
+      - Read
+      - Describe
+    - resource:
+        type: topic
+        name: ecommerce.payment.events.dlq
+      operations:
+      - Write
+      - Describe
+    - resource:
+        type: topic
+        name: ecommerce.pricing.events
+      operations:
+      - Read
+      - Describe
+    - resource:
+        type: topic
+        name: ecommerce.pricing.events.dlq
+      operations:
+      - Write
+      - Describe
+    - resource:
+        type: topic
+        name: ecommerce.inventory.events
+      operations:
+      - Read
+      - Describe
+    - resource:
+        type: topic
+        name: ecommerce.inventory.events.dlq
+      operations:
+      - Write
+      - Describe
+    - resource:
+        type: topic
+        name: ecommerce.fraud.events
+      operations:
+      - Read
+      - Describe
+    - resource:
+        type: topic
+        name: ecommerce.fraud.events.dlq
+      operations:
+      - Write
+      - Describe
 ---
 apiVersion: kafka.strimzi.io/v1beta2
 kind: KafkaUser
@@ -361,7 +427,7 @@ metadata:
   name: shipping-service
   namespace: messaging
   labels:
-    strimzi.io/cluster: ecom
+    strimzi.io/cluster: ecommerce
 spec:
   authentication:
     type: scram-sha-512
@@ -370,18 +436,284 @@ spec:
     acls:
     - resource:
         type: topic
-        name: ecom.order.events
+        name: ecommerce.order.events
       operations:
       - Read
       - Describe
     - resource:
         type: topic
-        name: ecom.order.events.dlq
+        name: ecommerce.order.events.dlq
       operations:
       - Write
       - Describe
     - resource:
         type: group
         name: shipping-service
+      operations:
+      - Read
+---
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaUser
+metadata:
+  name: pricing-service
+  namespace: messaging
+  labels:
+    strimzi.io/cluster: ecommerce
+spec:
+  authentication:
+    type: scram-sha-512
+  authorization:
+    type: simple
+    acls:
+    - resource:
+        type: topic
+        name: ecommerce.product.events
+      operations:
+      - Read
+      - Describe
+    - resource:
+        type: topic
+        name: ecommerce.product.events.dlq
+      operations:
+      - Write
+      - Describe
+    - resource:
+        type: group
+        name: pricing-service
+      operations:
+      - Read
+---
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaUser
+metadata:
+  name: fraud-service
+  namespace: messaging
+  labels:
+    strimzi.io/cluster: ecommerce
+spec:
+  authentication:
+    type: scram-sha-512
+  authorization:
+    type: simple
+    acls:
+    - resource:
+        type: topic
+        name: ecommerce.stream.customer-risk
+      operations:
+      - Read
+      - Describe
+    - resource:
+        type: topic
+        name: ecommerce.order.events
+      operations:
+      - Read
+      - Describe
+    - resource:
+        type: topic
+        name: ecommerce.order.events.dlq
+      operations:
+      - Write
+      - Describe
+    - resource:
+        type: topic
+        name: ecommerce.payment.events
+      operations:
+      - Read
+      - Describe
+    - resource:
+        type: topic
+        name: ecommerce.payment.events.dlq
+      operations:
+      - Write
+      - Describe
+    - resource:
+        type: topic
+        name: ecommerce.shipping.events
+      operations:
+      - Read
+      - Describe
+    - resource:
+        type: topic
+        name: ecommerce.shipping.events.dlq
+      operations:
+      - Write
+      - Describe
+    - resource:
+        type: group
+        name: fraud-service
+      operations:
+      - Read
+---
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaUser
+metadata:
+  name: recommendation-service
+  namespace: messaging
+  labels:
+    strimzi.io/cluster: ecommerce
+spec:
+  authentication:
+    type: scram-sha-512
+  authorization:
+    type: simple
+    acls:
+    - resource:
+        type: topic
+        name: ecommerce.stream.product-trending
+      operations:
+      - Read
+      - Describe
+    - resource:
+        type: topic
+        name: ecommerce.product.events
+      operations:
+      - Read
+      - Describe
+    - resource:
+        type: topic
+        name: ecommerce.product.events.dlq
+      operations:
+      - Write
+      - Describe
+    - resource:
+        type: topic
+        name: ecommerce.order.events
+      operations:
+      - Read
+      - Describe
+    - resource:
+        type: topic
+        name: ecommerce.order.events.dlq
+      operations:
+      - Write
+      - Describe
+    - resource:
+        type: topic
+        name: ecommerce.cart.events
+      operations:
+      - Read
+      - Describe
+    - resource:
+        type: topic
+        name: ecommerce.cart.events.dlq
+      operations:
+      - Write
+      - Describe
+    - resource:
+        type: topic
+        name: ecommerce.customer.events
+      operations:
+      - Read
+      - Describe
+    - resource:
+        type: topic
+        name: ecommerce.customer.events.dlq
+      operations:
+      - Write
+      - Describe
+    - resource:
+        type: group
+        name: recommendation-service
+      operations:
+      - Read
+---
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaUser
+metadata:
+  name: checkout-service
+  namespace: messaging
+  labels:
+    strimzi.io/cluster: ecommerce
+spec:
+  authentication:
+    type: scram-sha-512
+  authorization:
+    type: simple
+    acls:
+    - resource:
+        type: topic
+        name: ecommerce.fraud.events
+      operations:
+      - Read
+      - Describe
+    - resource:
+        type: topic
+        name: ecommerce.fraud.events.dlq
+      operations:
+      - Write
+      - Describe
+    - resource:
+        type: topic
+        name: ecommerce.inventory.events
+      operations:
+      - Read
+      - Describe
+    - resource:
+        type: topic
+        name: ecommerce.inventory.events.dlq
+      operations:
+      - Write
+      - Describe
+    - resource:
+        type: group
+        name: checkout-service
+      operations:
+      - Read
+---
+# stream-processor (Flink): đọc event nghiệp vụ, ghi topic ecommerce.stream.*. Group = <prefix>-<pipeline>.
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaUser
+metadata:
+  name: stream-processor
+  namespace: messaging
+  labels:
+    strimzi.io/cluster: ecommerce
+spec:
+  authentication:
+    type: scram-sha-512
+  authorization:
+    type: simple
+    acls:
+    - resource:
+        type: topic
+        name: ecommerce.order.events
+      operations:
+      - Read
+      - Describe
+    - resource:
+        type: topic
+        name: ecommerce.payment.events
+      operations:
+      - Read
+      - Describe
+    - resource:
+        type: topic
+        name: ecommerce.cart.events
+      operations:
+      - Read
+      - Describe
+    - resource:
+        type: topic
+        name: ecommerce.customer.events
+      operations:
+      - Read
+      - Describe
+    - resource:
+        type: topic
+        name: ecommerce.inventory.events
+      operations:
+      - Read
+      - Describe
+    - resource:
+        type: topic
+        name: ecommerce.stream.
+        patternType: prefix
+      operations:
+      - Write
+      - Describe
+    - resource:
+        type: group
+        name: stream-processor-
+        patternType: prefix
       operations:
       - Read

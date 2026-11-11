@@ -1,4 +1,4 @@
-import type { ProblemDetails } from '@ecom/shared';
+import type { ProblemDetails } from '@ecommerce/shared';
 import { type ArgumentsHost, Catch, type ExceptionFilter, HttpException, Logger } from '@nestjs/common';
 import type { Response } from 'express';
 import { DomainError, HTTP_STATUS } from './domain-error.js';

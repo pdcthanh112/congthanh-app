@@ -1,4 +1,4 @@
-import { platformTables } from '@ecom/platform';
+import { platformTables } from '@ecommerce/platform';
 import { bigint, index, pgSchema, primaryKey, text, timestamp, uniqueIndex, varchar } from 'drizzle-orm/pg-core';
 
 export const messageSchema = pgSchema('message_service');

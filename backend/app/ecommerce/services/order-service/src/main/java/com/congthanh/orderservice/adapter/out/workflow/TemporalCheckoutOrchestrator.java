@@ -1,7 +1,7 @@
 package com.congthanh.orderservice.adapter.out.workflow;
 
-import com.congthanh.ecom.workflow.TaskQueues;
-import com.congthanh.ecom.workflow.checkout.CheckoutContract;
+import com.congthanh.ecommerce.workflow.TaskQueues;
+import com.congthanh.ecommerce.workflow.checkout.CheckoutContract;
 import com.congthanh.orderservice.application.port.out.CheckoutOrchestrator;
 import com.congthanh.orderservice.domain.exception.OrderException;
 import com.congthanh.orderservice.domain.model.Order;
@@ -42,7 +42,8 @@ class TemporalCheckoutOrchestrator implements CheckoutOrchestrator {
     public void start(Order order) {
         WorkflowStub stub = client.newUntypedWorkflowStub(CheckoutContract.WORKFLOW_TYPE, WorkflowOptions.newBuilder()
                 .setWorkflowId(CheckoutContract.workflowId(order.id()))
-                .setTaskQueue(TaskQueues.CHECKOUT)
+                // Workflow do checkout-service chạy; order-service chỉ start (sau khi lưu đơn) và chạy activity.
+                .setTaskQueue(TaskQueues.CHECKOUT_WORKFLOW)
                 // Start lại cùng đơn: nếu đang chạy hoặc đã xong thì bỏ qua; chỉ chạy lại nếu lần trước lỗi hệ thống.
                 .setWorkflowIdReusePolicy(WorkflowIdReusePolicy.WORKFLOW_ID_REUSE_POLICY_ALLOW_DUPLICATE_FAILED_ONLY)
                 .setWorkflowExecutionTimeout(executionTimeout)

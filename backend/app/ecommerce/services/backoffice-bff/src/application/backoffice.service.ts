@@ -1,5 +1,5 @@
-import type { AdjustmentKind, StockLevel } from '@ecom/clients';
-import { DomainError, hasAnyRole, type Principal, Role } from '@ecom/platform';
+import type { AdjustmentKind, StockLevel } from '@ecommerce/clients';
+import { DomainError, hasAnyRole, type Principal, Role } from '@ecommerce/platform';
 import { Inject, Injectable } from '@nestjs/common';
 import {
   CARTS,

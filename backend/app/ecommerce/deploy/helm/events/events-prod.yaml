@@ -1,0 +1,14 @@
+# Lịch sự kiện tải cao của prod (flash sale, ngày sale lớn), dùng chung cho mọi service qua ApplicationSet
+# ecommerce-services. Trong mỗi khung giờ, service nào khai scheduledScaling.replicas > 0 sẽ được KEDA giữ sẵn
+# đúng số pod đó; CPU vẫn có thể đẩy số pod lên cao hơn, hết giờ thì tự hạ về mức thường.
+#
+# Cách dùng: thêm một dòng cho mỗi đợt, bắt đầu TRƯỚC giờ mở sale 15 tới 30 phút (pod Java cần thời gian khởi
+# động, Karpenter cần thời gian thêm node), kết thúc sau khi tải đã hạ. Merge vào main là Argo CD áp dụng.
+# start/end là cron 5 trường (phút giờ ngày tháng thứ) theo scheduledScaling.timezone; xoá dòng khi đợt đã qua.
+scheduledScaling:
+  timezone: America/New_York
+  events:
+    # Black Friday 2026: sale mở 00:00 ngày 27/11, giữ tới hết Cyber Monday 30/11.
+    - {name: black-friday-2026, start: "30 23 26 11 *", end: "59 23 30 11 *"}
+    # Ví dụ flash sale lặp lại hằng tuần (thứ Sáu 20:00 tới 22:00); bỏ dấu # khi có lịch thật:
+    # - {name: weekly-flash-sale, start: "40 19 * * 5", end: "30 22 * * 5"}

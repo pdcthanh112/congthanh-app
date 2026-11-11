@@ -1,7 +1,7 @@
-import { DomainError } from '@ecom/platform/errors';
-import { Inject, Injectable } from '@nestjs/common';
-import { applyChange } from '../domain/rating-summary.js';
-import { Review, type ReviewDraft, type ReviewStatus } from '../domain/review.js';
+import { DomainError } from "@ecommerce/platform/errors";
+import { Inject, Injectable } from "@nestjs/common";
+import { applyChange } from "../domain/rating-summary.js";
+import { Review, type ReviewDraft, type ReviewStatus } from "../domain/review.js";
 import {
   CLOCK,
   type Clock,
@@ -17,15 +17,14 @@ import {
   type TransactionScope,
   UNIT_OF_WORK,
   type UnitOfWork,
-} from './ports.js';
+} from "./ports.js";
 
 export interface Author {
   id: string;
   name: string;
 }
 
-/** Điểm chỉ tính đánh giá đang hiển thị. */
-const counted = (r: Review | undefined) => (r && r.status === 'PUBLISHED' ? r.rating : null);
+const counted = (r: Review | undefined) => (r && r.status === "PUBLISHED" ? r.rating : null);
 
 @Injectable()
 export class ReviewService {
@@ -42,15 +41,14 @@ export class ReviewService {
     return this.read.reviews.search({ ...q, limit: Math.min(Math.max(q.limit, 1), 50), offset: Math.max(q.offset, 0) });
   }
 
-  /** Chỉ được đánh giá sản phẩm trong đơn đã thanh toán, mỗi sản phẩm mỗi đơn một lần. */
   submit(author: Author, orderId: string, productId: string, draft: ReviewDraft): Promise<Review> {
     return this.uow.run(async (tx) => {
       const purchase = await tx.purchases.find(author.id, orderId, productId);
-      if (purchase?.status !== 'CONFIRMED') {
-        throw DomainError.forbidden('only purchased products can be reviewed', 'NOT_PURCHASED');
+      if (purchase?.status !== "CONFIRMED") {
+        throw DomainError.forbidden("only purchased products can be reviewed", "NOT_PURCHASED");
       }
       if (await tx.reviews.exists(author.id, orderId, productId)) {
-        throw DomainError.conflict('you already reviewed this product for this order', 'ALREADY_REVIEWED');
+        throw DomainError.conflict("you already reviewed this product for this order", "ALREADY_REVIEWED");
       }
       const review = Review.submit(
         { id: this.ids.next(), productId, customerId: author.id, authorName: author.name, orderId },
@@ -83,12 +81,11 @@ export class ReviewService {
     });
   }
 
-  /** Seller chỉ trả lời đánh giá sản phẩm của mình (hỏi product-service ai là chủ). */
   async reply(sellerId: string, isAdmin: boolean, id: string, version: number, text: string): Promise<Review> {
     const current = await this.read.reviews.findById(id);
     if (!current) throw DomainError.notFound(`review ${id} not found`);
     if (!isAdmin && (await this.products.sellerOf(current.productId)) !== sellerId) {
-      throw DomainError.forbidden('only the seller of this product can reply');
+      throw DomainError.forbidden("only the seller of this product can reply");
     }
     return this.mutate(id, version, async (review, _before, tx) => {
       review.reply(text, this.clock.now());
@@ -109,8 +106,8 @@ export class ReviewService {
   voteHelpful(userId: string, id: string): Promise<boolean> {
     return this.uow.run(async (tx) => {
       const review = await tx.reviews.findById(id);
-      if (review?.status !== 'PUBLISHED') throw DomainError.notFound(`review ${id} not found`);
-      if (review.snapshot().customerId === userId) throw DomainError.invalid('cannot vote for your own review');
+      if (review?.status !== "PUBLISHED") throw DomainError.notFound(`review ${id} not found`);
+      if (review.snapshot().customerId === userId) throw DomainError.invalid("cannot vote for your own review");
       return tx.reviews.addHelpfulVote(id, userId);
     });
   }
@@ -118,8 +115,6 @@ export class ReviewService {
   pendingReviews(customerId: string, limit: number) {
     return this.read.purchases.pendingReviews(customerId, Math.min(Math.max(limit, 1), 50));
   }
-
-  // ---------- nội bộ ----------
 
   private mutate(
     id: string,
@@ -130,12 +125,12 @@ export class ReviewService {
       const review = await tx.reviews.findById(id);
       if (!review) throw DomainError.notFound(`review ${id} not found`);
       if (review.snapshot().version !== version) {
-        throw DomainError.conflict('review was modified; reload and retry', 'STALE_VERSION');
+        throw DomainError.conflict("review was modified; reload and retry", "STALE_VERSION");
       }
       const before = counted(review);
       const after = await change(review, before, tx);
       if (!(await tx.reviews.update(review, version))) {
-        throw DomainError.conflict('review was modified; reload and retry', 'STALE_VERSION');
+        throw DomainError.conflict("review was modified; reload and retry", "STALE_VERSION");
       }
       await after();
       return Review.rehydrate({ ...review.snapshot(), version: version + 1 });

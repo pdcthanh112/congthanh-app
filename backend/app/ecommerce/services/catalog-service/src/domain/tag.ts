@@ -1,4 +1,4 @@
-import { DomainError } from '@ecom/platform/errors';
+import { DomainError } from '@ecommerce/platform/errors';
 
 export type TagStatus = 'ACTIVE' | 'INACTIVE';
 

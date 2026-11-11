@@ -127,7 +127,7 @@ type ShippingAddress struct {
 	Label string `protobuf:"bytes,5,opt,name=label,proto3" json:"label,omitempty"`
 	// ISO 3166-1 alpha-2
 	CountryCode string `protobuf:"bytes,6,opt,name=country_code,json=countryCode,proto3" json:"country_code,omitempty"`
-	// Mã tỉnh/thành, quận/huyện, phường/xã (dùng cho tính phí ship và giới hạn vùng giao).
+	// Mã bang (ISO 3166-2 bỏ tiền tố, ví dụ "CA"), county, khu vực nhỏ hơn nếu có (dùng cho phí ship, thuế và giới hạn vùng giao).
 	ProvinceCode  string  `protobuf:"bytes,7,opt,name=province_code,json=provinceCode,proto3" json:"province_code,omitempty"`
 	DistrictCode  string  `protobuf:"bytes,8,opt,name=district_code,json=districtCode,proto3" json:"district_code,omitempty"`
 	WardCode      string  `protobuf:"bytes,9,opt,name=ward_code,json=wardCode,proto3" json:"ward_code,omitempty"`

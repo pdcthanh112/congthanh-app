@@ -1,29 +1,33 @@
-# Kafka KRaft (không ZooKeeper) qua Strimzi, namespace messaging.
 apiVersion: kafka.strimzi.io/v1beta2
 kind: KafkaNodePool
 metadata:
   name: dual-role
   namespace: messaging
-  labels: {strimzi.io/cluster: ecom}
+  labels: { strimzi.io/cluster: ecommerce }
 spec:
   replicas: 3
   roles: [controller, broker]
   storage:
     type: jbod
     volumes:
-      - {id: 0, type: persistent-claim, size: 200Gi, deleteClaim: false, kraftMetadata: shared, class: gp3}
+      - { id: 0, type: persistent-claim, size: 200Gi, deleteClaim: false, kraftMetadata: shared, class: gp3 }
   resources:
-    requests: {cpu: "1", memory: 4Gi}
-    limits: {memory: 4Gi}
+    requests: { cpu: "1", memory: 4Gi }
+    limits: { memory: 4Gi }
   template:
     pod:
       topologySpreadConstraints:
-        - {maxSkew: 1, topologyKey: topology.kubernetes.io/zone, whenUnsatisfiable: DoNotSchedule, labelSelector: {matchLabels: {strimzi.io/pool-name: dual-role}}}
+        - {
+            maxSkew: 1,
+            topologyKey: topology.kubernetes.io/zone,
+            whenUnsatisfiable: DoNotSchedule,
+            labelSelector: { matchLabels: { strimzi.io/pool-name: dual-role } },
+          }
 ---
 apiVersion: kafka.strimzi.io/v1beta2
 kind: Kafka
 metadata:
-  name: ecom
+  name: ecommerce
   namespace: messaging
   annotations:
     strimzi.io/node-pools: enabled
@@ -32,8 +36,7 @@ spec:
   kafka:
     version: 4.1.0
     listeners:
-      # Trong cluster mTLS đã do Istio Ambient lo → listener plain, xác thực bằng SCRAM.
-      - {name: plain, port: 9092, type: internal, tls: false, authentication: {type: scram-sha-512}}
+      - { name: plain, port: 9092, type: internal, tls: false, authentication: { type: scram-sha-512 } }
     authorization:
       type: simple
     config:
@@ -48,11 +51,11 @@ spec:
       topologyKey: topology.kubernetes.io/zone
     metricsConfig:
       type: jmxPrometheusExporter
-      valueFrom: {configMapKeyRef: {name: kafka-metrics, key: kafka-metrics-config.yml}}
+      valueFrom: { configMapKeyRef: { name: kafka-metrics, key: kafka-metrics-config.yml } }
   entityOperator:
     topicOperator: {}
     userOperator: {}
   cruiseControl: {}
   kafkaExporter:
-    topicRegex: "ecom\\..*"
+    topicRegex: "ecommerce\\..*"
     groupRegex: ".*"

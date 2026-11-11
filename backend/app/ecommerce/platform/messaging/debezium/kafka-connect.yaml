@@ -9,7 +9,7 @@ metadata:
 spec:
   version: 4.1.0
   replicas: 2
-  bootstrapServers: ecom-kafka-bootstrap:9092
+  bootstrapServers: ecommerce-kafka-bootstrap:9092
   authentication:
     type: scram-sha-512
     username: debezium-connect

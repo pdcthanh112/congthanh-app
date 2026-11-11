@@ -1,12 +1,22 @@
-import type { DiscountQuote, OrderAddress, ProductSummary, StockLevel } from '@ecom/clients';
-import { DomainError, type Principal } from '@ecom/platform';
-import { type Money, multiplyMoney, sumMoney } from '@ecom/shared';
+import type {
+  CheckoutSessionDto,
+  DiscountQuote,
+  OrderAddress,
+  ProductSummary,
+  Recommendation,
+  RecommendationKind,
+  StockLevel,
+} from '@ecommerce/clients';
+import { DomainError, type Principal } from '@ecommerce/platform';
+import { type Money, multiplyMoney, sumMoney } from '@ecommerce/shared';
 import { Inject, Injectable } from '@nestjs/common';
 import {
   ADDRESSES,
   type AddressPort,
   CARTS,
   type CartPort,
+  CHECKOUTS,
+  type CheckoutPort,
   CURRENCY,
   INVENTORY,
   type InventoryPort,
@@ -16,6 +26,8 @@ import {
   PROMOTIONS,
   type ProductPort,
   type PromotionPort,
+  RECOMMENDATIONS,
+  type RecommendationPort,
 } from './ports.js';
 
 export const MAX_QUANTITY = 999;
@@ -42,7 +54,14 @@ export interface CartSnapshot {
   checkoutReady: boolean;
 }
 
-export type PaymentMethod = 'CASH_ON_DELIVERY' | 'CREDIT_CARD' | 'STRIPE' | 'PAYPAL' | 'VN_PAY' | 'MOMO';
+/**
+ * CARD, APPLE_PAY, GOOGLE_PAY qua Stripe Payment Element; PAYPAL qua PayPal.
+ * AFFIRM, KLARNA, AFTERPAY: trả góp qua đối tác trên Stripe (ADR 0016), luôn redirect sang trang đối tác.
+ */
+export type PaymentMethod = 'CARD' | 'APPLE_PAY' | 'GOOGLE_PAY' | 'PAYPAL' | 'AFFIRM' | 'KLARNA' | 'AFTERPAY';
+
+/** Phương thức chuyển khách sang trang khác để duyệt, nên cần trang quay về. */
+const REDIRECT_METHODS: ReadonlySet<PaymentMethod> = new Set(['PAYPAL', 'AFFIRM', 'KLARNA', 'AFTERPAY']);
 
 export interface CheckoutCommand {
   idempotencyKey: string;
@@ -52,13 +71,28 @@ export interface CheckoutCommand {
   paymentToken?: string | null;
   returnUrl?: string | null;
   note?: string | null;
+  /** Tổng khách đang thấy trên màn hình; giá đổi thì trả lỗi PRICE_CHANGED thay vì đặt theo giá mới. */
+  expectedTotal?: number | null;
+  deviceId?: string | null;
   clientIp?: string;
 }
 
+/** Kết quả đặt hàng: PLACED (đã có đơn) hoặc PENDING_REVIEW (chờ duyệt tay, chưa có đơn). */
+export interface CheckoutOutcome {
+  checkoutSessionId: string;
+  status: string;
+  orderId: string | null;
+  orderCode: string | null;
+  session: CheckoutSessionDto;
+  checkoutUrl: string | null;
+}
+
+const MAX_RECOMMENDATIONS = 24;
+
 /**
  * Điều phối cho storefront: ghép giỏ hàng (cart-service) với giá (product-service) và tồn kho
- * (inventory-service), báo giá khuyến mãi, chuẩn bị lệnh checkout cho order-service.
- * Giá cuối cùng luôn do order-service tính lại; số ở đây chỉ để hiển thị.
+ * (inventory-service), báo giá khuyến mãi, đặt hàng qua checkout-service, gợi ý (recommendation-service).
+ * Giá cuối cùng luôn do checkout-service báo giá lại (pricing-service); số ở giỏ chỉ để hiển thị.
  */
 @Injectable()
 export class StorefrontService {
@@ -69,6 +103,8 @@ export class StorefrontService {
     @Inject(PROMOTIONS) private readonly promotions: PromotionPort,
     @Inject(ORDERS) readonly orders: OrderPort,
     @Inject(ADDRESSES) private readonly addresses: AddressPort,
+    @Inject(CHECKOUTS) private readonly checkouts: CheckoutPort,
+    @Inject(RECOMMENDATIONS) private readonly recommender: RecommendationPort,
     @Inject(CURRENCY) private readonly currency: string,
   ) {}
 
@@ -149,8 +185,8 @@ export class StorefrontService {
     if (!/^[A-Za-z0-9_-]{16,64}$/.test(cmd.idempotencyKey)) {
       throw DomainError.invalid('idempotencyKey must be 16-64 url-safe characters');
     }
-    if (cmd.paymentMethod !== 'CASH_ON_DELIVERY' && !cmd.returnUrl) {
-      throw DomainError.invalid('returnUrl is required for online payment');
+    if (REDIRECT_METHODS.has(cmd.paymentMethod) && !cmd.returnUrl) {
+      throw DomainError.invalid(`returnUrl is required for ${cmd.paymentMethod}`);
     }
     const cart = await this.cart(p);
     if (cart.lines.length === 0) throw DomainError.invalid('cart is empty', 'CART_EMPTY');
@@ -162,23 +198,71 @@ export class StorefrontService {
       );
     }
     const address = toOrderAddress(await this.addresses.shippingAddress(p.id, cmd.shippingAddressId));
-    const accepted = await this.orders.checkout(
+    const promotionCode = cmd.promotionCode?.trim().toUpperCase() || null;
+    // Mở phiên cũng mang Idempotency-Key (khác key đặt đơn): gửi lại sau khi mất mạng nhận lại đúng phiên cũ,
+    // nên lệnh đặt đơn gửi lại cũng trúng cùng phiên và được trả kết quả cũ.
+    const session = await this.checkouts.open(
       p.token,
       {
         items: cart.lines.map((l) => ({ productId: l.productId, quantity: l.quantity })),
-        promotionCode: cmd.promotionCode?.trim().toUpperCase() || null,
+        currency: this.currency,
+        promotionCode,
+        shippingAddress: address,
+        note: cmd.note?.slice(0, 500) ?? null,
+      },
+      `${cmd.idempotencyKey}-open`,
+    );
+    if (session.status === 'OPEN') {
+      if ((session.unpricedProductIds ?? []).length > 0) {
+        throw DomainError.conflict(
+          `some items have no price: ${(session.unpricedProductIds ?? []).join(', ')}`,
+          'CART_NOT_PURCHASABLE',
+        );
+      }
+      if (promotionCode && session.promotionError) {
+        throw DomainError.invalid(`promotion ${promotionCode}: ${session.promotionError}`, 'PROMOTION_INVALID');
+      }
+    }
+    const placed = await this.checkouts.place(
+      p.token,
+      session.id,
+      {
         paymentMethod: cmd.paymentMethod,
         paymentToken: cmd.paymentToken ?? null,
         returnUrl: cmd.returnUrl ?? null,
-        shippingAddress: address,
-        note: cmd.note?.slice(0, 500) ?? null,
+        deviceId: cmd.deviceId ?? null,
+        expectedTotal: cmd.expectedTotal ?? null,
       },
       cmd.idempotencyKey,
       cmd.clientIp,
     );
     // Giỏ không bị xoá ở đây: cart-service tự dọn khi nhận OrderPlaced, nên thanh toán thất bại
     // thì khách vẫn còn giỏ để thử lại.
-    return accepted;
+    return toOutcome(placed);
+  }
+
+  /** Trạng thái phiên checkout (dùng khi đơn đang chờ duyệt tay: chưa có orderCode để poll checkoutProgress). */
+  async checkoutSession(p: Principal, sessionId: string): Promise<CheckoutOutcome> {
+    return toOutcome(await this.checkouts.get(p.token, sessionId));
+  }
+
+  async recommendationsFor(productId: string, kind: RecommendationKind, limit: number): Promise<Recommendation[]> {
+    return this.recommender.forProduct(productId, kind, clampLimit(limit));
+  }
+
+  async trending(limit: number, categoryId?: string | null): Promise<Recommendation[]> {
+    return this.recommender.trending(clampLimit(limit), categoryId);
+  }
+
+  /** Khách đăng nhập: theo lịch sử; khách vãng lai: theo sessionId (cookie phía web) hoặc xu hướng. */
+  async forYou(p: Principal | undefined, limit: number, sessionId?: string): Promise<Recommendation[]> {
+    return this.recommender.forYou(clampLimit(limit), p?.token, p ? undefined : sessionId);
+  }
+
+  async trackView(p: Principal | undefined, productId: string, sessionId?: string): Promise<boolean> {
+    if (!p && !sessionId) return false;
+    await this.recommender.track('VIEW', productId, p?.token, p ? undefined : sessionId);
+    return true;
   }
 
   /** Tồn kho chỉ để hiển thị: inventory-service lỗi thì vẫn cho xem giỏ (giữ chỗ thật ở saga). */
@@ -195,6 +279,22 @@ export class StorefrontService {
     if (!cart) throw DomainError.notFound('cart not found');
     return cart.id;
   }
+}
+
+function clampLimit(n: number): number {
+  return Math.min(Math.max(Math.trunc(n) || 1, 1), MAX_RECOMMENDATIONS);
+}
+
+function toOutcome(s: CheckoutSessionDto): CheckoutOutcome {
+  const orderCode = s.orderCode ?? null;
+  return {
+    checkoutSessionId: s.id,
+    status: s.status,
+    orderId: s.orderId ?? null,
+    orderCode,
+    session: s,
+    checkoutUrl: orderCode ? `/api/ecommerce/orders/${encodeURIComponent(orderCode)}/checkout` : null,
+  };
 }
 
 function assertQuantity(q: number) {

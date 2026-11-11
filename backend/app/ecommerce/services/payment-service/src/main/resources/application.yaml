@@ -55,12 +55,27 @@ payment:
     client-id: ${PAYPAL_CLIENT_ID:}
     client-secret: ${PAYPAL_CLIENT_SECRET:}
     base-url: ${PAYPAL_BASE_URL:https://api-m.sandbox.paypal.com}
-  vnpay:
-    tmn-code: ${VNPAY_TMN_CODE:}
-    hash-secret: ${VNPAY_HASH_SECRET:}
-    pay-url: ${VNPAY_PAY_URL:https://sandbox.vnpayment.vn/paymentv2/vpcpay.html}
-    api-url: ${VNPAY_API_URL:https://sandbox.vnpayment.vn/merchant_webapi/api/transaction}
-    return-url: ${VNPAY_RETURN_URL:http://localhost:3000/checkout/result}
+    brand-name: ${PAYPAL_BRAND_NAME:CongThanh Store}
+  # Trả góp qua đối tác (ADR 0016), chạy trên Stripe: phải bật thêm từng phương thức trong Stripe Dashboard.
+  # Hạn mức lấy theo tài liệu Stripe lúc viết, đối chiếu lại trước khi bật ở prod. authorization-ttl = thời gian
+  # authorization còn hiệu lực để capture (ghi vào authorization_expires_at).
+  installments:
+    currencies: [USD]
+    affirm:
+      enabled: ${PAYMENT_AFFIRM_ENABLED:false}
+      min-amount: 50.00
+      max-amount: 30000.00
+      authorization-ttl: 30d
+    klarna:
+      enabled: ${PAYMENT_KLARNA_ENABLED:false}
+      min-amount: 1.00
+      max-amount: 10000.00
+      authorization-ttl: 28d
+    afterpay:
+      enabled: ${PAYMENT_AFTERPAY_ENABLED:false}
+      min-amount: 1.00
+      max-amount: 4000.00
+      authorization-ttl: 13d
 
 management:
   endpoints:

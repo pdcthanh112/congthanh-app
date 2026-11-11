@@ -1,22 +1,14 @@
-import type { Database } from '@ecom/platform';
-import { and, asc, count, eq, inArray, isNull, ne, sql } from 'drizzle-orm';
-import type {
-  BrandRepository,
-  CategoryFilter,
-  CategoryRepository,
-  CountryRepository,
-  Page,
-  TagRepository,
-} from '../../../application/ports.js';
-import type { BrandProps } from '../../../domain/brand.js';
-import { Category } from '../../../domain/category.js';
-import type { Country } from '../../../domain/country.js';
-import type { TagProps, TagStatus } from '../../../domain/tag.js';
-import * as schema from './schema.js';
-import { brands, categories, countries, productTags, tags } from './schema.js';
+import type { Database } from "@ecommerce/platform";
+import { and, asc, count, eq, inArray, isNull, ne, sql } from "drizzle-orm";
+import type { BrandRepository, CategoryFilter, CategoryRepository, CountryRepository, Page, TagRepository } from "../../../application/ports.js";
+import type { BrandProps } from "../../../domain/brand.js";
+import { Category } from "../../../domain/category.js";
+import type { Country } from "../../../domain/country.js";
+import type { TagProps, TagStatus } from "../../../domain/tag.js";
+import * as schema from "./schema.js";
+import { brands, categories, countries, productTags, tags } from "./schema.js";
 
-/** `db` hoặc `tx` của Drizzle với schema catalog. */
-export type Conn = Pick<Database<typeof schema>, 'select' | 'insert' | 'update' | 'delete' | 'execute'>;
+export type Conn = Pick<Database<typeof schema>, "select" | "insert" | "update" | "delete" | "execute">;
 
 type CategoryRow = typeof categories.$inferSelect;
 const toCategory = (r: CategoryRow) => Category.rehydrate({ ...r });
@@ -47,7 +39,7 @@ export class DrizzleCategoryRepository implements CategoryRepository {
     const conds = [];
     if (filter.parentId === null) conds.push(isNull(categories.parentId));
     else if (filter.parentId !== undefined) conds.push(eq(categories.parentId, filter.parentId));
-    if (!filter.includeInactive) conds.push(eq(categories.status, 'ACTIVE'));
+    if (!filter.includeInactive) conds.push(eq(categories.status, "ACTIVE"));
     const rows = await this.db
       .select()
       .from(categories)
@@ -70,7 +62,7 @@ export class DrizzleCategoryRepository implements CategoryRepository {
 
   async countChildren(id: string, activeOnly: boolean) {
     const conds = [eq(categories.parentId, id)];
-    if (activeOnly) conds.push(eq(categories.status, 'ACTIVE'));
+    if (activeOnly) conds.push(eq(categories.status, "ACTIVE"));
     const [row] = await this.db
       .select({ n: count() })
       .from(categories)
@@ -137,9 +129,9 @@ export class DrizzleBrandRepository implements BrandRepository {
     return (row?.n ?? 0) > 0;
   }
 
-  async insert(brand: Omit<BrandProps, 'id'>) {
+  async insert(brand: Omit<BrandProps, "id">) {
     const [row] = await this.db.insert(brands).values(brand).returning();
-    if (!row) throw new Error('insert brand returned nothing');
+    if (!row) throw new Error("insert brand returned nothing");
     return row;
   }
 
@@ -181,7 +173,7 @@ export class DrizzleTagRepository implements TagRepository {
 
   async insert(name: string, now: Date) {
     const [row] = await this.db.insert(tags).values({ name, createdAt: now, updatedAt: now }).returning();
-    if (!row) throw new Error('insert tag returned nothing');
+    if (!row) throw new Error("insert tag returned nothing");
     return row;
   }
 

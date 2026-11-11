@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"slices"
+	"sync/atomic"
 	"time"
 
 	"github.com/pdcthanh112/CongThanhApp/backend/app/ecommerce/services/inventory-service/internal/domain"
@@ -12,6 +13,7 @@ import (
 type Options struct {
 	ReservationTTL   time.Duration
 	DefaultWarehouse string
+	FlashClaimTTL    time.Duration // khách giành được suất phải đặt đơn trong khoảng này
 }
 
 type Service struct {
@@ -22,6 +24,8 @@ type Service struct {
 	claims     ClaimPublisher // có thể nil
 	opt        Options
 	now        func() time.Time
+	// Số sale đang chạy theo lần quét gần nhất; -1 = chưa biết. Xem flashClaimOf.
+	activeSales atomic.Int64
 }
 
 func NewService(uow UnitOfWork, read Reader, wh WarehouseRepository, flash FlashSaleStore, claims ClaimPublisher, opt Options) *Service {
@@ -31,7 +35,12 @@ func NewService(uow UnitOfWork, read Reader, wh WarehouseRepository, flash Flash
 	if opt.DefaultWarehouse == "" {
 		opt.DefaultWarehouse = "WH-DEFAULT"
 	}
-	return &Service{uow: uow, read: read, warehouses: wh, flash: flash, claims: claims, opt: opt, now: time.Now}
+	if opt.FlashClaimTTL == 0 {
+		opt.FlashClaimTTL = 10 * time.Minute
+	}
+	s := &Service{uow: uow, read: read, warehouses: wh, flash: flash, claims: claims, opt: opt, now: time.Now}
+	s.activeSales.Store(-1)
+	return s
 }
 
 type ReserveInput struct {
@@ -56,6 +65,11 @@ func (s *Service) Reserve(ctx context.Context, in ReserveInput) (domain.ReserveR
 	}
 	if len(items) == 0 {
 		return domain.ReserveResult{}, domain.Invalid("items must not be empty")
+	}
+	if fc, ok, err := s.flashClaimOf(ctx, in.ID); err != nil {
+		return domain.ReserveResult{}, err
+	} else if ok {
+		return s.confirmFlashClaim(ctx, fc, in, items)
 	}
 	now := s.now()
 	if in.ExpiresAt.IsZero() || !in.ExpiresAt.After(now) {
@@ -180,6 +194,11 @@ func (s *Service) activeLines(ctx context.Context, tx Tx, id string) ([]domain.R
 // (compensation của saga phải idempotent).
 func (s *Service) Release(ctx context.Context, id string, productIDs []string, reason string, expired bool) (domain.ReleaseResult, error) {
 	res := domain.ReleaseResult{ID: id, ReleasedAt: s.now()}
+	if fc, ok, err := s.flashClaimOf(ctx, id); err != nil {
+		return res, err
+	} else if ok {
+		return s.releaseFlashClaim(ctx, fc, res)
+	}
 	err := s.uow.Do(ctx, func(ctx context.Context, tx Tx) error {
 		r, err := tx.LockReservation(ctx, id)
 		if err != nil {
@@ -241,6 +260,11 @@ func (s *Service) Release(ctx context.Context, id string, productIDs []string, r
 // toàn bộ; có items thì chốt tối đa theo items, phần còn lại trả về kho.
 func (s *Service) Commit(ctx context.Context, id, orderID string, items []domain.Item) (domain.CommitResult, error) {
 	res := domain.CommitResult{ID: id, CommittedAt: s.now()}
+	if fc, ok, err := s.flashClaimOf(ctx, id); err != nil {
+		return res, err
+	} else if ok {
+		return s.commitFlashClaim(ctx, fc, res)
+	}
 	var want map[string]int32
 	if len(items) > 0 {
 		merged, err := domain.MergeItems(items)

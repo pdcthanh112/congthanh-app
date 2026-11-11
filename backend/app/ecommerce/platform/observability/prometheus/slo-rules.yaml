@@ -5,19 +5,19 @@ groups:
   - record: slo:error_ratio:5m
     labels:
       slo: checkout-availability
-    expr: sum(rate(traces_span_metrics_calls_total{service_name="order-service",http_route=~"/api/ecommerce/checkout.*",status_code="STATUS_CODE_ERROR"}[5m])) / sum(rate(traces_span_metrics_calls_total{service_name="order-service",http_route=~"/api/ecommerce/checkout.*"}[5m]))
+    expr: sum(rate(traces_span_metrics_calls_total{service_name="checkout-service",http_route=~"/api/ecommerce/checkout/sessions.*",status_code="STATUS_CODE_ERROR"}[5m])) / sum(rate(traces_span_metrics_calls_total{service_name="checkout-service",http_route=~"/api/ecommerce/checkout/sessions.*"}[5m]))
   - record: slo:error_ratio:30m
     labels:
       slo: checkout-availability
-    expr: sum(rate(traces_span_metrics_calls_total{service_name="order-service",http_route=~"/api/ecommerce/checkout.*",status_code="STATUS_CODE_ERROR"}[30m])) / sum(rate(traces_span_metrics_calls_total{service_name="order-service",http_route=~"/api/ecommerce/checkout.*"}[30m]))
+    expr: sum(rate(traces_span_metrics_calls_total{service_name="checkout-service",http_route=~"/api/ecommerce/checkout/sessions.*",status_code="STATUS_CODE_ERROR"}[30m])) / sum(rate(traces_span_metrics_calls_total{service_name="checkout-service",http_route=~"/api/ecommerce/checkout/sessions.*"}[30m]))
   - record: slo:error_ratio:1h
     labels:
       slo: checkout-availability
-    expr: sum(rate(traces_span_metrics_calls_total{service_name="order-service",http_route=~"/api/ecommerce/checkout.*",status_code="STATUS_CODE_ERROR"}[1h])) / sum(rate(traces_span_metrics_calls_total{service_name="order-service",http_route=~"/api/ecommerce/checkout.*"}[1h]))
+    expr: sum(rate(traces_span_metrics_calls_total{service_name="checkout-service",http_route=~"/api/ecommerce/checkout/sessions.*",status_code="STATUS_CODE_ERROR"}[1h])) / sum(rate(traces_span_metrics_calls_total{service_name="checkout-service",http_route=~"/api/ecommerce/checkout/sessions.*"}[1h]))
   - record: slo:error_ratio:6h
     labels:
       slo: checkout-availability
-    expr: sum(rate(traces_span_metrics_calls_total{service_name="order-service",http_route=~"/api/ecommerce/checkout.*",status_code="STATUS_CODE_ERROR"}[6h])) / sum(rate(traces_span_metrics_calls_total{service_name="order-service",http_route=~"/api/ecommerce/checkout.*"}[6h]))
+    expr: sum(rate(traces_span_metrics_calls_total{service_name="checkout-service",http_route=~"/api/ecommerce/checkout/sessions.*",status_code="STATUS_CODE_ERROR"}[6h])) / sum(rate(traces_span_metrics_calls_total{service_name="checkout-service",http_route=~"/api/ecommerce/checkout/sessions.*"}[6h]))
   - alert: SLOBurnFast
     labels:
       slo: checkout-availability

@@ -1,7 +1,7 @@
 import { type DescMessage, fromBinary, type MessageShape } from '@bufbuild/protobuf';
 import { anyUnpack } from '@bufbuild/protobuf/wkt';
 import { KafkaJS } from '@confluentinc/kafka-javascript';
-import { type EventEnvelope, EventEnvelopeSchema } from '@ecom/proto/ecommerce/common/v1/event_envelope_pb';
+import { type EventEnvelope, EventEnvelopeSchema } from '@ecommerce/proto/ecommerce/common/v1/event_envelope_pb';
 import { Logger, type OnApplicationBootstrap, type OnApplicationShutdown } from '@nestjs/common';
 import { context, propagation, SpanKind, SpanStatusCode, trace } from '@opentelemetry/api';
 
@@ -34,7 +34,7 @@ export class KafkaEventConsumer implements OnApplicationBootstrap, OnApplication
   private readonly handlers = new Map<string, Registration>();
   private consumer?: KafkaJS.Consumer;
   private producer?: KafkaJS.Producer;
-  private readonly tracer = trace.getTracer('@ecom/platform/kafka');
+  private readonly tracer = trace.getTracer('@ecommerce/platform/kafka');
 
   constructor(private readonly opts: ConsumerOptions) {}
 

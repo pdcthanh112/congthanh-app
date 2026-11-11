@@ -1,5 +1,5 @@
 import 'reflect-metadata';
-import { emitSchema } from '@ecom/platform';
+import { emitSchema } from '@ecommerce/platform';
 import { AppModule } from './app.module.js';
 import { env } from './config/env.js';
 

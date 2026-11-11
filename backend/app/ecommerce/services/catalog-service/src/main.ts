@@ -1,5 +1,5 @@
 import 'reflect-metadata';
-import { bootstrap } from '@ecom/platform';
+import { bootstrap } from '@ecommerce/platform';
 import { AppModule } from './app.module.js';
 import { env } from './config/env.js';
 

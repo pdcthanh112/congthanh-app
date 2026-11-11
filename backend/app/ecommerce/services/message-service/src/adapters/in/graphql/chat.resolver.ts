@@ -1,4 +1,4 @@
-import { CurrentPrincipal, hasAnyRole, type Principal, Role } from '@ecom/platform';
+import { CurrentPrincipal, hasAnyRole, type Principal, Role } from '@ecommerce/platform';
 import { Inject } from '@nestjs/common';
 import { Args, ID, Int, Mutation, Query, Resolver, Subscription } from '@nestjs/graphql';
 import { ChatService } from '../../../application/chat.service.js';

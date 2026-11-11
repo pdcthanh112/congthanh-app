@@ -6,7 +6,7 @@ import "google/protobuf/any.proto";
 import "google/protobuf/timestamp.proto";
 
 option java_multiple_files = true;
-option java_package = "com.congthanh.ecom.common.v1";
+option java_package = "com.congthanh.ecommerce.common.v1";
 
 // Phong bì chung cho mọi event trên Kafka (theo tinh thần CloudEvents).
 // Service ghi event vào bảng outbox trong cùng transaction với dữ liệu nghiệp vụ;

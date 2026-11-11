@@ -1,0 +1,11 @@
+# Stream processing: Flink Kubernetes Operator (deploy/argocd/platform/operators.yaml) chạy job stream-processor.
+# Overlay theo môi trường thay bucket state (terraform module flink_state) và kích thước.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: streaming
+configurations:
+- kustomizeconfig.yaml
+resources:
+- external-secret.yaml
+- stream-processor.yaml
+- pod-monitor.yaml

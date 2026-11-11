@@ -1,5 +1,5 @@
-import type { ProductDetail, ProductSummary, StockLevel } from '@ecom/clients';
-import type { Principal } from '@ecom/platform';
+import type { ProductDetail, ProductSummary, StockLevel } from '@ecommerce/clients';
+import type { Principal } from '@ecommerce/platform';
 import DataLoader from 'dataloader';
 import type { BackofficeService } from '../../../application/backoffice.service.js';
 

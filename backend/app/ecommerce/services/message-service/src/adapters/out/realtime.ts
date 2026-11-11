@@ -1,12 +1,12 @@
-import type { ValkeyPubSub } from '@ecom/platform';
-import { Valkey } from 'iovalkey';
+import type { RedisPubSub } from '@ecommerce/platform';
+import { Redis } from 'ioredis';
 import type { RateLimiter, Realtime, RealtimeEvent } from '../../application/ports.js';
 
 export const userChannel = (userId: string) => `chat:user:${userId}`;
 export const SUPPORT_CHANNEL = 'chat:support';
 
-export class ValkeyRealtime implements Realtime {
-  constructor(private readonly pubsub: ValkeyPubSub) {}
+export class RedisRealtime implements Realtime {
+  constructor(private readonly pubsub: RedisPubSub) {}
 
   async publish(userIds: readonly string[], toSupport: boolean, event: RealtimeEvent) {
     await Promise.all([
@@ -50,12 +50,12 @@ function merge<T>(sources: AsyncIterableIterator<T>[]): AsyncIterableIterator<T>
   };
 }
 
-/** Giới hạn tần suất cửa sổ cố định bằng INCR + EXPIRE (đủ cho chống spam chat). Valkey lỗi thì cho qua. */
-export class ValkeyRateLimiter implements RateLimiter {
-  private readonly client: Valkey;
+/** Giới hạn tần suất cửa sổ cố định bằng INCR + EXPIRE (đủ cho chống spam chat). Redis lỗi thì cho qua. */
+export class RedisRateLimiter implements RateLimiter {
+  private readonly client: Redis;
 
   constructor(url: string) {
-    this.client = new Valkey(url, { lazyConnect: true, maxRetriesPerRequest: 1 });
+    this.client = new Redis(url, { lazyConnect: true, maxRetriesPerRequest: 1 });
     this.client.on('error', () => undefined);
   }
 

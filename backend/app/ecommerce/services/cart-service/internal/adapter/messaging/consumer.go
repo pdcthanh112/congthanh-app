@@ -10,7 +10,7 @@ import (
 	orderv1 "github.com/pdcthanh112/CongThanhApp/backend/app/ecommerce/libs/go/proto/ecommerce/order/v1"
 )
 
-const TopicOrderEvents = "ecom.order.events"
+const TopicOrderEvents = "ecommerce.order.events"
 
 var orderPlacedType = string((&orderv1.OrderPlaced{}).ProtoReflect().Descriptor().FullName())
 

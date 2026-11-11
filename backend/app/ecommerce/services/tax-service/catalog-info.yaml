@@ -20,4 +20,4 @@ spec:
   - tax-api-grpc
   - tax-api-rest
   dependsOn:
-  - resource:ecom-postgres
+  - resource:ecommerce-postgres

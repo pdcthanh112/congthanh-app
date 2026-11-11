@@ -1,0 +1,102 @@
+# Chaos Mesh chạy định kỳ trên staging (ApplicationSet chaos-schedules), giờ thấp điểm, để kiểm chứng liên tục
+# các giả định trong ADR: SLO (Pyrra) không được đốt quá mức khi một thành phần hỏng. Game day thủ công vẫn ở tests/chaos.
+# Tạm dừng toàn bộ: kubectl annotate schedule -n <ns> --all experiment.chaos-mesh.org/pause=true
+apiVersion: chaos-mesh.org/v1alpha1
+kind: Schedule
+metadata:
+  name: checkout-pod-kill
+  namespace: ecommerce
+  annotations:
+    expectation: "Saga Temporal tiếp tục ở pod khác; SLO checkout-availability đốt < 1% ngân sách."
+spec:
+  schedule: "0 3 * * 1-5"  # 10:00 giờ VN, ngày làm việc (có người trực)
+  historyLimit: 5
+  concurrencyPolicy: Forbid
+  type: PodChaos
+  podChaos:
+    action: pod-kill
+    mode: one
+    selector:
+      namespaces: [ecommerce]
+      labelSelectors: {app.kubernetes.io/name: checkout-service}
+---
+apiVersion: chaos-mesh.org/v1alpha1
+kind: Schedule
+metadata:
+  name: fraud-latency
+  namespace: ecommerce
+  annotations:
+    expectation: "checkout timeout fraud rồi đưa đơn vào hàng chờ duyệt, không lỗi 5xx; fraud-latency SLO báo burn chậm."
+spec:
+  schedule: "30 3 * * 2,4"
+  historyLimit: 5
+  concurrencyPolicy: Forbid
+  type: NetworkChaos
+  networkChaos:
+    action: delay
+    mode: all
+    selector:
+      namespaces: [ecommerce]
+      labelSelectors: {app.kubernetes.io/name: fraud-service}
+    delay: {latency: 800ms, jitter: 100ms, correlation: "25"}
+    direction: to
+    duration: 10m
+---
+apiVersion: chaos-mesh.org/v1alpha1
+kind: Schedule
+metadata:
+  name: pricing-pod-failure
+  namespace: ecommerce
+  annotations:
+    expectation: "PDB + canary giữ ít nhất 1 pod; giỏ hàng dùng giá cache, pricing-availability không vượt burn rate nhanh."
+spec:
+  schedule: "0 4 * * 3"
+  historyLimit: 5
+  concurrencyPolicy: Forbid
+  type: PodChaos
+  podChaos:
+    action: pod-failure
+    mode: fixed-percent
+    value: "50"
+    selector:
+      namespaces: [ecommerce]
+      labelSelectors: {app.kubernetes.io/name: pricing-service}
+    duration: 5m
+---
+apiVersion: chaos-mesh.org/v1alpha1
+kind: Schedule
+metadata:
+  name: stream-taskmanager-kill
+  namespace: streaming
+  annotations:
+    expectation: "Flink khôi phục từ checkpoint RocksDB trên S3 trong < 2 phút; feature fraud/trending không mất, chỉ trễ."
+spec:
+  schedule: "0 5 * * 4"
+  historyLimit: 5
+  concurrencyPolicy: Forbid
+  type: PodChaos
+  podChaos:
+    action: pod-kill
+    mode: one
+    selector:
+      namespaces: [streaming]
+      labelSelectors: {app: stream-processor, component: taskmanager}
+---
+apiVersion: chaos-mesh.org/v1alpha1
+kind: Schedule
+metadata:
+  name: inventory-pod-kill
+  namespace: ecommerce
+  annotations:
+    expectation: "SLO inventory-reserve-availability đốt < 1% ngân sách (retry ở waypoint + PDB)."
+spec:
+  schedule: "0 6 * * 5"
+  historyLimit: 5
+  concurrencyPolicy: Forbid
+  type: PodChaos
+  podChaos:
+    action: pod-kill
+    mode: one
+    selector:
+      namespaces: [ecommerce]
+      labelSelectors: {app.kubernetes.io/name: inventory-service}

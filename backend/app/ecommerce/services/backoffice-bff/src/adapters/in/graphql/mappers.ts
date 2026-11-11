@@ -1,5 +1,5 @@
-import type { OrderDto, StockLevel } from '@ecom/clients';
-import { formatMoney, fromDecimal, type Money, toDecimal } from '@ecom/shared';
+import type { OrderDto, StockLevel } from '@ecommerce/clients';
+import { formatMoney, fromDecimal, type Money, toDecimal } from '@ecommerce/shared';
 import type { MoneyModel, OrderModel, StockLevelModel, StockStatusGql } from './types.js';
 
 export function money(m: Money): MoneyModel {

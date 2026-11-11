@@ -461,7 +461,7 @@ input QuietHoursInput {
   end: String!
   """HH:mm"""
   start: String!
-  timezone: String! = "Asia/Ho_Chi_Minh"
+  timezone: String! = "America/New_York"
 }
 
 input SendNotificationInput {

@@ -1,5 +1,5 @@
-import type { ProductDetail, ProductSummary } from '@ecom/clients';
-import { DomainError, Role, Roles } from '@ecom/platform';
+import type { ProductDetail, ProductSummary } from '@ecommerce/clients';
+import { DomainError, Role, Roles } from '@ecommerce/platform';
 import { Args, Context, ID, Int, Parent, Query, ResolveField, ResolveReference, Resolver } from '@nestjs/graphql';
 import { BackofficeService } from '../../../application/backoffice.service.js';
 import { type GqlCtx, loadersOf } from './loaders.js';

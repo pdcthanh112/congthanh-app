@@ -3,7 +3,7 @@ import { applyChange, averageOf, countOf, emptySummary } from './rating-summary.
 import { maskName, Review } from './review.js';
 
 const PREFIX = 'https://cdn.example/media/';
-const base = { id: 'r1', productId: 'p1', customerId: 'c1', authorName: 'Nguyễn Văn An', orderId: 'o1' };
+const base = { id: 'r1', productId: 'p1', customerId: 'c1', authorName: 'Alex Johnson', orderId: 'o1' };
 const t0 = new Date('2026-01-01T00:00:00Z');
 
 describe('Review', () => {
@@ -38,7 +38,7 @@ describe('Review', () => {
   });
 
   it('che tên', () => {
-    expect(maskName('Nguyễn Văn An')).toBe('N***n');
+    expect(maskName('Alex Johnson')).toBe('A***n');
     expect(maskName('A')).toBe('A*');
   });
 });

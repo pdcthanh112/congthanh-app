@@ -1,5 +1,5 @@
 plugins {
-    id("congthanh.spring-service")
+    id("congthanh.spring-native")
 }
 
 description = "Product service (hexagonal): products, variants, attributes, images; Mongo read model"

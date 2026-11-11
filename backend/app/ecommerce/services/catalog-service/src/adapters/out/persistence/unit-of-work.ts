@@ -1,11 +1,11 @@
 import { create } from '@bufbuild/protobuf';
 import { timestampFromDate } from '@bufbuild/protobuf/wkt';
-import { type Database, DB, OutboxWriter } from '@ecom/platform';
+import { type Database, DB, OutboxWriter } from '@ecommerce/platform';
 import {
   BrandUpsertedSchema,
   CategoryUpsertedSchema,
   ProductTagsChangedSchema,
-} from '@ecom/proto/ecommerce/catalog/v1/catalog_events_pb';
+} from '@ecommerce/proto/ecommerce/catalog/v1/catalog_events_pb';
 import { Inject, Injectable } from '@nestjs/common';
 import type { CatalogEvents, ReadRepositories, TransactionScope, UnitOfWork } from '../../../application/ports.js';
 import type { BrandProps } from '../../../domain/brand.js';

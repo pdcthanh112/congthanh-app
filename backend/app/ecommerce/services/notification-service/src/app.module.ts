@@ -11,8 +11,8 @@ import {
   PlatformHealthModule,
   PlatformLoggerModule,
   subgraphConfig,
-  ValkeyPubSub,
-} from '@ecom/platform';
+  RedisPubSub,
+} from '@ecommerce/platform';
 import type { ApolloFederationDriverConfig } from '@nestjs/apollo';
 import { type DynamicModule, Module } from '@nestjs/common';
 import { GraphQLModule } from '@nestjs/graphql';
@@ -26,7 +26,7 @@ import { WebPushSender } from './adapters/out/channels/web-push.sender.js';
 import { KeycloakRecipientDirectory } from './adapters/out/keycloak-directory.js';
 import * as schema from './adapters/out/persistence/schema.js';
 import { DrizzleUnitOfWork, readRepositories } from './adapters/out/persistence/unit-of-work.js';
-import { ValkeyRealtimePublisher } from './adapters/out/realtime.publisher.js';
+import { RedisRealtimePublisher } from './adapters/out/realtime.publisher.js';
 import { DeliveryWorker, WORKER_OPTIONS } from './application/delivery.worker.js';
 import { EventHandlers } from './application/event-handlers.js';
 import { NotificationService } from './application/notification.service.js';
@@ -106,11 +106,11 @@ export class AppModule {
         { provide: READ_REPOSITORIES, inject: [DB], useFactory: (db: Database<typeof schema>) => readRepositories(db) },
         { provide: CLOCK, useValue: { now: () => new Date() } },
         { provide: ID_GENERATOR, useValue: { next: () => uuidv7() } },
-        { provide: ValkeyPubSub, useFactory: () => new ValkeyPubSub(env.VALKEY_URL) },
+        { provide: RedisPubSub, useFactory: () => new RedisPubSub(env.REDIS_URL) },
         {
           provide: REALTIME,
-          inject: [ValkeyPubSub],
-          useFactory: (ps: ValkeyPubSub) => new ValkeyRealtimePublisher(ps),
+          inject: [RedisPubSub],
+          useFactory: (ps: RedisPubSub) => new RedisRealtimePublisher(ps),
         },
         {
           provide: RECIPIENT_DIRECTORY,

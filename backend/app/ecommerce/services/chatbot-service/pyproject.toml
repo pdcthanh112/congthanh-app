@@ -4,7 +4,7 @@ version = "0.1.0"
 description = "Trợ lý mua sắm: hỏi đáp về sản phẩm (RAG trên search-service), Claude hoặc Ollama, trả lời dạng SSE."
 requires-python = ">=3.13"
 dependencies = [
-  "ecom-platform[fastapi]",
+  "ecommerce-platform[fastapi]",
   "anthropic==2.3.0",
   "fastapi==0.162.0",
   "uvicorn[standard]==0.54.0",
@@ -18,7 +18,7 @@ dependencies = [
 dev = ["pytest==9.1.1", "pytest-asyncio==1.4.1", "ruff==0.17.2"]
 
 [tool.uv.sources]
-ecom-platform = { path = "../../libs/python/ecom-platform", editable = true }
+ecommerce-platform = { path = "../../libs/python/ecommerce-platform", editable = true }
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"

@@ -2,12 +2,12 @@
 apiVersion: kafka.strimzi.io/v1beta2
 kind: KafkaTopic
 metadata:
-  name: ecom-inventory-events
+  name: ecommerce-inventory-events
   namespace: messaging
   labels:
-    strimzi.io/cluster: ecom
+    strimzi.io/cluster: ecommerce
 spec:
-  topicName: ecom.inventory.events
+  topicName: ecommerce.inventory.events
   partitions: 12
   replicas: 3
   config:
@@ -18,12 +18,12 @@ spec:
 apiVersion: kafka.strimzi.io/v1beta2
 kind: KafkaTopic
 metadata:
-  name: ecom-inventory-events-dlq
+  name: ecommerce-inventory-events-dlq
   namespace: messaging
   labels:
-    strimzi.io/cluster: ecom
+    strimzi.io/cluster: ecommerce
 spec:
-  topicName: ecom.inventory.events.dlq
+  topicName: ecommerce.inventory.events.dlq
   partitions: 3
   replicas: 3
   config:
@@ -33,12 +33,12 @@ spec:
 apiVersion: kafka.strimzi.io/v1beta2
 kind: KafkaTopic
 metadata:
-  name: ecom-order-events
+  name: ecommerce-order-events
   namespace: messaging
   labels:
-    strimzi.io/cluster: ecom
+    strimzi.io/cluster: ecommerce
 spec:
-  topicName: ecom.order.events
+  topicName: ecommerce.order.events
   partitions: 12
   replicas: 3
   config:
@@ -49,12 +49,12 @@ spec:
 apiVersion: kafka.strimzi.io/v1beta2
 kind: KafkaTopic
 metadata:
-  name: ecom-order-events-dlq
+  name: ecommerce-order-events-dlq
   namespace: messaging
   labels:
-    strimzi.io/cluster: ecom
+    strimzi.io/cluster: ecommerce
 spec:
-  topicName: ecom.order.events.dlq
+  topicName: ecommerce.order.events.dlq
   partitions: 3
   replicas: 3
   config:
@@ -64,12 +64,12 @@ spec:
 apiVersion: kafka.strimzi.io/v1beta2
 kind: KafkaTopic
 metadata:
-  name: ecom-payment-events
+  name: ecommerce-payment-events
   namespace: messaging
   labels:
-    strimzi.io/cluster: ecom
+    strimzi.io/cluster: ecommerce
 spec:
-  topicName: ecom.payment.events
+  topicName: ecommerce.payment.events
   partitions: 6
   replicas: 3
   config:
@@ -80,12 +80,12 @@ spec:
 apiVersion: kafka.strimzi.io/v1beta2
 kind: KafkaTopic
 metadata:
-  name: ecom-payment-events-dlq
+  name: ecommerce-payment-events-dlq
   namespace: messaging
   labels:
-    strimzi.io/cluster: ecom
+    strimzi.io/cluster: ecommerce
 spec:
-  topicName: ecom.payment.events.dlq
+  topicName: ecommerce.payment.events.dlq
   partitions: 3
   replicas: 3
   config:
@@ -95,12 +95,12 @@ spec:
 apiVersion: kafka.strimzi.io/v1beta2
 kind: KafkaTopic
 metadata:
-  name: ecom-cart-events
+  name: ecommerce-cart-events
   namespace: messaging
   labels:
-    strimzi.io/cluster: ecom
+    strimzi.io/cluster: ecommerce
 spec:
-  topicName: ecom.cart.events
+  topicName: ecommerce.cart.events
   partitions: 12
   replicas: 3
   config:
@@ -111,12 +111,12 @@ spec:
 apiVersion: kafka.strimzi.io/v1beta2
 kind: KafkaTopic
 metadata:
-  name: ecom-cart-events-dlq
+  name: ecommerce-cart-events-dlq
   namespace: messaging
   labels:
-    strimzi.io/cluster: ecom
+    strimzi.io/cluster: ecommerce
 spec:
-  topicName: ecom.cart.events.dlq
+  topicName: ecommerce.cart.events.dlq
   partitions: 3
   replicas: 3
   config:
@@ -126,12 +126,12 @@ spec:
 apiVersion: kafka.strimzi.io/v1beta2
 kind: KafkaTopic
 metadata:
-  name: ecom-product-events
+  name: ecommerce-product-events
   namespace: messaging
   labels:
-    strimzi.io/cluster: ecom
+    strimzi.io/cluster: ecommerce
 spec:
-  topicName: ecom.product.events
+  topicName: ecommerce.product.events
   partitions: 6
   replicas: 3
   config:
@@ -142,12 +142,12 @@ spec:
 apiVersion: kafka.strimzi.io/v1beta2
 kind: KafkaTopic
 metadata:
-  name: ecom-product-events-dlq
+  name: ecommerce-product-events-dlq
   namespace: messaging
   labels:
-    strimzi.io/cluster: ecom
+    strimzi.io/cluster: ecommerce
 spec:
-  topicName: ecom.product.events.dlq
+  topicName: ecommerce.product.events.dlq
   partitions: 3
   replicas: 3
   config:
@@ -157,12 +157,12 @@ spec:
 apiVersion: kafka.strimzi.io/v1beta2
 kind: KafkaTopic
 metadata:
-  name: ecom-promotion-events
+  name: ecommerce-promotion-events
   namespace: messaging
   labels:
-    strimzi.io/cluster: ecom
+    strimzi.io/cluster: ecommerce
 spec:
-  topicName: ecom.promotion.events
+  topicName: ecommerce.promotion.events
   partitions: 3
   replicas: 3
   config:
@@ -173,12 +173,12 @@ spec:
 apiVersion: kafka.strimzi.io/v1beta2
 kind: KafkaTopic
 metadata:
-  name: ecom-promotion-events-dlq
+  name: ecommerce-promotion-events-dlq
   namespace: messaging
   labels:
-    strimzi.io/cluster: ecom
+    strimzi.io/cluster: ecommerce
 spec:
-  topicName: ecom.promotion.events.dlq
+  topicName: ecommerce.promotion.events.dlq
   partitions: 3
   replicas: 3
   config:
@@ -188,12 +188,12 @@ spec:
 apiVersion: kafka.strimzi.io/v1beta2
 kind: KafkaTopic
 metadata:
-  name: ecom-catalog-events
+  name: ecommerce-catalog-events
   namespace: messaging
   labels:
-    strimzi.io/cluster: ecom
+    strimzi.io/cluster: ecommerce
 spec:
-  topicName: ecom.catalog.events
+  topicName: ecommerce.catalog.events
   partitions: 3
   replicas: 3
   config:
@@ -204,12 +204,12 @@ spec:
 apiVersion: kafka.strimzi.io/v1beta2
 kind: KafkaTopic
 metadata:
-  name: ecom-catalog-events-dlq
+  name: ecommerce-catalog-events-dlq
   namespace: messaging
   labels:
-    strimzi.io/cluster: ecom
+    strimzi.io/cluster: ecommerce
 spec:
-  topicName: ecom.catalog.events.dlq
+  topicName: ecommerce.catalog.events.dlq
   partitions: 3
   replicas: 3
   config:
@@ -219,12 +219,12 @@ spec:
 apiVersion: kafka.strimzi.io/v1beta2
 kind: KafkaTopic
 metadata:
-  name: ecom-customer-events
+  name: ecommerce-customer-events
   namespace: messaging
   labels:
-    strimzi.io/cluster: ecom
+    strimzi.io/cluster: ecommerce
 spec:
-  topicName: ecom.customer.events
+  topicName: ecommerce.customer.events
   partitions: 6
   replicas: 3
   config:
@@ -235,12 +235,12 @@ spec:
 apiVersion: kafka.strimzi.io/v1beta2
 kind: KafkaTopic
 metadata:
-  name: ecom-customer-events-dlq
+  name: ecommerce-customer-events-dlq
   namespace: messaging
   labels:
-    strimzi.io/cluster: ecom
+    strimzi.io/cluster: ecommerce
 spec:
-  topicName: ecom.customer.events.dlq
+  topicName: ecommerce.customer.events.dlq
   partitions: 3
   replicas: 3
   config:
@@ -250,12 +250,12 @@ spec:
 apiVersion: kafka.strimzi.io/v1beta2
 kind: KafkaTopic
 metadata:
-  name: ecom-review-events
+  name: ecommerce-review-events
   namespace: messaging
   labels:
-    strimzi.io/cluster: ecom
+    strimzi.io/cluster: ecommerce
 spec:
-  topicName: ecom.review.events
+  topicName: ecommerce.review.events
   partitions: 3
   replicas: 3
   config:
@@ -266,12 +266,12 @@ spec:
 apiVersion: kafka.strimzi.io/v1beta2
 kind: KafkaTopic
 metadata:
-  name: ecom-review-events-dlq
+  name: ecommerce-review-events-dlq
   namespace: messaging
   labels:
-    strimzi.io/cluster: ecom
+    strimzi.io/cluster: ecommerce
 spec:
-  topicName: ecom.review.events.dlq
+  topicName: ecommerce.review.events.dlq
   partitions: 3
   replicas: 3
   config:
@@ -281,12 +281,12 @@ spec:
 apiVersion: kafka.strimzi.io/v1beta2
 kind: KafkaTopic
 metadata:
-  name: ecom-notification-events
+  name: ecommerce-notification-events
   namespace: messaging
   labels:
-    strimzi.io/cluster: ecom
+    strimzi.io/cluster: ecommerce
 spec:
-  topicName: ecom.notification.events
+  topicName: ecommerce.notification.events
   partitions: 6
   replicas: 3
   config:
@@ -297,12 +297,12 @@ spec:
 apiVersion: kafka.strimzi.io/v1beta2
 kind: KafkaTopic
 metadata:
-  name: ecom-notification-events-dlq
+  name: ecommerce-notification-events-dlq
   namespace: messaging
   labels:
-    strimzi.io/cluster: ecom
+    strimzi.io/cluster: ecommerce
 spec:
-  topicName: ecom.notification.events.dlq
+  topicName: ecommerce.notification.events.dlq
   partitions: 3
   replicas: 3
   config:
@@ -312,12 +312,12 @@ spec:
 apiVersion: kafka.strimzi.io/v1beta2
 kind: KafkaTopic
 metadata:
-  name: ecom-shipping-events
+  name: ecommerce-shipping-events
   namespace: messaging
   labels:
-    strimzi.io/cluster: ecom
+    strimzi.io/cluster: ecommerce
 spec:
-  topicName: ecom.shipping.events
+  topicName: ecommerce.shipping.events
   partitions: 6
   replicas: 3
   config:
@@ -328,12 +328,12 @@ spec:
 apiVersion: kafka.strimzi.io/v1beta2
 kind: KafkaTopic
 metadata:
-  name: ecom-shipping-events-dlq
+  name: ecommerce-shipping-events-dlq
   namespace: messaging
   labels:
-    strimzi.io/cluster: ecom
+    strimzi.io/cluster: ecommerce
 spec:
-  topicName: ecom.shipping.events.dlq
+  topicName: ecommerce.shipping.events.dlq
   partitions: 3
   replicas: 3
   config:
@@ -343,14 +343,125 @@ spec:
 apiVersion: kafka.strimzi.io/v1beta2
 kind: KafkaTopic
 metadata:
-  name: ecom-product-snapshot
+  name: ecommerce-pricing-events
   namespace: messaging
   labels:
-    strimzi.io/cluster: ecom
+    strimzi.io/cluster: ecommerce
 spec:
-  topicName: ecom.product.snapshot
+  topicName: ecommerce.pricing.events
+  partitions: 6
+  replicas: 3
+  config:
+    retention.ms: 604800000
+    cleanup.policy: delete
+    min.insync.replicas: 2
+---
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaTopic
+metadata:
+  name: ecommerce-pricing-events-dlq
+  namespace: messaging
+  labels:
+    strimzi.io/cluster: ecommerce
+spec:
+  topicName: ecommerce.pricing.events.dlq
+  partitions: 3
+  replicas: 3
+  config:
+    retention.ms: 1209600000
+    cleanup.policy: delete
+---
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaTopic
+metadata:
+  name: ecommerce-fraud-events
+  namespace: messaging
+  labels:
+    strimzi.io/cluster: ecommerce
+spec:
+  topicName: ecommerce.fraud.events
+  partitions: 6
+  replicas: 3
+  config:
+    retention.ms: 604800000
+    cleanup.policy: delete
+    min.insync.replicas: 2
+---
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaTopic
+metadata:
+  name: ecommerce-fraud-events-dlq
+  namespace: messaging
+  labels:
+    strimzi.io/cluster: ecommerce
+spec:
+  topicName: ecommerce.fraud.events.dlq
+  partitions: 3
+  replicas: 3
+  config:
+    retention.ms: 1209600000
+    cleanup.policy: delete
+---
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaTopic
+metadata:
+  name: ecommerce-product-snapshot
+  namespace: messaging
+  labels:
+    strimzi.io/cluster: ecommerce
+spec:
+  topicName: ecommerce.product.snapshot
   partitions: 6
   replicas: 3
   config:
     cleanup.policy: compact
     min.compaction.lag.ms: 60000
+---
+# Feature do stream-processor (Flink) ghi. Compacted: bản ghi mới nhất của mỗi key là giá trị hiện tại.
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaTopic
+metadata:
+  name: ecommerce-stream-customer-risk
+  namespace: messaging
+  labels:
+    strimzi.io/cluster: ecommerce
+spec:
+  topicName: ecommerce.stream.customer-risk
+  partitions: 6
+  replicas: 3
+  config:
+    cleanup.policy: compact
+    min.compaction.lag.ms: 60000
+    delete.retention.ms: 86400000
+---
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaTopic
+metadata:
+  name: ecommerce-stream-product-trending
+  namespace: messaging
+  labels:
+    strimzi.io/cluster: ecommerce
+spec:
+  topicName: ecommerce.stream.product-trending
+  partitions: 6
+  replicas: 3
+  config:
+    cleanup.policy: compact
+    min.compaction.lag.ms: 60000
+    delete.retention.ms: 86400000
+---
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaTopic
+metadata:
+  name: ecommerce-stream-stock-cover
+  namespace: messaging
+  labels:
+    strimzi.io/cluster: ecommerce
+spec:
+  topicName: ecommerce.stream.stock-cover
+  partitions: 6
+  replicas: 3
+  config:
+    cleanup.policy: compact
+    min.compaction.lag.ms: 60000
+    delete.retention.ms: 86400000

@@ -54,6 +54,6 @@ export function loadEnv<T extends z.ZodType>(schema: T, source: NodeJS.ProcessEn
   return parsed.data;
 }
 
-export const valkeyEnv = z.object({
-  VALKEY_URL: z.string().default('redis://localhost:6379'),
+export const redisEnv = z.object({
+  REDIS_URL: z.string().default('redis://localhost:6379'),
 });

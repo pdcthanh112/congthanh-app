@@ -1,4 +1,3 @@
-// Package postgres là driven adapter Repository của shipping-service; sự kiện ghi outbox cùng transaction.
 package postgres
 
 import (
@@ -20,7 +19,7 @@ import (
 
 const (
 	Source        = "shipping-service"
-	AggregateType = "shipping" // Debezium Outbox Router → topic ecom.shipping.events
+	AggregateType = "shipping"
 )
 
 type Repository struct{ pool *pgxpool.Pool }
@@ -135,7 +134,6 @@ func (r *Repository) ShipmentByTracking(ctx context.Context, t string) (domain.S
 
 func (r *Repository) SaveTransition(ctx context.Context, s domain.Shipment, ev domain.Event, ch app.StatusChange) error {
 	return db.InTx(ctx, r.pool, func(tx pgx.Tx) error {
-		// Khoá lạc quan: chỉ cập nhật khi trạng thái chưa bị request khác đổi.
 		tag, err := tx.Exec(ctx, `UPDATE shipments SET status=$3, carrier=$4, service_code=$5, tracking_number=$6, updated_at=$7
 			WHERE id=$1 AND status=$2`, s.ID, ch.From, s.Status, s.Carrier, s.ServiceCode, s.TrackingNumber, s.UpdatedAt)
 		if err != nil {

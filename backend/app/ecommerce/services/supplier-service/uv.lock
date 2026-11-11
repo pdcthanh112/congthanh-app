@@ -186,9 +186,9 @@ wheels = [
 ]
 
 [[package]]
-name = "ecom-platform"
+name = "ecommerce-platform"
 version = "0.1.0"
-source = { editable = "../../libs/python/ecom-platform" }
+source = { editable = "../../libs/python/ecommerce-platform" }
 dependencies = [
     { name = "pyjwt", extra = ["crypto"] },
 ]
@@ -417,7 +417,7 @@ source = { virtual = "." }
 dependencies = [
     { name = "django" },
     { name = "djangorestframework" },
-    { name = "ecom-platform" },
+    { name = "ecommerce-platform" },
     { name = "gunicorn" },
     { name = "psycopg", extra = ["binary", "pool"] },
 ]
@@ -433,7 +433,7 @@ dev = [
 requires-dist = [
     { name = "django", specifier = "==6.1.2" },
     { name = "djangorestframework", specifier = "==3.18.3" },
-    { name = "ecom-platform", editable = "../../libs/python/ecom-platform" },
+    { name = "ecommerce-platform", editable = "../../libs/python/ecommerce-platform" },
     { name = "gunicorn", specifier = "==26.2.0" },
     { name = "psycopg", extras = ["binary", "pool"], specifier = "==3.3.6" },
 ]

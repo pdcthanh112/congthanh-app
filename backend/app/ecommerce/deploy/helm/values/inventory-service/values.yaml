@@ -8,7 +8,7 @@ ports:
   grpc: 9092
 env:
   DB_SCHEMA: inventory
-  KAFKA_BROKERS: ecom-kafka-bootstrap.messaging.svc.cluster.local:9092
+  KAFKA_BROKERS: ecommerce-kafka-bootstrap.messaging.svc.cluster.local:9092
   UNLEASH_URL: http://unleash.platform.svc.cluster.local:4242/api
   JWT_JWKS_URL: http://keycloak-service.identity.svc.cluster.local:8080/realms/ecommerce/protocol/openid-connect/certs
 secretEnv:
@@ -25,4 +25,4 @@ keda:
   enabled: true
   kafka:
     consumerGroup: inventory-service
-    topic: ecom.order.events
+    topic: ecommerce.order.events

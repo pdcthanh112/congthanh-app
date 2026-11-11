@@ -23,6 +23,11 @@ import (
 //	TEST_DATABASE_URL=postgres://postgres@localhost:5432/test?sslmode=disable go test ./...
 func setup(t *testing.T) (*app.Service, *pgxpool.Pool) {
 	t.Helper()
+	return setupWith(t, app.Options{})
+}
+
+func setupWith(t *testing.T, opt app.Options) (*app.Service, *pgxpool.Pool) {
+	t.Helper()
 	url := os.Getenv("TEST_DATABASE_URL")
 	if url == "" {
 		t.Skip("TEST_DATABASE_URL not set")
@@ -42,7 +47,8 @@ func setup(t *testing.T) (*app.Service, *pgxpool.Pool) {
 	}
 	ids, _ := idgen.New(1)
 	repo := postgres.New(pool, ids)
-	return app.NewService(repo, repo, repo.Warehouses(), flashStore(t), claims, app.Options{ReservationTTL: 15 * time.Minute, DefaultWarehouse: "WH-DEFAULT"}), pool
+	opt.ReservationTTL, opt.DefaultWarehouse = 15*time.Minute, "WH-DEFAULT"
+	return app.NewService(repo, repo, repo.Warehouses(), flashStore(t), claims, opt), pool
 }
 
 func seed(t *testing.T, svc *app.Service, product, wh string, qty int32) {
@@ -64,11 +70,11 @@ func available(t *testing.T, svc *app.Service, product string) int32 {
 func TestReserveReleaseCommit(t *testing.T) {
 	svc, _ := setup(t)
 	ctx := context.Background()
-	if _, err := svc.CreateWarehouse(ctx, app.WarehouseInput{ID: "WH-HN", Name: "Hà Nội"}); err != nil {
+	if _, err := svc.CreateWarehouse(ctx, app.WarehouseInput{ID: "WH-NJ", Name: "Newark, NJ"}); err != nil {
 		t.Fatal(err)
 	}
 	seed(t, svc, "p1", "WH-DEFAULT", 5)
-	seed(t, svc, "p1", "WH-HN", 3)
+	seed(t, svc, "p1", "WH-NJ", 3)
 	seed(t, svc, "p2", "WH-DEFAULT", 2)
 
 	// Giữ 7 p1 → phải chia qua hai kho.

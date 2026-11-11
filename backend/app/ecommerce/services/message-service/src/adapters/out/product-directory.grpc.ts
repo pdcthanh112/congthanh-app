@@ -1,5 +1,5 @@
-import { bearer, fromGrpcError, grpcClient, resiliencePolicy } from '@ecom/platform';
-import { ProductService } from '@ecom/proto/ecommerce/product/v1/product_service_pb';
+import { bearer, fromGrpcError, grpcClient, resiliencePolicy } from '@ecommerce/platform';
+import { ProductService } from '@ecommerce/proto/ecommerce/product/v1/product_service_pb';
 import type { ProductDirectory } from '../../application/ports.js';
 
 /** Hỏi product-service (Java) qua gRPC; có timeout/retry/circuit breaker. */

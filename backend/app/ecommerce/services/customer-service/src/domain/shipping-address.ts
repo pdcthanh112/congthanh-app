@@ -1,4 +1,4 @@
-import { DomainError } from '@ecom/platform/errors';
+import { DomainError } from '@ecommerce/platform/errors';
 
 export type AddressLabel = 'HOME' | 'OFFICE' | 'OTHER';
 export const MAX_ADDRESSES_PER_CUSTOMER = 10;

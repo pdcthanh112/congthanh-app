@@ -1,11 +1,11 @@
 import { create } from '@bufbuild/protobuf';
 import type { ConnectRouter } from '@connectrpc/connect';
-import { DomainError } from '@ecom/platform';
+import { DomainError } from '@ecommerce/platform';
 import {
   CustomerService as CustomerGrpc,
   type ShippingAddress,
   ShippingAddressSchema,
-} from '@ecom/proto/ecommerce/customer/v1/customer_service_pb';
+} from '@ecommerce/proto/ecommerce/customer/v1/customer_service_pb';
 import type { CustomerService } from '../../../application/customer.service.js';
 import type { ShippingAddressProps } from '../../../domain/shipping-address.js';
 

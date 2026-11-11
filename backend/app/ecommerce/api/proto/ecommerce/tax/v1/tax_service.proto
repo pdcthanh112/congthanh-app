@@ -8,16 +8,16 @@ option java_multiple_files = true;
 option java_package = "com.congthanh.taxservice.grpc";
 
 // tax-service (Go). order-service gọi khi checkout để tính thuế theo địa chỉ giao hàng.
-// Thuế suất chọn theo mức cụ thể nhất: mã bưu chính > tỉnh/thành > quốc gia.
+// Thuế suất chọn theo mức cụ thể nhất: mã bưu chính (ZIP) > bang > quốc gia.
 service TaxService {
   rpc CalculateTax(CalculateTaxRequest) returns (CalculateTaxResponse);
   rpc GetTaxRates(GetTaxRatesRequest) returns (GetTaxRatesResponse);
 }
 
 message TaxAddress {
-  // ISO 3166-1 alpha-2, ví dụ "VN".
+  // ISO 3166-1 alpha-2, ví dụ "US".
   string country_code = 1;
-  // Mã tỉnh/thành (cùng mã với customer-service), có thể trống.
+  // Mã bang/tỉnh (ISO 3166-2 bỏ tiền tố quốc gia, ví dụ "CA"; cùng mã với customer-service), có thể trống.
   string region_code = 2;
   string postal_code = 3;
 }

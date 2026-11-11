@@ -130,7 +130,7 @@ func (x *QuoteShippingRequest) GetParcel() *Parcel {
 
 type ShippingQuote struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// Mã hãng vận chuyển, ví dụ "ghn", "ghtk", "internal".
+	// Mã hãng vận chuyển, ví dụ "usps", "ups", "fedex", "internal".
 	Carrier string `protobuf:"bytes,1,opt,name=carrier,proto3" json:"carrier,omitempty"`
 	// Mã dịch vụ của hãng, ví dụ "standard", "express".
 	ServiceCode      string    `protobuf:"bytes,2,opt,name=service_code,json=serviceCode,proto3" json:"service_code,omitempty"`

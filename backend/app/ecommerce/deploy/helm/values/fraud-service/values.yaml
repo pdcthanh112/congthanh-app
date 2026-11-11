@@ -1,0 +1,21 @@
+# fraud-service: chấm điểm rủi ro giao dịch, hàng chờ duyệt (FastAPI). Ghi đè theo môi trường ở values-<env>.yaml.
+nameOverride: fraud-service
+runtime: python
+image:
+  repository: ghcr.io/pdcthanh112/congthanhapp/fraud-service
+ports:
+  http: 5026
+env:
+  DB_SCHEMA: fraud
+  REDIS_URL: redis://redis.data.svc.cluster.local:6379/8
+  KAFKA_BROKERS: ecommerce-kafka-bootstrap.messaging.svc.cluster.local:9092
+  JWT_JWKS_URL: http://keycloak-service.identity.svc.cluster.local:8080/realms/ecommerce/protocol/openid-connect/certs
+  REVIEW_AT: "50"
+  REJECT_AT: "80"
+secretEnv:
+- name: DATABASE_URL
+  key: ecommerce/fraud-service
+  property: database_url
+resources:
+  requests: {cpu: 100m, memory: 192Mi}
+  limits: {memory: 384Mi}

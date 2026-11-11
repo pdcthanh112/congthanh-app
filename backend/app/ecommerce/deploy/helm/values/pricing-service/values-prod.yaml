@@ -1,0 +1,12 @@
+# prod: canary Argo Rollouts, autoscale; image digest do workflow release ghi.
+image:
+  tag: ''
+  digest: sha256:0000000000000000000000000000000000000000000000000000000000000000
+autoscaling:
+  minReplicas: 2
+  maxReplicas: 10
+pdb:
+  minAvailable: 1
+# Số pod có sẵn trong các khung giờ ở deploy/helm/events/events-prod.yaml (flash sale, ngày sale lớn).
+scheduledScaling:
+  replicas: 8

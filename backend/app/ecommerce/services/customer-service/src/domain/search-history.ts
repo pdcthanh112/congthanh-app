@@ -1,4 +1,4 @@
-import { DomainError } from '@ecom/platform/errors';
+import { DomainError } from '@ecommerce/platform/errors';
 
 /** Chỉ giữ N từ khoá gần nhất mỗi người (cũ hơn bị xoá khi ghi). */
 export const SEARCH_HISTORY_LIMIT = 30;

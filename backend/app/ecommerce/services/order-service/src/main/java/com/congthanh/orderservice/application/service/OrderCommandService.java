@@ -1,9 +1,10 @@
 package com.congthanh.orderservice.application.service;
 
-import com.congthanh.ecom.workflow.checkout.CheckoutContract;
+import com.congthanh.ecommerce.workflow.checkout.CheckoutContract;
 import com.congthanh.orderservice.application.port.in.CancelOrderUseCase;
 import com.congthanh.orderservice.application.port.in.CheckoutStepsUseCase;
 import com.congthanh.orderservice.application.port.in.PlaceOrderUseCase;
+import com.congthanh.orderservice.application.port.in.PlaceOrderUseCase.Priced;
 import com.congthanh.orderservice.application.port.in.Requester;
 import com.congthanh.orderservice.application.port.out.CheckoutOrchestrator;
 import com.congthanh.orderservice.application.port.out.Inventory;
@@ -64,6 +65,17 @@ public class OrderCommandService implements PlaceOrderUseCase, CheckoutStepsUseC
      */
     @Override
     public PlacedOrder place(PlaceOrderCommand cmd) {
+        Priced priced = cmd.priced();
+        if (priced != null && priced.orderId() != null) {
+            var existing = orders.findById(priced.orderId());
+            if (existing.isPresent()) {
+                Order o = existing.get();
+                if (!o.isOwnedBy(cmd.customerId())) {
+                    throw OrderException.conflict("order id " + priced.orderId() + " is already used");
+                }
+                return new PlacedOrder(o.id(), o.orderCode(), o.status(), o.total(), o.discount());
+            }
+        }
         Map<String, Integer> quantities = mergeItems(cmd.items());
         Map<String, ProductSnapshot> products = catalog.lookup(quantities.keySet());
 
@@ -77,7 +89,14 @@ public class OrderCommandService implements PlaceOrderUseCase, CheckoutStepsUseC
                 throw OrderException.rejected("QUANTITY_LIMIT",
                         "at most " + p.maxQuantityPerOrder() + " of product " + e.getKey() + " per order");
             }
-            lines.add(new OrderLine(p.productId(), p.sku(), p.name(), e.getValue(), p.price()));
+            Money unitPrice = p.price();
+            if (priced != null && priced.unitPrices() != null) {
+                unitPrice = priced.unitPrices().get(p.productId());
+                if (unitPrice == null) {
+                    throw OrderException.invalid("missing price for product " + p.productId());
+                }
+            }
+            lines.add(new OrderLine(p.productId(), p.sku(), p.name(), e.getValue(), unitPrice));
         }
 
         Money subtotal = lines.stream().map(OrderLine::total).reduce(Money::plus).orElseThrow();
@@ -91,8 +110,9 @@ public class OrderCommandService implements PlaceOrderUseCase, CheckoutStepsUseC
             discount = quote.discount();
         }
 
-        String orderId = identity.newOrderId();
+        String orderId = priced != null && priced.orderId() != null ? priced.orderId() : identity.newOrderId();
         Order order = Order.place(orderId, identity.newOrderCode(), cmd.customerId(), lines, promotionCode, discount,
+                priced == null ? null : priced.shippingFee(), priced == null ? null : priced.tax(),
                 new CheckoutDetails(cmd.paymentMethod(), cmd.paymentToken(), cmd.returnUrl(), cmd.clientIp()),
                 cmd.shippingAddress(), cmd.billingAddress(), cmd.note(),
                 CheckoutContract.workflowId(orderId), clock.instant());

@@ -6,11 +6,12 @@ image:
 ports:
   http: 5024
 env:
+  # anthropic | vllm (model tự host trên KServe, platform/inference; chỉ có ở staging/prod)
   LLM_PROVIDER: anthropic
   ANTHROPIC_MODEL: claude-opus-5-5
   ANTHROPIC_EFFORT: low
   SEARCH_URL: http://search-service:5013
-  VALKEY_URL: redis://ecom-valkey.data.svc.cluster.local:6379/6
+  REDIS_URL: redis://redis.data.svc.cluster.local:6379/6
   JWT_JWKS_URL: http://keycloak-service.identity.svc.cluster.local:8080/realms/ecommerce/protocol/openid-connect/certs
 secretEnv:
 - name: ANTHROPIC_API_KEY

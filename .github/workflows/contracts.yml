@@ -2,7 +2,7 @@
 name: contracts
 on:
   pull_request:
-    paths: ["backend/app/ecommerce/api/**", "backend/app/ecommerce/libs/go/proto/**", "backend/app/ecommerce/buf*.yaml", "backend/app/ecommerce/platform/gateway/**", "backend/app/ecommerce/tools/scripts/**"]
+    paths: ["backend/app/ecommerce/api/**", "backend/app/ecommerce/libs/go/proto/**", "backend/app/ecommerce/libs/python/ecommerce-proto/**", "backend/app/ecommerce/buf*.yaml", "backend/app/ecommerce/platform/gateway/**", "backend/app/ecommerce/tools/scripts/**", "backend/app/ecommerce/deploy/helm/values/**", "backend/app/ecommerce/platform/delivery/**", "backend/app/ecommerce/platform/authz/**"]
 permissions: {contents: read, pull-requests: write}
 defaults:
   run: {working-directory: backend/app/ecommerce}
@@ -26,6 +26,12 @@ jobs:
         run: |
           go install google.golang.org/protobuf/cmd/protoc-gen-go@latest google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest
           buf generate && git diff --exit-code -- libs/go/proto
+      - uses: astral-sh/setup-uv@v6
+      - name: code Python sinh từ proto phải khớp
+        run: |
+          libs/python/ecommerce-proto/generate.sh
+          git status --porcelain -- libs/python/ecommerce-proto
+          test -z "$(git status --porcelain -- libs/python/ecommerce-proto)"
   generated-config:
     runs-on: ubuntu-24.04
     steps:
@@ -33,6 +39,13 @@ jobs:
       - run: pip install pyyaml==6.0.3
       - run: python3 -I tools/scripts/gen-apisix-routes.py --check
       - run: python3 -I tools/scripts/gen-asyncapi.py --check
+      - run: python3 -I tools/scripts/gen-kargo.py --check
+  openfga-model:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v5
+      - name: test model OpenFGA
+        run: docker run --rm -v "$PWD/platform/authz/openfga:/m:ro" openfga/cli:v0.7.20 model test --tests /m/tests.fga.yaml
   openapi:
     runs-on: ubuntu-24.04
     steps:

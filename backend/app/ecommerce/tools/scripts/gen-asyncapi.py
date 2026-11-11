@@ -15,6 +15,14 @@ PRODUCERS = {
     "inventory": "inventory-service", "cart": "cart-service", "order": "order-service",
     "payment": "payment-service", "product": "product-service", "promotion": "promotion-service",
     "catalog": "catalog-service", "review": "review-service", "customer": "customer-service", "message": "message-service",
+    "shipping": "shipping-service", "pricing": "pricing-service", "fraud": "fraud-service",
+    "stream": "stream-processor",
+}
+
+STREAM_TOPICS = {
+    "CustomerRiskFeatures": "ecommerce.stream.customer-risk",
+    "ProductTrending": "ecommerce.stream.product-trending",
+    "StockCover": "ecommerce.stream.stock-cover",
 }
 
 
@@ -30,7 +38,7 @@ def build():
         "defaultContentType": "application/x-protobuf",
         "servers": {
             "local": {"host": "localhost:29092", "protocol": "kafka"},
-            "prod": {"host": "ecom-kafka-bootstrap.messaging.svc.cluster.local:9092", "protocol": "kafka",
+            "prod": {"host": "ecommerce-kafka-bootstrap.messaging.svc.cluster.local:9092", "protocol": "kafka",
                      "security": [{"type": "scramSha512"}]},
         },
         "channels": {}, "operations": {}, "components": {"messages": {}},
@@ -39,7 +47,7 @@ def build():
         dom = f.parts[-3]
         src = f.read_text()
         pkg = re.search(r"package ([\w.]+);", src).group(1)
-        # Chỉ event cấp cao, bỏ message phụ (ReservedLine, OrderLine...).
+
         names = [n for n in re.findall(r"^message (\w+) \{", src, re.M) if not n.endswith("Line")]
         rel = f.relative_to(ROOT).as_posix()
         refs = {}
@@ -54,9 +62,18 @@ def build():
             }
             refs[n] = {"$ref": f"#/components/messages/{key}"}
         producer = PRODUCERS.get(dom, dom)
+        if dom == "stream":
+            for n, topic in STREAM_TOPICS.items():
+                ch = "stream" + n
+                doc["channels"][ch] = {"address": topic, "messages": {n: refs[n]},
+                                       "description": f"Feature do {producer} (Flink) tính; topic compacted, key = id thực thể"}
+                doc["operations"][f"publishStream{n}"] = {
+                    "action": "send", "channel": {"$ref": f"#/channels/{ch}"},
+                    "summary": f"{producer} ghi trực tiếp (Kafka sink, at-least-once)"}
+            continue
         ch = f"{dom}Events"
-        doc["channels"][ch] = {"address": f"ecom.{dom}.events", "messages": refs,
-                               "description": f"Event của {producer}; DLQ: ecom.{dom}.events.dlq"}
+        doc["channels"][ch] = {"address": f"ecommerce.{dom}.events", "messages": refs,
+                               "description": f"Event của {producer}; DLQ: ecommerce.{dom}.events.dlq"}
         doc["operations"][f"publish{dom.capitalize()}Events"] = {
             "action": "send", "channel": {"$ref": f"#/channels/{ch}"},
             "summary": f"{producer} ghi qua outbox → Debezium"}
@@ -67,7 +84,7 @@ def build():
 def main():
     out = build()
     if "--check" in sys.argv:
-        if not OUT.exists() or OUT.read_text() != out:
+        if not OUT.exists() or yaml.safe_load(OUT.read_text()) != yaml.safe_load(out):
             print("stale:", OUT)
             sys.exit(1)
         return

@@ -1,0 +1,29 @@
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: chaos-schedules
+  namespace: argocd
+spec:
+  goTemplate: true
+  goTemplateOptions: ["missingkey=error"]
+  generators:
+    - clusters:
+        selector:
+          matchExpressions:
+            - { key: env, operator: In, values: [staging] }
+  template:
+    metadata:
+      name: 'chaos-{{ index .metadata.labels "env" }}'
+      annotations:
+        argocd.argoproj.io/sync-wave: "10"
+    spec:
+      project: platform
+      source:
+        repoURL: https://github.com/pdcthanh112/CongThanhApp.git
+        targetRevision: main
+        path: backend/app/ecommerce/platform/chaos
+      destination:
+        server: "{{ .server }}"
+      syncPolicy:
+        automated: { prune: true, selfHeal: true }
+        syncOptions: [ServerSideApply=true]

@@ -1,9 +1,9 @@
 import 'reflect-metadata';
 import { createServer, type Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
-import type { ProductSummary, StockLevel } from '@ecom/clients';
-import { bootstrap, DomainError } from '@ecom/platform';
-import { vnd } from '@ecom/shared';
+import type { ProductSummary, StockLevel } from '@ecommerce/clients';
+import { bootstrap, DomainError } from '@ecommerce/platform';
+import { usd } from '@ecommerce/shared';
 import type { INestApplication } from '@nestjs/common';
 import { type CryptoKey, exportJWK, generateKeyPair, SignJWT } from 'jose';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
@@ -207,8 +207,8 @@ function prod(id: string, sellerId: string): ProductSummary {
     id,
     sku: `SKU-${id}`,
     name: `Sản phẩm ${id}`,
-    price: vnd(100_000),
-    originalPrice: vnd(100_000),
+    price: usd(2_999),
+    originalPrice: usd(2_999),
     active: true,
     sellerId,
   };

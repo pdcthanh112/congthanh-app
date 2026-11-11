@@ -1,4 +1,4 @@
-import { DomainError } from '@ecom/platform/errors';
+import { DomainError } from '@ecommerce/platform/errors';
 import { CATEGORIES, type Category, type Channel, TRANSACTIONAL } from './notification.js';
 
 export interface QuietHours {
@@ -6,7 +6,7 @@ export interface QuietHours {
   start: string;
   /** "07:00" (qua ngày được) */
   end: string;
-  /** IANA, ví dụ Asia/Ho_Chi_Minh */
+  /** IANA, ví dụ America/New_York */
   timezone: string;
 }
 

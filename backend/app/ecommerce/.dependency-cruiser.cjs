@@ -6,7 +6,7 @@ module.exports = {
   forbidden: [
     {
       name: 'domain-is-pure',
-      comment: 'domain/ chỉ được dùng domain/ và @ecom/platform/errors, không framework, không DB.',
+      comment: 'domain/ chỉ được dùng domain/ và @ecommerce/platform/errors, không framework, không DB.',
       severity: 'error',
       from: { path: '^services/[^/]+/src/domain/' },
       to: {
@@ -26,7 +26,7 @@ module.exports = {
       comment: 'application/ không gọi thẳng drizzle, pg, kafka, connect, graphql.',
       severity: 'error',
       from: { path: '^services/[^/]+/src/application/' },
-      to: { path: 'node_modules/(drizzle-orm|pg|@confluentinc|@connectrpc|graphql|@nestjs/graphql|ioredis|iovalkey)/' },
+      to: { path: 'node_modules/(drizzle-orm|pg|@confluentinc|@connectrpc|graphql|@nestjs/graphql|ioredis)/' },
     },
     {
       name: 'inbound-not-outbound',

@@ -5,9 +5,7 @@ package ecommerce.order.v1;
 import "ecommerce/common/v1/money.proto";
 
 option java_multiple_files = true;
-option java_package = "com.congthanh.ecom.order.v1";
-
-// Topic: ecom.order.events (key = order_id)
+option java_package = "com.congthanh.ecommerce.order.v1";
 
 message OrderLine {
   string product_id = 1;
@@ -21,7 +19,6 @@ message OrderPlaced {
   repeated OrderLine lines = 3;
   ecommerce.common.v1.Money total = 4;
   string checkout_workflow_id = 5;
-  // Địa chỉ giao hàng chụp lại lúc đặt (shipping-service tạo vận đơn từ đây). Trống ở event cũ.
   ShippingAddress shipping_address = 6;
 }
 
@@ -32,10 +29,8 @@ message ShippingAddress {
   string line2 = 4;
   string ward = 5;
   string district = 6;
-  // Mã tỉnh/thành, cùng mã với customer-service.
   string region_code = 7;
   string postal_code = 8;
-  // ISO 3166-1 alpha-2.
   string country_code = 9;
 }
 
@@ -47,6 +42,5 @@ message OrderConfirmed {
 message OrderCancelled {
   string order_id = 1;
   string reason = 2;
-  // Reservation tồn kho của saga (inventory-service tự trả hàng khi nhận event này).
   string reservation_id = 3;
 }

@@ -13,8 +13,8 @@ import (
 
 const (
 	Source        = "inventory-service"
-	AggregateType = "inventory" // Debezium route → topic ecom.inventory.events
-	TopicEvents   = "ecom.inventory.events"
+	AggregateType = "inventory" // Debezium route → topic ecommerce.inventory.events
+	TopicEvents   = "ecommerce.inventory.events"
 )
 
 func lines(items []domain.ReservationItem) []*invv1.ReservedLine {

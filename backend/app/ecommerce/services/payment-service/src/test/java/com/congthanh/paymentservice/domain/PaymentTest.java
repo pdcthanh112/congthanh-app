@@ -19,13 +19,13 @@ class PaymentTest {
     private static final Instant NOW = Instant.parse("2026-11-09T00:00:00Z");
 
     private static Payment payment() {
-        return Payment.initiate("pay-1", "o-1", "c-1", new Money(new BigDecimal("225000"), "VND"),
-                PaymentMethod.STRIPE, "stripe", NOW);
+        return Payment.initiate("pay-1", "o-1", "c-1", new Money(new BigDecimal("89.99"), "USD"),
+                PaymentMethod.CARD, "stripe", NOW);
     }
 
     @Test
     void minorUnitsFollowCurrencyFractionDigits() {
-        assertThat(new Money(new BigDecimal("225000"), "VND").minorUnits()).isEqualTo(225000L);
+        assertThat(new Money(new BigDecimal("1500"), "JPY").minorUnits()).isEqualTo(1500L);
         assertThat(new Money(new BigDecimal("12.34"), "USD").minorUnits()).isEqualTo(1234L);
     }
 
@@ -42,16 +42,28 @@ class PaymentTest {
     }
 
     @Test
-    void redirectFlowCanBePaidOrDeclined() {
+    void installmentAuthorizationKeepsCaptureDeadlineAndMethodInEvent() {
+        Payment p = Payment.initiate("pay-2", "o-2", "c-1", new Money(new BigDecimal("250.00"), "USD"),
+                PaymentMethod.AFFIRM, "stripe", NOW);
+        p.actionRequired("pi_2", "https://affirm/checkout", NOW);
+        p.authorized("pi_2", NOW, NOW.plusSeconds(30 * 86400));
+
+        assertThat(p.authorizationExpiresAt()).isEqualTo(NOW.plusSeconds(30 * 86400));
+        assertThat(p.pullEvents()).singleElement().isEqualTo(new PaymentEvent.PaymentAuthorized(
+                "pay-2", "o-2", new Money(new BigDecimal("250.00"), "USD"), "stripe", "AFFIRM"));
+    }
+
+    @Test
+    void redirectFlowCanBeApprovedOrDeclined() {
         Payment paid = payment();
-        paid.actionRequired("vnp_1", "https://pay/1", NOW);
+        paid.actionRequired("pp_1", "https://pay/1", NOW);
         assertThat(paid.redirectUrl()).isEqualTo("https://pay/1");
-        paid.paidImmediately("vnp_1", NOW);
-        assertThat(paid.status()).isEqualTo(PaymentStatus.CAPTURED);
+        paid.authorized("pp_1", NOW);
+        assertThat(paid.status()).isEqualTo(PaymentStatus.AUTHORIZED);
         assertThat(paid.redirectUrl()).isNull();
 
         Payment declined = payment();
-        declined.actionRequired("vnp_2", "https://pay/2", NOW);
+        declined.actionRequired("pp_2", "https://pay/2", NOW);
         declined.declined("insufficient funds", NOW);
         assertThat(declined.status()).isEqualTo(PaymentStatus.DECLINED);
         assertThat(declined.pullEvents()).singleElement()

@@ -1,4 +1,4 @@
-import { DomainError, resiliencePolicy } from '@ecom/platform';
+import { DomainError, resiliencePolicy } from '@ecommerce/platform';
 import { Logger } from '@nestjs/common';
 import type { Recipient, RecipientDirectory } from '../../application/ports.js';
 

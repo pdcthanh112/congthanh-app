@@ -1,10 +1,10 @@
-"""Xác thực DRF bằng JWT Keycloak qua ecom_platform (cùng quy ước vai trò với service Go/Node)."""
+"""Xác thực DRF bằng JWT Keycloak qua ecommerce_platform (cùng quy ước vai trò với service Go/Node)."""
 
 from __future__ import annotations
 
 from dataclasses import dataclass
 
-from ecom_platform.auth import AuthError, Principal, bearer, verifier_from_env
+from ecommerce_platform.auth import AuthError, Principal, bearer, verifier_from_env
 from rest_framework import authentication, exceptions
 
 _verifier = verifier_from_env()

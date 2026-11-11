@@ -3,7 +3,7 @@ syntax = "proto3";
 package ecommerce.common.v1;
 
 option java_multiple_files = true;
-option java_package = "com.congthanh.ecom.common.v1";
+option java_package = "com.congthanh.ecommerce.common.v1";
 
 message Query {
   repeated string attributes = 1;

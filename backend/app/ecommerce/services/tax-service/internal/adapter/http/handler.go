@@ -213,7 +213,7 @@ func (h *Handler) deleteRate(w http.ResponseWriter, r *http.Request) error {
 	return nil
 }
 
-// lookup: GET /lookup?taxClassIds=1,2&country=VN&region=HCM&postalCode=700000
+// lookup: GET /lookup?taxClassIds=1,2&country=US&region=CA&postalCode=94105
 func (h *Handler) lookup(w http.ResponseWriter, r *http.Request) error {
 	q := r.URL.Query()
 	var ids []int64
@@ -259,7 +259,7 @@ type calcOut struct {
 	TotalTax float64       `json:"totalTax"`
 }
 
-// calculate: số tiền REST là số thập phân theo đơn vị chính (199000 VND, 19.99 USD).
+// calculate: số tiền REST là số thập phân theo đơn vị chính (19.99 USD, 1500 JPY).
 func (h *Handler) calculate(w http.ResponseWriter, r *http.Request) error {
 	var b calcBody
 	if err := httpx.Decode(r, &b); err != nil {

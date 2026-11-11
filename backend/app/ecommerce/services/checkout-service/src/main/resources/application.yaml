@@ -1,0 +1,156 @@
+# checkout-service. Mọi giá trị môi trường đọc từ biến môi trường (12-factor); mặc định chạy được local
+# với deploy/local/docker-compose.yaml.
+spring:
+  application:
+    name: checkout-service
+  threads:
+    virtual:
+      enabled: true
+  lifecycle:
+    timeout-per-shutdown-phase: 30s
+  datasource:
+    url: ${DATABASE_URL:jdbc:postgresql://localhost:5432/ecommerce?currentSchema=checkout_service}
+    username: ${DATABASE_USER:postgres}
+    password: ${DATABASE_PASSWORD:postgres}
+    hikari:
+      # Lớn hơn checkout.place.max-concurrent + consumer; nhân với số pod phải nằm dưới giới hạn của PgBouncer/Postgres.
+      maximum-pool-size: ${DATABASE_POOL_SIZE:20}
+      connection-timeout: 3000
+  liquibase:
+    change-log: classpath:db/changelog/db.changelog-master.yaml
+    default-schema: checkout_service
+  kafka:
+    bootstrap-servers: ${KAFKA_BROKERS:localhost:29092}
+    consumer:
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.ByteArrayDeserializer
+      properties:
+        isolation.level: read_committed
+    listener:
+      auto-startup: ${KAFKA_CONSUMERS_ENABLED:true}
+  security:
+    oauth2:
+      resourceserver:
+        jwt:
+          issuer-uri: ${OIDC_ISSUER_URI:http://localhost:8080/realms/ecommerce}
+          jwk-set-uri: ${JWT_JWKS_URL:http://localhost:8080/realms/ecommerce/protocol/openid-connect/certs}
+  grpc:
+    server:
+      port: ${GRPC_PORT:19095}
+    client:
+      channels:
+        product:
+          address: static://${PRODUCT_GRPC_ADDR:localhost:29090}
+          negotiation-type: plaintext
+        pricing:
+          address: static://${PRICING_GRPC_ADDR:localhost:9099}
+          negotiation-type: plaintext
+        promotion:
+          address: static://${PROMOTION_GRPC_ADDR:localhost:9095}
+          negotiation-type: plaintext
+        shipping:
+          address: static://${SHIPPING_GRPC_ADDR:localhost:9097}
+          negotiation-type: plaintext
+        tax:
+          address: static://${TAX_GRPC_ADDR:localhost:9096}
+          negotiation-type: plaintext
+        order:
+          address: static://${ORDER_GRPC_ADDR:localhost:19090}
+          negotiation-type: plaintext
+
+server:
+  port: ${SERVER_PORT:5027}
+  shutdown: graceful
+
+platform:
+  idempotency:
+    paths: [/api/ecommerce/checkout/sessions/*/place]
+    required: true
+  temporal:
+    target: ${TEMPORAL_ADDRESS:localhost:7233}
+    namespace: ${TEMPORAL_NAMESPACE:default}
+
+checkout:
+  currency: ${CHECKOUT_CURRENCY:USD}
+  session-ttl: ${CHECKOUT_SESSION_TTL:PT30M}
+  default-weight-grams: ${CHECKOUT_DEFAULT_WEIGHT_GRAMS:500}
+  default-tax-class-id: ${CHECKOUT_DEFAULT_TAX_CLASS_ID:1}
+  place:
+    # Số lượt "đặt đơn" xử lý đồng thời mỗi pod; quá ngưỡng trả 503 + Retry-After. Giữ dưới kích thước pool DB.
+    max-concurrent: ${CHECKOUT_PLACE_MAX_CONCURRENT:16}
+    max-wait: ${CHECKOUT_PLACE_MAX_WAIT:PT0.2S}
+  flash-sale:
+    # Số luồng đọc FlashSaleClaimed (mỗi claim mở một phiên checkout và báo giá).
+    consumer-concurrency: ${CHECKOUT_FLASH_SALE_CONSUMERS:3}
+  fraud:
+    url: ${FRAUD_URL:http://localhost:5026}
+    timeout: ${FRAUD_TIMEOUT:PT0.3S}
+    # true: fraud-service lỗi/chậm thì cho qua (không chặn bán hàng); false: chuyển duyệt tay.
+    fail-open: ${FRAUD_FAIL_OPEN:true}
+
+resilience4j:
+  retry:
+    configs:
+      default:
+        max-attempts: 3
+        wait-duration: 200ms
+        enable-exponential-backoff: true
+        exponential-backoff-multiplier: 2
+        retry-exception-predicate: com.congthanh.checkoutservice.adapter.out.grpc.TransientFailure
+    instances:
+      product: {base-config: default}
+      pricing: {base-config: default}
+      promotion: {base-config: default}
+      shipping: {base-config: default}
+      tax: {base-config: default}
+      order: {base-config: default}
+  circuitbreaker:
+    configs:
+      default:
+        sliding-window-size: 20
+        minimum-number-of-calls: 10
+        failure-rate-threshold: 50
+        slow-call-duration-threshold: 2s
+        slow-call-rate-threshold: 80
+        wait-duration-in-open-state: 15s
+        permitted-number-of-calls-in-half-open-state: 3
+        record-failure-predicate: com.congthanh.checkoutservice.adapter.out.grpc.TransientFailure
+    instances:
+      product: {base-config: default}
+      pricing: {base-config: default}
+      promotion: {base-config: default}
+      shipping: {base-config: default}
+      tax: {base-config: default}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus
+  endpoint:
+    health:
+      probes:
+        enabled: true
+  health:
+    circuitbreakers:
+      enabled: true
+  observations:
+    key-values:
+      application: ${spring.application.name}
+  tracing:
+    sampling:
+      probability: ${TRACING_SAMPLING:1.0}
+  opentelemetry:
+    tracing:
+      export:
+        otlp:
+          endpoint: ${OTLP_TRACES_ENDPOINT:http://localhost:4318/v1/traces}
+  otlp:
+    metrics:
+      export:
+        enabled: false
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html

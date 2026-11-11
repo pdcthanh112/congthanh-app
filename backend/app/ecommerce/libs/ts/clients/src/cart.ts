@@ -1,6 +1,6 @@
 import { Code, ConnectError } from '@connectrpc/connect';
-import { bearer, DomainError, fromGrpcError, grpcClient, RestClient, resiliencePolicy } from '@ecom/platform';
-import { CartService } from '@ecom/proto/ecommerce/cart/v1/cart_service_pb';
+import { bearer, DomainError, fromGrpcError, grpcClient, RestClient, resiliencePolicy } from '@ecommerce/platform';
+import { CartService } from '@ecommerce/proto/ecommerce/cart/v1/cart_service_pb';
 import { z } from 'zod';
 
 export interface CartView {

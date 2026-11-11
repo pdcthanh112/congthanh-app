@@ -1,0 +1,54 @@
+syntax = "proto3";
+
+package ecommerce.order.v1;
+
+import "ecommerce/common/v1/money.proto";
+
+option java_multiple_files = true;
+option java_package = "com.congthanh.ecommerce.order.v1";
+
+service OrderService {
+  rpc PlaceOrder(PlaceOrderRequest) returns (PlaceOrderResponse);
+}
+
+message PricedLine {
+  string product_id = 1;
+  int32 quantity = 2;
+  ecommerce.common.v1.Money unit_price = 3;
+}
+
+message OrderAddress {
+  string full_name = 1;
+  string phone = 2;
+  string line1 = 3;
+  string line2 = 4;
+  string ward = 5;
+  string district = 6;
+  string city = 7;
+  string country_code = 8;
+  string postal_code = 9;
+}
+
+message PlaceOrderRequest {
+  string order_id = 1;
+  string customer_id = 2;
+  repeated PricedLine lines = 3;
+  string promotion_code = 4;
+  ecommerce.common.v1.Money shipping_fee = 5;
+  ecommerce.common.v1.Money tax = 6;
+  string payment_method = 7;
+  string payment_token = 8;
+  string return_url = 9;
+  string client_ip = 10;
+  OrderAddress shipping_address = 11;
+  OrderAddress billing_address = 12;
+  string note = 13;
+}
+
+message PlaceOrderResponse {
+  string order_id = 1;
+  string order_code = 2;
+  string status = 3;
+  ecommerce.common.v1.Money total = 4;
+  ecommerce.common.v1.Money discount = 5;
+}

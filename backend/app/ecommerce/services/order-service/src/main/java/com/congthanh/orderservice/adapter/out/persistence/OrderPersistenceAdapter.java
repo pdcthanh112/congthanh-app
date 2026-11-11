@@ -80,6 +80,8 @@ class OrderPersistenceAdapter implements OrderRepository {
         e.currency = o.total().currency();
         e.subtotal = o.subtotal().amount();
         e.discount = o.discount().amount();
+        e.shippingFee = o.shippingFee().amount();
+        e.tax = o.tax().amount();
         e.total = o.total().amount();
         e.promotionCode = o.promotionCode();
         e.paymentMethod = o.checkout().paymentMethod().name();
@@ -117,6 +119,8 @@ class OrderPersistenceAdapter implements OrderRepository {
                         new Money(l.unitPrice, e.currency))).toList())
                 .subtotal(new Money(e.subtotal, e.currency))
                 .discount(new Money(e.discount, e.currency))
+                .shippingFee(new Money(e.shippingFee, e.currency))
+                .tax(new Money(e.tax, e.currency))
                 .total(new Money(e.total, e.currency))
                 .promotionCode(e.promotionCode)
                 .checkout(new CheckoutDetails(PaymentMethod.valueOf(e.paymentMethod), e.paymentToken, e.returnUrl, e.clientIp))

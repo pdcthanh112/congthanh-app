@@ -1,6 +1,6 @@
-import { bearer, fromGrpcError, grpcClient, resiliencePolicy } from '@ecom/platform';
-import { PromotionService, PromotionType } from '@ecom/proto/ecommerce/promotion/v1/promotion_service_pb';
-import { fromProtoMoney, type Money, toProtoMoney } from '@ecom/shared';
+import { bearer, fromGrpcError, grpcClient, resiliencePolicy } from '@ecommerce/platform';
+import { PromotionService, PromotionType } from '@ecommerce/proto/ecommerce/promotion/v1/promotion_service_pb';
+import { fromProtoMoney, type Money, toProtoMoney } from '@ecommerce/shared';
 
 export interface DiscountQuote {
   valid: boolean;

@@ -8,7 +8,7 @@ ports:
 env:
   ANTHROPIC_MODEL: claude-opus-5-5
   ANTHROPIC_EFFORT: low
-  VALKEY_URL: redis://ecom-valkey.data.svc.cluster.local:6379/5
+  REDIS_URL: redis://redis.data.svc.cluster.local:6379/5
   JWT_JWKS_URL: http://keycloak-service.identity.svc.cluster.local:8080/realms/ecommerce/protocol/openid-connect/certs
 secretEnv:
 - name: ANTHROPIC_API_KEY

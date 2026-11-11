@@ -44,6 +44,12 @@ public class OrderEntity {
     BigDecimal discount;
 
     @Column(nullable = false, precision = 19, scale = 4)
+    BigDecimal shippingFee = BigDecimal.ZERO;
+
+    @Column(nullable = false, precision = 19, scale = 4)
+    BigDecimal tax = BigDecimal.ZERO;
+
+    @Column(nullable = false, precision = 19, scale = 4)
     BigDecimal total;
 
     String promotionCode;

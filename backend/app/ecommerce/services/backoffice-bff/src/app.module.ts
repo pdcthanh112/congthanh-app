@@ -1,7 +1,7 @@
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { CartClient, InventoryClient, OrderClient, ProductClient, PromotionClient } from '@ecom/clients';
-import { PlatformAuthModule, PlatformHealthModule, PlatformLoggerModule, subgraphConfig } from '@ecom/platform';
+import { CartClient, InventoryClient, OrderClient, ProductClient, PromotionClient } from '@ecommerce/clients';
+import { PlatformAuthModule, PlatformHealthModule, PlatformLoggerModule, subgraphConfig } from '@ecommerce/platform';
 import { type DynamicModule, Module } from '@nestjs/common';
 import { GraphQLModule } from '@nestjs/graphql';
 import { OperationsResolver } from './adapters/in/graphql/operations.resolver.js';

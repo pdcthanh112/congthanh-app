@@ -1,0 +1,55 @@
+# checkout-service: phiên checkout + saga Temporal (queue checkout-workflow). Ghi đè theo môi trường ở values-<env>.yaml.
+nameOverride: checkout-service
+runtime: java
+image:
+  repository: ghcr.io/pdcthanh112/congthanhapp/checkout-service
+ports:
+  http: 5027
+  grpc: 19095
+env:
+  OIDC_ISSUER_URI: http://keycloak-service.identity.svc.cluster.local:8080/realms/ecommerce
+  JWT_JWKS_URL: http://keycloak-service.identity.svc.cluster.local:8080/realms/ecommerce/protocol/openid-connect/certs
+  OTLP_TRACES_ENDPOINT: http://otel-collector.observability.svc.cluster.local:4318/v1/traces
+  KAFKA_BROKERS: ecommerce-kafka-bootstrap.messaging.svc.cluster.local:9092
+  TEMPORAL_ADDRESS: temporal-frontend.workflow.svc.cluster.local:7233
+  TEMPORAL_NAMESPACE: ecommerce
+  PRODUCT_GRPC_ADDR: product-service:29090
+  PRICING_GRPC_ADDR: pricing-service:9099
+  PROMOTION_GRPC_ADDR: promotion-service:9095
+  SHIPPING_GRPC_ADDR: shipping-service:9097
+  TAX_GRPC_ADDR: tax-service:9096
+  ORDER_GRPC_ADDR: order-service:19090
+  FRAUD_URL: http://fraud-service
+  # fraud-service sập thì vẫn cho đặt đơn (ghi log cảnh báo); đặt false nếu muốn chặn.
+  FRAUD_FAIL_OPEN: "true"
+secretEnv:
+- name: DATABASE_URL
+  key: ecommerce/checkout-service
+  property: database_url
+- name: DATABASE_USER
+  key: ecommerce/checkout-service
+  property: database_user
+- name: DATABASE_PASSWORD
+  key: ecommerce/checkout-service
+  property: database_password
+probes:
+  readinessPath: /actuator/health/readiness
+  livenessPath: /actuator/health/liveness
+resources:
+  requests:
+    cpu: 250m
+    memory: 512Mi
+  limits:
+    memory: 1Gi
+serviceMonitor:
+  enabled: true
+  path: /actuator/prometheus
+otel:
+  javaAutoInstrumentation: false
+# Scale theo lượng FlashSaleClaimed chưa xử lý (mỗi claim mở một phiên checkout) bên cạnh CPU.
+keda:
+  enabled: true
+  kafka:
+    consumerGroup: checkout-service
+    topic: ecommerce.inventory.events
+    lagThreshold: "200"

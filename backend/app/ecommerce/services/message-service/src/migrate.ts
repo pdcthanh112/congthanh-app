@@ -1,6 +1,6 @@
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { createPool, runMigrations } from '@ecom/platform';
+import { createPool, runMigrations } from '@ecommerce/platform';
 import { env } from './config/env.js';
 
 // Chạy ở init container trước khi pod nhận traffic: node dist/migrate.js

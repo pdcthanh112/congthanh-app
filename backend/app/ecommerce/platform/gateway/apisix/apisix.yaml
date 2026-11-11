@@ -11,7 +11,7 @@ routes:
       key: remote_addr
       rejected_code: 429
       policy: redis
-      redis_host: valkey
+      redis_host: redis
       allow_degradation: true
     openid-connect:
       discovery: http://keycloak:8080/realms/ecommerce/.well-known/openid-configuration
@@ -32,7 +32,7 @@ routes:
       key: remote_addr
       rejected_code: 429
       policy: redis
-      redis_host: valkey
+      redis_host: redis
       allow_degradation: true
 - id: flash-sale
   uris:
@@ -40,12 +40,12 @@ routes:
   upstream_id: flash-sale
   plugins:
     limit-count:
-      count: 5
+      count: 10
       time_window: 10
       key: consumer_name
       rejected_code: 429
       policy: redis
-      redis_host: valkey
+      redis_host: redis
       allow_degradation: true
     limit-conn:
       conn: 2000
@@ -72,7 +72,7 @@ routes:
       key: remote_addr
       rejected_code: 429
       policy: redis
-      redis_host: valkey
+      redis_host: redis
       allow_degradation: true
     openid-connect:
       discovery: http://keycloak:8080/realms/ecommerce/.well-known/openid-configuration
@@ -81,6 +81,79 @@ routes:
       bearer_only: true
       use_jwks: true
       set_userinfo_header: false
+- id: checkout
+  uris:
+  - /api/ecommerce/checkout/sessions*
+  upstream_id: checkout
+  plugins:
+    limit-count:
+      count: 30
+      time_window: 10
+      key: consumer_name
+      rejected_code: 429
+      policy: redis
+      redis_host: redis
+      allow_degradation: true
+    limit-conn:
+      conn: 1500
+      burst: 150
+      default_conn_delay: 0.1
+      key: server_addr
+      rejected_code: 503
+    openid-connect:
+      discovery: http://keycloak:8080/realms/ecommerce/.well-known/openid-configuration
+      client_id: apisix-gateway
+      client_secret: $ENV://KEYCLOAK_GATEWAY_SECRET
+      bearer_only: true
+      use_jwks: true
+      set_userinfo_header: false
+  priority: 10
+- id: pricing
+  uris:
+  - /api/ecommerce/pricing*
+  upstream_id: pricing
+  plugins:
+    limit-count:
+      count: 300
+      time_window: 60
+      key: remote_addr
+      rejected_code: 429
+      policy: redis
+      redis_host: redis
+      allow_degradation: true
+- id: fraud
+  uris:
+  - /api/ecommerce/fraud*
+  upstream_id: fraud
+  plugins:
+    limit-count:
+      count: 300
+      time_window: 60
+      key: remote_addr
+      rejected_code: 429
+      policy: redis
+      redis_host: redis
+      allow_degradation: true
+    openid-connect:
+      discovery: http://keycloak:8080/realms/ecommerce/.well-known/openid-configuration
+      client_id: apisix-gateway
+      client_secret: $ENV://KEYCLOAK_GATEWAY_SECRET
+      bearer_only: true
+      use_jwks: true
+      set_userinfo_header: false
+- id: recommendation
+  uris:
+  - /api/ecommerce/recommendations*
+  upstream_id: recommendation
+  plugins:
+    limit-count:
+      count: 300
+      time_window: 60
+      key: remote_addr
+      rejected_code: 429
+      policy: redis
+      redis_host: redis
+      allow_degradation: true
 - id: media
   uris:
   - /api/ecommerce/media*
@@ -92,7 +165,7 @@ routes:
       key: remote_addr
       rejected_code: 429
       policy: redis
-      redis_host: valkey
+      redis_host: redis
       allow_degradation: true
 - id: product
   uris:
@@ -105,7 +178,7 @@ routes:
       key: remote_addr
       rejected_code: 429
       policy: redis
-      redis_host: valkey
+      redis_host: redis
       allow_degradation: true
 - id: payment
   uris:
@@ -118,7 +191,7 @@ routes:
       key: remote_addr
       rejected_code: 429
       policy: redis
-      redis_host: valkey
+      redis_host: redis
       allow_degradation: true
 - id: promotion
   uris:
@@ -131,7 +204,7 @@ routes:
       key: remote_addr
       rejected_code: 429
       policy: redis
-      redis_host: valkey
+      redis_host: redis
       allow_degradation: true
 - id: search
   uris:
@@ -144,7 +217,7 @@ routes:
       key: remote_addr
       rejected_code: 429
       policy: redis
-      redis_host: valkey
+      redis_host: redis
       allow_degradation: true
 - id: supplier
   uris:
@@ -157,7 +230,7 @@ routes:
       key: remote_addr
       rejected_code: 429
       policy: redis
-      redis_host: valkey
+      redis_host: redis
       allow_degradation: true
 - id: shipping
   uris:
@@ -170,7 +243,7 @@ routes:
       key: remote_addr
       rejected_code: 429
       policy: redis
-      redis_host: valkey
+      redis_host: redis
       allow_degradation: true
 - id: translate
   uris:
@@ -183,7 +256,7 @@ routes:
       key: remote_addr
       rejected_code: 429
       policy: redis
-      redis_host: valkey
+      redis_host: redis
       allow_degradation: true
 - id: tax
   uris:
@@ -196,7 +269,7 @@ routes:
       key: remote_addr
       rejected_code: 429
       policy: redis
-      redis_host: valkey
+      redis_host: redis
       allow_degradation: true
 - id: webhook
   uris:
@@ -209,7 +282,7 @@ routes:
       key: remote_addr
       rejected_code: 429
       policy: redis
-      redis_host: valkey
+      redis_host: redis
       allow_degradation: true
     openid-connect:
       discovery: http://keycloak:8080/realms/ecommerce/.well-known/openid-configuration
@@ -229,7 +302,21 @@ routes:
       key: remote_addr
       rejected_code: 429
       policy: redis
-      redis_host: valkey
+      redis_host: redis
+      allow_degradation: true
+- id: commerce-mcp
+  uris:
+  - /api/ecommerce/mcp
+  - /.well-known/oauth-protected-resource/api/ecommerce/mcp
+  upstream_id: commerce-mcp
+  plugins:
+    limit-count:
+      count: 120
+      time_window: 60
+      key: remote_addr
+      rejected_code: 429
+      policy: redis
+      redis_host: redis
       allow_degradation: true
 - id: graphql
   uris:
@@ -242,7 +329,7 @@ routes:
       key: remote_addr
       rejected_code: 429
       policy: redis
-      redis_host: valkey
+      redis_host: redis
       allow_degradation: true
   enable_websocket: true
 - id: graphql-admin
@@ -256,7 +343,7 @@ routes:
       key: remote_addr
       rejected_code: 429
       policy: redis
-      redis_host: valkey
+      redis_host: redis
       allow_degradation: true
     proxy-rewrite:
       uri: /graphql
@@ -294,6 +381,42 @@ upstreams:
   scheme: http
   nodes:
     order-service:5006: 1
+  timeout:
+    connect: 3
+    send: 30
+    read: 30
+- id: checkout
+  type: roundrobin
+  scheme: http
+  nodes:
+    checkout-service:5027: 1
+  timeout:
+    connect: 3
+    send: 30
+    read: 30
+- id: pricing
+  type: roundrobin
+  scheme: http
+  nodes:
+    pricing-service:5025: 1
+  timeout:
+    connect: 3
+    send: 30
+    read: 30
+- id: fraud
+  type: roundrobin
+  scheme: http
+  nodes:
+    fraud-service:5026: 1
+  timeout:
+    connect: 3
+    send: 30
+    read: 30
+- id: recommendation
+  type: roundrobin
+  scheme: http
+  nodes:
+    recommendation-service:5028: 1
   timeout:
     connect: 3
     send: 30
@@ -393,6 +516,15 @@ upstreams:
   scheme: http
   nodes:
     chatbot-service:5024: 1
+  timeout:
+    connect: 3
+    send: 30
+    read: 30
+- id: commerce-mcp
+  type: roundrobin
+  scheme: http
+  nodes:
+    commerce-mcp-service:5030: 1
   timeout:
     connect: 3
     send: 30

@@ -43,16 +43,26 @@ type Category @key(fields: "id", resolvable: false) {
 }
 
 input CheckoutInput {
+  """Mã thiết bị (fingerprint) cho kiểm tra gian lận"""
+  deviceId: String
+  """
+  Tổng tiền khách đang thấy; giá đổi trước khi đặt thì trả lỗi PRICE_CHANGED để khách xem lại
+  """
+  expectedTotal: Float
   """
   Sinh một lần cho mỗi lần bấm "Đặt hàng" (16-64 ký tự); gửi lại không tạo đơn mới
   """
   idempotencyKey: String!
   note: String
   paymentMethod: PaymentMethod!
-  """Token thẻ từ SDK cổng thanh toán (không gửi số thẻ)"""
+  """
+  ConfirmationToken (ctoken_...) từ Stripe Payment Element cho CARD/APPLE_PAY/GOOGLE_PAY/AFFIRM/KLARNA/AFTERPAY; bỏ trống với PayPal
+  """
   paymentToken: String
   promotionCode: String
-  """Bắt buộc với thanh toán online: trang quay về sau khi trả tiền"""
+  """
+  Bắt buộc với PayPal và trả góp: trang quay về sau khi khách duyệt thanh toán
+  """
   returnUrl: String
   """Bỏ trống = địa chỉ mặc định"""
   shippingAddressId: ID
@@ -68,12 +78,22 @@ type CheckoutProgress {
 }
 
 type CheckoutResult {
+  """Phiên checkout; poll checkoutSession(id) khi status = PENDING_REVIEW"""
+  checkoutSessionId: ID!
   """Theo dõi tiến trình bằng checkoutProgress(orderCode)"""
-  checkoutUrl: String!
+  checkoutUrl: String
   discount: Money!
-  orderCode: String!
-  orderId: ID!
+  """Lý do khi bị từ chối"""
+  failureReason: String
+  orderCode: String
+  orderId: ID
+  shippingFee: Money!
+  """
+  PLACED = đã tạo đơn; PENDING_REVIEW = chờ duyệt (chưa có đơn); REJECTED
+  """
   status: String!
+  subtotal: Money!
+  tax: Money!
   total: Money!
 }
 
@@ -87,7 +107,7 @@ type Money @shareable {
   """ISO 4217"""
   currency: String!
   """
-  Đã định dạng theo vi-VN, ví dụ "1.250.000 ₫"
+  Đã định dạng theo en-US, ví dụ "$1,250.00"
   """
   formatted: String!
 }
@@ -96,10 +116,14 @@ type Mutation {
   addToCart(productId: ID!, quantity: Int! = 1): Cart!
   """Huỷ đơn khi chưa giao cho vận chuyển"""
   cancelOrder(orderCode: String!, reason: String): Order!
-  """Đặt hàng từ giỏ mặc định"""
+  """
+  Đặt hàng từ giỏ mặc định: báo giá lại, kiểm tra gian lận, tạo đơn (hoặc giữ lại chờ duyệt)
+  """
   checkout(input: CheckoutInput!): CheckoutResult!
   clearCart: Cart!
   removeCartItem(itemId: ID!): Cart!
+  """Ghi nhận khách xem sản phẩm (tín hiệu cho gợi ý)"""
+  trackProductView(productId: ID!): Boolean!
   """quantity = 0 thì xoá dòng"""
   updateCartItem(itemId: ID!, quantity: Int!): Cart!
 }
@@ -153,12 +177,13 @@ type OrderSummary {
 }
 
 enum PaymentMethod {
-  CASH_ON_DELIVERY
-  CREDIT_CARD
-  MOMO
+  AFFIRM
+  AFTERPAY
+  APPLE_PAY
+  CARD
+  GOOGLE_PAY
+  KLARNA
   PAYPAL
-  STRIPE
-  VN_PAY
 }
 
 """Sản phẩm (dữ liệu gốc ở product-service)"""
@@ -174,6 +199,8 @@ type Product @key(fields: "id") {
   name: String!
   originalPrice: Money!
   price: Money!
+  """Thường mua kèm hoặc sản phẩm tương tự"""
+  recommendations(kind: RecommendationKind! = BOUGHT_TOGETHER, limit: Int! = 8): [Recommendation!]!
   sellerId: ID!
   sku: String!
   slug: String
@@ -201,6 +228,8 @@ type PromotionQuote {
 type Query {
   """Tiến trình saga đặt hàng (poll mỗi 1-2 giây)"""
   checkoutProgress(orderCode: String!): CheckoutProgress!
+  """Trạng thái phiên checkout (poll khi đơn đang chờ duyệt)"""
+  checkoutSession(id: ID!): CheckoutResult!
   myCart: Cart!
   myOrders(limit: Int! = 20): [OrderSummary!]!
   order(orderCode: String!): Order!
@@ -210,8 +239,24 @@ type Query {
   products(categoryId: ID, limit: Int! = 20, page: Int! = 1): ProductPage!
   """Thử mã giảm giá trên giỏ hiện tại"""
   quotePromotion(code: String!): PromotionQuote!
+  """Gợi ý cho riêng khách (vãng lai: theo phiên, hoặc xu hướng)"""
+  recommendedForYou(limit: Int! = 12): [Recommendation!]!
   """Tìm theo từ khoá (tên sản phẩm)"""
   searchProducts(keyword: String!): [Product!]!
+  """Sản phẩm đang được quan tâm (7 ngày gần đây)"""
+  trendingProducts(categoryId: ID, limit: Int! = 12): [Recommendation!]!
+}
+
+type Recommendation {
+  product: Product!
+  """BOUGHT_TOGETHER | SIMILAR | TRENDING | FOR_YOU"""
+  reason: String!
+  score: Float!
+}
+
+enum RecommendationKind {
+  BOUGHT_TOGETHER
+  SIMILAR
 }
 
 type Stock {

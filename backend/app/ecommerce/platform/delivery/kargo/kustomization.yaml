@@ -1,0 +1,8 @@
+# Kargo: promote image qua các môi trường (thay workflow release.yml mở PR thủ công).
+# pipeline.yaml SINH bằng tools/scripts/gen-kargo.py.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+- pipeline.yaml
+- verification.yaml
+- credentials.yaml

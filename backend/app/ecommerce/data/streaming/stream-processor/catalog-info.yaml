@@ -1,0 +1,23 @@
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: stream-processor
+  description: Flink job tính feature rủi ro khách, trending sản phẩm và độ phủ tồn kho theo thời gian thực
+  tags:
+  - java
+  - flink
+  - streaming
+  annotations:
+    github.com/project-slug: pdcthanh112/CongThanhApp
+    backstage.io/source-location: url:https://github.com/pdcthanh112/CongThanhApp/tree/main/backend/app/ecommerce/data/streaming/stream-processor
+    grafana/dashboard-selector: tags @> 'stream-processor'
+    backstage.io/techdocs-ref: dir:../../docs
+spec:
+  type: service
+  lifecycle: experimental
+  owner: team-platform
+  system: ecommerce
+  providesApis: []
+  consumesApis: []
+  dependsOn:
+  - resource:ecommerce-kafka

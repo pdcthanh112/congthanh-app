@@ -1,6 +1,6 @@
 package com.congthanh.productservice.adapter.out.messaging;
 
-import com.congthanh.ecom.common.v1.Money;
+import com.congthanh.ecommerce.common.v1.Money;
 import com.congthanh.platform.outbox.OutboxWriter;
 import com.congthanh.productservice.application.event.ProductChanged;
 import com.congthanh.productservice.grpc.ProductDeleted;
@@ -22,7 +22,7 @@ class ProductOutboxListener {
     private final OutboxWriter outbox;
     private final String currency;
 
-    ProductOutboxListener(OutboxWriter outbox, @Value("${product.currency:VND}") String currency) {
+    ProductOutboxListener(OutboxWriter outbox, @Value("${product.currency:USD}") String currency) {
         this.outbox = outbox;
         this.currency = currency;
     }

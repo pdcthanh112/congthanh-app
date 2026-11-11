@@ -28,7 +28,7 @@ const (
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 //
 // tax-service (Go). order-service gọi khi checkout để tính thuế theo địa chỉ giao hàng.
-// Thuế suất chọn theo mức cụ thể nhất: mã bưu chính > tỉnh/thành > quốc gia.
+// Thuế suất chọn theo mức cụ thể nhất: mã bưu chính (ZIP) > bang > quốc gia.
 type TaxServiceClient interface {
 	CalculateTax(ctx context.Context, in *CalculateTaxRequest, opts ...grpc.CallOption) (*CalculateTaxResponse, error)
 	GetTaxRates(ctx context.Context, in *GetTaxRatesRequest, opts ...grpc.CallOption) (*GetTaxRatesResponse, error)
@@ -67,7 +67,7 @@ func (c *taxServiceClient) GetTaxRates(ctx context.Context, in *GetTaxRatesReque
 // for forward compatibility.
 //
 // tax-service (Go). order-service gọi khi checkout để tính thuế theo địa chỉ giao hàng.
-// Thuế suất chọn theo mức cụ thể nhất: mã bưu chính > tỉnh/thành > quốc gia.
+// Thuế suất chọn theo mức cụ thể nhất: mã bưu chính (ZIP) > bang > quốc gia.
 type TaxServiceServer interface {
 	CalculateTax(context.Context, *CalculateTaxRequest) (*CalculateTaxResponse, error)
 	GetTaxRates(context.Context, *GetTaxRatesRequest) (*GetTaxRatesResponse, error)

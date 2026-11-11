@@ -23,7 +23,7 @@ def plugins(r, cfg, k8s):
     p = {
         "limit-count": {
             "count": rl["count"], "time_window": rl["window"], "key": key, "rejected_code": 429,
-            "policy": "redis", "redis_host": "valkey" if not k8s else "valkey.data.svc.cluster.local",
+            "policy": "redis", "redis_host": "redis" if not k8s else "redis.data.svc.cluster.local",
             "allow_degradation": True,
         },
     }
@@ -42,7 +42,6 @@ def plugins(r, cfg, k8s):
 
 
 def timeouts(r):
-    # Subscription giữ kết nối lâu: graphql-ws ping định kỳ, nên chỉ cắt khi im lặng quá 1 giờ.
     idle = 3600 if r.get("websocket") else 30
     return {"connect": 3, "send": idle, "read": idle}
 
@@ -59,6 +58,8 @@ def standalone(cfg):
         route = {"id": r["name"], "uris": uris(r), "upstream_id": r["name"], "plugins": plugins(r, cfg, False)}
         if r.get("websocket"):
             route["enable_websocket"] = True
+        if "priority" in r:
+            route["priority"] = r["priority"]
         routes.append(route)
     return {"routes": routes, "upstreams": upstreams}
 
@@ -71,6 +72,7 @@ def k8s(cfg):
             "metadata": {"name": r["name"], "namespace": "gateway"},
             "spec": {"ingressClassName": "apisix", "http": [{
                 "name": r["name"],
+                **({"priority": r["priority"]} if "priority" in r else {}),
                 "match": {"paths": uris(r)},
                 **({"websocket": True} if r.get("websocket") else {}),
                 "backends": [{"serviceName": r["service"], "servicePort": 80, "resolveGranularity": "service"}],

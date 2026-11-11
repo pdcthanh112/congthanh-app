@@ -52,7 +52,7 @@ type Query struct {
 
 const MaxSize = 100
 
-// Normalize đặt mặc định và kiểm tra giới hạn (trang sâu quá 10.000 kết quả bị chặn như OpenSearch).
+// Normalize đặt mặc định và kiểm tra giới hạn (trang sâu quá 10.000 kết quả bị chặn như Elasticsearch).
 func (q Query) Normalize() (Query, error) {
 	q.Text = strings.TrimSpace(q.Text)
 	if utf8.RuneCountInString(q.Text) > 200 {

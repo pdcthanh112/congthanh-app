@@ -118,6 +118,9 @@ spec:
         - {name: SERVER_PORT, value: {{ .Values.ports.http | quote }}}
         - {name: JAVA_TOOL_OPTIONS, value: "-XX:MaxRAMPercentage=75 -XX:+UseZGC"}
         {{- end }}
+        {{- if eq .Values.runtime "java-native" }}
+        - {name: SERVER_PORT, value: {{ .Values.ports.http | quote }}}
+        {{- end }}
         {{- range $k, $v := .Values.env }}
         - {name: {{ $k }}, value: {{ $v | quote }}}
         {{- end }}

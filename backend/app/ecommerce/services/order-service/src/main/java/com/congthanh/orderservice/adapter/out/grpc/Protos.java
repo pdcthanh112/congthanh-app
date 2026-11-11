@@ -13,17 +13,17 @@ final class Protos {
     private Protos() {
     }
 
-    static com.congthanh.ecom.common.v1.Money toProto(Money m) {
+    static com.congthanh.ecommerce.common.v1.Money toProto(Money m) {
         BigDecimal amount = m.amount().setScale(9, RoundingMode.HALF_EVEN);
         BigDecimal units = amount.setScale(0, RoundingMode.DOWN);
-        return com.congthanh.ecom.common.v1.Money.newBuilder()
+        return com.congthanh.ecommerce.common.v1.Money.newBuilder()
                 .setCurrencyCode(m.currency())
                 .setUnits(units.longValueExact())
                 .setNanos(amount.subtract(units).movePointRight(9).intValueExact())
                 .build();
     }
 
-    static Money fromProto(com.congthanh.ecom.common.v1.Money m, String fallbackCurrency) {
+    static Money fromProto(com.congthanh.ecommerce.common.v1.Money m, String fallbackCurrency) {
         BigDecimal amount = BigDecimal.valueOf(m.getUnits()).add(BigDecimal.valueOf(m.getNanos(), 9)).stripTrailingZeros();
         if (amount.scale() < 0) {
             amount = amount.setScale(0);

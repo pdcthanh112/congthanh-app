@@ -7,6 +7,7 @@ import com.congthanh.paymentservice.application.port.out.PaymentProvider.Provide
 import com.congthanh.paymentservice.application.port.out.PaymentProviders;
 import com.congthanh.paymentservice.application.port.out.PaymentRepository;
 import com.congthanh.paymentservice.domain.exception.PaymentException;
+import com.congthanh.paymentservice.domain.model.InstallmentPolicy;
 import com.congthanh.paymentservice.domain.model.Money;
 import com.congthanh.paymentservice.domain.model.Payment;
 import com.congthanh.paymentservice.domain.model.PaymentMethod;
@@ -17,7 +18,11 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.support.TransactionTemplate;
 
+import java.math.BigDecimal;
 import java.time.Clock;
+import java.time.Duration;
+import java.time.Instant;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -35,20 +40,27 @@ public class PaymentService implements PaymentUseCases {
     private final CheckoutNotifier checkout;
     private final TransactionTemplate tx;
     private final Clock clock;
+    private final InstallmentPolicy installments;
 
     public PaymentService(PaymentRepository payments, PaymentProviders providers, CheckoutNotifier checkout,
-                          TransactionTemplate tx, Clock clock) {
+                          TransactionTemplate tx, Clock clock, InstallmentPolicy installments) {
         this.payments = payments;
         this.providers = providers;
         this.checkout = checkout;
         this.tx = tx;
         this.clock = clock;
+        this.installments = installments;
     }
 
     @Override
     public Authorization authorize(AuthorizeCommand cmd) {
         PaymentProvider provider = providers.forMethod(cmd.method());
-        Payment payment = payments.findByOrderId(cmd.orderId()).orElseGet(() -> create(cmd, provider));
+        Payment payment = payments.findByOrderId(cmd.orderId()).orElse(null);
+        if (payment == null) {
+            // Chỉ kiểm lúc tạo: lần retry sau đó đi tiếp với bản ghi đã qua kiểm tra.
+            installments.check(cmd.method(), new Money(cmd.amount(), cmd.currency()), cmd.returnUrl());
+            payment = create(cmd, provider);
+        }
 
         switch (payment.status()) {
             case AUTHORIZED, CAPTURED -> {
@@ -67,7 +79,7 @@ public class PaymentService implements PaymentUseCases {
         ProviderResult result = provider.authorize(payment, cmd.paymentToken(), cmd.returnUrl(), cmd.clientIp());
         Payment updated = mutate(payment.orderId(), p -> {
             switch (result) {
-                case ProviderResult.Authorized a -> p.authorized(a.providerRef(), clock.instant());
+                case ProviderResult.Authorized a -> p.authorized(a.providerRef(), clock.instant(), captureDeadline(p));
                 case ProviderResult.ActionRequired a -> p.actionRequired(a.providerRef(), a.redirectUrl(), clock.instant());
                 case ProviderResult.Declined d -> p.declined(d.reason(), clock.instant());
             }
@@ -133,10 +145,8 @@ public class PaymentService implements PaymentUseCases {
                 Payment updated = mutate(payment.orderId(), p -> {
                     if (!cb.success()) {
                         p.declined(cb.reason(), clock.instant());
-                    } else if (provider.capturesImmediately()) {
-                        p.paidImmediately(cb.providerRef(), clock.instant());
                     } else {
-                        p.authorized(cb.providerRef(), clock.instant());
+                        p.authorized(cb.providerRef(), clock.instant(), captureDeadline(p));
                     }
                 });
                 checkout.paymentCompleted(updated.orderId(), updated.id(), cb.success(), cb.reason());
@@ -161,6 +171,16 @@ public class PaymentService implements PaymentUseCases {
     @Override
     public Payment getByOrder(String orderId) {
         return load(orderId);
+    }
+
+    @Override
+    public List<InstallmentPolicy.Option> installmentOptions(BigDecimal amount, String currency) {
+        return installments.options(new Money(amount, currency), providers::supports);
+    }
+
+    private Instant captureDeadline(Payment p) {
+        Duration ttl = installments.authorizationTtl(p.method());
+        return ttl == null ? null : clock.instant().plus(ttl);
     }
 
     private Payment create(AuthorizeCommand cmd, PaymentProvider provider) {

@@ -15,6 +15,7 @@ type Config struct {
 	NodeID           int64
 	ReservationTTL   time.Duration
 	SweepInterval    time.Duration
+	FlashClaimTTL    time.Duration // hạn đặt đơn sau khi giành được suất flash sale
 	LogFormat        string
 	LogLevel         string
 	JWKSURL          string
@@ -22,8 +23,8 @@ type Config struct {
 	JWTIssuer        string
 	DefaultWarehouse string
 	// Hạ tầng tuỳ chọn: để trống thì tính năng tương ứng tắt.
-	RedisURL     string   // flash sale (Redis/Valkey)
-	KafkaBrokers []string // consumer ecom.order.events + publish FlashSaleClaimed
+	RedisURL     string   // flash sale (Redis)
+	KafkaBrokers []string // consumer ecommerce.order.events + publish FlashSaleClaimed
 	KafkaGroup   string
 	UnleashURL   string
 	UnleashToken string
@@ -39,6 +40,7 @@ func Load() Config {
 		NodeID:           int64(c.Int("NODE_ID", 4)),
 		ReservationTTL:   c.Duration("RESERVATION_TTL", 15*time.Minute),
 		SweepInterval:    c.Duration("RESERVATION_SWEEP_INTERVAL", time.Minute),
+		FlashClaimTTL:    c.Duration("FLASH_CLAIM_TTL", 10*time.Minute),
 		LogFormat:        c.String("LOG_FORMAT", "json"),
 		LogLevel:         c.String("LOG_LEVEL", "info"),
 		JWKSURL:          c.String("JWT_JWKS_URL", ""),

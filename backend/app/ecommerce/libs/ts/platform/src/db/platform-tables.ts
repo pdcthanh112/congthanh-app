@@ -8,7 +8,7 @@ export const bytea = customType<{ data: Uint8Array; driverData: Buffer }>({
 
 /**
  * Bảng nền trong schema của từng service, cùng cấu trúc với service Java/Go:
- * - outbox: Debezium Outbox Event Router đọc WAL và đẩy lên topic ecom.<aggregatetype>.events
+ * - outbox: Debezium Outbox Event Router đọc WAL và đẩy lên topic ecommerce.<aggregatetype>.events
  * - processed_events: consumer Kafka ghi event_id cùng transaction với tác dụng phụ để chống xử lý trùng
  *
  * Service khai báo trong schema Drizzle của mình: `export const { outbox, processedEvents } = platformTables(svc)`

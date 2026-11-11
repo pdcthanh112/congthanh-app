@@ -14,7 +14,7 @@ def test_translate_endpoints():
         main.app.dependency_overrides[main.auth.required] = lambda: main.Principal(subject="u1")
         r = c.post("/api/ecommerce/translate", json={"texts": ["a", "b"], "targetLang": "en"})
         assert r.status_code == 200 and r.json()["data"]["translations"] == ["A", "B"]
-        assert c.get("/api/ecommerce/translate/languages").json()["data"][0]["code"] == "vi"
+        assert c.get("/api/ecommerce/translate/languages").json()["data"][0]["code"] == "en"
         r = c.post("/api/ecommerce/translate", json={"texts": [], "targetLang": "en"})
         assert r.status_code == 400 and r.json()["status"] == "Failed"
         main.app.dependency_overrides.clear()

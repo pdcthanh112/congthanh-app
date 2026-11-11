@@ -1,0 +1,78 @@
+apiVersion: argoproj.io/v1alpha1
+kind: ApplicationSet
+metadata:
+  name: velero
+  namespace: argocd
+spec:
+  goTemplate: true
+  goTemplateOptions: ["missingkey=error"]
+  generators:
+    - clusters:
+        selector:
+          matchExpressions:
+            - { key: env, operator: In, values: [dev, test, staging, prod] }
+  template:
+    metadata:
+      name: 'velero-{{ index .metadata.labels "env" }}'
+      annotations:
+        argocd.argoproj.io/sync-wave: "-15"
+    spec:
+      project: platform
+      source:
+        repoURL: https://vmware-tanzu.github.io/helm-charts
+        chart: velero
+        targetRevision: 12.2.1
+        helm:
+          valuesObject:
+            initContainers:
+              - name: velero-plugin-for-aws
+                image: velero/velero-plugin-for-aws:v1.14.4
+                volumeMounts:
+                  - { mountPath: /target, name: plugins }
+            credentials:
+              useSecret: false
+            serviceAccount:
+              server:
+                name: velero
+            snapshotsEnabled: true
+            deployNodeAgent: false
+            metrics:
+              enabled: true
+              serviceMonitor: { enabled: false }
+            configuration:
+              backupStorageLocation:
+                - name: default
+                  provider: aws
+                  bucket: 'congthanhapp-{{ index .metadata.labels "env" }}-velero'
+                  prefix: cluster
+                  default: true
+                  config: { region: ap-southeast-1 }
+              volumeSnapshotLocation:
+                - name: default
+                  provider: aws
+                  config: { region: ap-southeast-1 }
+            schedules:
+              # Toàn cluster mỗi ngày, giữ 30 ngày (bucket tự xoá sau 90 ngày).
+              daily-cluster:
+                schedule: "0 18 * * *" # 01:00 giờ Việt Nam
+                useOwnerReferencesInBackup: false
+                template:
+                  ttl: 720h
+                  storageLocation: default
+                  snapshotVolumes: true
+                  excludedNamespaces: [kube-system, kube-node-lease, kube-public, velero]
+              # Namespace có dữ liệu trạng thái trong PV (Kafka, Flink HA) mỗi 6 giờ, giữ 3 ngày.
+              stateful-6h:
+                schedule: "0 */6 * * *"
+                useOwnerReferencesInBackup: false
+                template:
+                  ttl: 72h
+                  storageLocation: default
+                  snapshotVolumes: true
+                  includedNamespaces: [messaging, streaming, data]
+      destination:
+        server: "{{ .server }}"
+        namespace: velero
+      syncPolicy:
+        automated: { prune: false, selfHeal: true }
+        syncOptions: [CreateNamespace=true, ServerSideApply=true]

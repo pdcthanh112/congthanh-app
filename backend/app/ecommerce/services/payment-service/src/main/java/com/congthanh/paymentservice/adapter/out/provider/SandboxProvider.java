@@ -16,7 +16,7 @@ import java.util.Set;
  * Cổng giả cho local/dev/e2e (payment.sandbox.enabled=true), KHÔNG bao giờ bật ở prod.
  * <ul>
  *   <li>token {@code tok_decline}: bị từ chối (để thử nhánh bù trừ của saga)</li>
- *   <li>VN_PAY, PAYPAL, MOMO hoặc token {@code tok_redirect}: phải sang trang sandbox để bấm Trả/Huỷ</li>
+ *   <li>PAYPAL, trả góp (AFFIRM/KLARNA/AFTERPAY) hoặc token {@code tok_redirect}: phải sang trang sandbox để bấm Trả/Huỷ</li>
  *   <li>còn lại: authorize ngay</li>
  * </ul>
  * Link trang sandbox có chữ ký HMAC nên không ai tự "trả hộ" bằng cách đoán URL.
@@ -41,7 +41,7 @@ public class SandboxProvider implements PaymentProvider {
 
     @Override
     public Set<PaymentMethod> methods() {
-        return EnumSet.complementOf(EnumSet.of(PaymentMethod.CASH_ON_DELIVERY));
+        return EnumSet.allOf(PaymentMethod.class);
     }
 
     @Override
@@ -51,7 +51,8 @@ public class SandboxProvider implements PaymentProvider {
             return new ProviderResult.Declined("card_declined (sandbox)");
         }
         boolean redirect = "tok_redirect".equals(paymentToken)
-                || EnumSet.of(PaymentMethod.VN_PAY, PaymentMethod.PAYPAL, PaymentMethod.MOMO).contains(payment.method());
+                || payment.method() == PaymentMethod.PAYPAL
+                || payment.method().isInstallment();
         if (redirect) {
             return new ProviderResult.ActionRequired(ref, publicBaseUrl + "/api/ecommerce/payment/sandbox/pay?ref=" + ref
                     + "&method=" + payment.method() + "&sig=" + sign(ref, "page"));

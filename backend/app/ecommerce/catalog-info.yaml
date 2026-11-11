@@ -82,7 +82,7 @@ spec:
 apiVersion: backstage.io/v1alpha1
 kind: Resource
 metadata:
-  name: ecom-postgres
+  name: ecommerce-postgres
 spec:
   type: database
   owner: team-platform
@@ -91,7 +91,7 @@ spec:
 apiVersion: backstage.io/v1alpha1
 kind: Resource
 metadata:
-  name: ecom-kafka
+  name: ecommerce-kafka
 spec:
   type: message-broker
   owner: team-platform
@@ -100,7 +100,7 @@ spec:
 apiVersion: backstage.io/v1alpha1
 kind: Resource
 metadata:
-  name: ecom-valkey
+  name: ecommerce-redis
 spec:
   type: cache
   owner: team-platform
@@ -109,7 +109,16 @@ spec:
 apiVersion: backstage.io/v1alpha1
 kind: Resource
 metadata:
-  name: ecom-opensearch
+  name: ecommerce-temporal
+spec:
+  type: workflow-engine
+  owner: team-platform
+  system: ecommerce
+---
+apiVersion: backstage.io/v1alpha1
+kind: Resource
+metadata:
+  name: ecommerce-elasticsearch
 spec:
   type: search-cluster
   owner: team-platform
@@ -118,7 +127,7 @@ spec:
 apiVersion: backstage.io/v1alpha1
 kind: Resource
 metadata:
-  name: ecom-media-bucket
+  name: ecommerce-media-bucket
 spec:
   type: s3-bucket
   owner: team-platform
@@ -132,12 +141,17 @@ spec:
   targets:
   - ./services/cart-service/catalog-info.yaml
   - ./services/chatbot-service/catalog-info.yaml
+  - ./ai/commerce-mcp-service/catalog-info.yaml
+  - ./services/checkout-service/catalog-info.yaml
+  - ./services/fraud-service/catalog-info.yaml
   - ./services/inventory-service/catalog-info.yaml
   - ./services/media-service/catalog-info.yaml
   - ./services/order-service/catalog-info.yaml
   - ./services/payment-service/catalog-info.yaml
+  - ./services/pricing-service/catalog-info.yaml
   - ./services/product-service/catalog-info.yaml
   - ./services/promotion-service/catalog-info.yaml
+  - ./services/recommendation-service/catalog-info.yaml
   - ./services/search-service/catalog-info.yaml
   - ./services/shipping-service/catalog-info.yaml
   - ./services/supplier-service/catalog-info.yaml

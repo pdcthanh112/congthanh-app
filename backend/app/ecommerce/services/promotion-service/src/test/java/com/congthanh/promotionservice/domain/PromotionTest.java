@@ -20,7 +20,7 @@ class PromotionTest {
     private static final Instant END = Instant.parse("2026-12-01T00:00:00Z");
     private static final Instant NOW = Instant.parse("2026-11-09T00:00:00Z");
 
-    private static BigDecimal vnd(String v) {
+    private static BigDecimal amount(String v) {
         return new BigDecimal(v);
     }
 
@@ -31,48 +31,48 @@ class PromotionTest {
 
     @Test
     void percentageIsCappedAndRoundedDown() {
-        DiscountRule rule = new DiscountRule(DiscountRule.Kind.PERCENTAGE, vnd("10"), "VND", vnd("100000"), vnd("50000"));
-        assertThat(rule.discountFor(vnd("123456"))).isEqualByComparingTo("12345");
-        assertThat(rule.discountFor(vnd("900000"))).isEqualByComparingTo("50000");
+        DiscountRule rule = new DiscountRule(DiscountRule.Kind.PERCENTAGE, amount("10"), "USD", amount("100"), amount("50"));
+        assertThat(rule.discountFor(amount("123.45"))).isEqualByComparingTo("12.34");
+        assertThat(rule.discountFor(amount("900"))).isEqualByComparingTo("50");
 
-        DiscountRule usd = new DiscountRule(DiscountRule.Kind.PERCENTAGE, vnd("15"), "USD", null, null);
-        assertThat(usd.discountFor(vnd("9.99"))).isEqualByComparingTo("1.49");
+        DiscountRule jpy = new DiscountRule(DiscountRule.Kind.PERCENTAGE, amount("15"), "JPY", null, null);
+        assertThat(jpy.discountFor(amount("999"))).isEqualByComparingTo("149");
     }
 
     @Test
     void fixedAmountNeverExceedsSubtotal() {
-        DiscountRule rule = new DiscountRule(DiscountRule.Kind.FIXED_AMOUNT, vnd("30000"), "VND", null, null);
-        assertThat(rule.discountFor(vnd("20000"))).isEqualByComparingTo("20000");
+        DiscountRule rule = new DiscountRule(DiscountRule.Kind.FIXED_AMOUNT, amount("30"), "USD", null, null);
+        assertThat(rule.discountFor(amount("20"))).isEqualByComparingTo("20");
     }
 
     @Test
     void invalidRulesAreRejected() {
-        assertThatThrownBy(() -> new DiscountRule(DiscountRule.Kind.PERCENTAGE, vnd("120"), "VND", null, null))
+        assertThatThrownBy(() -> new DiscountRule(DiscountRule.Kind.PERCENTAGE, amount("120"), "USD", null, null))
                 .isInstanceOf(PromotionException.class);
-        assertThatThrownBy(() -> new DiscountRule(DiscountRule.Kind.FIXED_AMOUNT, vnd("1"), "XYZ", null, null))
+        assertThatThrownBy(() -> new DiscountRule(DiscountRule.Kind.FIXED_AMOUNT, amount("1"), "XYZ", null, null))
                 .isInstanceOf(PromotionException.class);
     }
 
     @Test
     void quoteChecksWindowLimitsCurrencyAndMinimum() {
-        DiscountRule rule = new DiscountRule(DiscountRule.Kind.FIXED_AMOUNT, vnd("10000"), "VND", vnd("100000"), null);
+        DiscountRule rule = new DiscountRule(DiscountRule.Kind.FIXED_AMOUNT, amount("10"), "USD", amount("100"), null);
         Promotion p = promo(rule, 0, 1);
 
-        assertThat(p.quote(vnd("200000"), "VND", 0, NOW).valid()).isTrue();
-        assertThat(p.quote(vnd("200000"), "VND", 0, START.minusSeconds(1)).reason()).isEqualTo("NOT_STARTED");
-        assertThat(p.quote(vnd("200000"), "VND", 0, END).reason()).isEqualTo("EXPIRED");
-        assertThat(p.quote(vnd("200000"), "VND", 1, NOW).reason()).isEqualTo("ALREADY_USED");
-        assertThat(p.quote(vnd("200000"), "USD", 0, NOW).reason()).isEqualTo("CURRENCY");
-        assertThat(p.quote(vnd("99999"), "VND", 0, NOW).reason()).isEqualTo("MIN_ORDER");
+        assertThat(p.quote(amount("200"), "USD", 0, NOW).valid()).isTrue();
+        assertThat(p.quote(amount("200"), "USD", 0, START.minusSeconds(1)).reason()).isEqualTo("NOT_STARTED");
+        assertThat(p.quote(amount("200"), "USD", 0, END).reason()).isEqualTo("EXPIRED");
+        assertThat(p.quote(amount("200"), "USD", 1, NOW).reason()).isEqualTo("ALREADY_USED");
+        assertThat(p.quote(amount("200"), "EUR", 0, NOW).reason()).isEqualTo("CURRENCY");
+        assertThat(p.quote(amount("99.99"), "USD", 0, NOW).reason()).isEqualTo("MIN_ORDER");
     }
 
     @Test
     void redeemConsumesUsageUntilExhaustedAndReleaseGivesItBack() {
-        DiscountRule rule = new DiscountRule(DiscountRule.Kind.FIXED_AMOUNT, vnd("10000"), "VND", null, null);
+        DiscountRule rule = new DiscountRule(DiscountRule.Kind.FIXED_AMOUNT, amount("10"), "USD", null, null);
         Promotion p = promo(rule, 1, 0);
 
-        Quote first = p.redeem(vnd("50000"), "VND", 0, "o-1", "c-1", NOW);
-        Quote second = p.redeem(vnd("50000"), "VND", 0, "o-2", "c-2", NOW);
+        Quote first = p.redeem(amount("50"), "USD", 0, "o-1", "c-1", NOW);
+        Quote second = p.redeem(amount("50"), "USD", 0, "o-2", "c-2", NOW);
 
         assertThat(first.valid()).isTrue();
         assertThat(second.reason()).isEqualTo("EXHAUSTED");
@@ -81,12 +81,12 @@ class PromotionTest {
 
         p.releaseUse("o-1", "checkout cancelled");
         assertThat(p.usedCount()).isZero();
-        assertThat(p.redeem(vnd("50000"), "VND", 0, "o-2", "c-2", NOW).valid()).isTrue();
+        assertThat(p.redeem(amount("50"), "USD", 0, "o-2", "c-2", NOW).valid()).isTrue();
     }
 
     @Test
     void cannotLowerLimitBelowUsage() {
-        DiscountRule rule = new DiscountRule(DiscountRule.Kind.FIXED_AMOUNT, vnd("10000"), "VND", null, null);
+        DiscountRule rule = new DiscountRule(DiscountRule.Kind.FIXED_AMOUNT, amount("10"), "USD", null, null);
         Promotion p = Promotion.rehydrate(7L, "SALE10", PromotionType.VOUCHER, rule, 10, 0, 5, START, END, true, null, 0);
         assertThatThrownBy(() -> p.update(PromotionType.VOUCHER, rule, 3, 0, START, END, null))
                 .extracting("kind").isEqualTo(PromotionException.Kind.CONFLICT);

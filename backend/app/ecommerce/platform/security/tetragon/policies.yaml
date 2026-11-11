@@ -1,0 +1,55 @@
+# Tetragon (eBPF): phát hiện hành vi bất thường lúc chạy trong pod ứng dụng. Mặc định chỉ ghi sự kiện (audit)
+# → Alloy/Loki; muốn chặn hẳn thì thêm `matchActions: [{action: Sigkill}]` vào selector tương ứng.
+#
+# 1) Chạy shell trong container app: image distroless/Jib không có shell, nên có shell chạy là dấu hiệu
+#    bị khai thác (RCE) hoặc ai đó `kubectl exec` vào prod.
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicyNamespaced
+metadata:
+  name: shell-exec
+  namespace: ecommerce
+spec:
+  kprobes:
+  - call: security_bprm_check
+    syscall: false
+    args:
+    - index: 0
+      type: linux_binprm
+    selectors:
+    - matchArgs:
+      - index: 0
+        operator: Postfix
+        values: [/sh, /bash, /dash, /ash, /zsh, /busybox, /nc, /ncat, /curl, /wget]
+---
+# 2) Ghi vào thư mục hệ thống/binary: root filesystem đã read-only (Kyverno bắt buộc), ghi được nghĩa là
+#    đang có volume lạ hoặc container thoát cấu hình chuẩn; cũng bắt đọc /etc/shadow.
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicyNamespaced
+metadata:
+  name: sensitive-files
+  namespace: ecommerce
+spec:
+  kprobes:
+  - call: security_file_permission
+    syscall: false
+    return: true
+    args:
+    - index: 0
+      type: file
+    - index: 1
+      type: int
+    returnArg:
+      index: 0
+      type: int
+    selectors:
+    - matchArgs:
+      - index: 0
+        operator: Prefix
+        values: [/etc/, /bin/, /sbin/, /usr/bin/, /usr/sbin/, /usr/local/bin/, /lib/, /usr/lib/]
+      - index: 1
+        operator: Equal
+        values: ["2"] # MAY_WRITE
+    - matchArgs:
+      - index: 0
+        operator: Equal
+        values: [/etc/shadow, /etc/gshadow]

@@ -1,4 +1,4 @@
-import type { Database } from '@ecom/platform';
+import type { Database } from '@ecommerce/platform';
 import { and, asc, count, desc, eq, inArray, isNull, type SQL, sql } from 'drizzle-orm';
 import type {
   PurchaseRepository,

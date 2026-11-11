@@ -1,6 +1,6 @@
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { createPool, runMigrations } from '@ecom/platform';
+import { createPool, runMigrations } from '@ecommerce/platform';
 import { sql } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/node-postgres';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
@@ -15,7 +15,7 @@ import type { Notification } from '../src/domain/notification.js';
 const url = process.env.TEST_DATABASE_URL;
 const SCHEMA = 'notification_service';
 const migrations = join(dirname(fileURLToPath(import.meta.url)), '..', 'drizzle');
-const vnd = (n: number) => ({ currencyCode: 'VND', units: BigInt(n), nanos: 0 });
+const usd = (n: number) => ({ currencyCode: 'USD', units: BigInt(n), nanos: 0 });
 
 describe.skipIf(!url)('notification-service + Postgres', () => {
   const pool = createPool({ url: url ?? '', schema: SCHEMA, poolMax: 8, applicationName: 'notification-it' });
@@ -66,14 +66,14 @@ describe.skipIf(!url)('notification-service + Postgres', () => {
   });
 
   it('đặt hàng → thông báo in-app + email; event giao lại không gửi trùng', async () => {
-    await handlers.orderPlaced('e1', 'order-0001', 'c1', vnd(250000));
-    await handlers.orderPlaced('e1', 'order-0001', 'c1', vnd(250000));
+    await handlers.orderPlaced('e1', 'order-0001', 'c1', usd(129));
+    await handlers.orderPlaced('e1', 'order-0001', 'c1', usd(129));
     const list = await service.list('c1', false, 1, 10);
     expect(list.total).toBe(1);
-    expect(list.items[0]?.title).toBe('Đặt hàng thành công');
+    expect(list.items[0]?.title).toBe('Order placed');
     expect(published).toHaveLength(1);
     await worker.tick();
-    expect(sent).toEqual(['c1@example.com:Đặt hàng thành công']);
+    expect(sent).toEqual(['c1@example.com:Order placed']);
   });
 
   it('thanh toán xong tra ra khách từ đơn đã nhớ', async () => {
@@ -97,7 +97,7 @@ describe.skipIf(!url)('notification-service + Postgres', () => {
     rows = await db.execute(sql`select count(*)::int as n from notification_service.deliveries where status = 'SENT'`);
     expect(rows.rows[0]).toMatchObject({ n: 3 });
 
-    await handlers.orderPlaced('e4', 'order-0002', 'c2', vnd(1));
+    await handlers.orderPlaced('e4', 'order-0002', 'c2', usd(1));
     await worker.tick();
     rows = await db.execute(
       sql`select d.status from notification_service.deliveries d join notification_service.notifications n on n.id = d.notification_id where n.user_id = 'c2' and d.channel = 'EMAIL'`,
@@ -107,15 +107,15 @@ describe.skipIf(!url)('notification-service + Postgres', () => {
 
   it('wishlist: giảm giá ≥5% và có hàng lại thì báo người theo dõi', async () => {
     await handlers.wishlistAdded('w1', 'c2', 'p1');
-    await handlers.productUpserted('p-a', 'p1', 'Áo thun', vnd(200000));
-    await handlers.productUpserted('p-b', 'p1', 'Áo thun', vnd(195000)); // giảm 2.5%: bỏ qua
-    await handlers.productUpserted('p-c', 'p1', 'Áo thun', vnd(150000));
+    await handlers.productUpserted('p-a', 'p1', 'Cotton T-Shirt', usd(40));
+    await handlers.productUpserted('p-b', 'p1', 'Cotton T-Shirt', usd(39)); // giảm 2.5%: bỏ qua
+    await handlers.productUpserted('p-c', 'p1', 'Cotton T-Shirt', usd(30));
     await handlers.stockChanged('s1', 'p1', 0);
     await handlers.stockChanged('s2', 'p1', 5);
     const types = (await service.list('c2', false, 1, 10)).items.map((n) => n.type);
     expect(types).toEqual(['BACK_IN_STOCK', 'PRICE_DROP', 'ORDER_PLACED']);
     await handlers.wishlistRemoved('w2', 'c2', 'p1');
-    await handlers.productUpserted('p-d', 'p1', 'Áo thun', vnd(100000));
+    await handlers.productUpserted('p-d', 'p1', 'Cotton T-Shirt', usd(20));
     expect((await service.list('c2', false, 1, 10)).total).toBe(3);
   });
 
@@ -134,11 +134,11 @@ describe.skipIf(!url)('notification-service + Postgres', () => {
 
   it('tin nhắn mới gom theo khung 10 phút mỗi hội thoại', async () => {
     const t = new Date('2026-05-01T08:00:00Z');
-    await handlers.messageSent('m1', 'conv-1', ['c1'], 'Còn hàng không?', t);
-    await handlers.messageSent('m2', 'conv-1', ['c1'], 'Size M nhé', new Date(t.getTime() + 60_000));
-    await handlers.messageSent('m3', 'conv-1', ['c1'], 'Alo', new Date(t.getTime() + 11 * 60_000));
+    await handlers.messageSent('m1', 'conv-1', ['c1'], 'Is this still in stock?', t);
+    await handlers.messageSent('m2', 'conv-1', ['c1'], 'Size M please', new Date(t.getTime() + 60_000));
+    await handlers.messageSent('m3', 'conv-1', ['c1'], 'Hello?', new Date(t.getTime() + 11 * 60_000));
     const msgs = (await service.list('c1', false, 1, 20)).items.filter((n) => n.type === 'NEW_MESSAGE');
-    expect(msgs.map((n) => n.body)).toEqual(['Alo', 'Còn hàng không?']);
+    expect(msgs.map((n) => n.body)).toEqual(['Hello?', 'Is this still in stock?']);
   });
 
   it('sắp hết hàng → báo admin', async () => {

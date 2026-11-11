@@ -21,4 +21,4 @@ spec:
   consumesApis:
   - search-api-rest
   dependsOn:
-  - resource:ecom-valkey
+  - resource:ecommerce-redis

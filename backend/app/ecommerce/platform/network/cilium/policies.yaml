@@ -1,0 +1,49 @@
+# Network policy L3/L4 bằng eBPF (lớp phòng thủ dưới Istio AuthorizationPolicy): kho dữ liệu chỉ nhận kết nối
+# từ namespace được phép. Đang ở audit mode (values.yaml policyAuditMode): xem verdict trên Hubble rồi mới tắt audit.
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: data-ingress
+  namespace: data
+spec:
+  endpointSelector: {}
+  ingress:
+  - fromEndpoints:
+    - matchExpressions:
+      - key: k8s:io.kubernetes.pod.namespace
+        operator: In
+        values: [data, ecommerce, streaming, workflow, identity, observability, messaging, gateway, platform, authz, cnpg-system]
+---
+# Job Flink chỉ cần Kafka, S3 (checkpoint), DNS và chính các pod Flink.
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: stream-processor-egress
+  namespace: streaming
+spec:
+  endpointSelector:
+    matchLabels:
+      app.kubernetes.io/name: stream-processor
+  egress:
+  - toEndpoints:
+    - matchLabels:
+        k8s:io.kubernetes.pod.namespace: kube-system
+        k8s-app: kube-dns
+    toPorts:
+    - ports: [{port: "53", protocol: ANY}]
+      rules:
+        dns: [{matchPattern: "*"}]
+  - toEndpoints:
+    - matchLabels: {k8s:io.kubernetes.pod.namespace: streaming}
+  - toEndpoints:
+    - matchLabels: {k8s:io.kubernetes.pod.namespace: messaging}
+    toPorts:
+    - ports: [{port: "9092", protocol: TCP}]
+  - toEntities: [kube-apiserver]
+  - toFQDNs:
+    - matchPattern: "*.s3.*.amazonaws.com"
+    - matchPattern: "*.s3.amazonaws.com"
+    - matchPattern: "sts.*.amazonaws.com"
+    toPorts:
+    - ports: [{port: "443", protocol: TCP}]
+  - toCIDR: [169.254.170.23/32]   # EKS Pod Identity agent

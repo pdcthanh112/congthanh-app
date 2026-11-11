@@ -6,14 +6,14 @@ from contextlib import asynccontextmanager
 from typing import Annotated
 
 import anthropic
-from ecom_platform import logging as eplog
-from ecom_platform.auth import Principal, verifier_from_env
-from ecom_platform.fastapi import Auth, health_router, install_error_handlers, ok
+from ecommerce_platform import logging as eplog
+from ecommerce_platform.auth import Principal, verifier_from_env
+from ecommerce_platform.fastapi import Auth, health_router, install_error_handlers, ok
 from fastapi import Depends, FastAPI, HTTPException
 from pydantic import BaseModel, Field
 
 from .adapters.claude import ClaudeTranslator, TranslatorUnavailable
-from .adapters.valkey import ValkeyCache
+from .adapters.redis_cache import RedisCache
 from .config import settings
 from .domain.translation import LANGUAGES, Format, InvalidRequest, TranslateRequest
 from .service import TranslateService
@@ -24,7 +24,7 @@ auth = Auth(verifier_from_env())
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    cache = ValkeyCache(settings.valkey_url)
+    cache = RedisCache(settings.redis_url)
     client = anthropic.AsyncAnthropic(max_retries=2, timeout=60.0)
     app.state.cache = cache
     app.state.service = TranslateService(
@@ -57,7 +57,7 @@ class TranslateBody(BaseModel):
 
 
 class LegacyBody(BaseModel):
-    """Body của bản Java: {"language": "vi", "text": "..."}."""
+    """Body của bản Java: {"language": "es", "text": "..."}."""
 
     language: str
     text: str

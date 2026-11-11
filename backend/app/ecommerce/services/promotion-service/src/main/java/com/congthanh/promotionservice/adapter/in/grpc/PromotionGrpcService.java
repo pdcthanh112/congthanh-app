@@ -1,6 +1,6 @@
 package com.congthanh.promotionservice.adapter.in.grpc;
 
-import com.congthanh.ecom.common.v1.Money;
+import com.congthanh.ecommerce.common.v1.Money;
 import com.congthanh.promotionservice.application.port.in.CheckoutDiscounts;
 import com.congthanh.promotionservice.application.port.in.PromotionAdmin;
 import com.congthanh.promotionservice.domain.exception.PromotionException;

@@ -36,6 +36,7 @@ resource "aws_cloudfront_distribution" "media" {
   http_version    = "http2and3"
   aliases         = var.media_aliases
   price_class     = "PriceClass_200"
+  web_acl_id      = var.web_acl_arn
 
   origin {
     domain_name              = aws_s3_bucket.this["media"].bucket_regional_domain_name

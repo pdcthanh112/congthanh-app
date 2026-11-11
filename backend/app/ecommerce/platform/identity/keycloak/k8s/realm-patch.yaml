@@ -45,6 +45,51 @@ spec:
           access.token.claim: 'true'
           id.token.claim: 'false'
           userinfo.token.claim: 'true'
+    - name: commerce:read
+      description: Cho trợ lý AI xem sản phẩm, giỏ hàng và đơn hàng của bạn
+      protocol: openid-connect
+      attributes:
+        include.in.token.scope: 'true'
+        display.on.consent.screen: 'true'
+        consent.screen.text: Cho trợ lý AI xem sản phẩm, giỏ hàng và đơn hàng của bạn
+      protocolMappers:
+      - name: audience commerce-mcp
+        protocol: openid-connect
+        protocolMapper: oidc-audience-mapper
+        config:
+          included.custom.audience: commerce-mcp
+          access.token.claim: 'true'
+          id.token.claim: 'false'
+    - name: commerce:cart
+      description: Cho trợ lý AI thêm, sửa, xoá hàng trong giỏ của bạn
+      protocol: openid-connect
+      attributes:
+        include.in.token.scope: 'true'
+        display.on.consent.screen: 'true'
+        consent.screen.text: Cho trợ lý AI thêm, sửa, xoá hàng trong giỏ của bạn
+      protocolMappers:
+      - name: audience commerce-mcp
+        protocol: openid-connect
+        protocolMapper: oidc-audience-mapper
+        config:
+          included.custom.audience: commerce-mcp
+          access.token.claim: 'true'
+          id.token.claim: 'false'
+    - name: commerce:orders.cancel
+      description: Cho trợ lý AI huỷ đơn hàng của bạn (sau khi bạn xác nhận)
+      protocol: openid-connect
+      attributes:
+        include.in.token.scope: 'true'
+        display.on.consent.screen: 'true'
+        consent.screen.text: Cho trợ lý AI huỷ đơn hàng của bạn (sau khi bạn xác nhận)
+      protocolMappers:
+      - name: audience commerce-mcp
+        protocol: openid-connect
+        protocolMapper: oidc-audience-mapper
+        config:
+          included.custom.audience: commerce-mcp
+          access.token.claim: 'true'
+          id.token.claim: 'false'
     clients:
     - clientId: apisix-gateway
       name: API gateway (bearer only)
@@ -101,3 +146,22 @@ spec:
       serviceAccountsEnabled: true
       defaultClientScopes:
       - roles-claim
+    - clientId: commerce-mcp-agent
+      name: 'AI agent qua MCP (Claude Desktop, IDE...): người dùng tự chọn quyền trên màn hình consent'
+      enabled: true
+      publicClient: true
+      consentRequired: true
+      standardFlowEnabled: true
+      directAccessGrantsEnabled: false
+      redirectUris:
+      - http://127.0.0.1/*
+      - http://localhost/*
+      - https://claude.ai/api/mcp/auth_callback
+      attributes:
+        pkce.code.challenge.method: S256
+      defaultClientScopes:
+      - roles-claim
+      optionalClientScopes:
+      - commerce:read
+      - commerce:cart
+      - commerce:orders.cancel

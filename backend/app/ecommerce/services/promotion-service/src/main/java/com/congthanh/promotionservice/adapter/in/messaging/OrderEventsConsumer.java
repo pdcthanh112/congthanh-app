@@ -1,7 +1,7 @@
 package com.congthanh.promotionservice.adapter.in.messaging;
 
-import com.congthanh.ecom.common.v1.EventEnvelope;
-import com.congthanh.ecom.order.v1.OrderCancelled;
+import com.congthanh.ecommerce.common.v1.EventEnvelope;
+import com.congthanh.ecommerce.order.v1.OrderCancelled;
 import com.congthanh.platform.inbox.EventEnvelopes;
 import com.congthanh.platform.inbox.ProcessedEvents;
 import com.congthanh.promotionservice.application.port.in.CheckoutDiscounts;
@@ -29,7 +29,7 @@ class OrderEventsConsumer {
         this.tx = tx;
     }
 
-    @KafkaListener(topics = "ecom.order.events", groupId = CONSUMER)
+    @KafkaListener(topics = "ecommerce.order.events", groupId = CONSUMER)
     void onOrderEvent(ConsumerRecord<String, byte[]> record) {
         EventEnvelope env = EventEnvelopes.parse(record.value());
         EventEnvelopes.unpack(env, OrderCancelled.class).ifPresent(cancelled -> tx.executeWithoutResult(s -> {

@@ -1,5 +1,5 @@
 /**
- * Khởi động OpenTelemetry trước khi nạp app: `node --import @ecom/platform/telemetry dist/main.js`.
+ * Khởi động OpenTelemetry trước khi nạp app: `node --import @ecommerce/platform/telemetry dist/main.js`.
  * Trace và metric xuất OTLP/HTTP tới collector (OTEL_EXPORTER_OTLP_ENDPOINT, mặc định http://localhost:4318).
  * Tắt hẳn bằng OTEL_SDK_DISABLED=true (test, chạy local không có collector).
  */

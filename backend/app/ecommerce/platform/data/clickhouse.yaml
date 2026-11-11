@@ -31,8 +31,8 @@ data:
     (
       event_id String, type String, aggregate_id String, occurred_at DateTime64(3), payload String
     ) ENGINE = Kafka
-    SETTINGS kafka_broker_list = 'ecom-kafka-bootstrap.messaging:9092',
-             kafka_topic_list = 'ecom.order.events',
+    SETTINGS kafka_broker_list = 'ecommerce-kafka-bootstrap.messaging:9092',
+             kafka_topic_list = 'ecommerce.order.events',
              kafka_group_name = 'clickhouse-analytics',
              kafka_format = 'ProtobufSingle',
              kafka_schema = 'event_envelope.proto:EventEnvelope';

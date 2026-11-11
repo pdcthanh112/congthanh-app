@@ -1,0 +1,67 @@
+syntax = "proto3";
+
+package ecommerce.pricing.v1;
+
+import "ecommerce/common/v1/money.proto";
+import "google/protobuf/timestamp.proto";
+
+option java_multiple_files = true;
+option java_package = "com.congthanh.ecommerce.pricing.v1";
+
+service PricingService {
+  rpc GetPrices(GetPricesRequest) returns (GetPricesResponse);
+  rpc QuoteLines(QuoteLinesRequest) returns (QuoteLinesResponse);
+}
+
+message PricingContext {
+  string currency_code = 1;
+  repeated string customer_groups = 2;
+  google.protobuf.Timestamp at = 3;
+}
+
+message GetPricesRequest {
+  repeated string product_ids = 1;
+  PricingContext context = 2;
+}
+
+message Price {
+  string product_id = 1;
+  ecommerce.common.v1.Money price = 2;
+  ecommerce.common.v1.Money compare_at = 3;
+  int32 discount_percent = 4;
+  string price_list = 5;
+  string sale_kind = 6;
+  google.protobuf.Timestamp sale_ends_at = 7;
+  ecommerce.common.v1.Money lowest_30d = 8;
+}
+
+message GetPricesResponse {
+  repeated Price prices = 1;
+}
+
+message QuoteLine {
+  string line_id = 1;
+  string product_id = 2;
+  int32 quantity = 3;
+}
+
+message QuotedLine {
+  string line_id = 1;
+  string product_id = 2;
+  int32 quantity = 3;
+  ecommerce.common.v1.Money unit_price = 4;
+  ecommerce.common.v1.Money line_total = 5;
+  ecommerce.common.v1.Money compare_at = 6;
+  string price_list = 7;
+}
+
+message QuoteLinesRequest {
+  repeated QuoteLine lines = 1;
+  PricingContext context = 2;
+}
+
+message QuoteLinesResponse {
+  repeated QuotedLine lines = 1;
+  ecommerce.common.v1.Money subtotal = 2;
+  repeated string unpriced_product_ids = 3;
+}

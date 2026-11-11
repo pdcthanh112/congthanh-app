@@ -5,15 +5,15 @@ package ecommerce.payment.v1;
 import "ecommerce/common/v1/money.proto";
 
 option java_multiple_files = true;
-option java_package = "com.congthanh.ecom.payment.v1";
-
-// Topic: ecom.payment.events (key = order_id)
+option java_package = "com.congthanh.ecommerce.payment.v1";
 
 message PaymentAuthorized {
   string payment_id = 1;
   string order_id = 2;
   ecommerce.common.v1.Money amount = 3;
   string provider = 4;
+  // CARD, APPLE_PAY, GOOGLE_PAY, PAYPAL, AFFIRM, KLARNA, AFTERPAY (ADR 0016)
+  string method = 5;
 }
 
 message PaymentFailed {

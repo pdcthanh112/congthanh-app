@@ -1,4 +1,4 @@
-import type { Database } from '@ecom/platform';
+import type { Database } from '@ecommerce/platform';
 import { and, count, desc, eq, inArray, isNull, sql } from 'drizzle-orm';
 import { v7 as uuidv7 } from 'uuid';
 import type {

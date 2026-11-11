@@ -2,6 +2,7 @@ package http
 
 import (
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/go-chi/chi/v5"
@@ -12,19 +13,24 @@ import (
 )
 
 // startFlashSale: POST /flash-sales/{saleId}/products/{productId}/start
-// body {quantity, perCustomerLimit, endsAt} — giữ hàng trong Postgres rồi nạp vào Redis.
+// body {quantity, perCustomerLimit, opensAt, endsAt, admitPerSecond, admitBurst} — giữ hàng trong Postgres
+// rồi nạp vào Redis. admitPerSecond > 0 bật phòng chờ.
 func (h *Handler) startFlashSale(w http.ResponseWriter, r *http.Request) error {
 	var body struct {
 		Quantity         int32     `json:"quantity"`
 		PerCustomerLimit int32     `json:"perCustomerLimit"`
+		OpensAt          time.Time `json:"opensAt"`
 		EndsAt           time.Time `json:"endsAt"`
+		AdmitPerSecond   int32     `json:"admitPerSecond"`
+		AdmitBurst       int32     `json:"admitBurst"`
 	}
 	if err := httpx.Decode(r, &body); err != nil {
 		return err
 	}
 	res, err := h.svc.StartFlashSale(r.Context(), app.FlashSaleInput{
 		SaleID: chi.URLParam(r, "saleId"), ProductID: chi.URLParam(r, "productId"),
-		Quantity: body.Quantity, PerCustomerLimit: body.PerCustomerLimit, EndsAt: body.EndsAt,
+		Quantity: body.Quantity, PerCustomerLimit: body.PerCustomerLimit, OpensAt: body.OpensAt, EndsAt: body.EndsAt,
+		AdmitPerSecond: body.AdmitPerSecond, AdmitBurst: body.AdmitBurst,
 	})
 	if err != nil {
 		return err
@@ -34,6 +40,20 @@ func (h *Handler) startFlashSale(w http.ResponseWriter, r *http.Request) error {
 		code = http.StatusConflict
 	}
 	httpx.OK(w, code, res.Message, res)
+	return nil
+}
+
+// flashSaleQueue: POST .../queue xếp hàng vào phòng chờ, GET .../queue xem vị trí. Client hỏi lại sau
+// retryAfterSeconds (cũng trả ở header Retry-After) cho tới khi canClaim = true rồi gọi .../claim.
+func (h *Handler) flashSaleQueue(w http.ResponseWriter, r *http.Request) error {
+	q, err := h.svc.FlashSaleQueue(r.Context(), chi.URLParam(r, "saleId"), chi.URLParam(r, "productId"), actor(r), r.Method == http.MethodPost)
+	if err != nil {
+		return err
+	}
+	if q.RetryAfterSeconds > 0 {
+		w.Header().Set("Retry-After", strconv.FormatInt(q.RetryAfterSeconds, 10))
+	}
+	httpx.OK(w, http.StatusOK, "OK", q)
 	return nil
 }
 

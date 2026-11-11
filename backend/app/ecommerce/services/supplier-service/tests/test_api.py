@@ -17,7 +17,7 @@ def client(sub=None, roles=""):
 
 def test_seller_creates_and_admin_activates():
     seller = client("s1", "SELLER")
-    r = seller.post(URL, {"name": "Đồ Gia Dụng Hà Nội", "email": "a@b.vn"}, format="json")
+    r = seller.post(URL, {"name": "Brooklyn Home Goods", "email": "a@b.com"}, format="json")
     assert r.status_code == 201, r.content
     body = r.json()
     assert body["status"] == "Success" and body["data"]["slug"] == "do-gia-dung-ha-noi"
@@ -35,7 +35,7 @@ def test_seller_creates_and_admin_activates():
     assert r.status_code == 200 and r.json()["data"]["status"] == "ACTIVE"
 
     pub = client().get(f"{URL}/{sid}").json()["data"]
-    assert pub["name"] == "Đồ Gia Dụng Hà Nội" and "email" not in pub and "ownerId" not in pub
+    assert pub["name"] == "Brooklyn Home Goods" and "email" not in pub and "ownerId" not in pub
     page = client().get(URL, {"q": "gia dụng"}).json()["data"]
     assert page["totalItems"] == 1 and page["items"][0]["id"] == sid
 

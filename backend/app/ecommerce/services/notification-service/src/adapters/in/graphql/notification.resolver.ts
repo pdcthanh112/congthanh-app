@@ -1,4 +1,4 @@
-import { CurrentPrincipal, type Principal, Role, Roles } from '@ecom/platform';
+import { CurrentPrincipal, type Principal, Role, Roles } from '@ecommerce/platform';
 import { Inject } from '@nestjs/common';
 import { Args, ID, Int, Mutation, Query, Resolver, Subscription } from '@nestjs/graphql';
 import { v7 as uuidv7 } from 'uuid';
@@ -37,7 +37,7 @@ function toPreferencesModel(p: Preferences): PreferencesModel {
   };
 }
 
-/** Qua JSON (Valkey) Date thành chuỗi: dựng lại để scalar DateTime serialize đúng. */
+/** Qua JSON (Redis) Date thành chuỗi: dựng lại để scalar DateTime serialize đúng. */
 @Resolver(() => NotificationModel)
 export class NotificationResolver {
   constructor(

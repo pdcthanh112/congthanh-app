@@ -49,7 +49,7 @@ server:
   shutdown: graceful
 
 product:
-  currency: ${PRODUCT_CURRENCY:VND}
+  currency: ${PRODUCT_CURRENCY:USD}
   # S3: đặt PRODUCT_S3_REGION (env → product.s3.region) thì mới tạo S3Client; local không cần AWS.
 
 # worker-id phải khác nhau giữa các pod (Helm gán từ ordinal của StatefulSet hoặc hash tên pod).

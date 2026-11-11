@@ -19,5 +19,5 @@ spec:
   providesApis:
   - webhook-api-rest
   dependsOn:
-  - resource:ecom-postgres
-  - resource:ecom-kafka
+  - resource:ecommerce-postgres
+  - resource:ecommerce-kafka

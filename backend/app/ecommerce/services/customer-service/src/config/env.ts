@@ -1,4 +1,4 @@
-import { baseEnv, databaseEnv, grpcEnv, loadEnv } from '@ecom/platform';
+import { baseEnv, databaseEnv, grpcEnv, loadEnv } from '@ecommerce/platform';
 import { z } from 'zod';
 
 export const envSchema = baseEnv

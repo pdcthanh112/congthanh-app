@@ -1,5 +1,5 @@
-import { bearer, fromGrpcError, grpcClient, resiliencePolicy } from '@ecom/platform';
-import { CustomerService, type ShippingAddress } from '@ecom/proto/ecommerce/customer/v1/customer_service_pb';
+import { bearer, fromGrpcError, grpcClient, resiliencePolicy } from '@ecommerce/platform';
+import { CustomerService, type ShippingAddress } from '@ecommerce/proto/ecommerce/customer/v1/customer_service_pb';
 
 /** customer-service (NestJS) qua gRPC: lấy địa chỉ giao hàng của khách để chụp vào đơn. */
 export class CustomerClient {

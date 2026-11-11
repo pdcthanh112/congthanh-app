@@ -10,7 +10,7 @@ spec:
   webhookTimeoutSeconds: 30
   rules:
     - name: cosign-keyless
-      match: {any: [{resources: {kinds: [Pod], namespaces: [ecommerce]}}]}
+      match: {any: [{resources: {kinds: [Pod], namespaces: [ecommerce, streaming]}}]}
       verifyImages:
         - imageReferences: ["ghcr.io/pdcthanh112/congthanhapp/*"]
           mutateDigest: true
@@ -27,6 +27,41 @@ spec:
                     - keyless:
                         subject: "https://github.com/pdcthanh112/CongThanhApp/.github/workflows/*"
                         issuer: https://token.actions.githubusercontent.com
+---
+# SLSA provenance: image phải được build bởi workflow GitHub Actions của repo, từ nhánh main, trên runner do
+# GitHub host (actions/attest-build-provenance, lưu dạng Sigstore bundle trong registry).
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: verify-slsa-provenance
+  annotations:
+    policies.kyverno.io/description: Chặn image không có SLSA provenance hợp lệ (build ngoài CI, nhánh khác main, runner tự host).
+spec:
+  validationFailureAction: Enforce
+  webhookTimeoutSeconds: 30
+  rules:
+    - name: slsa-provenance
+      match: {any: [{resources: {kinds: [Pod], namespaces: [ecommerce, streaming]}}]}
+      verifyImages:
+        - imageReferences: ["ghcr.io/pdcthanh112/congthanhapp/*"]
+          type: SigstoreBundle
+          mutateDigest: true
+          attestations:
+            - type: https://slsa.dev/provenance/v1
+              attestors:
+                - entries:
+                    - keyless:
+                        subject: "https://github.com/pdcthanh112/CongThanhApp/.github/workflows/*@refs/heads/main"
+                        issuer: https://token.actions.githubusercontent.com
+                        rekor: {url: https://rekor.sigstore.dev}
+              conditions:
+                - all:
+                    - key: "{{ buildDefinition.buildType }}"
+                      operator: Equals
+                      value: https://actions.github.io/buildtypes/workflow/v1
+                    - key: "{{ runDetails.builder.id }}"
+                      operator: Equals
+                      value: "https://github.com/actions/runner/github-hosted"
 ---
 apiVersion: kyverno.io/v1
 kind: ClusterPolicy

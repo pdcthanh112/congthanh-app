@@ -2,8 +2,16 @@ variable "region" {
   type    = string
   default = "ap-southeast-1"
 }
-variable "media_certificate_arn" {
+variable "domain_name" {
   type        = string
-  description = "ACM (us-east-1) cho CloudFront media"
+  description = "Tên miền của môi trường; module dns tạo hosted zone và chứng chỉ cho nó"
 }
-variable "opensearch_master_role_arn" { type = string }
+variable "api_origin_lb_arn" {
+  type        = string
+  default     = ""
+  description = "ARN NLB nội bộ của APISIX; để trống ở lần apply đầu (xem modules/edge/variables.tf)"
+}
+variable "elastic_privatelink_service_name" {
+  type        = string
+  description = "VPC endpoint service của Elastic Cloud cho region này (xem modules/elastic-cloud/variables.tf)"
+}

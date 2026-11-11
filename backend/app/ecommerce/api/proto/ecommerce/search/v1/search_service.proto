@@ -5,9 +5,8 @@ package ecommerce.search.v1;
 import "ecommerce/common/v1/money.proto";
 
 option java_multiple_files = true;
-option java_package = "com.congthanh.ecom.search.v1";
+option java_package = "com.congthanh.ecommerce.search.v1";
 
-// search-service (Go, OpenSearch). storefront-bff gọi để tìm kiếm và gợi ý sản phẩm.
 service SearchService {
   rpc SearchProducts(SearchProductsRequest) returns (SearchProductsResponse);
   rpc Suggest(SuggestRequest) returns (SuggestResponse);
@@ -16,10 +15,8 @@ service SearchService {
 message SearchProductsRequest {
   string query = 1;
   string category_id = 2;
-  // Khoảng giá (đơn vị chính của tiền tệ), 0 = không giới hạn.
   double min_price = 3;
   double max_price = 4;
-  // relevance (mặc định), price_asc, price_desc, newest.
   string sort = 5;
   int32 page = 6;
   int32 page_size = 7;

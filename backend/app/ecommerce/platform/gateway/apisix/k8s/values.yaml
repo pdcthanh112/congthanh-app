@@ -7,7 +7,11 @@ service:
   annotations:
     service.beta.kubernetes.io/aws-load-balancer-type: external
     service.beta.kubernetes.io/aws-load-balancer-nlb-target-type: ip
-    service.beta.kubernetes.io/aws-load-balancer-scheme: internet-facing
+    # NLB nội bộ: khách chỉ vào được qua CloudFront (VPC origin, có WAF); không có đường thẳng từ Internet.
+    # ARN của NLB này điền vào api_origin_lb_arn trong infra/terraform/envs/<env>/terraform.tfvars.
+    service.beta.kubernetes.io/aws-load-balancer-scheme: internal
+  # VPC origin của CloudFront đi vào từ ENI trong VPC (10.0.0.0/16, modules/network).
+  loadBalancerSourceRanges: ["10.0.0.0/16"]
 apisix:
   enableIPv6: false
   pluginAttrs:

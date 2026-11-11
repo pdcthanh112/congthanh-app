@@ -7,9 +7,6 @@ import "google/protobuf/timestamp.proto";
 option java_multiple_files = true;
 option java_package = "com.congthanh.messageservice.grpc";
 
-// Event của message-service (aggregatetype "message" → topic ecom.message.events, key = conversation_id).
-// notification-service báo "tin nhắn mới" cho người nhận (push/in-app), có gom để không spam.
-
 message MessageSent {
   string conversation_id = 1;
   string message_id = 2;

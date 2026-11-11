@@ -429,7 +429,7 @@ paths:
               type: object
   /api/ecommerce/flash-sales/{saleId}/products/{productId}/start:
     post:
-      summary: Mở flash sale (giữ hàng + nạp Valkey)
+      summary: Mở flash sale (giữ hàng + nạp Redis); cần role ADMIN. admitPerSecond > 0 bật phòng chờ
       tags:
       - flash-sale
       responses:
@@ -466,9 +466,92 @@ paths:
                   type: integer
                 perCustomerLimit:
                   type: integer
+                opensAt:
+                  type: string
+                  format: date-time
+                  description: Giờ mở; để trống = mở ngay
                 endsAt:
                   type: string
                   format: date-time
+                admitPerSecond:
+                  type: integer
+                  description: Phòng chờ, số người được vào mỗi giây; 0 = không dùng phòng chờ
+                admitBurst:
+                  type: integer
+                  description: Số người được vào ngay lúc mở; mặc định bằng admitPerSecond
+      parameters:
+      - name: saleId
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: productId
+        in: path
+        required: true
+        schema:
+          type: string
+  /api/ecommerce/flash-sales/{saleId}/products/{productId}/queue:
+    post:
+      summary: Xếp hàng vào phòng chờ (gọi lại không đổi vị trí)
+      tags:
+      - flash-sale
+      responses:
+        '200':
+          description: OK; header Retry-After = số giây nên chờ trước khi hỏi lại
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  data:
+                    $ref: '#/components/schemas/FlashSaleQueueStatus'
+                  status:
+                    type: string
+                    enum:
+                    - Success
+                    - Failed
+                  errorCode:
+                    type: integer
+        '404':
+          $ref: '#/components/responses/Error'
+      parameters:
+      - name: saleId
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: productId
+        in: path
+        required: true
+        schema:
+          type: string
+    get:
+      summary: Vị trí trong phòng chờ; hỏi lại tới khi canClaim = true rồi gọi claim
+      tags:
+      - flash-sale
+      responses:
+        '200':
+          description: OK; header Retry-After = số giây nên chờ trước khi hỏi lại
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  data:
+                    $ref: '#/components/schemas/FlashSaleQueueStatus'
+                  status:
+                    type: string
+                    enum:
+                    - Success
+                    - Failed
+                  errorCode:
+                    type: integer
+        '404':
+          $ref: '#/components/responses/Error'
       parameters:
       - name: saleId
         in: path
@@ -482,7 +565,7 @@ paths:
           type: string
   /api/ecommerce/flash-sales/{saleId}/products/{productId}/claim:
     post:
-      summary: Giành hàng flash sale (khách lấy từ JWT)
+      summary: Giành hàng flash sale (khách lấy từ JWT). Suất được giữ tới expiresAt; đặt đơn qua phiên checkout checkoutSessionId
       tags:
       - flash-sale
       responses:
@@ -530,7 +613,7 @@ paths:
           type: string
   /api/ecommerce/flash-sales/{saleId}/products/{productId}/end:
     post:
-      summary: Đóng flash sale, đối soát
+      summary: Đóng flash sale, đối soát; cần role ADMIN. 409 khi còn claim đang checkout/chờ thanh toán
       tags:
       - flash-sale
       responses:
@@ -852,4 +935,37 @@ components:
         quantity:
           type: integer
         remaining:
+          type: integer
+        checkoutSessionId:
+          type: string
+          description: Phiên checkout mở sẵn cho suất này (GET /api/ecommerce/checkout/sessions/{id}); tạo bất đồng bộ nên có thể 404 trong vài trăm ms đầu
+        expiresAt:
+          type: string
+          format: date-time
+          description: Hạn đặt đơn; quá hạn suất được trả cho người khác
+    FlashSaleQueueStatus:
+      type: object
+      properties:
+        waitingRoom:
+          type: boolean
+          description: false = sale không dùng phòng chờ
+        position:
+          type: integer
+          description: 1 = đầu hàng; 0 = chưa xếp hàng
+        ahead:
+          type: integer
+        queueLength:
+          type: integer
+        canClaim:
+          type: boolean
+        remaining:
+          type: integer
+        soldOut:
+          type: boolean
+        opensAt:
+          type: string
+          format: date-time
+        estimatedWaitSeconds:
+          type: integer
+        retryAfterSeconds:
           type: integer

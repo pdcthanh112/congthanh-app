@@ -1,0 +1,9 @@
+# Pyrra: SLO khai báo bằng CRD ServiceLevelObjective (platform/observability/slo) → operator sinh recording rule +
+# cảnh báo multi-window burn rate và nạp thẳng vào Mimir ruler; UI xem error budget ở pyrra-api:9099.
+# crd.yaml chép nguyên từ pyrra-dev/pyrra v0.10.2 (examples/kubernetes/manifests/setup); nâng phiên bản thì chép lại.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: observability
+resources:
+- crd.yaml
+- pyrra.yaml

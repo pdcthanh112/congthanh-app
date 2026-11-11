@@ -1,5 +1,3 @@
-// search-service: tìm kiếm và gợi ý sản phẩm trên OpenSearch; chỉ mục cập nhật từ ecom.product.events
-// (thay bản Java dùng Elasticsearch + Logstash/CDC).
 package main
 
 import (
@@ -16,10 +14,10 @@ import (
 	"github.com/pdcthanh112/CongThanhApp/backend/app/ecommerce/libs/go/platform/otel"
 	"github.com/pdcthanh112/CongThanhApp/backend/app/ecommerce/libs/go/platform/server"
 	pb "github.com/pdcthanh112/CongThanhApp/backend/app/ecommerce/libs/go/proto/ecommerce/search/v1"
+	"github.com/pdcthanh112/CongThanhApp/backend/app/ecommerce/services/search-service/internal/adapter/elasticsearch"
 	grpcadapter "github.com/pdcthanh112/CongThanhApp/backend/app/ecommerce/services/search-service/internal/adapter/grpc"
 	httpadapter "github.com/pdcthanh112/CongThanhApp/backend/app/ecommerce/services/search-service/internal/adapter/http"
 	"github.com/pdcthanh112/CongThanhApp/backend/app/ecommerce/services/search-service/internal/adapter/messaging"
-	"github.com/pdcthanh112/CongThanhApp/backend/app/ecommerce/services/search-service/internal/adapter/opensearch"
 	"github.com/pdcthanh112/CongThanhApp/backend/app/ecommerce/services/search-service/internal/app"
 	"github.com/pdcthanh112/CongThanhApp/backend/app/ecommerce/services/search-service/internal/config"
 )
@@ -44,8 +42,11 @@ func run() error {
 	}
 	defer func() { _ = shutdownOtel(context.Background()) }()
 
-	idx := opensearch.New(opensearch.Config{URL: cfg.OpenSearchURL, Index: cfg.OpenSearchIndex, Username: cfg.OpenSearchUser, Password: cfg.OpenSearchPassword})
-	// OpenSearch có thể lên chậm hơn service (compose, cluster mới): thử tạo chỉ mục trong 2 phút.
+	idx := elasticsearch.New(elasticsearch.Config{
+		URL: cfg.ElasticsearchURL, Index: cfg.ElasticsearchIndex,
+		Username: cfg.ElasticsearchUser, Password: cfg.ElasticsearchPassword, APIKey: cfg.ElasticsearchAPIKey,
+	})
+
 	for i := 0; ; i++ {
 		if err = idx.EnsureIndex(ctx); err == nil {
 			break
@@ -53,7 +54,7 @@ func run() error {
 		if i >= 24 {
 			return err
 		}
-		slog.Warn("opensearch not ready, retrying", "err", err)
+		slog.Warn("elasticsearch not ready, retrying", "err", err)
 		time.Sleep(5 * time.Second)
 	}
 	verifier, err := auth.NewVerifier(ctx, auth.Config{JWKSURL: cfg.JWKSURL, HMACSecret: cfg.JWTSecret, Issuer: cfg.JWTIssuer})

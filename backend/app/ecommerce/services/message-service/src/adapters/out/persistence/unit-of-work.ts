@@ -1,7 +1,7 @@
 import { create } from '@bufbuild/protobuf';
 import { timestampFromDate } from '@bufbuild/protobuf/wkt';
-import { type Database, DB, OutboxWriter } from '@ecom/platform';
-import { MessageSentSchema } from '@ecom/proto/ecommerce/message/v1/message_events_pb';
+import { type Database, DB, OutboxWriter } from '@ecommerce/platform';
+import { MessageSentSchema } from '@ecommerce/proto/ecommerce/message/v1/message_events_pb';
 import { Inject, Injectable } from '@nestjs/common';
 import type { MessageEvents, ReadRepositories, TransactionScope, UnitOfWork } from '../../../application/ports.js';
 import { type ChatMessage, type Conversation, previewOf, recipientsOf } from '../../../domain/conversation.js';

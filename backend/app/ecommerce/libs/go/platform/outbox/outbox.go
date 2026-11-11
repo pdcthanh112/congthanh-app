@@ -6,7 +6,7 @@
 //
 //	CREATE TABLE outbox (
 //	    id            UUID PRIMARY KEY,
-//	    aggregatetype TEXT NOT NULL,   -- Debezium route → topic ecom.<aggregatetype>.events
+//	    aggregatetype TEXT NOT NULL,   -- Debezium route → topic ecommerce.<aggregatetype>.events
 //	    aggregateid   TEXT NOT NULL,   -- Kafka key
 //	    type          TEXT NOT NULL,   -- vd. ecommerce.inventory.v1.InventoryReserved
 //	    payload       BYTEA NOT NULL,  -- ecommerce.common.v1.EventEnvelope (protobuf)

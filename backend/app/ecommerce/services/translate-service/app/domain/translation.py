@@ -8,15 +8,15 @@ from enum import StrEnum
 
 # BCP 47 → tên dùng trong prompt.
 LANGUAGES: dict[str, str] = {
-    "vi": "Vietnamese",
     "en": "English",
+    "es": "Spanish",
     "zh": "Simplified Chinese",
-    "ja": "Japanese",
-    "ko": "Korean",
-    "th": "Thai",
     "fr": "French",
     "de": "German",
-    "es": "Spanish",
+    "ja": "Japanese",
+    "ko": "Korean",
+    "vi": "Vietnamese",
+    "th": "Thai",
 }
 
 

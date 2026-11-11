@@ -1,26 +1,31 @@
-import { dirname, join } from 'node:path';
-import { fileURLToPath } from 'node:url';
 import {
   CartClient,
+  CheckoutClient,
   CustomerClient,
   InventoryClient,
   OrderClient,
   ProductClient,
   PromotionClient,
-} from '@ecom/clients';
-import { PlatformAuthModule, PlatformHealthModule, PlatformLoggerModule, subgraphConfig } from '@ecom/platform';
-import { type DynamicModule, Module } from '@nestjs/common';
-import { GraphQLModule } from '@nestjs/graphql';
-import { CartResolver } from './adapters/in/graphql/cart.resolver.js';
-import { OrderResolver } from './adapters/in/graphql/order.resolver.js';
-import { ProductResolver } from './adapters/in/graphql/product.resolver.js';
-import { CategoryRef } from './adapters/in/graphql/types.js';
+  RecommendationClient,
+} from "@ecommerce/clients";
+import { PlatformAuthModule, PlatformHealthModule, PlatformLoggerModule, subgraphConfig } from "@ecommerce/platform";
+import { type DynamicModule, Module } from "@nestjs/common";
+import { GraphQLModule } from "@nestjs/graphql";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
+import { CartResolver } from "./adapters/in/graphql/cart.resolver.js";
+import { OrderResolver } from "./adapters/in/graphql/order.resolver.js";
+import { ProductResolver } from "./adapters/in/graphql/product.resolver.js";
+import { RecommendationResolver } from "./adapters/in/graphql/recommendation.resolver.js";
+import { CategoryRef } from "./adapters/in/graphql/types.js";
 import {
   ADDRESSES,
   type AddressPort,
   CARTS,
-  type CartPort,
+  CHECKOUTS,
   CURRENCY,
+  type CartPort,
+  type CheckoutPort,
   INVENTORY,
   type InventoryPort,
   ORDERS,
@@ -29,9 +34,11 @@ import {
   PROMOTIONS,
   type ProductPort,
   type PromotionPort,
-} from './application/ports.js';
-import { StorefrontService } from './application/storefront.service.js';
-import type { Env } from './config/env.js';
+  RECOMMENDATIONS,
+  type RecommendationPort,
+} from "./application/ports.js";
+import { StorefrontService } from "./application/storefront.service.js";
+import type { Env } from "./config/env.js";
 
 export interface Backends {
   products: ProductPort;
@@ -40,6 +47,8 @@ export interface Backends {
   promotions: PromotionPort;
   orders: OrderPort;
   addresses: AddressPort;
+  checkouts: CheckoutPort;
+  recommendations: RecommendationPort;
 }
 
 export function realBackends(env: Env): Backends {
@@ -54,15 +63,15 @@ export function realBackends(env: Env): Backends {
     promotions: new PromotionClient(env.PROMOTION_GRPC_ADDR),
     orders: new OrderClient(env.ORDER_REST_URL),
     addresses: new CustomerClient(env.CUSTOMER_GRPC_ADDR),
+    checkouts: new CheckoutClient(env.CHECKOUT_REST_URL),
+    recommendations: new RecommendationClient(env.RECOMMENDATION_REST_URL),
   };
 }
 
-const serviceDir = join(dirname(fileURLToPath(import.meta.url)), '..');
+const serviceDir = join(dirname(fileURLToPath(import.meta.url)), "..");
 
-/** BFF không có DB: mọi dữ liệu lấy từ service phía sau qua gRPC/REST (adapter trong @ecom/clients). */
 @Module({})
 export class AppModule {
-  /** backends: thay client thật bằng bản giả trong test (composition root duy nhất). */
   static forRoot(env: Env, backends?: Backends): DynamicModule {
     let cached = backends;
     const b = () => {
@@ -82,7 +91,7 @@ export class AppModule {
         GraphQLModule.forRoot(
           subgraphConfig({
             serviceDir,
-            production: env.NODE_ENV === 'production',
+            production: env.NODE_ENV === "production",
             extra: { buildSchemaOptions: { orphanedTypes: [CategoryRef] } },
           }),
         ),
@@ -92,6 +101,7 @@ export class AppModule {
         ProductResolver,
         CartResolver,
         OrderResolver,
+        RecommendationResolver,
         { provide: CURRENCY, useValue: env.CURRENCY },
         { provide: PRODUCTS, useFactory: () => b().products },
         { provide: INVENTORY, useFactory: () => b().inventory },
@@ -99,6 +109,8 @@ export class AppModule {
         { provide: PROMOTIONS, useFactory: () => b().promotions },
         { provide: ORDERS, useFactory: () => b().orders },
         { provide: ADDRESSES, useFactory: () => b().addresses },
+        { provide: CHECKOUTS, useFactory: () => b().checkouts },
+        { provide: RECOMMENDATIONS, useFactory: () => b().recommendations },
       ],
     };
   }

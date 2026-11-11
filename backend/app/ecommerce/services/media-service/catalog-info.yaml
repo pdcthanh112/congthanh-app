@@ -19,5 +19,5 @@ spec:
   providesApis:
   - media-api-rest
   dependsOn:
-  - resource:ecom-postgres
-  - resource:ecom-media-bucket
+  - resource:ecommerce-postgres
+  - resource:ecommerce-media-bucket

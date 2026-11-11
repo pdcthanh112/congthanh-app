@@ -9,7 +9,7 @@ spec:
   class: io.tabular.iceberg.connect.IcebergSinkConnector
   tasksMax: 2
   config:
-    topics.regex: ecom\.[a-z]+\.events
+    topics.regex: ecommerce\.[a-z]+\.events
     iceberg.tables: lake.events_raw
     iceberg.tables.auto-create-enabled: 'true'
     iceberg.catalog.catalog-impl: org.apache.iceberg.aws.glue.GlueCatalog

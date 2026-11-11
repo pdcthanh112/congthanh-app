@@ -19,4 +19,4 @@ spec:
   providesApis:
   - supplier-api-rest
   dependsOn:
-  - resource:ecom-postgres
+  - resource:ecommerce-postgres

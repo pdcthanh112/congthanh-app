@@ -1,4 +1,4 @@
-import { CurrentPrincipal, type Principal, Role, Roles } from '@ecom/platform';
+import { CurrentPrincipal, type Principal, Role, Roles } from '@ecommerce/platform';
 import { Args, ID, Mutation, Query, Resolver } from '@nestjs/graphql';
 import { BackofficeService } from '../../../application/backoffice.service.js';
 import { order, stockLevel } from './mappers.js';

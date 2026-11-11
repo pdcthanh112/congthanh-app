@@ -3,9 +3,7 @@ syntax = "proto3";
 package ecommerce.shipping.v1;
 
 option java_multiple_files = true;
-option java_package = "com.congthanh.ecom.shipping.v1";
-
-// Topic: ecom.shipping.events (key = shipment_id)
+option java_package = "com.congthanh.ecommerce.shipping.v1";
 
 message ShipmentCreated {
   string shipment_id = 1;

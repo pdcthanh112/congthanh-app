@@ -1,6 +1,6 @@
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { createPool, runMigrations } from '@ecom/platform';
+import { createPool, runMigrations } from '@ecommerce/platform';
 import { sql } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/node-postgres';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
@@ -10,7 +10,7 @@ import { CatalogService } from '../src/application/catalog.service.js';
 
 /**
  * Kiểm thử tích hợp với Postgres thật (schema riêng, xoá sau khi chạy).
- * Bật bằng TEST_DATABASE_URL, ví dụ postgres://postgres@localhost:5432/ecom (CI dùng service container).
+ * Bật bằng TEST_DATABASE_URL, ví dụ postgres://postgres@localhost:5432/ecommerce (CI dùng service container).
  */
 const url = process.env.TEST_DATABASE_URL;
 const SCHEMA = 'catalog_service';
@@ -39,7 +39,7 @@ describe.skipIf(!url)('catalog-service + Postgres', () => {
   it('seed dữ liệu tham chiếu', async () => {
     const roots = await service.read.categories.list({ parentId: null });
     expect(roots.map((c) => c.slug)).toContain('books');
-    expect(await service.read.countries.findByIso('vn')).toMatchObject({ isoCode: 'VN' });
+    expect(await service.read.countries.findByIso('us')).toMatchObject({ isoCode: 'US' });
   });
 
   it('tạo danh mục con, ghi outbox cùng transaction, tính path', async () => {

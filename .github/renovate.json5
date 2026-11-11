@@ -1,0 +1,43 @@
+// Renovate: bổ sung cho Dependabot (.github/dependabot.yml vẫn lo gomod, gradle, npm, actions, terraform, Dockerfile).
+// Renovate chỉ bật các manager Dependabot không có: chart Helm trong Application Argo CD, image trong manifest/values
+// Kubernetes, kustomize, và các phiên bản ghim bằng chú thích (Flink, plugin, operator...).
+{
+  $schema: "https://docs.renovatebot.com/renovate-schema.json",
+  extends: ["config:recommended", ":semanticCommitTypeAll(chore)", "helpers:pinGitHubActionDigests"],
+  timezone: "Asia/Ho_Chi_Minh",
+  schedule: ["before 6am on monday"],
+  // Chỉ nhận bản phát hành đã ra ít nhất 14 ngày (giống cooldown của Dependabot npm).
+  minimumReleaseAge: "14 days",
+  internalChecksFilter: "strict",
+  prConcurrentLimit: 8,
+  labels: ["dependencies", "renovate"],
+  enabledManagers: ["argocd", "kubernetes", "kustomize", "helm-values", "custom.regex"],
+  argocd: {
+    managerFilePatterns: ["/backend/app/ecommerce/deploy/argocd/.+\\.ya?ml$/"],
+  },
+  kubernetes: {
+    managerFilePatterns: ["/backend/app/ecommerce/platform/.+\\.ya?ml$/"],
+  },
+  "helm-values": {
+    managerFilePatterns: ["/backend/app/ecommerce/platform/.+values\\.ya?ml$/"],
+  },
+  customManagers: [
+    {
+      // Ghim phiên bản bằng chú thích ngay trên dòng:  # renovate: datasource=maven depName=org.apache.flink:flink-streaming-java
+      customType: "regex",
+      managerFilePatterns: ["/\\.(ya?ml|toml|tf|kts)$/", "/Dockerfile$/"],
+      matchStrings: [
+        "#\\s*renovate:\\s*datasource=(?<datasource>[a-z-.]+?)\\s+depName=(?<depName>[^\\s]+?)(\\s+versioning=(?<versioning>[^\\s]+?))?\\s*\\n[^\\n]*?[:=]\\s*\"?(?<currentValue>[\\w.+-]+)\"?",
+      ],
+    },
+  ],
+  packageRules: [
+    // Image của chính dự án do Kargo promote, không phải Renovate.
+    { matchPackageNames: ["/^ghcr\\.io/pdcthanh112/"], enabled: false },
+    // Flink: runtime (image), API (Gradle) và connector phải đi cùng nhau.
+    { groupName: "flink", matchPackageNames: ["/flink/"] },
+    // Operator/CRD nền: chỉ tự động bản patch, bản minor/major cần người duyệt.
+    { matchManagers: ["argocd"], matchUpdateTypes: ["minor", "major"], dependencyDashboardApproval: true },
+    { matchManagers: ["argocd"], matchUpdateTypes: ["patch"], groupName: "platform charts (patch)" },
+  ],
+}

@@ -48,10 +48,10 @@ def history_key(subject: str | None, session_id: str) -> str:
 def system_prompt(store: str, products: list[Product]) -> str:
     lines = [
         (
-            f"You are the shopping assistant of {store}, an online store in Vietnam. Help customers find products, "
+            f"You are the shopping assistant of {store}, an online store in the United States. Help customers find products, "
             "compare options and understand orders, shipping, payment and returns."
         ),
-        "- Answer in the customer's language (usually Vietnamese), briefly and warmly.",
+        "- Answer in the customer's language (usually English), briefly and warmly.",
         (
             "- Only recommend products from the catalogue results below; never invent products, prices, stock or "
             "promotions. If nothing fits, say so and suggest how to refine the search."

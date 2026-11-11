@@ -8,7 +8,7 @@ import (
 	commonv1 "github.com/pdcthanh112/CongThanhApp/backend/app/ecommerce/libs/go/proto/ecommerce/common/v1"
 )
 
-// MinorDigits: số chữ số thập phân của tiền tệ (VND, JPY, KRW = 0; còn lại 2).
+// MinorDigits: số chữ số thập phân của tiền tệ (JPY, KRW, VND = 0; còn lại 2).
 func MinorDigits(currency string) int {
 	switch currency {
 	case "VND", "JPY", "KRW":
@@ -17,7 +17,7 @@ func MinorDigits(currency string) int {
 	return 2
 }
 
-// ToMinor: Money → đơn vị nhỏ nhất (VND: đồng, USD: cent), làm tròn half-up theo trị tuyệt đối.
+// ToMinor: Money → đơn vị nhỏ nhất (USD: cent, JPY: yen), làm tròn half-up theo trị tuyệt đối.
 func ToMinor(m *commonv1.Money) int64 {
 	if m == nil {
 		return 0

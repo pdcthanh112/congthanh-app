@@ -22,6 +22,28 @@ spec:
     canary:
       stableService: {{ include "ms.name" . }}
       canaryService: {{ include "ms.name" . }}-canary
+      {{- if eq .Values.rollout.trafficRouting "gatewayAPI" }}
+      trafficRouting:
+        plugins:
+          argoproj-labs/gatewayAPI:
+            namespace: {{ .Release.Namespace }}
+            httpRoutes:
+              - {name: {{ include "ms.name" . }}, useHeaderRoutes: true}
+            {{- if .Values.ports.grpc }}
+            grpcRoutes:
+              - {name: {{ include "ms.name" . }}-grpc, useHeaderRoutes: false}
+            {{- end }}
+      {{- end }}
+      {{- if .Values.rollout.sloBurn.enabled }}
+      analysis:
+        startingStep: 1
+        templates:
+          - {templateName: slo-burn-rate, clusterScope: true}
+        args:
+          - {name: service-name, value: {{ include "ms.name" . }}}
+          - {name: objective, value: {{ .Values.rollout.sloBurn.objective | quote }}}
+          - {name: burn-rate-limit, value: {{ .Values.rollout.sloBurn.burnRateLimit | quote }}}
+      {{- end }}
       steps:
         {{- tpl (toYaml .Values.rollout.steps) . | nindent 8 }}
   {{- else }}

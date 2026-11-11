@@ -30,7 +30,7 @@ type Repository interface {
 	SaveTransition(ctx context.Context, s domain.Shipment, ev domain.Event, ch StatusChange) error
 }
 
-// Carrier là driven port tới hãng vận chuyển (GHN, GHTK, ... hoặc đội giao nội bộ).
+// Carrier là driven port tới hãng vận chuyển (USPS, UPS, FedEx qua EasyPost/Shippo, hoặc nhãn nội bộ).
 type Carrier interface {
 	Code() string
 	CreateLabel(ctx context.Context, s domain.Shipment) (tracking string, err error)

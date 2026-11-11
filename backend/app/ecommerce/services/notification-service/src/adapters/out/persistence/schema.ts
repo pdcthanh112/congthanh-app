@@ -1,4 +1,4 @@
-import { platformTables } from '@ecom/platform';
+import { platformTables } from '@ecommerce/platform';
 import {
   bigint,
   index,

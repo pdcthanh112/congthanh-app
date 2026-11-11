@@ -19,4 +19,4 @@ spec:
   providesApis:
   - translate-api-rest
   dependsOn:
-  - resource:ecom-valkey
+  - resource:ecommerce-redis

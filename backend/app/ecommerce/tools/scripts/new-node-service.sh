@@ -9,6 +9,6 @@ for f in tsconfig.json tsconfig.build.json drizzle.config.ts src/main.ts src/mig
 done
 node -e '
 const fs=require("fs");const p=JSON.parse(fs.readFileSync(process.argv[1]+"/package.json"));
-p.name="@ecom/"+process.argv[2];p.description=process.argv[3];
+p.name="@ecommerce/"+process.argv[2];p.description=process.argv[3];
 fs.writeFileSync(process.argv[4]+"/package.json",JSON.stringify(p,null,2)+"\n");' "$src" "$name" "$desc" "$dst"
 echo "created services/$name"

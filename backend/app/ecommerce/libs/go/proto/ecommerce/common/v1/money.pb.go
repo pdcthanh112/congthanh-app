@@ -24,7 +24,7 @@ const (
 // Money theo kiểu google.type.Money: units + nanos để không mất chính xác như double.
 type Money struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// Mã tiền tệ ISO 4217, ví dụ "VND", "USD".
+	// Mã tiền tệ ISO 4217, ví dụ "USD", "EUR".
 	CurrencyCode string `protobuf:"bytes,1,opt,name=currency_code,json=currencyCode,proto3" json:"currency_code,omitempty"`
 	Units        int64  `protobuf:"varint,2,opt,name=units,proto3" json:"units,omitempty"`
 	// Phần lẻ, -999_999_999..999_999_999, cùng dấu với units.

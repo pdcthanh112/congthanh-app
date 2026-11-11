@@ -22,7 +22,7 @@ type Config struct {
 	JWKSURL           string
 	JWTSecret         string
 	JWTIssuer         string
-	KafkaBrokers      []string // trống = không tiêu thụ ecom.order.events
+	KafkaBrokers      []string // trống = không tiêu thụ ecommerce.order.events
 	KafkaGroup        string
 	UnleashURL        string
 	UnleashToken      string

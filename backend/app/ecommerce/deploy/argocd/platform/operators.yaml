@@ -5,7 +5,7 @@ metadata:
   name: strimzi
   namespace: argocd
   annotations:
-    argocd.argoproj.io/sync-wave: '-20'
+    argocd.argoproj.io/sync-wave: "-20"
 spec:
   project: platform
   source:
@@ -22,8 +22,8 @@ spec:
       prune: false
       selfHeal: true
     syncOptions:
-    - CreateNamespace=true
-    - ServerSideApply=true
+      - CreateNamespace=true
+      - ServerSideApply=true
 ---
 apiVersion: argoproj.io/v1alpha1
 kind: Application
@@ -31,7 +31,7 @@ metadata:
   name: cloudnative-pg
   namespace: argocd
   annotations:
-    argocd.argoproj.io/sync-wave: '-20'
+    argocd.argoproj.io/sync-wave: "-20"
 spec:
   project: platform
   source:
@@ -48,8 +48,8 @@ spec:
       prune: false
       selfHeal: true
     syncOptions:
-    - CreateNamespace=true
-    - ServerSideApply=true
+      - CreateNamespace=true
+      - ServerSideApply=true
 ---
 apiVersion: argoproj.io/v1alpha1
 kind: Application
@@ -57,7 +57,7 @@ metadata:
   name: argo-rollouts
   namespace: argocd
   annotations:
-    argocd.argoproj.io/sync-wave: '-20'
+    argocd.argoproj.io/sync-wave: "-20"
 spec:
   project: platform
   source:
@@ -65,7 +65,20 @@ spec:
     chart: argo-rollouts
     targetRevision: 2.40.*
     helm:
-      valuesObject: {}
+      valuesObject:
+        dashboard: { enabled: true }
+        controller:
+          initContainers:
+            - name: copy-gwapi-plugin
+              image: ghcr.io/argoproj-labs/rollouts-plugin-trafficrouter-gatewayapi:v0.17.0
+              command: ["/bin/sh", "-c"]
+              args: ["cp /bin/rollouts-plugin-trafficrouter-gatewayapi /plugins"]
+              volumeMounts: [{ name: gwapi-plugin, mountPath: /plugins }]
+          trafficRouterPlugins:
+            - name: argoproj-labs/gatewayAPI
+              location: file:///plugins/rollouts-plugin-trafficrouter-gatewayapi
+          volumes: [{ name: gwapi-plugin, emptyDir: {} }]
+          volumeMounts: [{ name: gwapi-plugin, mountPath: /plugins }]
   destination:
     server: https://kubernetes.default.svc
     namespace: argo-rollouts
@@ -74,8 +87,8 @@ spec:
       prune: false
       selfHeal: true
     syncOptions:
-    - CreateNamespace=true
-    - ServerSideApply=true
+      - CreateNamespace=true
+      - ServerSideApply=true
 ---
 apiVersion: argoproj.io/v1alpha1
 kind: Application
@@ -83,7 +96,7 @@ metadata:
   name: keda
   namespace: argocd
   annotations:
-    argocd.argoproj.io/sync-wave: '-20'
+    argocd.argoproj.io/sync-wave: "-20"
 spec:
   project: platform
   source:
@@ -100,8 +113,8 @@ spec:
       prune: false
       selfHeal: true
     syncOptions:
-    - CreateNamespace=true
-    - ServerSideApply=true
+      - CreateNamespace=true
+      - ServerSideApply=true
 ---
 apiVersion: argoproj.io/v1alpha1
 kind: Application
@@ -109,7 +122,7 @@ metadata:
   name: external-secrets
   namespace: argocd
   annotations:
-    argocd.argoproj.io/sync-wave: '-20'
+    argocd.argoproj.io/sync-wave: "-20"
 spec:
   project: platform
   source:
@@ -126,8 +139,8 @@ spec:
       prune: false
       selfHeal: true
     syncOptions:
-    - CreateNamespace=true
-    - ServerSideApply=true
+      - CreateNamespace=true
+      - ServerSideApply=true
 ---
 apiVersion: argoproj.io/v1alpha1
 kind: Application
@@ -135,7 +148,7 @@ metadata:
   name: kyverno
   namespace: argocd
   annotations:
-    argocd.argoproj.io/sync-wave: '-20'
+    argocd.argoproj.io/sync-wave: "-20"
 spec:
   project: platform
   source:
@@ -152,8 +165,8 @@ spec:
       prune: false
       selfHeal: true
     syncOptions:
-    - CreateNamespace=true
-    - ServerSideApply=true
+      - CreateNamespace=true
+      - ServerSideApply=true
 ---
 apiVersion: argoproj.io/v1alpha1
 kind: Application
@@ -161,7 +174,7 @@ metadata:
   name: opentelemetry-operator
   namespace: argocd
   annotations:
-    argocd.argoproj.io/sync-wave: '-20'
+    argocd.argoproj.io/sync-wave: "-20"
 spec:
   project: platform
   source:
@@ -178,8 +191,8 @@ spec:
       prune: false
       selfHeal: true
     syncOptions:
-    - CreateNamespace=true
-    - ServerSideApply=true
+      - CreateNamespace=true
+      - ServerSideApply=true
 ---
 apiVersion: argoproj.io/v1alpha1
 kind: Application
@@ -187,7 +200,7 @@ metadata:
   name: cert-manager
   namespace: argocd
   annotations:
-    argocd.argoproj.io/sync-wave: '-20'
+    argocd.argoproj.io/sync-wave: "-20"
 spec:
   project: platform
   source:
@@ -205,8 +218,8 @@ spec:
       prune: false
       selfHeal: true
     syncOptions:
-    - CreateNamespace=true
-    - ServerSideApply=true
+      - CreateNamespace=true
+      - ServerSideApply=true
 ---
 apiVersion: argoproj.io/v1alpha1
 kind: Application
@@ -214,7 +227,7 @@ metadata:
   name: karpenter
   namespace: argocd
   annotations:
-    argocd.argoproj.io/sync-wave: '-20'
+    argocd.argoproj.io/sync-wave: "-20"
 spec:
   project: platform
   source:
@@ -231,5 +244,254 @@ spec:
       prune: false
       selfHeal: true
     syncOptions:
-    - CreateNamespace=true
-    - ServerSideApply=true
+      - CreateNamespace=true
+      - ServerSideApply=true
+---
+# Flink Kubernetes Operator: quản lý FlinkDeployment (savepoint khi nâng cấp, autoscaler theo backlog Kafka).
+# Webhook dùng chứng chỉ cert-manager (cài cùng wave). SA "flink" + RBAC được tạo trong namespace streaming.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: flink-kubernetes-operator
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "-19"
+spec:
+  project: platform
+  source:
+    repoURL: https://downloads.apache.org/flink/flink-kubernetes-operator-1.16.1/
+    chart: flink-kubernetes-operator
+    targetRevision: 1.16.1
+    helm:
+      valuesObject:
+        watchNamespaces: [streaming]
+        jobServiceAccount: { create: true, name: flink }
+        defaultConfiguration:
+          create: true
+          append: true
+          flink-conf.yaml: |+
+            kubernetes.operator.metrics.reporter.prom.factory.class: org.apache.flink.metrics.prometheus.PrometheusReporterFactory
+            kubernetes.operator.metrics.reporter.prom.port: 9999
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: flink-operator
+  syncPolicy:
+    automated:
+      prune: false
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true
+---
+# Kargo: promote Freight (bộ image) dev → staging → prod bằng commit/PR vào repo (platform/delivery/kargo).
+# Đăng nhập UI bằng Keycloak (OIDC), tắt tài khoản admin mặc định.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: kargo
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "-19"
+spec:
+  project: platform
+  source:
+    repoURL: ghcr.io/akuity/kargo-charts
+    chart: kargo
+    targetRevision: 1.12.4
+    helm:
+      valuesObject:
+        api:
+          adminAccount: { enabled: false }
+          oidc:
+            enabled: true
+            issuerURL: https://auth.congthanh.vn/realms/ecommerce
+            clientID: kargo
+            admins: { claims: { groups: [platform-admins] } }
+        controller:
+          argocd: { integrationEnabled: true }
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: kargo
+  syncPolicy:
+    automated:
+      prune: false
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true
+---
+# Tetragon: runtime security bằng eBPF (TracingPolicy ở platform/security/tetragon).
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: tetragon
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "-20"
+spec:
+  project: platform
+  sources:
+    - repoURL: https://helm.cilium.io
+      chart: tetragon
+      targetRevision: 1.7.1
+      helm:
+        valueFiles:
+          - $values/backend/app/ecommerce/platform/security/tetragon/values.yaml
+    - repoURL: https://github.com/pdcthanh112/CongThanhApp.git
+      targetRevision: main
+      ref: values
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: kube-system
+  syncPolicy:
+    automated:
+      prune: false
+      selfHeal: true
+    syncOptions:
+      - ServerSideApply=true
+---
+# Cilium (chaining với aws-cni) + Hubble: network policy L3-L7 và quan sát luồng bằng eBPF.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: cilium
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "-25"
+spec:
+  project: platform
+  sources:
+    - repoURL: https://helm.cilium.io
+      chart: cilium
+      targetRevision: 1.20.3
+      helm:
+        valueFiles:
+          - $values/backend/app/ecommerce/platform/network/cilium/values.yaml
+    - repoURL: https://github.com/pdcthanh112/CongThanhApp.git
+      targetRevision: main
+      ref: values
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: kube-system
+  syncPolicy:
+    automated:
+      prune: false
+      selfHeal: true
+    syncOptions:
+      - ServerSideApply=true
+---
+# KServe (chế độ Standard: Deployment + HPA, không Knative/Istio ingress) phục vụ InferenceService ở platform/inference.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: kserve-crd
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "-20"
+spec:
+  project: platform
+  source:
+    repoURL: ghcr.io/kserve/charts
+    chart: kserve-crd
+    targetRevision: v0.20.0
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: kserve
+  syncPolicy:
+    automated:
+      prune: false
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: kserve
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "-19"
+spec:
+  project: platform
+  source:
+    repoURL: ghcr.io/kserve/charts
+    chart: kserve-resources
+    targetRevision: v0.20.0
+    helm:
+      valuesObject:
+        kserve:
+          controller:
+            deploymentMode: Standard
+            gateway:
+              disableIngressCreation: true
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: kserve
+  syncPolicy:
+    automated:
+      prune: false
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: kserve-runtimes
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "-18"
+spec:
+  project: platform
+  source:
+    repoURL: ghcr.io/kserve/charts
+    chart: kserve-runtime-configs
+    targetRevision: v0.20.0
+    helm:
+      valuesObject:
+        kserve:
+          servingruntime:
+            enabled: true
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: kserve
+  syncPolicy:
+    automated:
+      prune: false
+      selfHeal: true
+    syncOptions:
+      - ServerSideApply=true
+---
+# Chaos Mesh: thí nghiệm định kỳ ở platform/chaos (chỉ staging), game day thủ công ở tests/chaos.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: chaos-mesh
+  namespace: argocd
+  annotations:
+    argocd.argoproj.io/sync-wave: "-18"
+spec:
+  project: platform
+  source:
+    repoURL: https://charts.chaos-mesh.org
+    chart: chaos-mesh
+    targetRevision: 2.8.6
+    helm:
+      valuesObject:
+        chaosDaemon:
+          runtime: containerd
+          socketPath: /run/containerd/containerd.sock
+        dashboard:
+          securityMode: true # dashboard đòi token RBAC của người dùng, không dùng quyền của chính dashboard
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: chaos-mesh
+  syncPolicy:
+    automated:
+      prune: false
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
+      - ServerSideApply=true

@@ -7,6 +7,7 @@ import pytest
 from app.adapters.claude import ClaudeLLM
 from app.adapters.ollama import OllamaLLM
 from app.adapters.search import SearchServiceClient
+from app.adapters.vllm import VllmLLM
 from app.domain.chat import Message
 from app.ports import LLMError
 
@@ -15,13 +16,13 @@ async def test_search_client_maps_hits():
     def handler(req: httpx.Request):
         assert req.url.path == "/api/ecommerce/search/products" and req.url.params["size"] == "2"
         hits = [
-            {"id": "1", "name": "A", "slug": "a", "price": 10.5, "currency": "VND", "status": "ACTIVE"},
-            {"id": "2", "name": "B", "slug": "b", "price": 1, "currency": "VND", "status": "INACTIVE"},
+            {"id": "1", "name": "A", "slug": "a", "price": 10.5, "currency": "USD", "status": "ACTIVE"},
+            {"id": "2", "name": "B", "slug": "b", "price": 1, "currency": "USD", "status": "INACTIVE"},
         ]
         return httpx.Response(200, json={"data": {"hits": hits, "total": 2}})
 
     c = SearchServiceClient(httpx.AsyncClient(transport=httpx.MockTransport(handler), base_url="http://s"))
-    out = await c.search("áo", 2)
+    out = await c.search("shirt", 2)
     assert [p.id for p in out] == ["1"] and out[0].price == 10.5
 
 
@@ -84,3 +85,29 @@ async def test_claude_refusal():
     llm = ClaudeLLM(fake_client([], "refusal", {}), "m", "low", 100)
     with pytest.raises(LLMError):
         [t async for t in llm.stream("s", [Message("user", "x")])]
+
+
+async def test_vllm_stream():
+    events = [
+        {"choices": [{"delta": {"role": "assistant"}}]},
+        {"choices": [{"delta": {"content": "Xin "}}]},
+        {"choices": [{"delta": {"content": "chào"}, "finish_reason": "stop"}]},
+    ]
+
+    def handler(req: httpx.Request):
+        body = json.loads(req.content)
+        assert req.url.path == "/openai/v1/chat/completions"
+        assert body["model"] == "shop-assistant" and body["max_tokens"] == 100 and body["stream"] is True
+        assert body["messages"][0] == {"role": "system", "content": "sys"}
+        sse = "".join(f"data: {json.dumps(e)}\n\n" for e in events) + "data: [DONE]\n\n"
+        return httpx.Response(200, content=sse.encode())
+
+    http = httpx.AsyncClient(transport=httpx.MockTransport(handler), base_url="http://v")
+    llm = VllmLLM(http, "shop-assistant", "/openai/v1/chat/completions", 100)
+    assert [t async for t in llm.stream("sys", [Message("user", "hi")])] == ["Xin ", "chào"]
+
+
+async def test_vllm_error():
+    http = httpx.AsyncClient(transport=httpx.MockTransport(lambda r: httpx.Response(503)), base_url="http://v")
+    with pytest.raises(LLMError):
+        [t async for t in VllmLLM(http, "m", "/v1/chat/completions", 10).stream("s", [Message("user", "hi")])]

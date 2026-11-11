@@ -38,4 +38,4 @@ class MemHistory:
         self.d.pop(key, None)
 
 
-SHIRT = Product(id="p1", name="Áo thun cotton", slug="ao-thun-cotton", price=199000, currency="VND")
+SHIRT = Product(id="p1", name="Cotton T-Shirt", slug="cotton-t-shirt", price=19.99, currency="USD")

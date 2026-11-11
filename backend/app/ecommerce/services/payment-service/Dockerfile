@@ -13,6 +13,7 @@ COPY services/product-service ./services/product-service
 COPY services/order-service ./services/order-service
 COPY services/payment-service ./services/payment-service
 COPY services/promotion-service ./services/promotion-service
+COPY services/checkout-service ./services/checkout-service
 RUN --mount=type=cache,target=/root/.gradle ./gradlew :services:payment-service:bootJar --no-daemon -x test
 
 FROM eclipse-temurin:25-jre

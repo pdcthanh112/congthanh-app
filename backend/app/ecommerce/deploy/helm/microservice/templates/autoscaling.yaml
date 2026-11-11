@@ -1,4 +1,12 @@
-{{- if .Values.keda.enabled }}
+{{- /*
+  Ba chế độ:
+    - keda.enabled: ScaledObject theo lag Kafka + CPU.
+    - có scheduledScaling (replicas > 0 và có sự kiện trong lịch): ScaledObject theo CPU + lịch, kể cả khi không
+      đọc Kafka. KEDA tự tạo HPA nên không render HPA riêng (hai HPA cùng một workload sẽ giành nhau).
+    - còn lại: HPA theo CPU.
+*/ -}}
+{{- $scheduled := and .Values.autoscaling.enabled (gt (int .Values.scheduledScaling.replicas) 0) (not (empty .Values.scheduledScaling.events)) -}}
+{{- if or .Values.keda.enabled $scheduled }}
 apiVersion: keda.sh/v1alpha1
 kind: ScaledObject
 metadata:
@@ -14,18 +22,45 @@ spec:
     kind: Deployment
     {{- end }}
     name: {{ include "ms.name" . }}
+  {{- if .Values.keda.enabled }}
   minReplicaCount: {{ .Values.keda.minReplicas }}
-  maxReplicaCount: {{ .Values.keda.maxReplicas }}
+  maxReplicaCount: {{ max (int .Values.keda.maxReplicas) (int .Values.scheduledScaling.replicas) }}
+  {{- else }}
+  minReplicaCount: {{ .Values.autoscaling.minReplicas }}
+  maxReplicaCount: {{ max (int .Values.autoscaling.maxReplicas) (int .Values.scheduledScaling.replicas) }}
+  {{- end }}
+  advanced:
+    horizontalPodAutoscalerConfig:
+      behavior:
+        # Lên nhanh (gấp đôi mỗi 15 giây), xuống chậm: tải flash sale tăng trong vài giây.
+        scaleUp:
+          stabilizationWindowSeconds: 0
+          policies: [{type: Percent, value: 100, periodSeconds: 15}, {type: Pods, value: 4, periodSeconds: 15}]
+          selectPolicy: Max
+        scaleDown: {stabilizationWindowSeconds: 300}
   triggers:
+    {{- if .Values.keda.enabled }}
     - type: kafka
       metadata:
         bootstrapServers: {{ .Values.keda.kafka.bootstrapServers }}
         consumerGroup: {{ required "keda.kafka.consumerGroup" .Values.keda.kafka.consumerGroup }}
         topic: {{ required "keda.kafka.topic" .Values.keda.kafka.topic }}
         lagThreshold: {{ .Values.keda.kafka.lagThreshold | quote }}
+    {{- end }}
     - type: cpu
       metricType: Utilization
       metadata: {value: {{ .Values.autoscaling.targetCPU | quote }}}
+    {{- if gt (int .Values.scheduledScaling.replicas) 0 }}
+    {{- range .Values.scheduledScaling.events }}
+    # {{ .name }}: giữ sẵn {{ $.Values.scheduledScaling.replicas }} pod trong khung giờ này (CPU vẫn có thể đẩy cao hơn).
+    - type: cron
+      metadata:
+        timezone: {{ $.Values.scheduledScaling.timezone | quote }}
+        start: {{ .start | quote }}
+        end: {{ .end | quote }}
+        desiredReplicas: {{ $.Values.scheduledScaling.replicas | quote }}
+    {{- end }}
+    {{- end }}
 {{- else if .Values.autoscaling.enabled }}
 apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
@@ -48,5 +83,9 @@ spec:
     - type: Resource
       resource: {name: cpu, target: {type: Utilization, averageUtilization: {{ .Values.autoscaling.targetCPU }}}}
   behavior:
+    scaleUp:
+      stabilizationWindowSeconds: 0
+      policies: [{type: Percent, value: 100, periodSeconds: 15}, {type: Pods, value: 4, periodSeconds: 15}]
+      selectPolicy: Max
     scaleDown: {stabilizationWindowSeconds: 300}
 {{- end }}

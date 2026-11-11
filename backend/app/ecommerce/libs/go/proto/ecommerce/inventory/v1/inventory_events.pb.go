@@ -330,13 +330,12 @@ func (x *InventoryCommitted) GetLines() []*ReservedLine {
 }
 
 type StockLevelChanged struct {
-	state       protoimpl.MessageState `protogen:"open.v1"`
-	ProductId   string                 `protobuf:"bytes,1,opt,name=product_id,json=productId,proto3" json:"product_id,omitempty"`
-	WarehouseId string                 `protobuf:"bytes,2,opt,name=warehouse_id,json=warehouseId,proto3" json:"warehouse_id,omitempty"`
-	Quantity    int32                  `protobuf:"varint,3,opt,name=quantity,proto3" json:"quantity,omitempty"`
-	Available   int32                  `protobuf:"varint,4,opt,name=available,proto3" json:"available,omitempty"`
-	// RESTOCK, DAMAGE, ADJUST, COMMIT...
-	Reason        string `protobuf:"bytes,5,opt,name=reason,proto3" json:"reason,omitempty"`
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	ProductId     string                 `protobuf:"bytes,1,opt,name=product_id,json=productId,proto3" json:"product_id,omitempty"`
+	WarehouseId   string                 `protobuf:"bytes,2,opt,name=warehouse_id,json=warehouseId,proto3" json:"warehouse_id,omitempty"`
+	Quantity      int32                  `protobuf:"varint,3,opt,name=quantity,proto3" json:"quantity,omitempty"`
+	Available     int32                  `protobuf:"varint,4,opt,name=available,proto3" json:"available,omitempty"`
+	Reason        string                 `protobuf:"bytes,5,opt,name=reason,proto3" json:"reason,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -466,8 +465,6 @@ func (x *LowStockDetected) GetReorderPoint() int32 {
 	return 0
 }
 
-// Flash sale: lượt giành hàng thành công trên Redis. order-service tiêu thụ để tạo đơn
-// bất đồng bộ; kết thúc đợt sale, inventory chốt số đã bán vào DB (đối soát).
 type FlashSaleClaimed struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	SaleId        string                 `protobuf:"bytes,1,opt,name=sale_id,json=saleId,proto3" json:"sale_id,omitempty"`
@@ -475,6 +472,7 @@ type FlashSaleClaimed struct {
 	CustomerId    string                 `protobuf:"bytes,3,opt,name=customer_id,json=customerId,proto3" json:"customer_id,omitempty"`
 	Quantity      int32                  `protobuf:"varint,4,opt,name=quantity,proto3" json:"quantity,omitempty"`
 	ClaimId       string                 `protobuf:"bytes,5,opt,name=claim_id,json=claimId,proto3" json:"claim_id,omitempty"`
+	ExpiresAt     int64                  `protobuf:"varint,6,opt,name=expires_at,json=expiresAt,proto3" json:"expires_at,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -544,6 +542,13 @@ func (x *FlashSaleClaimed) GetClaimId() string {
 	return ""
 }
 
+func (x *FlashSaleClaimed) GetExpiresAt() int64 {
+	if x != nil {
+		return x.ExpiresAt
+	}
+	return 0
+}
+
 var File_ecommerce_inventory_v1_inventory_events_proto protoreflect.FileDescriptor
 
 const file_ecommerce_inventory_v1_inventory_events_proto_rawDesc = "" +
@@ -584,7 +589,7 @@ const file_ecommerce_inventory_v1_inventory_events_proto_rawDesc = "" +
 	"\n" +
 	"product_id\x18\x01 \x01(\tR\tproductId\x12\x1c\n" +
 	"\tavailable\x18\x02 \x01(\x05R\tavailable\x12#\n" +
-	"\rreorder_point\x18\x03 \x01(\x05R\freorderPoint\"\xa2\x01\n" +
+	"\rreorder_point\x18\x03 \x01(\x05R\freorderPoint\"\xc1\x01\n" +
 	"\x10FlashSaleClaimed\x12\x17\n" +
 	"\asale_id\x18\x01 \x01(\tR\x06saleId\x12\x1d\n" +
 	"\n" +
@@ -592,7 +597,9 @@ const file_ecommerce_inventory_v1_inventory_events_proto_rawDesc = "" +
 	"\vcustomer_id\x18\x03 \x01(\tR\n" +
 	"customerId\x12\x1a\n" +
 	"\bquantity\x18\x04 \x01(\x05R\bquantity\x12\x19\n" +
-	"\bclaim_id\x18\x05 \x01(\tR\aclaimIdB\x98\x02\n" +
+	"\bclaim_id\x18\x05 \x01(\tR\aclaimId\x12\x1d\n" +
+	"\n" +
+	"expires_at\x18\x06 \x01(\x03R\texpiresAtB\x98\x02\n" +
 	"\x1acom.ecommerce.inventory.v1B\x14InventoryEventsProtoP\x01Zjgithub.com/pdcthanh112/CongThanhApp/backend/app/ecommerce/libs/go/proto/ecommerce/inventory/v1;inventoryv1\xa2\x02\x03EIX\xaa\x02\x16Ecommerce.Inventory.V1\xca\x02\x16Ecommerce\\Inventory\\V1\xe2\x02\"Ecommerce\\Inventory\\V1\\GPBMetadata\xea\x02\x18Ecommerce::Inventory::V1b\x06proto3"
 
 var (

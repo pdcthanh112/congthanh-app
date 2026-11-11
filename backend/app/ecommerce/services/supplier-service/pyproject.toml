@@ -4,7 +4,7 @@ version = "0.1.0"
 description = "Nhà cung cấp (gian hàng) của người bán: Django + DRF trên Postgres."
 requires-python = ">=3.13"
 dependencies = [
-  "ecom-platform",
+  "ecommerce-platform",
   "django==6.1.2",
   "djangorestframework==3.18.3",
   "psycopg[binary,pool]==3.3.6",
@@ -15,7 +15,7 @@ dependencies = [
 dev = ["pytest==9.1.1", "pytest-django==4.14.0", "ruff==0.17.2"]
 
 [tool.uv.sources]
-ecom-platform = { path = "../../libs/python/ecom-platform", editable = true }
+ecommerce-platform = { path = "../../libs/python/ecommerce-platform", editable = true }
 
 [tool.uv]
 # Chỉ nhận bản phát hành đã ra ít nhất 2 tuần (chính sách supply chain); nâng mốc khi cập nhật lock.

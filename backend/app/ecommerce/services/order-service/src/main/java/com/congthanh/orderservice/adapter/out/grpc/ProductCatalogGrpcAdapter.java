@@ -25,7 +25,7 @@ class ProductCatalogGrpcAdapter implements ProductCatalog {
     private final ProductServiceGrpc.ProductServiceBlockingStub stub;
     private final String currency;
 
-    ProductCatalogGrpcAdapter(GrpcChannelFactory channels, @Value("${order.currency:VND}") String currency) {
+    ProductCatalogGrpcAdapter(GrpcChannelFactory channels, @Value("${order.currency:USD}") String currency) {
         this.stub = ProductServiceGrpc.newBlockingStub(channels.createChannel("product"));
         this.currency = currency;
     }

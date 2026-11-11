@@ -1,5 +1,6 @@
 package com.congthanh.orderservice.adapter.in.workflow;
 
+import com.congthanh.ecommerce.workflow.checkout.CheckoutActivities;
 import com.congthanh.orderservice.application.port.in.CheckoutStepsUseCase;
 import com.congthanh.orderservice.domain.exception.OrderException;
 import io.temporal.failure.ApplicationFailure;
@@ -14,7 +15,7 @@ import java.util.function.Supplier;
 @Component
 public class CheckoutActivitiesImpl implements CheckoutActivities {
 
-    public static final String REJECTED = "CheckoutRejected";
+    public static final String REJECTED = CheckoutActivities.REJECTED;
 
     private final CheckoutStepsUseCase steps;
 

@@ -70,7 +70,7 @@ export class SettingInput {
 export class QuietHoursInput {
   @Field({ description: 'HH:mm' }) start!: string;
   @Field({ description: 'HH:mm, có thể qua ngày' }) end!: string;
-  @Field({ defaultValue: 'Asia/Ho_Chi_Minh' }) timezone!: string;
+  @Field({ defaultValue: 'America/New_York' }) timezone!: string;
 }
 
 @InputType()

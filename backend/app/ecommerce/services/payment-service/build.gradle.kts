@@ -1,8 +1,8 @@
 plugins {
-    id("congthanh.spring-service")
+    id("congthanh.spring-native")
 }
 
-description = "Payment service (hexagonal): authorize/capture/refund as Temporal activities; Stripe, PayPal, VNPay, COD"
+description = "Payment service (hexagonal): authorize/capture/refund as Temporal activities; Stripe (cards, Apple Pay, Google Pay), PayPal"
 
 dependencies {
     implementation(project(":libs:java:workflow-contracts"))

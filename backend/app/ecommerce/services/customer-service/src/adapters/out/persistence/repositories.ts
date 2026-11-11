@@ -1,4 +1,4 @@
-import type { Database } from '@ecom/platform';
+import type { Database } from '@ecommerce/platform';
 import { and, count, desc, eq, inArray, lt, ne, sql } from 'drizzle-orm';
 import type { AddressRepository, SearchHistoryRepository, WishlistRepository } from '../../../application/ports.js';
 import type { ShippingAddressProps } from '../../../domain/shipping-address.js';

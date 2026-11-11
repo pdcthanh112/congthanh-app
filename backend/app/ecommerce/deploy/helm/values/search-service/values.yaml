@@ -7,19 +7,20 @@ ports:
   http: 5013
   grpc: 9098
 env:
-  KAFKA_BROKERS: ecom-kafka-bootstrap.messaging.svc.cluster.local:9092
-  OPENSEARCH_URL: https://ecom-search.data.svc.cluster.local:9200
-  OPENSEARCH_INDEX: products
+  KAFKA_BROKERS: ecommerce-kafka-bootstrap.messaging.svc.cluster.local:9092
+  ELASTICSEARCH_INDEX: products
   JWT_JWKS_URL: http://keycloak-service.identity.svc.cluster.local:8080/realms/ecommerce/protocol/openid-connect/certs
 secretEnv:
-- name: OPENSEARCH_USERNAME
+# Elastic Cloud (infra/terraform/modules/elastic-cloud): URL PrivateLink theo từng môi trường (output
+# elasticsearch_private_url) và API key chỉ có quyền trên chỉ mục products, lưu ở Vault.
+- name: ELASTICSEARCH_URL
   key: ecommerce/search-service
-  property: opensearch_username
-- name: OPENSEARCH_PASSWORD
+  property: elasticsearch_url
+- name: ELASTICSEARCH_API_KEY
   key: ecommerce/search-service
-  property: opensearch_password
+  property: elasticsearch_api_key
 keda:
   enabled: true
   kafka:
     consumerGroup: search-service
-    topic: ecom.product.events
+    topic: ecommerce.product.events

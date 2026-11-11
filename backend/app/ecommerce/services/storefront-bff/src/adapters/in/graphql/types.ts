@@ -10,13 +10,13 @@ import {
   registerEnumType,
 } from '@nestjs/graphql';
 
-/** Tiền: amount là số thập phân theo đơn vị tiền (VND không có phần lẻ); formatted để hiển thị ngay. */
+/** Tiền: amount là số thập phân theo đơn vị tiền (USD 2 chữ số lẻ, JPY không có); formatted để hiển thị ngay. */
 @ObjectType('Money')
 @Directive('@shareable')
 export class MoneyModel {
   @Field(() => Float) amount!: number;
   @Field({ description: 'ISO 4217' }) currency!: string;
-  @Field({ description: 'Đã định dạng theo vi-VN, ví dụ "1.250.000 ₫"' }) formatted!: string;
+  @Field({ description: 'Đã định dạng theo en-US, ví dụ "$1,250.00"' }) formatted!: string;
 }
 
 export enum StockStatusGql {
@@ -118,12 +118,13 @@ export class PromotionQuoteModel {
 }
 
 export enum PaymentMethodGql {
-  CASH_ON_DELIVERY = 'CASH_ON_DELIVERY',
-  CREDIT_CARD = 'CREDIT_CARD',
-  STRIPE = 'STRIPE',
+  CARD = 'CARD',
+  APPLE_PAY = 'APPLE_PAY',
+  GOOGLE_PAY = 'GOOGLE_PAY',
   PAYPAL = 'PAYPAL',
-  VN_PAY = 'VN_PAY',
-  MOMO = 'MOMO',
+  AFFIRM = 'AFFIRM',
+  KLARNA = 'KLARNA',
+  AFTERPAY = 'AFTERPAY',
 }
 registerEnumType(PaymentMethodGql, { name: 'PaymentMethod' });
 
@@ -134,21 +135,52 @@ export class CheckoutInput {
   @Field(() => PaymentMethodGql) paymentMethod!: PaymentMethodGql;
   @Field(() => ID, { nullable: true, description: 'Bỏ trống = địa chỉ mặc định' }) shippingAddressId?: string;
   @Field({ nullable: true }) promotionCode?: string;
-  @Field({ nullable: true, description: 'Token thẻ từ SDK cổng thanh toán (không gửi số thẻ)' })
+  @Field({
+    nullable: true,
+    description:
+      'ConfirmationToken (ctoken_...) từ Stripe Payment Element cho CARD/APPLE_PAY/GOOGLE_PAY/AFFIRM/KLARNA/AFTERPAY; bỏ trống với PayPal',
+  })
   paymentToken?: string;
-  @Field({ nullable: true, description: 'Bắt buộc với thanh toán online: trang quay về sau khi trả tiền' })
+  @Field({ nullable: true, description: 'Bắt buộc với PayPal và trả góp: trang quay về sau khi khách duyệt thanh toán' })
   returnUrl?: string;
   @Field({ nullable: true }) note?: string;
+  @Field(() => Float, {
+    nullable: true,
+    description: 'Tổng tiền khách đang thấy; giá đổi trước khi đặt thì trả lỗi PRICE_CHANGED để khách xem lại',
+  })
+  expectedTotal?: number;
+  @Field({ nullable: true, description: 'Mã thiết bị (fingerprint) cho kiểm tra gian lận' }) deviceId?: string;
 }
 
 @ObjectType('CheckoutResult')
 export class CheckoutResultModel {
-  @Field(() => ID) orderId!: string;
-  @Field() orderCode!: string;
-  @Field() status!: string;
-  @Field(() => MoneyModel) total!: MoneyModel;
+  @Field(() => ID, { description: 'Phiên checkout; poll checkoutSession(id) khi status = PENDING_REVIEW' })
+  checkoutSessionId!: string;
+  @Field({ description: 'PLACED = đã tạo đơn; PENDING_REVIEW = chờ duyệt (chưa có đơn); REJECTED' })
+  status!: string;
+  @Field(() => ID, { nullable: true }) orderId!: string | null;
+  @Field(() => String, { nullable: true }) orderCode!: string | null;
+  @Field(() => MoneyModel) subtotal!: MoneyModel;
   @Field(() => MoneyModel) discount!: MoneyModel;
-  @Field({ description: 'Theo dõi tiến trình bằng checkoutProgress(orderCode)' }) checkoutUrl!: string;
+  @Field(() => MoneyModel) shippingFee!: MoneyModel;
+  @Field(() => MoneyModel) tax!: MoneyModel;
+  @Field(() => MoneyModel) total!: MoneyModel;
+  @Field(() => String, { nullable: true, description: 'Lý do khi bị từ chối' }) failureReason!: string | null;
+  @Field(() => String, { nullable: true, description: 'Theo dõi tiến trình bằng checkoutProgress(orderCode)' })
+  checkoutUrl!: string | null;
+}
+
+export enum RecommendationKindGql {
+  BOUGHT_TOGETHER = 'BOUGHT_TOGETHER',
+  SIMILAR = 'SIMILAR',
+}
+registerEnumType(RecommendationKindGql, { name: 'RecommendationKind' });
+
+@ObjectType('Recommendation')
+export class RecommendationModel {
+  @Field(() => ProductModel) product!: ProductSource;
+  @Field(() => Float) score!: number;
+  @Field({ description: 'BOUGHT_TOGETHER | SIMILAR | TRENDING | FOR_YOU' }) reason!: string;
 }
 
 @ObjectType('CheckoutProgress')

@@ -31,3 +31,7 @@ include(":services:product-service")
 include(":services:order-service")
 include(":services:payment-service")
 include(":services:promotion-service")
+include(":services:checkout-service")
+
+// Job Flink (stream processing), không phải Spring
+include(":data:streaming:stream-processor")

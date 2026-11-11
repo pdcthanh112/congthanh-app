@@ -10,6 +10,6 @@ spec:
   mode: all
   selector:
     namespaces: [messaging]
-    labelSelectors: {strimzi.io/cluster: ecom}
+    labelSelectors: {strimzi.io/cluster: ecommerce}
   delay: {latency: 300ms, jitter: 50ms, correlation: "25"}
   duration: 5m

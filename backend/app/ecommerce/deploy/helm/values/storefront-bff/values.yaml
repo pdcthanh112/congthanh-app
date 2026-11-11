@@ -16,6 +16,8 @@ env:
   INVENTORY_GRPC_ADDR: "inventory-service:9092"
   PROMOTION_GRPC_ADDR: "promotion-service:9095"
   ORDER_REST_URL: "http://order-service"
+  CHECKOUT_REST_URL: "http://checkout-service"
+  RECOMMENDATION_REST_URL: "http://recommendation-service"
   CUSTOMER_GRPC_ADDR: "customer-service:19094"
 resources:
   requests: {cpu: 100m, memory: 192Mi}

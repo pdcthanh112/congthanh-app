@@ -25,15 +25,15 @@ async def collect(it):
 async def test_stream_and_history():
     llm, hist = FakeLLM(), MemHistory()
     s = svc(llm, history=hist)
-    ev = await collect(s.chat("áo thun", "session-0001", "u1"))
+    ev = await collect(s.chat("cotton t-shirt", "session-0001", "u1"))
     assert ev[0] == ("products", [SHIRT.__dict__])
     assert [d for t, d in ev if t == "delta"] == ["Xin ", "chào"]
     assert ev[-1] == ("done", {"sessionId": "session-0001"})
-    assert "/products/ao-thun-cotton" in llm.calls[0][0]
+    assert "/products/cotton-t-shirt" in llm.calls[0][0]
     # Lượt hai gửi kèm lịch sử lượt một.
     await collect(s.chat("còn size L?", "session-0001", "u1"))
     assert llm.calls[1][1] == [
-        Message("user", "áo thun"),
+        Message("user", "cotton t-shirt"),
         Message("assistant", "Xin chào"),
         Message("user", "còn size L?"),
     ]

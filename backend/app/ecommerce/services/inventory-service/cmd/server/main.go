@@ -107,7 +107,7 @@ func run() error {
 	}
 
 	svc := app.NewService(repo, repo, repo.Warehouses(), flash, claims, app.Options{
-		ReservationTTL: cfg.ReservationTTL, DefaultWarehouse: cfg.DefaultWarehouse,
+		ReservationTTL: cfg.ReservationTTL, DefaultWarehouse: cfg.DefaultWarehouse, FlashClaimTTL: cfg.FlashClaimTTL,
 	})
 
 	if len(cfg.KafkaBrokers) > 0 {
@@ -120,6 +120,9 @@ func run() error {
 		bg = append(bg, cons.Run)
 	}
 	bg = append(bg, sweeper(svc, cfg.SweepInterval))
+	if flash != nil {
+		bg = append(bg, flashSweeper(svc))
+	}
 
 	// --- driving adapters ---
 	grpcSrv, health := server.NewGRPCServer(verifier)
@@ -151,6 +154,28 @@ func sweeper(svc *app.Service, every time.Duration) func(context.Context) error 
 					slog.ErrorContext(ctx, "release expired reservations", "err", err)
 				} else if n > 0 {
 					slog.InfoContext(ctx, "released expired reservations", "count", n)
+				}
+			}
+		}
+	}
+}
+
+// flashSweeper trả suất của các claim flash sale quá hạn chưa đặt đơn, đồng thời cập nhật số sale đang
+// chạy (xem app.Service.flashClaimOf). 5 giây: suất trả về phải kịp cho người đang chờ.
+func flashSweeper(svc *app.Service) func(context.Context) error {
+	return func(ctx context.Context) error {
+		t := time.NewTicker(5 * time.Second)
+		defer t.Stop()
+		for {
+			select {
+			case <-ctx.Done():
+				return nil
+			case <-t.C:
+				n, err := svc.SweepFlashClaims(ctx, 500)
+				if err != nil {
+					slog.ErrorContext(ctx, "sweep flash sale claims", "err", err)
+				} else if n > 0 {
+					slog.InfoContext(ctx, "released expired flash sale claims", "count", n)
 				}
 			}
 		}

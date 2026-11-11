@@ -1,0 +1,28 @@
+# commerce-mcp-service: MCP server cho AI agent của khách (Streamable HTTP, stateless). Ghi đè theo môi trường ở values-<env>.yaml.
+nameOverride: commerce-mcp-service
+runtime: python
+image:
+  repository: ghcr.io/pdcthanh112/congthanhapp/commerce-mcp-service
+ports:
+  http: 5030
+env:
+  PUBLIC_URL: https://api.congthanh.vn/api/ecommerce/mcp
+  ISSUER_URL: https://auth.congthanh.vn/realms/ecommerce
+  JWT_ISSUER: https://auth.congthanh.vn/realms/ecommerce
+  JWT_AUDIENCE: commerce-mcp
+  JWT_JWKS_URL: http://keycloak-service.identity.svc.cluster.local:8080/realms/ecommerce/protocol/openid-connect/certs
+  SEARCH_URL: http://search-service:5013
+  PRODUCT_URL: http://product-service:5008
+  CART_URL: http://cart-service:5002
+  ORDER_URL: http://order-service:5006
+  OPENFGA_URL: http://openfga.authz.svc.cluster.local:8080
+secretEnv:
+- name: OPENFGA_STORE_ID
+  key: ecommerce/openfga
+  property: store_id
+- name: OPENFGA_MODEL_ID
+  key: ecommerce/openfga
+  property: model_id
+resources:
+  requests: {cpu: 50m, memory: 128Mi}
+  limits: {memory: 256Mi}

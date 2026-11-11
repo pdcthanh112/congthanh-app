@@ -7,6 +7,7 @@ import com.congthanh.paymentservice.domain.model.PaymentMethod;
 import com.stripe.exception.CardException;
 import com.stripe.exception.SignatureVerificationException;
 import com.stripe.exception.StripeException;
+import com.stripe.model.ConfirmationToken;
 import com.stripe.model.Event;
 import com.stripe.model.PaymentIntent;
 import com.stripe.model.Refund;
@@ -26,7 +27,12 @@ import java.util.Set;
 
 /**
  * Stripe PaymentIntent với capture thủ công: authorize giữ tiền, capture sau khi kho commit,
- * cancel để giải phóng. Mọi request có Idempotency-Key theo orderId nên retry của Temporal an toàn.
+ * cancel để giải phóng. Frontend dùng Payment Element (thẻ, Apple Pay, Google Pay, Link) và gửi lên
+ * ConfirmationToken {@code ctoken_...}; token PaymentMethod {@code pm_...} cũ vẫn nhận để tương thích. Mọi request có Idempotency-Key theo orderId nên retry của Temporal an toàn.
+ * <p>
+ * Trả góp (ADR 0016): Affirm, Klarna, Afterpay cũng là PaymentMethod của Stripe nhưng luôn redirect sang trang
+ * đối tác, nên bắt buộc có returnUrl và chỉ nhận ConfirmationToken. Loại phương thức trong token phải khớp method
+ * khách chọn, để fraud và báo cáo không bị sai khi client gửi CARD nhưng trả bằng Klarna.
  */
 @Component
 @ConditionalOnProperty("payment.stripe.api-key")
@@ -48,22 +54,47 @@ class StripeProvider implements PaymentProvider {
 
     @Override
     public Set<PaymentMethod> methods() {
-        return Set.of(PaymentMethod.STRIPE, PaymentMethod.CREDIT_CARD);
+        return Set.of(PaymentMethod.CARD, PaymentMethod.APPLE_PAY, PaymentMethod.GOOGLE_PAY,
+                PaymentMethod.AFFIRM, PaymentMethod.KLARNA, PaymentMethod.AFTERPAY);
     }
 
     @Override
     public ProviderResult authorize(Payment payment, String paymentToken, String returnUrl, String clientIp) {
         if (paymentToken == null || paymentToken.isBlank()) {
-            return new ProviderResult.Declined("missing Stripe payment method");
+            return new ProviderResult.Declined("missing Stripe confirmation token");
+        }
+        boolean installment = payment.method().isInstallment();
+        if (installment && returnUrl == null) {
+            return new ProviderResult.Declined(payment.method() + " requires returnUrl");
+        }
+        if (paymentToken.startsWith("ctoken_")) {
+            ProviderResult invalid = checkConfirmationToken(payment.method(), paymentToken);
+            if (invalid != null) {
+                return invalid;
+            }
+        } else if (installment) {
+            return new ProviderResult.Declined(payment.method() + " requires a ConfirmationToken from Payment Element");
         }
         var params = PaymentIntentCreateParams.builder()
                 .setAmount(payment.amount().minorUnits())
                 .setCurrency(payment.amount().currency().toLowerCase())
-                .setPaymentMethod(paymentToken)
+                // Không có returnUrl thì chỉ nhận phương thức không cần redirect (thẻ, Apple Pay, Google Pay);
+                // 3-D Secure khi đó do Stripe.js xử lý ngay trên trang.
+                .setAutomaticPaymentMethods(PaymentIntentCreateParams.AutomaticPaymentMethods.builder()
+                        .setEnabled(true)
+                        .setAllowRedirects(returnUrl == null
+                                ? PaymentIntentCreateParams.AutomaticPaymentMethods.AllowRedirects.NEVER
+                                : PaymentIntentCreateParams.AutomaticPaymentMethods.AllowRedirects.ALWAYS)
+                        .build())
                 .setCaptureMethod(PaymentIntentCreateParams.CaptureMethod.MANUAL)
                 .setConfirm(true)
                 .putMetadata("order_id", payment.orderId())
                 .putMetadata("payment_id", payment.id());
+        if (paymentToken.startsWith("ctoken_")) {
+            params.setConfirmationToken(paymentToken);
+        } else {
+            params.setPaymentMethod(paymentToken);
+        }
         if (returnUrl != null) {
             params.setReturnUrl(returnUrl);
         }
@@ -81,6 +112,28 @@ class StripeProvider implements PaymentProvider {
         } catch (StripeException e) {
             throw PaymentException.unavailable("stripe: " + e.getMessage());
         }
+    }
+
+    /** null nếu token hợp lệ cho method; Declined nếu thiếu dữ liệu đối tác cần; ném INVALID nếu sai loại. */
+    private ProviderResult checkConfirmationToken(PaymentMethod method, String token) {
+        ConfirmationToken ct;
+        try {
+            ct = ConfirmationToken.retrieve(token, options(null));
+        } catch (StripeException e) {
+            if (e.getStatusCode() != null && e.getStatusCode() == 404) {
+                throw PaymentException.invalid("unknown Stripe confirmation token");
+            }
+            throw PaymentException.unavailable("stripe confirmation token: " + e.getMessage());
+        }
+        String type = ct.getPaymentMethodPreview() == null ? null : ct.getPaymentMethodPreview().getType();
+        if (type == null || !type.equals(method.stripeType())) {
+            throw PaymentException.invalid("confirmation token is for " + type + ", not " + method);
+        }
+        if (method == PaymentMethod.AFTERPAY && ct.getShipping() == null) {
+            // Afterpay bắt buộc địa chỉ giao hàng; frontend truyền shipping khi tạo ConfirmationToken.
+            return new ProviderResult.Declined("AFTERPAY requires a shipping address");
+        }
+        return null;
     }
 
     @Override

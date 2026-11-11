@@ -2,7 +2,7 @@
 
 --changeset platform:001-outbox
 -- Transactional outbox, cùng cấu trúc với service Go (libs/go/platform/outbox).
--- Debezium Outbox Event Router đọc bảng này qua WAL và đẩy lên topic ecom.<aggregatetype>.events.
+-- Debezium Outbox Event Router đọc bảng này qua WAL và đẩy lên topic ecommerce.<aggregatetype>.events.
 CREATE TABLE IF NOT EXISTS outbox (
     id            UUID PRIMARY KEY,
     aggregatetype TEXT        NOT NULL,

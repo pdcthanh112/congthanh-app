@@ -1,10 +1,10 @@
 name: ci-go
 on:
   pull_request:
-    paths: ["backend/app/ecommerce/libs/go/**", "backend/app/ecommerce/services/*-service/go.*", "backend/app/ecommerce/services/**/*.go", "backend/app/ecommerce/go.work", ".github/workflows/ci-go.yml"]
+    paths: ["backend/app/ecommerce/libs/go/**", "backend/app/ecommerce/services/*-service/go.*", "backend/app/ecommerce/services/**/*.go", "backend/app/ecommerce/data/ingestion/**", "backend/app/ecommerce/go.work", ".github/workflows/ci-go.yml"]
   push:
     branches: [main]
-    paths: ["backend/app/ecommerce/libs/go/**", "backend/app/ecommerce/services/**/*.go", "backend/app/ecommerce/services/*-service/go.*"]
+    paths: ["backend/app/ecommerce/libs/go/**", "backend/app/ecommerce/services/**/*.go", "backend/app/ecommerce/services/*-service/go.*", "backend/app/ecommerce/data/ingestion/**"]
 permissions: {contents: read}
 concurrency: {group: "${{ github.workflow }}-${{ github.ref }}", cancel-in-progress: true}
 defaults:
@@ -18,15 +18,15 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        module: [libs/go/platform, services/cart-service, services/inventory-service, services/tax-service, services/search-service, services/media-service, services/webhook-service, services/shipping-service]
+        module: [libs/go/platform, services/cart-service, services/inventory-service, services/tax-service, services/search-service, services/media-service, services/webhook-service, services/shipping-service, services/pricing-service, data/ingestion/clickstream-collector]
     services:
       postgres:
         image: pgvector/pgvector:0.8.1-pg18-trixie
         env: {POSTGRES_PASSWORD: postgres, POSTGRES_DB: test}
         ports: ["5432:5432"]
         options: --health-cmd "pg_isready -U postgres" --health-interval 5s --health-retries 20
-      valkey:
-        image: valkey/valkey:8.1-alpine
+      redis:
+        image: redis:8.10-alpine
         ports: ["6379:6379"]
     env:
       TEST_DATABASE_URL: postgres://postgres:postgres@localhost:5432/test?sslmode=disable
@@ -57,10 +57,10 @@ jobs:
     if: github.event_name == 'push'
     needs: test
     runs-on: ubuntu-24.04
-    permissions: {contents: read, packages: write, id-token: write}
+    permissions: {contents: read, packages: write, id-token: write, attestations: write}
     strategy:
       matrix:
-        service: [cart-service, inventory-service, tax-service, search-service, media-service, webhook-service, shipping-service]
+        service: [cart-service, inventory-service, tax-service, search-service, media-service, webhook-service, shipping-service, pricing-service, clickstream-collector]
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-go@v6
@@ -70,7 +70,7 @@ jobs:
       - uses: anchore/sbom-action/download-syft@v0
       - name: build & push (ko, distroless, multi-arch)
         id: ko
-        working-directory: backend/app/ecommerce/services/${{ matrix.service }}
+        working-directory: backend/app/ecommerce/${{ matrix.service == 'clickstream-collector' && 'data/ingestion' || 'services' }}/${{ matrix.service }}
         env:
           KO_DOCKER_REPO: ghcr.io/${{ github.repository_owner }}/congthanhapp/${{ matrix.service }}
           KO_DEFAULTBASEIMAGE: gcr.io/distroless/static-debian12:nonroot
@@ -86,3 +86,9 @@ jobs:
           syft "${{ steps.ko.outputs.image }}" -o spdx-json > sbom.spdx.json
           cosign sign --yes "${{ steps.ko.outputs.image }}"
           cosign attest --yes --type spdxjson --predicate sbom.spdx.json "${{ steps.ko.outputs.image }}"
+          echo "digest=${img##*@}" >> "$GITHUB_OUTPUT"
+        id: sign
+        env: {img: "${{ steps.ko.outputs.image }}"}
+      - name: SLSA provenance (GitHub artifact attestation, lưu cả vào registry)
+        uses: actions/attest-build-provenance@v3
+        with: {subject-name: "ghcr.io/${{ github.repository_owner }}/congthanhapp/${{ matrix.service }}", subject-digest: "${{ steps.sign.outputs.digest }}", push-to-registry: true}

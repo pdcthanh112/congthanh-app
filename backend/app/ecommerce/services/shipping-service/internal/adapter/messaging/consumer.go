@@ -1,4 +1,3 @@
-// Package messaging: đơn đã đặt → tạo vận đơn; đơn bị huỷ → huỷ vận đơn chưa lấy hàng.
 package messaging
 
 import (
@@ -12,7 +11,7 @@ import (
 	"github.com/pdcthanh112/CongThanhApp/backend/app/ecommerce/services/shipping-service/internal/domain"
 )
 
-const TopicOrderEvents = "ecom.order.events"
+const TopicOrderEvents = "ecommerce.order.events"
 
 var (
 	placedType    = string((&orderv1.OrderPlaced{}).ProtoReflect().Descriptor().FullName())
@@ -34,7 +33,6 @@ func AddressFromPB(a *orderv1.ShippingAddress) *domain.Address {
 	}
 }
 
-// Handler: use case dùng transaction riêng (idempotent theo order_id), processed_events chống xử lý trùng.
 func Handler(h OrderHandler) func(ctx context.Context, _ pgx.Tx, env *commonv1.EventEnvelope) error {
 	return func(ctx context.Context, _ pgx.Tx, env *commonv1.EventEnvelope) error {
 		switch env.GetType() {

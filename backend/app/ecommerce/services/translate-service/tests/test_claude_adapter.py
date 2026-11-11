@@ -26,7 +26,7 @@ def client(text, stop="end_turn"):
 async def test_request_shape_and_parse():
     c, msgs = client(json.dumps({"translations": ["T-shirt", "<b>Jeans</b>"]}))
     out = await ClaudeTranslator(c, "claude-opus-5-5", "low").translate(
-        TranslateRequest(texts=(), target="en", source="vi", format=Format.HTML), ["Áo thun", "<b>Quần</b>"]
+        TranslateRequest(texts=(), target="en", source="es", format=Format.HTML), ["Camiseta", "<b>Vaqueros</b>"]
     )
     assert out == ["T-shirt", "<b>Jeans</b>"]
     k = msgs.kwargs
@@ -34,7 +34,7 @@ async def test_request_shape_and_parse():
     assert k["output_config"]["format"]["type"] == "json_schema" and k["output_config"]["effort"] == "low"
     assert "server-side-fallback-2026-07-01" in k["betas"]
     prompt = k["messages"][0]["content"]
-    assert "Vietnamese" in prompt and "English" in prompt and "HTML" in prompt and '"Áo thun"' in prompt
+    assert "Spanish" in prompt and "English" in prompt and "HTML" in prompt and '"Camiseta"' in prompt
 
 
 @pytest.mark.parametrize(

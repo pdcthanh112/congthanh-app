@@ -6,7 +6,7 @@ public sealed interface PaymentEvent {
 
     String orderId();
 
-    record PaymentAuthorized(String paymentId, String orderId, Money amount, String provider) implements PaymentEvent {
+    record PaymentAuthorized(String paymentId, String orderId, Money amount, String provider, String method) implements PaymentEvent {
     }
 
     record PaymentFailed(String orderId, String reason) implements PaymentEvent {

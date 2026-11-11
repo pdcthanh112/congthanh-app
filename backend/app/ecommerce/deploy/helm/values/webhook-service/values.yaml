@@ -7,7 +7,7 @@ ports:
   http: 5023
 env:
   DB_SCHEMA: webhook
-  KAFKA_BROKERS: ecom-kafka-bootstrap.messaging.svc.cluster.local:9092
+  KAFKA_BROKERS: ecommerce-kafka-bootstrap.messaging.svc.cluster.local:9092
   JWT_JWKS_URL: http://keycloak-service.identity.svc.cluster.local:8080/realms/ecommerce/protocol/openid-connect/certs
 secretEnv:
 - name: DATABASE_URL
@@ -17,4 +17,4 @@ keda:
   enabled: true
   kafka:
     consumerGroup: webhook-service
-    topic: ecom.order.events
+    topic: ecommerce.order.events

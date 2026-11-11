@@ -10,8 +10,8 @@ import {
   PlatformHealthModule,
   PlatformLoggerModule,
   subgraphConfig,
-  ValkeyPubSub,
-} from '@ecom/platform';
+  RedisPubSub,
+} from '@ecommerce/platform';
 import type { ApolloFederationDriverConfig } from '@nestjs/apollo';
 import { type DynamicModule, Module } from '@nestjs/common';
 import { GraphQLModule } from '@nestjs/graphql';
@@ -21,7 +21,7 @@ import { ProductRef } from './adapters/in/graphql/types.js';
 import * as schema from './adapters/out/persistence/schema.js';
 import { DrizzleUnitOfWork, readRepositories } from './adapters/out/persistence/unit-of-work.js';
 import { GrpcProductDirectory } from './adapters/out/product-directory.grpc.js';
-import { ValkeyRateLimiter, ValkeyRealtime } from './adapters/out/realtime.js';
+import { RedisRateLimiter, RedisRealtime } from './adapters/out/realtime.js';
 import { ChatService } from './application/chat.service.js';
 import {
   CLOCK,
@@ -80,9 +80,9 @@ export class AppModule {
         { provide: CLOCK, useValue: { now: () => new Date() } },
         { provide: ID_GENERATOR, useValue: { next: () => uuidv7() } },
         { provide: MEDIA_PREFIX, useValue: env.MEDIA_URL_PREFIX },
-        { provide: ValkeyPubSub, useFactory: () => new ValkeyPubSub(env.VALKEY_URL) },
-        { provide: REALTIME, inject: [ValkeyPubSub], useFactory: (ps: ValkeyPubSub) => new ValkeyRealtime(ps) },
-        { provide: RATE_LIMITER, useFactory: () => new ValkeyRateLimiter(env.VALKEY_URL) },
+        { provide: RedisPubSub, useFactory: () => new RedisPubSub(env.REDIS_URL) },
+        { provide: REALTIME, inject: [RedisPubSub], useFactory: (ps: RedisPubSub) => new RedisRealtime(ps) },
+        { provide: RATE_LIMITER, useFactory: () => new RedisRateLimiter(env.REDIS_URL) },
         { provide: PRODUCT_DIRECTORY, useFactory: () => new GrpcProductDirectory(env.PRODUCT_GRPC_ADDR) },
       ],
     };

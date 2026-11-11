@@ -32,7 +32,6 @@ class PromotionConfig {
                 .build();
     }
 
-    /** Retry với backoff, hết lượt thì đẩy record sang ecom.order.events.dlq (không chặn partition). */
     @Bean
     DefaultErrorHandler kafkaErrorHandler(KafkaTemplate<Object, Object> template) {
         var recoverer = new DeadLetterPublishingRecoverer(template,

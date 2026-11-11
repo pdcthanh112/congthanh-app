@@ -1,4 +1,4 @@
-import { DomainError } from '@ecom/platform/errors';
+import { DomainError } from '@ecommerce/platform/errors';
 
 export type ConversationKind = 'SELLER' | 'SUPPORT';
 export const SUPPORT_INBOX = 'support';

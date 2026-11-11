@@ -1,32 +1,32 @@
 import { timestampDate } from '@bufbuild/protobuf/wkt';
-import { KafkaEventConsumer } from '@ecom/platform';
+import { KafkaEventConsumer } from '@ecommerce/platform';
 import {
   WishlistItemAddedSchema,
   WishlistItemRemovedSchema,
-} from '@ecom/proto/ecommerce/customer/v1/customer_events_pb';
+} from '@ecommerce/proto/ecommerce/customer/v1/customer_events_pb';
 import {
   LowStockDetectedSchema,
   StockLevelChangedSchema,
-} from '@ecom/proto/ecommerce/inventory/v1/inventory_events_pb';
-import { MessageSentSchema } from '@ecom/proto/ecommerce/message/v1/message_events_pb';
+} from '@ecommerce/proto/ecommerce/inventory/v1/inventory_events_pb';
+import { MessageSentSchema } from '@ecommerce/proto/ecommerce/message/v1/message_events_pb';
 import {
   OrderCancelledSchema,
   OrderConfirmedSchema,
   OrderPlacedSchema,
-} from '@ecom/proto/ecommerce/order/v1/order_events_pb';
-import { PaymentFailedSchema, PaymentRefundedSchema } from '@ecom/proto/ecommerce/payment/v1/payment_events_pb';
-import { ProductUpsertedSchema } from '@ecom/proto/ecommerce/product/v1/product_events_pb';
-import { ReviewRepliedSchema } from '@ecom/proto/ecommerce/review/v1/review_events_pb';
+} from '@ecommerce/proto/ecommerce/order/v1/order_events_pb';
+import { PaymentFailedSchema, PaymentRefundedSchema } from '@ecommerce/proto/ecommerce/payment/v1/payment_events_pb';
+import { ProductUpsertedSchema } from '@ecommerce/proto/ecommerce/product/v1/product_events_pb';
+import { ReviewRepliedSchema } from '@ecommerce/proto/ecommerce/review/v1/review_events_pb';
 import type { EventHandlers } from '../../../application/event-handlers.js';
 
 export const TOPICS = [
-  'ecom.order.events',
-  'ecom.payment.events',
-  'ecom.review.events',
-  'ecom.customer.events',
-  'ecom.product.events',
-  'ecom.inventory.events',
-  'ecom.message.events',
+  'ecommerce.order.events',
+  'ecommerce.payment.events',
+  'ecommerce.review.events',
+  'ecommerce.customer.events',
+  'ecommerce.product.events',
+  'ecommerce.inventory.events',
+  'ecommerce.message.events',
 ];
 
 /** Một consumer group cho mọi topic nguồn; kiểu event không đăng ký thì bị bỏ qua. */

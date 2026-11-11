@@ -1,5 +1,6 @@
 package com.congthanh.orderservice.domain.model;
 
+/** Cùng bộ giá trị với payment-service. AFFIRM, KLARNA, AFTERPAY: trả góp qua đối tác (ADR 0016). */
 public enum PaymentMethod {
-    CASH_ON_DELIVERY, CREDIT_CARD, STRIPE, PAYPAL, VN_PAY, MOMO
+    CARD, APPLE_PAY, GOOGLE_PAY, PAYPAL, AFFIRM, KLARNA, AFTERPAY
 }

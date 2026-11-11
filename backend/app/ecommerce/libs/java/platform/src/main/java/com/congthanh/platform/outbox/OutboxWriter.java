@@ -1,6 +1,6 @@
 package com.congthanh.platform.outbox;
 
-import com.congthanh.ecom.common.v1.EventEnvelope;
+import com.congthanh.ecommerce.common.v1.EventEnvelope;
 import com.google.protobuf.Any;
 import com.google.protobuf.Message;
 import com.google.protobuf.Timestamp;

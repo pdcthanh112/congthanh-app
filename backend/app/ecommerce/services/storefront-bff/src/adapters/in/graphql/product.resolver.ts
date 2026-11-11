@@ -1,5 +1,5 @@
-import type { ProductDetail, ProductSummary } from '@ecom/clients';
-import { DomainError, Public } from '@ecom/platform';
+import type { ProductDetail, ProductSummary } from '@ecommerce/clients';
+import { DomainError, Public } from '@ecommerce/platform';
 import { Args, Context, ID, Int, Parent, Query, ResolveField, ResolveReference, Resolver } from '@nestjs/graphql';
 import { StorefrontService } from '../../../application/storefront.service.js';
 import { type GqlCtx, loadersOf } from './loaders.js';

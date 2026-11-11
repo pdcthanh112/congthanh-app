@@ -16,3 +16,10 @@ Không sửa ADR đã "Accepted"; muốn đổi thì viết ADR mới và đánh
 | 0009 | [GitOps với ArgoCD + Argo Rollouts, supply chain ký bằng Cosign](0009-gitops-supply-chain.md) | Accepted |
 | 0010 | [Phân quyền: Keycloak (authn) + OpenFGA (ReBAC)](0010-authz.md) | Accepted |
 | 0011 | [Service NestJS, GraphQL Federation v2 và Cosmo Router](0011-nestjs-graphql-federation.md) | Accepted |
+| 0012 | [Tách checkout, pricing, fraud, recommendation](0012-checkout-pricing-fraud-recommendation.md) | Accepted |
+| 0013 | [Data lakehouse: Iceberg + Polaris, Spark, Trino, Airflow; tầng Bronze/ODS/Silver/Gold](0013-data-lakehouse.md) | Accepted |
+| 0014 | [Stream processing (Flink), canary theo SLO + Kargo, SLSA, eBPF, MCP cho AI agent, Velero/Chaos/Pyrra](0014-streaming-delivery-runtime.md) | Proposed |
+| 0016 | [Pay later: BNPL qua Affirm/Klarna/Afterpay (Stripe) và PayPal Pay Later, chừa cổng cho tín dụng nội bộ](0016-pay-later-installments.md) | Proposed |
+| 0017 | [Dùng Redis thay Valkey](0017-redis-instead-of-valkey.md) | Proposed |
+| 0018 | [Flash sale: từ suất đã giành tới đơn hàng, phòng chờ ảo, scale trước theo lịch](0018-flash-sale-orders-waiting-room-prescaling.md) | Proposed |
+| 0019 | [Elasticsearch trên Elastic Cloud; CloudFront + WAF trước API; AWS Backup và GuardDuty](0019-elasticsearch-edge-backup-guardduty.md) | Proposed |

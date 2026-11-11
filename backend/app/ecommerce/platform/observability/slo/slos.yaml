@@ -1,0 +1,192 @@
+# SLO khai báo cho Pyrra (operator ở platform/observability/pyrra sinh recording rule + cảnh báo burn rate vào Mimir).
+# Chỉ số lấy từ span metrics của otel-collector, nên service nào có trace là đo được, không cần sửa code.
+# Thêm SLO: thêm một document; chạy local thì sửa thêm platform/observability/prometheus/slo-rules.yaml.
+apiVersion: pyrra.dev/v1alpha1
+kind: ServiceLevelObjective
+metadata:
+  name: checkout-availability
+  namespace: observability
+  labels:
+    pyrra.dev/team: ecommerce
+    pyrra.dev/runbook: slo-burn
+spec:
+  target: '99.9'
+  window: 28d
+  description: Tạo/đặt phiên checkout (checkout-service) không lỗi
+  indicator:
+    ratio:
+      errors:
+        metric: traces_span_metrics_calls_total{service_name="checkout-service",http_route=~"/api/ecommerce/checkout/sessions.*",status_code="STATUS_CODE_ERROR"}
+      total:
+        metric: traces_span_metrics_calls_total{service_name="checkout-service",http_route=~"/api/ecommerce/checkout/sessions.*"}
+---
+apiVersion: pyrra.dev/v1alpha1
+kind: ServiceLevelObjective
+metadata:
+  name: cart-availability
+  namespace: observability
+  labels:
+    pyrra.dev/team: ecommerce
+    pyrra.dev/runbook: slo-burn
+spec:
+  target: '99.9'
+  window: 28d
+  description: Thao tác giỏ hàng không lỗi
+  indicator:
+    ratio:
+      errors:
+        metric: traces_span_metrics_calls_total{service_name="cart-service",status_code="STATUS_CODE_ERROR"}
+      total:
+        metric: traces_span_metrics_calls_total{service_name="cart-service"}
+---
+apiVersion: pyrra.dev/v1alpha1
+kind: ServiceLevelObjective
+metadata:
+  name: inventory-reserve-availability
+  namespace: observability
+  labels:
+    pyrra.dev/team: ecommerce
+    pyrra.dev/runbook: slo-burn
+spec:
+  target: '99.95'
+  window: 28d
+  description: Giữ hàng tồn kho (gRPC ReserveInventory) không lỗi
+  indicator:
+    ratio:
+      errors:
+        metric: traces_span_metrics_calls_total{service_name="inventory-service",span_name=~".*ReserveInventory",status_code="STATUS_CODE_ERROR"}
+      total:
+        metric: traces_span_metrics_calls_total{service_name="inventory-service",span_name=~".*ReserveInventory"}
+---
+apiVersion: pyrra.dev/v1alpha1
+kind: ServiceLevelObjective
+metadata:
+  name: flash-sale-claim-availability
+  namespace: observability
+  labels:
+    pyrra.dev/team: ecommerce
+    pyrra.dev/runbook: slo-burn
+spec:
+  target: '99.5'
+  window: 28d
+  description: Giành suất flash sale không lỗi
+  indicator:
+    ratio:
+      errors:
+        metric: traces_span_metrics_calls_total{service_name="inventory-service",http_route=~".*claim",status_code="STATUS_CODE_ERROR"}
+      total:
+        metric: traces_span_metrics_calls_total{service_name="inventory-service",http_route=~".*claim"}
+---
+apiVersion: pyrra.dev/v1alpha1
+kind: ServiceLevelObjective
+metadata:
+  name: pricing-availability
+  namespace: observability
+  labels:
+    pyrra.dev/team: ecommerce
+    pyrra.dev/runbook: slo-burn
+spec:
+  target: '99.9'
+  window: 28d
+  description: Tính giá (pricing-service, gọi trong mọi lần xem giỏ/checkout) không lỗi
+  indicator:
+    ratio:
+      errors:
+        metric: traces_span_metrics_calls_total{service_name="pricing-service",span_kind="SPAN_KIND_SERVER",status_code="STATUS_CODE_ERROR"}
+      total:
+        metric: traces_span_metrics_calls_total{service_name="pricing-service",span_kind="SPAN_KIND_SERVER"}
+---
+apiVersion: pyrra.dev/v1alpha1
+kind: ServiceLevelObjective
+metadata:
+  name: pricing-latency
+  namespace: observability
+  labels:
+    pyrra.dev/team: ecommerce
+    pyrra.dev/runbook: slo-burn
+spec:
+  target: '95'
+  window: 28d
+  description: 95% yêu cầu tính giá xong dưới 100ms
+  indicator:
+    latency:
+      success:
+        metric: traces_span_metrics_duration_milliseconds_bucket{service_name="pricing-service",span_kind="SPAN_KIND_SERVER",le="100"}
+      total:
+        metric: traces_span_metrics_duration_milliseconds_count{service_name="pricing-service",span_kind="SPAN_KIND_SERVER"}
+---
+apiVersion: pyrra.dev/v1alpha1
+kind: ServiceLevelObjective
+metadata:
+  name: fraud-availability
+  namespace: observability
+  labels:
+    pyrra.dev/team: ecommerce
+    pyrra.dev/runbook: slo-burn
+spec:
+  target: '99.9'
+  window: 28d
+  description: Chấm điểm gian lận không lỗi (lỗi làm checkout rơi vào hàng chờ duyệt tay)
+  indicator:
+    ratio:
+      errors:
+        metric: traces_span_metrics_calls_total{service_name="fraud-service",span_kind="SPAN_KIND_SERVER",status_code="STATUS_CODE_ERROR"}
+      total:
+        metric: traces_span_metrics_calls_total{service_name="fraud-service",span_kind="SPAN_KIND_SERVER"}
+---
+apiVersion: pyrra.dev/v1alpha1
+kind: ServiceLevelObjective
+metadata:
+  name: fraud-latency
+  namespace: observability
+  labels:
+    pyrra.dev/team: ecommerce
+    pyrra.dev/runbook: slo-burn
+spec:
+  target: '99'
+  window: 28d
+  description: 99% lần chấm điểm gian lận xong dưới 250ms
+  indicator:
+    latency:
+      success:
+        metric: traces_span_metrics_duration_milliseconds_bucket{service_name="fraud-service",span_kind="SPAN_KIND_SERVER",le="250"}
+      total:
+        metric: traces_span_metrics_duration_milliseconds_count{service_name="fraud-service",span_kind="SPAN_KIND_SERVER"}
+---
+apiVersion: pyrra.dev/v1alpha1
+kind: ServiceLevelObjective
+metadata:
+  name: recommendation-availability
+  namespace: observability
+  labels:
+    pyrra.dev/team: ecommerce
+    pyrra.dev/runbook: slo-burn
+spec:
+  target: '99.5'
+  window: 28d
+  description: Gợi ý sản phẩm không lỗi (có fallback nên mục tiêu thấp hơn)
+  indicator:
+    ratio:
+      errors:
+        metric: traces_span_metrics_calls_total{service_name="recommendation-service",span_kind="SPAN_KIND_SERVER",status_code="STATUS_CODE_ERROR"}
+      total:
+        metric: traces_span_metrics_calls_total{service_name="recommendation-service",span_kind="SPAN_KIND_SERVER"}
+---
+apiVersion: pyrra.dev/v1alpha1
+kind: ServiceLevelObjective
+metadata:
+  name: commerce-mcp-availability
+  namespace: observability
+  labels:
+    pyrra.dev/team: ecommerce
+    pyrra.dev/runbook: slo-burn
+spec:
+  target: '99.5'
+  window: 28d
+  description: Tool MCP cho AI agent không lỗi máy chủ
+  indicator:
+    ratio:
+      errors:
+        metric: traces_span_metrics_calls_total{service_name="commerce-mcp-service",span_kind="SPAN_KIND_SERVER",status_code="STATUS_CODE_ERROR"}
+      total:
+        metric: traces_span_metrics_calls_total{service_name="commerce-mcp-service",span_kind="SPAN_KIND_SERVER"}

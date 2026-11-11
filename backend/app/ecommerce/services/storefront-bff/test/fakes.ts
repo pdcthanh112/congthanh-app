@@ -1,13 +1,20 @@
-import type { CartView, CheckoutBody, ProductSummary, StockLevel } from '@ecom/clients';
-import { DomainError } from '@ecom/platform';
-import { vnd } from '@ecom/shared';
+import type {
+  CartView,
+  CheckoutSessionDto,
+  OpenSessionBody,
+  PlaceBody,
+  ProductSummary,
+  StockLevel,
+} from '@ecommerce/clients';
+import { DomainError } from '@ecommerce/platform';
+import { usd } from '@ecommerce/shared';
 import type { Backends } from '../src/app.module.js';
 
 /** Backend giả trong bộ nhớ: đủ hành vi để kiểm tra điều phối của BFF mà không cần service thật. */
 export function fakeBackends() {
   const products = new Map<string, ProductSummary>([
-    ['p1', summary('p1', 'Áo thun', 150_000, 200_000)],
-    ['p2', summary('p2', 'Quần jean', 450_000, 450_000)],
+    ['p1', summary('p1', 'Cotton T-Shirt', 1_500, 2_000)],
+    ['p2', summary('p2', 'Slim Jeans', 4_500, 4_500)],
     ['p-off', { ...summary('p-off', 'Ngừng bán', 10_000, 10_000), active: false }],
   ]);
   const stock = new Map<string, StockLevel>([
@@ -16,7 +23,17 @@ export function fakeBackends() {
   ]);
   const carts = new Map<string, CartView>();
   let itemSeq = 0;
-  const calls = { byIds: 0, levels: 0, detail: 0, checkout: [] as { body: CheckoutBody; key: string }[] };
+  const sessions = new Map<string, CheckoutSessionDto>();
+  /** Đặt fraudReview = true để giả lập fraud-service giữ đơn lại chờ duyệt. */
+  const flags = { fraudReview: false };
+  const calls = {
+    byIds: 0,
+    levels: 0,
+    detail: 0,
+    opens: [] as { body: OpenSessionBody; key: string | undefined }[],
+    places: [] as { sessionId: string; body: PlaceBody; key: string }[],
+    tracked: [] as { type: string; productId: string; token: string | undefined; sessionId: string | undefined }[],
+  };
 
   const backends: Backends = {
     products: {
@@ -99,7 +116,7 @@ export function fakeBackends() {
     },
     promotions: {
       async quote(code, _c, subtotal) {
-        if (code !== 'GIAM10') return { valid: false, discount: null, reason: 'code not found', promotionId: null };
+        if (code !== 'SAVE10') return { valid: false, discount: null, reason: 'code not found', promotionId: null };
         return {
           valid: true,
           discount: { ...subtotal, amountMinor: Math.round(subtotal.amountMinor * 0.1) },
@@ -109,31 +126,19 @@ export function fakeBackends() {
       },
     },
     orders: {
-      async checkout(_t, body, key) {
-        calls.checkout.push({ body, key });
-        const money = { amount: 300_000, currency: 'VND' };
-        return {
-          orderId: 'o-1',
-          orderCode: 'ORD-1',
-          status: 'PENDING',
-          total: money,
-          discount: { amount: 0, currency: 'VND' },
-          checkoutUrl: '/api/ecommerce/orders/ORD-1/checkout',
-        };
-      },
       async get(_t, code) {
         if (code !== 'ORD-1') throw DomainError.notFound('order');
-        const m = (amount: number) => ({ amount, currency: 'VND' });
+        const m = (amount: number) => ({ amount, currency: 'USD' });
         return {
           orderId: 'o-1',
           orderCode: 'ORD-1',
           status: 'CONFIRMED',
           lines: [
-            { productId: 'p1', sku: 'SKU-p1', name: 'Áo thun', quantity: 2, unitPrice: m(150_000), total: m(300_000) },
+            { productId: 'p1', sku: 'SKU-p1', name: 'Cotton T-Shirt', quantity: 2, unitPrice: m(15), total: m(30) },
           ],
-          subtotal: m(300_000),
+          subtotal: m(30),
           discount: m(0),
-          total: m(300_000),
+          total: m(30),
           placedAt: new Date('2026-11-01T00:00:00Z'),
         };
       },
@@ -142,7 +147,7 @@ export function fakeBackends() {
           {
             orderCode: 'ORD-1',
             status: 'CONFIRMED',
-            total: { amount: '300000.00', currency: 'VND' },
+            total: { amount: '30.00', currency: 'USD' },
             itemCount: 2,
             placedAt: new Date(),
           },
@@ -153,6 +158,73 @@ export function fakeBackends() {
       },
       async cancel() {},
     },
+    checkouts: {
+      async open(_t, body, key) {
+        calls.opens.push({ body, key });
+        const prev = [...sessions.values()].find((x) => x.id === `cs-${key}`);
+        if (prev) return prev;
+        const m = (cents: number) => ({ amount: cents / 100, currency: 'USD' });
+        const subtotal = body.items.reduce(
+          (n, i) => n + (products.get(i.productId)?.price.amountMinor ?? 0) * i.quantity,
+          0,
+        );
+        const discount = body.promotionCode === 'SAVE10' ? subtotal / 10 : 0;
+        const s: CheckoutSessionDto = {
+          id: `cs-${key ?? sessions.size}`,
+          status: 'OPEN',
+          currency: 'USD',
+          lines: body.items.map((i) => ({ productId: i.productId, quantity: i.quantity })),
+          unpricedProductIds: [],
+          promotionCode: body.promotionCode ?? null,
+          promotionError: body.promotionCode && body.promotionCode !== 'SAVE10' ? 'NOT_FOUND' : null,
+          totals: {
+            subtotal: m(subtotal),
+            discount: m(discount),
+            shippingFee: m(500),
+            tax: m(0),
+            total: m(subtotal - discount + 500),
+          },
+        };
+        sessions.set(s.id, s);
+        return s;
+      },
+      async place(_t, id, body, key) {
+        calls.places.push({ sessionId: id, body, key });
+        const s = sessions.get(id);
+        if (!s) throw DomainError.notFound('session');
+        if (body.expectedTotal != null && Number(body.expectedTotal) !== Number(s.totals.total.amount)) {
+          throw DomainError.conflict('the total changed', 'PRICE_CHANGED');
+        }
+        const next = flags.fraudReview
+          ? { ...s, status: 'PENDING_REVIEW' }
+          : { ...s, status: 'PLACED', orderId: 'o-1', orderCode: 'ORD-1' };
+        sessions.set(id, next);
+        return next;
+      },
+      async get(_t, id) {
+        const s = sessions.get(id);
+        if (!s) throw DomainError.notFound('session');
+        return s;
+      },
+    },
+    recommendations: {
+      async forProduct(productId, kind, limit) {
+        const reason = kind === 'SIMILAR' ? 'SIMILAR' : 'BOUGHT_TOGETHER';
+        return [...products.keys()]
+          .filter((id) => id !== productId && id !== 'p-off')
+          .slice(0, limit)
+          .map((id) => ({ productId: id, score: 0.5, reason }));
+      },
+      async trending(limit) {
+        return [{ productId: 'p2', score: 3, reason: 'TRENDING' }].slice(0, limit);
+      },
+      async forYou(limit, token, sessionId) {
+        return [{ productId: 'p1', score: 1, reason: token || sessionId ? 'FOR_YOU' : 'TRENDING' }].slice(0, limit);
+      },
+      async track(type, productId, token, sessionId) {
+        calls.tracked.push({ type, productId, token, sessionId });
+      },
+    },
     addresses: {
       async shippingAddress(customerId, addressId) {
         if (addressId === 'missing') throw DomainError.notFound('address');
@@ -160,15 +232,15 @@ export function fakeBackends() {
           $typeName: 'ecommerce.customer.v1.ShippingAddress',
           id: addressId ?? 'a-default',
           customerId,
-          fullName: 'Nguyễn Văn A',
-          phoneNumber: '0901234567',
+          fullName: 'Alex Johnson',
+          phoneNumber: '+12125550100',
           label: 'HOME',
-          countryCode: 'VN',
-          provinceCode: '79',
-          districtCode: '760',
-          wardCode: '26734',
-          addressLine: '1 Lê Lợi',
-          postalCode: '',
+          countryCode: 'US',
+          provinceCode: 'NY',
+          districtCode: '',
+          wardCode: '',
+          addressLine: '350 5th Ave',
+          postalCode: '10118',
           latitude: 0,
           longitude: 0,
           isDefault: true,
@@ -184,7 +256,7 @@ export function fakeBackends() {
     return item;
   }
 
-  return { backends, products, stock, carts, calls };
+  return { backends, products, stock, carts, calls, flags };
 }
 
 function summary(id: string, name: string, price: number, original: number): ProductSummary {
@@ -192,8 +264,8 @@ function summary(id: string, name: string, price: number, original: number): Pro
     id,
     sku: `SKU-${id}`,
     name,
-    price: vnd(price),
-    originalPrice: vnd(original),
+    price: usd(price),
+    originalPrice: usd(original),
     active: true,
     sellerId: 'seller-1',
   };

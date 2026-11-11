@@ -4,7 +4,7 @@ import os
 import re
 from urllib.parse import unquote, urlparse
 
-from ecom_platform import logging as eplog
+from ecommerce_platform import logging as eplog
 
 
 def _db(url: str, schema: str) -> dict:

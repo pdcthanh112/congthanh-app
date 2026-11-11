@@ -1,0 +1,25 @@
+# Node GPU chỉ nhận pod chịu taint nvidia.com/gpu; Karpenter thu hồi khi rỗng (scale về 0 ngoài giờ cao điểm).
+apiVersion: karpenter.sh/v1
+kind: NodePool
+metadata:
+  name: gpu
+spec:
+  template:
+    metadata:
+      labels: {workload: gpu-inference}
+    spec:
+      nodeClassRef: {group: karpenter.k8s.aws, kind: EC2NodeClass, name: gpu}
+      taints:
+      - {key: nvidia.com/gpu, value: "true", effect: NoSchedule}
+      requirements:
+      # L4 24GB (g6) đủ cho model 8B bf16 với ngữ cảnh 8k; g6e (L40S) làm dự phòng khi g6 hết hàng.
+      - {key: karpenter.k8s.aws/instance-family, operator: In, values: [g6, g6e]}
+      - {key: karpenter.k8s.aws/instance-gpu-count, operator: In, values: ["1"]}
+      - {key: karpenter.sh/capacity-type, operator: In, values: [on-demand]}
+      - {key: kubernetes.io/arch, operator: In, values: [amd64]}
+      expireAfter: 720h
+  limits:
+    nvidia.com/gpu: "4"
+  disruption:
+    consolidationPolicy: WhenEmpty
+    consolidateAfter: 10m

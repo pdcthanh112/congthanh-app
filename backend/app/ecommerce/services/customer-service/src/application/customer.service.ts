@@ -1,4 +1,4 @@
-import { DomainError } from '@ecom/platform/errors';
+import { DomainError } from '@ecommerce/platform/errors';
 import { Inject, Injectable } from '@nestjs/common';
 import { normalizeKeyword, SEARCH_HISTORY_LIMIT, type SearchEntry } from '../domain/search-history.js';
 import {

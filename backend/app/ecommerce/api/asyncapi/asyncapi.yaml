@@ -1,9 +1,9 @@
-# SINH từ api/proto/ecommerce/*/v1/*_events.proto bằng tools/scripts/gen-asyncapi.py
 asyncapi: 3.0.0
 info:
   title: CongThanhApp e-commerce events
   version: 1.0.0
-  description: Event miền trên Kafka. Mỗi record là ecommerce.common.v1.EventEnvelope
+  description:
+    Event miền trên Kafka. Mỗi record là ecommerce.common.v1.EventEnvelope
     (Protobuf) bọc event trong `payload` (Any). Header ce_type = tên đầy đủ của event,
     traceparent = W3C trace context. Key = aggregate id.
 defaultContentType: application/x-protobuf
@@ -12,181 +12,238 @@ servers:
     host: localhost:29092
     protocol: kafka
   prod:
-    host: ecom-kafka-bootstrap.messaging.svc.cluster.local:9092
+    host: ecommerce-kafka-bootstrap.messaging.svc.cluster.local:9092
     protocol: kafka
     security:
-    - type: scramSha512
+      - type: scramSha512
 channels:
   cartEvents:
-    address: ecom.cart.events
+    address: ecommerce.cart.events
     messages:
       CartItemAdded:
-        $ref: '#/components/messages/cart.CartItemAdded'
+        $ref: "#/components/messages/cart.CartItemAdded"
       CartItemRemoved:
-        $ref: '#/components/messages/cart.CartItemRemoved'
+        $ref: "#/components/messages/cart.CartItemRemoved"
       CartCleared:
-        $ref: '#/components/messages/cart.CartCleared'
-    description: 'Event của cart-service; DLQ: ecom.cart.events.dlq'
+        $ref: "#/components/messages/cart.CartCleared"
+    description: "Event của cart-service; DLQ: ecommerce.cart.events.dlq"
   catalogEvents:
-    address: ecom.catalog.events
+    address: ecommerce.catalog.events
     messages:
       CategoryUpserted:
-        $ref: '#/components/messages/catalog.CategoryUpserted'
+        $ref: "#/components/messages/catalog.CategoryUpserted"
       BrandUpserted:
-        $ref: '#/components/messages/catalog.BrandUpserted'
+        $ref: "#/components/messages/catalog.BrandUpserted"
       ProductTagsChanged:
-        $ref: '#/components/messages/catalog.ProductTagsChanged'
-    description: 'Event của catalog-service; DLQ: ecom.catalog.events.dlq'
+        $ref: "#/components/messages/catalog.ProductTagsChanged"
+    description: "Event của catalog-service; DLQ: ecommerce.catalog.events.dlq"
   customerEvents:
-    address: ecom.customer.events
+    address: ecommerce.customer.events
     messages:
       WishlistItemAdded:
-        $ref: '#/components/messages/customer.WishlistItemAdded'
+        $ref: "#/components/messages/customer.WishlistItemAdded"
       WishlistItemRemoved:
-        $ref: '#/components/messages/customer.WishlistItemRemoved'
-    description: 'Event của customer-service; DLQ: ecom.customer.events.dlq'
+        $ref: "#/components/messages/customer.WishlistItemRemoved"
+    description: "Event của customer-service; DLQ: ecommerce.customer.events.dlq"
+  fraudEvents:
+    address: ecommerce.fraud.events
+    messages:
+      FraudReviewRequested:
+        $ref: "#/components/messages/fraud.FraudReviewRequested"
+      FraudReviewDecided:
+        $ref: "#/components/messages/fraud.FraudReviewDecided"
+    description: "Event của fraud-service; DLQ: ecommerce.fraud.events.dlq"
   inventoryEvents:
-    address: ecom.inventory.events
+    address: ecommerce.inventory.events
     messages:
       InventoryReserved:
-        $ref: '#/components/messages/inventory.InventoryReserved'
+        $ref: "#/components/messages/inventory.InventoryReserved"
       InventoryReservationFailed:
-        $ref: '#/components/messages/inventory.InventoryReservationFailed'
+        $ref: "#/components/messages/inventory.InventoryReservationFailed"
       InventoryReleased:
-        $ref: '#/components/messages/inventory.InventoryReleased'
+        $ref: "#/components/messages/inventory.InventoryReleased"
       InventoryCommitted:
-        $ref: '#/components/messages/inventory.InventoryCommitted'
+        $ref: "#/components/messages/inventory.InventoryCommitted"
       StockLevelChanged:
-        $ref: '#/components/messages/inventory.StockLevelChanged'
+        $ref: "#/components/messages/inventory.StockLevelChanged"
       LowStockDetected:
-        $ref: '#/components/messages/inventory.LowStockDetected'
+        $ref: "#/components/messages/inventory.LowStockDetected"
       FlashSaleClaimed:
-        $ref: '#/components/messages/inventory.FlashSaleClaimed'
-    description: 'Event của inventory-service; DLQ: ecom.inventory.events.dlq'
+        $ref: "#/components/messages/inventory.FlashSaleClaimed"
+    description: "Event của inventory-service; DLQ: ecommerce.inventory.events.dlq"
   messageEvents:
-    address: ecom.message.events
+    address: ecommerce.message.events
     messages:
       MessageSent:
-        $ref: '#/components/messages/message.MessageSent'
-    description: 'Event của message-service; DLQ: ecom.message.events.dlq'
+        $ref: "#/components/messages/message.MessageSent"
+    description: "Event của message-service; DLQ: ecommerce.message.events.dlq"
   orderEvents:
-    address: ecom.order.events
+    address: ecommerce.order.events
     messages:
       OrderPlaced:
-        $ref: '#/components/messages/order.OrderPlaced'
+        $ref: "#/components/messages/order.OrderPlaced"
       ShippingAddress:
-        $ref: '#/components/messages/order.ShippingAddress'
+        $ref: "#/components/messages/order.ShippingAddress"
       OrderConfirmed:
-        $ref: '#/components/messages/order.OrderConfirmed'
+        $ref: "#/components/messages/order.OrderConfirmed"
       OrderCancelled:
-        $ref: '#/components/messages/order.OrderCancelled'
-    description: 'Event của order-service; DLQ: ecom.order.events.dlq'
+        $ref: "#/components/messages/order.OrderCancelled"
+    description: "Event của order-service; DLQ: ecommerce.order.events.dlq"
   paymentEvents:
-    address: ecom.payment.events
+    address: ecommerce.payment.events
     messages:
       PaymentAuthorized:
-        $ref: '#/components/messages/payment.PaymentAuthorized'
+        $ref: "#/components/messages/payment.PaymentAuthorized"
       PaymentFailed:
-        $ref: '#/components/messages/payment.PaymentFailed'
+        $ref: "#/components/messages/payment.PaymentFailed"
       PaymentRefunded:
-        $ref: '#/components/messages/payment.PaymentRefunded'
-    description: 'Event của payment-service; DLQ: ecom.payment.events.dlq'
+        $ref: "#/components/messages/payment.PaymentRefunded"
+    description: "Event của payment-service; DLQ: ecommerce.payment.events.dlq"
+  pricingEvents:
+    address: ecommerce.pricing.events
+    messages:
+      PriceChanged:
+        $ref: "#/components/messages/pricing.PriceChanged"
+    description: "Event của pricing-service; DLQ: ecommerce.pricing.events.dlq"
   productEvents:
-    address: ecom.product.events
+    address: ecommerce.product.events
     messages:
       ProductUpserted:
-        $ref: '#/components/messages/product.ProductUpserted'
+        $ref: "#/components/messages/product.ProductUpserted"
       ProductDeleted:
-        $ref: '#/components/messages/product.ProductDeleted'
-    description: 'Event của product-service; DLQ: ecom.product.events.dlq'
+        $ref: "#/components/messages/product.ProductDeleted"
+    description: "Event của product-service; DLQ: ecommerce.product.events.dlq"
   promotionEvents:
-    address: ecom.promotion.events
+    address: ecommerce.promotion.events
     messages:
       PromotionActivated:
-        $ref: '#/components/messages/promotion.PromotionActivated'
+        $ref: "#/components/messages/promotion.PromotionActivated"
       PromotionExpired:
-        $ref: '#/components/messages/promotion.PromotionExpired'
+        $ref: "#/components/messages/promotion.PromotionExpired"
       PromotionRedeemed:
-        $ref: '#/components/messages/promotion.PromotionRedeemed'
+        $ref: "#/components/messages/promotion.PromotionRedeemed"
       RedemptionCancelled:
-        $ref: '#/components/messages/promotion.RedemptionCancelled'
-    description: 'Event của promotion-service; DLQ: ecom.promotion.events.dlq'
+        $ref: "#/components/messages/promotion.RedemptionCancelled"
+    description: "Event của promotion-service; DLQ: ecommerce.promotion.events.dlq"
   reviewEvents:
-    address: ecom.review.events
+    address: ecommerce.review.events
     messages:
       ReviewSubmitted:
-        $ref: '#/components/messages/review.ReviewSubmitted'
+        $ref: "#/components/messages/review.ReviewSubmitted"
       ReviewModerated:
-        $ref: '#/components/messages/review.ReviewModerated'
+        $ref: "#/components/messages/review.ReviewModerated"
       ReviewReplied:
-        $ref: '#/components/messages/review.ReviewReplied'
+        $ref: "#/components/messages/review.ReviewReplied"
       ProductRatingChanged:
-        $ref: '#/components/messages/review.ProductRatingChanged'
-    description: 'Event của review-service; DLQ: ecom.review.events.dlq'
+        $ref: "#/components/messages/review.ProductRatingChanged"
+    description: "Event của review-service; DLQ: ecommerce.review.events.dlq"
   shippingEvents:
-    address: ecom.shipping.events
+    address: ecommerce.shipping.events
     messages:
       ShipmentCreated:
-        $ref: '#/components/messages/shipping.ShipmentCreated'
+        $ref: "#/components/messages/shipping.ShipmentCreated"
       ShipmentStatusChanged:
-        $ref: '#/components/messages/shipping.ShipmentStatusChanged'
-    description: 'Event của shipping; DLQ: ecom.shipping.events.dlq'
+        $ref: "#/components/messages/shipping.ShipmentStatusChanged"
+    description: "Event của shipping-service; DLQ: ecommerce.shipping.events.dlq"
+  streamCustomerRiskFeatures:
+    address: ecommerce.stream.customer-risk
+    messages:
+      CustomerRiskFeatures:
+        $ref: "#/components/messages/stream.CustomerRiskFeatures"
+    description: "Feature do stream-processor (Flink) tính; topic compacted, key = id thực thể"
+  streamProductTrending:
+    address: ecommerce.stream.product-trending
+    messages:
+      ProductTrending:
+        $ref: "#/components/messages/stream.ProductTrending"
+    description: "Feature do stream-processor (Flink) tính; topic compacted, key = id thực thể"
+  streamStockCover:
+    address: ecommerce.stream.stock-cover
+    messages:
+      StockCover:
+        $ref: "#/components/messages/stream.StockCover"
+    description: "Feature do stream-processor (Flink) tính; topic compacted, key = id thực thể"
 operations:
   publishCartEvents:
     action: send
     channel:
-      $ref: '#/channels/cartEvents'
+      $ref: "#/channels/cartEvents"
     summary: cart-service ghi qua outbox → Debezium
   publishCatalogEvents:
     action: send
     channel:
-      $ref: '#/channels/catalogEvents'
+      $ref: "#/channels/catalogEvents"
     summary: catalog-service ghi qua outbox → Debezium
   publishCustomerEvents:
     action: send
     channel:
-      $ref: '#/channels/customerEvents'
+      $ref: "#/channels/customerEvents"
     summary: customer-service ghi qua outbox → Debezium
+  publishFraudEvents:
+    action: send
+    channel:
+      $ref: "#/channels/fraudEvents"
+    summary: fraud-service ghi qua outbox → Debezium
   publishInventoryEvents:
     action: send
     channel:
-      $ref: '#/channels/inventoryEvents'
+      $ref: "#/channels/inventoryEvents"
     summary: inventory-service ghi qua outbox → Debezium
   publishMessageEvents:
     action: send
     channel:
-      $ref: '#/channels/messageEvents'
+      $ref: "#/channels/messageEvents"
     summary: message-service ghi qua outbox → Debezium
   publishOrderEvents:
     action: send
     channel:
-      $ref: '#/channels/orderEvents'
+      $ref: "#/channels/orderEvents"
     summary: order-service ghi qua outbox → Debezium
   publishPaymentEvents:
     action: send
     channel:
-      $ref: '#/channels/paymentEvents'
+      $ref: "#/channels/paymentEvents"
     summary: payment-service ghi qua outbox → Debezium
+  publishPricingEvents:
+    action: send
+    channel:
+      $ref: "#/channels/pricingEvents"
+    summary: pricing-service ghi qua outbox → Debezium
   publishProductEvents:
     action: send
     channel:
-      $ref: '#/channels/productEvents'
+      $ref: "#/channels/productEvents"
     summary: product-service ghi qua outbox → Debezium
   publishPromotionEvents:
     action: send
     channel:
-      $ref: '#/channels/promotionEvents'
+      $ref: "#/channels/promotionEvents"
     summary: promotion-service ghi qua outbox → Debezium
   publishReviewEvents:
     action: send
     channel:
-      $ref: '#/channels/reviewEvents'
+      $ref: "#/channels/reviewEvents"
     summary: review-service ghi qua outbox → Debezium
   publishShippingEvents:
     action: send
     channel:
-      $ref: '#/channels/shippingEvents'
-    summary: shipping ghi qua outbox → Debezium
+      $ref: "#/channels/shippingEvents"
+    summary: shipping-service ghi qua outbox → Debezium
+  publishStreamCustomerRiskFeatures:
+    action: send
+    channel:
+      $ref: "#/channels/streamCustomerRiskFeatures"
+    summary: stream-processor ghi trực tiếp (Kafka sink, at-least-once)
+  publishStreamProductTrending:
+    action: send
+    channel:
+      $ref: "#/channels/streamProductTrending"
+    summary: stream-processor ghi trực tiếp (Kafka sink, at-least-once)
+  publishStreamStockCover:
+    action: send
+    channel:
+      $ref: "#/channels/streamStockCover"
+    summary: stream-processor ghi trực tiếp (Kafka sink, at-least-once)
 components:
   messages:
     cart.CartItemAdded:
@@ -307,6 +364,36 @@ components:
           ce_type:
             type: string
             const: ecommerce.customer.v1.WishlistItemRemoved
+          traceparent:
+            type: string
+    fraud.FraudReviewRequested:
+      name: FraudReviewRequested
+      title: ecommerce.fraud.v1.FraudReviewRequested
+      payload:
+        schemaFormat: application/vnd.google.protobuf;version=3
+        schema:
+          $ref: ../../api/proto/ecommerce/fraud/v1/fraud_events.proto
+      headers:
+        type: object
+        properties:
+          ce_type:
+            type: string
+            const: ecommerce.fraud.v1.FraudReviewRequested
+          traceparent:
+            type: string
+    fraud.FraudReviewDecided:
+      name: FraudReviewDecided
+      title: ecommerce.fraud.v1.FraudReviewDecided
+      payload:
+        schemaFormat: application/vnd.google.protobuf;version=3
+        schema:
+          $ref: ../../api/proto/ecommerce/fraud/v1/fraud_events.proto
+      headers:
+        type: object
+        properties:
+          ce_type:
+            type: string
+            const: ecommerce.fraud.v1.FraudReviewDecided
           traceparent:
             type: string
     inventory.InventoryReserved:
@@ -534,6 +621,21 @@ components:
             const: ecommerce.payment.v1.PaymentRefunded
           traceparent:
             type: string
+    pricing.PriceChanged:
+      name: PriceChanged
+      title: ecommerce.pricing.v1.PriceChanged
+      payload:
+        schemaFormat: application/vnd.google.protobuf;version=3
+        schema:
+          $ref: ../../api/proto/ecommerce/pricing/v1/pricing_events.proto
+      headers:
+        type: object
+        properties:
+          ce_type:
+            type: string
+            const: ecommerce.pricing.v1.PriceChanged
+          traceparent:
+            type: string
     product.ProductUpserted:
       name: ProductUpserted
       title: ecommerce.product.v1.ProductUpserted
@@ -712,5 +814,50 @@ components:
           ce_type:
             type: string
             const: ecommerce.shipping.v1.ShipmentStatusChanged
+          traceparent:
+            type: string
+    stream.CustomerRiskFeatures:
+      name: CustomerRiskFeatures
+      title: ecommerce.stream.v1.CustomerRiskFeatures
+      payload:
+        schemaFormat: application/vnd.google.protobuf;version=3
+        schema:
+          $ref: ../../api/proto/ecommerce/stream/v1/stream_events.proto
+      headers:
+        type: object
+        properties:
+          ce_type:
+            type: string
+            const: ecommerce.stream.v1.CustomerRiskFeatures
+          traceparent:
+            type: string
+    stream.ProductTrending:
+      name: ProductTrending
+      title: ecommerce.stream.v1.ProductTrending
+      payload:
+        schemaFormat: application/vnd.google.protobuf;version=3
+        schema:
+          $ref: ../../api/proto/ecommerce/stream/v1/stream_events.proto
+      headers:
+        type: object
+        properties:
+          ce_type:
+            type: string
+            const: ecommerce.stream.v1.ProductTrending
+          traceparent:
+            type: string
+    stream.StockCover:
+      name: StockCover
+      title: ecommerce.stream.v1.StockCover
+      payload:
+        schemaFormat: application/vnd.google.protobuf;version=3
+        schema:
+          $ref: ../../api/proto/ecommerce/stream/v1/stream_events.proto
+      headers:
+        type: object
+        properties:
+          ce_type:
+            type: string
+            const: ecommerce.stream.v1.StockCover
           traceparent:
             type: string

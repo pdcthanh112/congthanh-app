@@ -1,0 +1,31 @@
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: checkout-service
+  description: Phiên checkout, báo giá, kiểm tra gian lận, saga checkout (Temporal)
+  tags:
+  - java
+  annotations:
+    github.com/project-slug: pdcthanh112/CongThanhApp
+    backstage.io/source-location: url:https://github.com/pdcthanh112/CongThanhApp/tree/main/backend/app/ecommerce/services/checkout-service
+    argocd/app-selector: app.kubernetes.io/name=checkout-service
+    grafana/dashboard-selector: tags @> 'checkout-service'
+    backstage.io/techdocs-ref: dir:../../docs
+spec:
+  type: service
+  lifecycle: production
+  owner: team-ecommerce
+  system: ecommerce
+  providesApis: []
+  consumesApis:
+  - product-api-grpc
+  - pricing-api-grpc
+  - promotion-api-grpc
+  - shipping-api-grpc
+  - tax-api-grpc
+  - order-api-grpc
+  - fraud-api-rest
+  dependsOn:
+  - resource:ecommerce-postgres
+  - resource:ecommerce-kafka
+  - resource:ecommerce-temporal

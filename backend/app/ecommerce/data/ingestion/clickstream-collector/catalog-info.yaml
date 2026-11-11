@@ -1,0 +1,17 @@
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: clickstream-collector
+  description: Thu thập hành vi người dùng (view, search, add-to-cart) vào Kafka cho data lakehouse
+  tags:
+  - go
+  - data
+  annotations:
+    github.com/project-slug: pdcthanh112/CongThanhApp
+    backstage.io/source-location: url:https://github.com/pdcthanh112/CongThanhApp/tree/main/backend/app/ecommerce/data/ingestion/clickstream-collector
+    backstage.io/techdocs-ref: dir:../../docs
+spec:
+  type: service
+  lifecycle: experimental
+  owner: team-ecommerce
+  system: ecommerce

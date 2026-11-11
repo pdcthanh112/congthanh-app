@@ -1,8 +1,8 @@
 plugins {
-    id("congthanh.spring-service")
+    id("congthanh.spring-native")
 }
 
-description = "Order service (hexagonal): checkout, order lifecycle; owns the Temporal checkout workflow"
+description = "Order service (hexagonal): checkout, order lifecycle; runs the checkout saga activities (workflow lives in checkout-service)"
 
 dependencies {
     implementation(project(":libs:java:workflow-contracts"))

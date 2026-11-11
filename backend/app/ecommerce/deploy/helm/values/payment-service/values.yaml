@@ -36,12 +36,6 @@ secretEnv:
 - name: PAYPAL_CLIENT_SECRET
   key: ecommerce/payment-service
   property: paypal_client_secret
-- name: VNPAY_TMN_CODE
-  key: ecommerce/payment-service
-  property: vnpay_tmn_code
-- name: VNPAY_HASH_SECRET
-  key: ecommerce/payment-service
-  property: vnpay_hash_secret
 probes:
   readinessPath: /actuator/health/readiness
   livenessPath: /actuator/health/liveness

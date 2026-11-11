@@ -5,8 +5,6 @@ package ecommerce.promotion.v1;
 option java_multiple_files = true;
 option java_package = "com.congthanh.promotionservice.grpc";
 
-// Topic: ecom.promotion.events (key = promotion_id)
-
 message PromotionActivated {
   string promotion_id = 1;
   string code = 2;

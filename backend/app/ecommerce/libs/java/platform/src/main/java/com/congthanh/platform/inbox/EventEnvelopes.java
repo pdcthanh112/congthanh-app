@@ -1,6 +1,6 @@
 package com.congthanh.platform.inbox;
 
-import com.congthanh.ecom.common.v1.EventEnvelope;
+import com.congthanh.ecommerce.common.v1.EventEnvelope;
 import com.google.protobuf.InvalidProtocolBufferException;
 import com.google.protobuf.Message;
 

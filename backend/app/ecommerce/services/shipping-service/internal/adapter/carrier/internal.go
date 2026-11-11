@@ -1,5 +1,5 @@
-// Package carrier chứa adapter hãng vận chuyển. "internal" là đội giao của shop: tự sinh mã vận đơn.
-// Thêm GHN/GHTK/Viettel Post: viết adapter thoả app.Carrier và đăng ký ở main.
+// Package carrier chứa adapter hãng vận chuyển. "internal" tự sinh mã vận đơn (dev, hoặc kho tự giao).
+// Thêm USPS/UPS/FedEx (trực tiếp hoặc qua EasyPost/Shippo): viết adapter thoả app.Carrier và đăng ký ở main.
 package carrier
 
 import (

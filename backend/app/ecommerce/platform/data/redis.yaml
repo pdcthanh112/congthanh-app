@@ -1,0 +1,67 @@
+# Redis Open Source cho cluster không dùng ElastiCache (dev/on-prem): cache, rate limit APISIX, kho flash sale (Lua),
+# pub/sub realtime. Trên AWS dùng ElastiCache for Redis OSS (infra/terraform/modules/elasticache).
+# Một primary + AOF trên PVC; cần HA thì thay bằng Redis Sentinel/Operator hoặc dịch vụ managed.
+# Secret redis-auth (key "password") do External Secrets tạo từ Vault.
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis
+  namespace: data
+  labels: {app.kubernetes.io/name: redis}
+spec:
+  clusterIP: None
+  selector: {app.kubernetes.io/name: redis}
+  ports:
+    - {name: redis, port: 6379, targetPort: redis}
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: redis
+  namespace: data
+  labels: {app.kubernetes.io/name: redis}
+spec:
+  serviceName: redis
+  replicas: 1
+  selector:
+    matchLabels: {app.kubernetes.io/name: redis}
+  template:
+    metadata:
+      labels: {app.kubernetes.io/name: redis}
+    spec:
+      securityContext: {runAsNonRoot: true, runAsUser: 999, fsGroup: 999, seccompProfile: {type: RuntimeDefault}}
+      containers:
+        - name: redis
+          image: redis:8.10-alpine
+          args:
+            - --requirepass
+            - $(REDIS_PASSWORD)
+            - --appendonly
+            - "yes"
+            - --maxmemory
+            - 1gb
+            # noeviction: bộ đếm flash sale và velocity không được tự mất; cache đều có TTL.
+            - --maxmemory-policy
+            - noeviction
+          env:
+            - name: REDIS_PASSWORD
+              valueFrom: {secretKeyRef: {name: redis-auth, key: password}}
+          ports:
+            - {name: redis, containerPort: 6379}
+          readinessProbe:
+            exec: {command: [sh, -c, 'redis-cli -a "$REDIS_PASSWORD" --no-auth-warning ping | grep -q PONG']}
+            periodSeconds: 5
+          livenessProbe:
+            tcpSocket: {port: redis}
+            periodSeconds: 10
+          resources:
+            requests: {cpu: 100m, memory: 512Mi}
+            limits: {memory: 1536Mi}
+          securityContext: {allowPrivilegeEscalation: false, readOnlyRootFilesystem: true, capabilities: {drop: [ALL]}}
+          volumeMounts:
+            - {name: data, mountPath: /data}
+  volumeClaimTemplates:
+    - metadata: {name: data}
+      spec:
+        accessModes: [ReadWriteOnce]
+        resources: {requests: {storage: 8Gi}}

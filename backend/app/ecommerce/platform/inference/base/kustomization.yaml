@@ -1,0 +1,9 @@
+# Model mở tự host cho chatbot (LLM_PROVIDER=vllm): KServe InferenceService, runtime huggingface với backend vLLM,
+# chạy trên node GPU do Karpenter cấp khi cần. Overlay theo môi trường đặt IAM role/discovery tag của cluster.
+# EC2NodeClass/NodePool là tài nguyên cluster-scoped nên không đặt namespace chung ở đây.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+- gpu-nodeclass.yaml
+- gpu-nodepool.yaml
+- shop-assistant.yaml

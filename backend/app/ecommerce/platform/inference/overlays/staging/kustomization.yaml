@@ -1,0 +1,21 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+- ../../base
+patches:
+- target: {kind: EC2NodeClass, name: gpu}
+  patch: |-
+    - op: replace
+      path: /spec/role
+      value: congthanhapp-staging-karpenter-node
+    - op: replace
+      path: /spec/subnetSelectorTerms/0/tags/karpenter.sh~1discovery
+      value: congthanhapp-staging
+    - op: replace
+      path: /spec/securityGroupSelectorTerms/0/tags/karpenter.sh~1discovery
+      value: congthanhapp-staging
+- target: {kind: InferenceService, name: shop-assistant-llm}
+  patch: |-
+    - op: replace
+      path: /spec/predictor/maxReplicas
+      value: 1

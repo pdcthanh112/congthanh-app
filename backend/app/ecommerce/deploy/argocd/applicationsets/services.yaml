@@ -13,19 +13,11 @@ spec:
         generators:
           - clusters:
               selector:
-                matchExpressions:
-                  [
-                    {
-                      key: env,
-                      operator: In,
-                      values: [dev, test, staging, prod],
-                    },
-                  ]
+                matchExpressions: [{ key: env, operator: In, values: [dev, test, staging, prod] }]
           - git:
               repoURL: https://github.com/pdcthanh112/CongThanhApp.git
               revision: main
-              directories:
-                [{ path: backend/app/ecommerce/deploy/helm/values/* }]
+              directories: [{ path: backend/app/ecommerce/deploy/helm/values/* }]
   template:
     metadata:
       name: '{{ .path.basename }}-{{ index .metadata.labels "env" }}'
@@ -43,12 +35,20 @@ spec:
           valueFiles:
             - "../values/{{ .path.basename }}/values.yaml"
             - '../values/{{ .path.basename }}/values-{{ index .metadata.labels "env" }}.yaml'
+            # Lịch flash sale/ngày sale lớn dùng chung mọi service (scheduledScaling.events).
+            - '../events/events-{{ index .metadata.labels "env" }}.yaml'
           ignoreMissingValueFiles: true
       destination:
         server: "{{ .server }}"
         namespace: ecommerce
+      ignoreDifferences:
+        - group: gateway.networking.k8s.io
+          kind: HTTPRoute
+          jqPathExpressions: [".spec.rules[].backendRefs[].weight"]
+        - group: gateway.networking.k8s.io
+          kind: GRPCRoute
+          jqPathExpressions: [".spec.rules[].backendRefs[].weight"]
       syncPolicy:
         automated: { prune: true, selfHeal: true }
-        syncOptions: [CreateNamespace=false, ServerSideApply=true]
-        retry:
-          { limit: 5, backoff: { duration: 10s, factor: 2, maxDuration: 3m } }
+        syncOptions: [CreateNamespace=false, ServerSideApply=true, RespectIgnoreDifferences=true]
+        retry: { limit: 5, backoff: { duration: 10s, factor: 2, maxDuration: 3m } }

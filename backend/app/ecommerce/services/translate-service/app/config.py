@@ -9,7 +9,7 @@ class Settings(BaseSettings):
     anthropic_model: str = "claude-opus-5-5"
     # Dịch là việc đơn giản: effort thấp giữ độ trễ và chi phí nhỏ; tăng nếu chất lượng chưa đạt.
     anthropic_effort: str = "low"
-    valkey_url: str = "redis://localhost:6379/5"
+    redis_url: str = "redis://localhost:6379/5"
     cache_ttl_seconds: int = 30 * 24 * 3600
     max_texts: int = 50
     max_chars: int = 20_000  # tổng ký tự mỗi request

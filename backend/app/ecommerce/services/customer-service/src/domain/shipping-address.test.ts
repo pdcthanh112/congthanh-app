@@ -8,15 +8,15 @@ import {
 } from './shipping-address.js';
 
 const draft: AddressDraft = {
-  fullName: ' Nguyễn Văn A ',
-  phoneNumber: '090 123.4567',
+  fullName: ' Alex Johnson ',
+  phoneNumber: '+1 212-555.0100',
   label: 'HOME',
-  countryCode: 'vn',
-  provinceCode: '79',
+  countryCode: 'us',
+  provinceCode: 'NY',
   districtCode: null,
   wardCode: null,
-  addressLine: ' 1 Lê Lợi, Quận 1 ',
-  postalCode: null,
+  addressLine: ' 350 5th Ave, Apt 4B ',
+  postalCode: '10118',
   latitude: null,
   longitude: null,
 };
@@ -24,10 +24,10 @@ const draft: AddressDraft = {
 describe('normalizeAddress', () => {
   it('chuẩn hoá tên, số điện thoại, mã nước', () => {
     expect(normalizeAddress(draft)).toMatchObject({
-      fullName: 'Nguyễn Văn A',
-      phoneNumber: '0901234567',
-      countryCode: 'VN',
-      addressLine: '1 Lê Lợi, Quận 1',
+      fullName: 'Alex Johnson',
+      phoneNumber: '+12125550100',
+      countryCode: 'US',
+      addressLine: '350 5th Ave, Apt 4B',
     });
   });
   it('từ chối số điện thoại sai', () => {

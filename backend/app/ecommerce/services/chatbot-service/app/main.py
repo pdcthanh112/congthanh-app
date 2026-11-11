@@ -9,17 +9,18 @@ from typing import Annotated
 
 import anthropic
 import httpx
-from ecom_platform import logging as eplog
-from ecom_platform.auth import Principal, verifier_from_env
-from ecom_platform.fastapi import Auth, health_router, install_error_handlers, ok
+from ecommerce_platform import logging as eplog
+from ecommerce_platform.auth import Principal, verifier_from_env
+from ecommerce_platform.fastapi import Auth, health_router, install_error_handlers, ok
 from fastapi import Depends, FastAPI, HTTPException
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 
 from .adapters.claude import ClaudeLLM
 from .adapters.ollama import OllamaLLM
+from .adapters.redis_history import RedisHistory
 from .adapters.search import SearchServiceClient
-from .adapters.valkey import ValkeyHistory
+from .adapters.vllm import VllmLLM
 from .config import settings
 from .domain.chat import InvalidRequest
 from .service import ChatService, Event
@@ -30,13 +31,17 @@ auth = Auth(verifier_from_env())
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    history = ValkeyHistory(settings.valkey_url)
+    history = RedisHistory(settings.redis_url)
     search_http = httpx.AsyncClient(base_url=settings.search_url, timeout=3.0)
     closers = [history.close, search_http.aclose]
     if settings.llm_provider == "ollama":
         ollama_http = httpx.AsyncClient(base_url=settings.ollama_url, timeout=httpx.Timeout(120.0, connect=3.0))
         llm = OllamaLLM(ollama_http, settings.ollama_model)
         closers.append(ollama_http.aclose)
+    elif settings.llm_provider == "vllm":
+        vllm_http = httpx.AsyncClient(base_url=settings.vllm_url, timeout=httpx.Timeout(120.0, connect=3.0))
+        llm = VllmLLM(vllm_http, settings.vllm_model, settings.vllm_path, settings.max_output_tokens)
+        closers.append(vllm_http.aclose)
     else:
         client = anthropic.AsyncAnthropic(max_retries=2, timeout=120.0)
         llm = ClaudeLLM(client, settings.anthropic_model, settings.anthropic_effort, settings.max_output_tokens)

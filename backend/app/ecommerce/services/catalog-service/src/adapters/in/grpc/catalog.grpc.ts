@@ -1,16 +1,12 @@
-import { create } from '@bufbuild/protobuf';
-import { timestampFromDate } from '@bufbuild/protobuf/wkt';
-import type { ConnectRouter } from '@connectrpc/connect';
-import { DomainError } from '@ecom/platform';
-import { BrandService } from '@ecom/proto/ecommerce/catalog/v1/brand_service_pb';
-import {
-  type CategoryResponse,
-  CategoryResponseSchema,
-  CategoryService,
-} from '@ecom/proto/ecommerce/catalog/v1/category_service_pb';
-import { TagService } from '@ecom/proto/ecommerce/catalog/v1/tag_service_pb';
-import type { CatalogService } from '../../../application/catalog.service.js';
-import type { Category } from '../../../domain/category.js';
+import { create } from "@bufbuild/protobuf";
+import { timestampFromDate } from "@bufbuild/protobuf/wkt";
+import type { ConnectRouter } from "@connectrpc/connect";
+import { DomainError } from "@ecommerce/platform";
+import { BrandService } from "@ecommerce/proto/ecommerce/catalog/v1/brand_service_pb";
+import { type CategoryResponse, CategoryResponseSchema, CategoryService } from "@ecommerce/proto/ecommerce/catalog/v1/category_service_pb";
+import { TagService } from "@ecommerce/proto/ecommerce/catalog/v1/tag_service_pb";
+import type { CatalogService } from "../../../application/catalog.service.js";
+import type { Category } from "../../../domain/category.js";
 
 function toResponse(c: Category): CategoryResponse {
   const s = c.snapshot();
@@ -18,16 +14,15 @@ function toResponse(c: Category): CategoryResponse {
     id: s.id,
     name: s.name,
     slug: s.slug,
-    description: s.description ?? '',
-    image: s.image ?? '',
-    parentId: s.parentId ?? '',
+    description: s.description ?? "",
+    image: s.image ?? "",
+    parentId: s.parentId ?? "",
     status: s.status,
     createdAt: timestampFromDate(s.createdAt),
     updatedAt: timestampFromDate(s.updatedAt),
   });
 }
 
-/** gRPC cho service nội bộ (product-service dùng khi gán danh mục, hiển thị tên/slug). */
 export function catalogGrpcRoutes(catalog: CatalogService) {
   return (router: ConnectRouter) => {
     router.service(CategoryService, {

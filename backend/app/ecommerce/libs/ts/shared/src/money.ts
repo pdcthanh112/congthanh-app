@@ -3,9 +3,10 @@ export interface Money {
   currency: string;
 }
 
-export const vnd = (amount: number): Money => ({ amountMinor: amount, currency: 'VND' });
+/** Tiền USD từ số cent. */
+export const usd = (cents: number): Money => ({ amountMinor: cents, currency: 'USD' });
 
-/** Số chữ số phần lẻ của đơn vị tiền tệ theo ISO 4217 (VND 0, USD 2...). */
+/** Số chữ số phần lẻ của đơn vị tiền tệ theo ISO 4217 (USD 2, JPY 0...). */
 export function minorDigits(currency: string): number {
   return new Intl.NumberFormat('en', { style: 'currency', currency }).resolvedOptions().maximumFractionDigits ?? 2;
 }
@@ -21,7 +22,7 @@ export function toDecimal(m: Money): number {
 
 /** Từ ecommerce.common.v1.Money (units + nanos). */
 export function fromProtoMoney(m: { currencyCode: string; units: bigint; nanos: number }): Money {
-  return fromDecimal(Number(m.units) + m.nanos / 1e9, m.currencyCode || 'VND');
+  return fromDecimal(Number(m.units) + m.nanos / 1e9, m.currencyCode || 'USD');
 }
 
 /** Sang ecommerce.common.v1.Money. */
@@ -35,12 +36,12 @@ export function multiplyMoney(m: Money, factor: number): Money {
   return { amountMinor: Math.round(m.amountMinor * factor), currency: m.currency };
 }
 
-export function sumMoney(items: readonly Money[], currency = 'VND'): Money {
+export function sumMoney(items: readonly Money[], currency = 'USD'): Money {
   const mixed = items.find((i) => i.currency !== (items[0]?.currency ?? currency));
   if (mixed) throw new Error(`cannot add ${mixed.currency} to ${items[0]?.currency}`);
   return { amountMinor: items.reduce((a, i) => a + i.amountMinor, 0), currency: items[0]?.currency ?? currency };
 }
 
-export function formatMoney(m: Money, locale = 'vi-VN'): string {
+export function formatMoney(m: Money, locale = 'en-US'): string {
   return new Intl.NumberFormat(locale, { style: 'currency', currency: m.currency }).format(toDecimal(m));
 }

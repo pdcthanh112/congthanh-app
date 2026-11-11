@@ -6,9 +6,8 @@ import "ecommerce/common/v1/money.proto";
 import "ecommerce/order/v1/order_events.proto";
 
 option java_multiple_files = true;
-option java_package = "com.congthanh.ecom.shipping.v1";
+option java_package = "com.congthanh.ecommerce.shipping.v1";
 
-// shipping-service (Go). order-service gọi QuoteShipping khi checkout để hiện phí giao hàng.
 service ShippingService {
   rpc QuoteShipping(QuoteShippingRequest) returns (QuoteShippingResponse);
   rpc GetShipment(GetShipmentRequest) returns (GetShipmentResponse);
@@ -26,7 +25,7 @@ message QuoteShippingRequest {
 }
 
 message ShippingQuote {
-  // Mã hãng vận chuyển, ví dụ "ghn", "ghtk", "internal".
+  // Mã hãng vận chuyển, ví dụ "usps", "ups", "fedex", "internal".
   string carrier = 1;
   // Mã dịch vụ của hãng, ví dụ "standard", "express".
   string service_code = 2;

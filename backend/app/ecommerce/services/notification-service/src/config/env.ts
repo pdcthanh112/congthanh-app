@@ -1,4 +1,4 @@
-import { baseEnv, databaseEnv, kafkaEnv, loadEnv, valkeyEnv } from '@ecom/platform';
+import { baseEnv, databaseEnv, kafkaEnv, loadEnv, redisEnv } from '@ecommerce/platform';
 import { z } from 'zod';
 
 const optional = z
@@ -9,7 +9,7 @@ const optional = z
 export const envSchema = baseEnv
   .merge(databaseEnv)
   .merge(kafkaEnv)
-  .merge(valkeyEnv)
+  .merge(redisEnv)
   .extend({
     SERVICE_NAME: z.string().default('notification-service'),
     HTTP_PORT: z.coerce.number().default(5011),

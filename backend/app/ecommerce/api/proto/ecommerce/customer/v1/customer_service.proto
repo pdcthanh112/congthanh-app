@@ -30,7 +30,7 @@ message ShippingAddress {
   string label = 5;
   // ISO 3166-1 alpha-2
   string country_code = 6;
-  // Mã tỉnh/thành, quận/huyện, phường/xã (dùng cho tính phí ship và giới hạn vùng giao).
+  // Mã bang (ISO 3166-2 bỏ tiền tố, ví dụ "CA"), county, khu vực nhỏ hơn nếu có (dùng cho phí ship, thuế và giới hạn vùng giao).
   string province_code = 7;
   string district_code = 8;
   string ward_code = 9;

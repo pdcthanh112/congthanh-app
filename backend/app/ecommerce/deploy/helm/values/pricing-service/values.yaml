@@ -1,0 +1,17 @@
+# pricing-service: bảng giá, lịch giảm giá, lịch sử giá (Go). Ghi đè theo môi trường ở values-<env>.yaml.
+nameOverride: pricing-service
+runtime: go
+image:
+  repository: ghcr.io/pdcthanh112/congthanhapp/pricing-service
+ports:
+  http: 5025
+  grpc: 9099
+env:
+  DB_SCHEMA: pricing
+  KAFKA_BROKERS: ecommerce-kafka-bootstrap.messaging.svc.cluster.local:9092
+  REDIS_URL: redis://redis.data.svc.cluster.local:6379/7
+  JWT_JWKS_URL: http://keycloak-service.identity.svc.cluster.local:8080/realms/ecommerce/protocol/openid-connect/certs
+secretEnv:
+- name: DATABASE_URL
+  key: ecommerce/pricing-service
+  property: database_url

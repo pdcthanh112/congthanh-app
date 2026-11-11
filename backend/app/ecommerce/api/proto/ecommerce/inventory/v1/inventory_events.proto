@@ -5,8 +5,6 @@ package ecommerce.inventory.v1;
 option java_multiple_files = true;
 option java_package = "com.congthanh.inventoryservice.grpc";
 
-// Topic: ecom.inventory.events (key = reservation_id hoặc product_id)
-
 message ReservedLine {
   string product_id = 1;
   string warehouse_id = 2;
@@ -43,7 +41,6 @@ message StockLevelChanged {
   string warehouse_id = 2;
   int32 quantity = 3;
   int32 available = 4;
-  // RESTOCK, DAMAGE, ADJUST, COMMIT...
   string reason = 5;
 }
 
@@ -53,12 +50,11 @@ message LowStockDetected {
   int32 reorder_point = 3;
 }
 
-// Flash sale: lượt giành hàng thành công trên Redis. order-service tiêu thụ để tạo đơn
-// bất đồng bộ; kết thúc đợt sale, inventory chốt số đã bán vào DB (đối soát).
 message FlashSaleClaimed {
   string sale_id = 1;
   string product_id = 2;
   string customer_id = 3;
   int32 quantity = 4;
   string claim_id = 5;
+  int64 expires_at = 6;
 }

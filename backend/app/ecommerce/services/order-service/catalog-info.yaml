@@ -2,7 +2,7 @@ apiVersion: backstage.io/v1alpha1
 kind: Component
 metadata:
   name: order-service
-  description: Đơn hàng, saga checkout
+  description: Đơn hàng; chạy các bước saga checkout (activity) cho checkout-service
   tags:
   - java
   annotations:
@@ -16,11 +16,12 @@ spec:
   lifecycle: production
   owner: team-ecommerce
   system: ecommerce
-  providesApis: []
+  providesApis:
+  - order-api-grpc
   consumesApis:
   - inventory-api-grpc
   - product-api-grpc
   - cart-api-grpc
   dependsOn:
-  - resource:ecom-postgres
-  - resource:ecom-kafka
+  - resource:ecommerce-postgres
+  - resource:ecommerce-kafka

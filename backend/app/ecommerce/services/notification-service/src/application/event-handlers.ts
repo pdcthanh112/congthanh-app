@@ -161,14 +161,14 @@ export class EventHandlers {
       const priceMinor = toMinor(price);
       const before = await tx.views.updateProduct(productId, {
         name,
-        ...(priceMinor !== undefined ? { priceMinor, currency: price?.currencyCode ?? 'VND' } : {}),
+        ...(priceMinor !== undefined ? { priceMinor, currency: price?.currencyCode ?? 'USD' } : {}),
       });
       if (!before?.priceMinor || priceMinor === undefined || priceMinor >= before.priceMinor) return [];
       // Chỉ báo khi giảm ít nhất 5% để tránh spam vì chỉnh giá lặt vặt.
       if ((before.priceMinor - priceMinor) / before.priceMinor < 0.05) return [];
       const fmt = (minor: number) =>
         formatMoney({
-          currencyCode: price?.currencyCode ?? 'VND',
+          currencyCode: price?.currencyCode ?? 'USD',
           units: BigInt(Math.floor(minor / 100)),
           nanos: (minor % 100) * 1e7,
         });

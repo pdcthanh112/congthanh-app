@@ -1,21 +1,21 @@
-import type { CheckoutAccepted, OrderDto, OrderSummaryDto, StockLevel } from '@ecom/clients';
-import { formatMoney, fromDecimal, type Money, toDecimal } from '@ecom/shared';
-import type { CartSnapshot } from '../../../application/storefront.service.js';
+import type { OrderDto, OrderSummaryDto, Recommendation, StockLevel } from "@ecommerce/clients";
+import { formatMoney, fromDecimal, type Money, toDecimal } from "@ecommerce/shared";
+import type { CartSnapshot, CheckoutOutcome } from "../../../application/storefront.service.js";
 import type {
   CartModel,
   CheckoutResultModel,
   MoneyModel,
   OrderModel,
   OrderSummaryModel,
+  RecommendationModel,
   StockModel,
   StockStatusGql,
-} from './types.js';
+} from "./types.js";
 
 export function money(m: Money): MoneyModel {
   return { amount: toDecimal(m), currency: m.currency, formatted: formatMoney(m) };
 }
 
-/** Tiền dạng thập phân từ REST của service Java ({amount, currency}). */
 export function decimalMoney(m: { amount: number | string; currency: string }): MoneyModel {
   return money(fromDecimal(m.amount, m.currency));
 }
@@ -39,7 +39,7 @@ export function cart(c: CartSnapshot): CartModel {
       unitPrice: l.unitPrice ? money(l.unitPrice) : null,
       lineTotal: l.lineTotal ? money(l.lineTotal) : null,
       purchasable: l.purchasable,
-      issue: l.issue as CartModel['lines'][number]['issue'],
+      issue: l.issue as CartModel["lines"][number]["issue"],
       addedAt: l.addedAt,
     })),
     subtotal: money(c.subtotal),
@@ -48,8 +48,25 @@ export function cart(c: CartSnapshot): CartModel {
   };
 }
 
-export function checkoutResult(a: CheckoutAccepted): CheckoutResultModel {
-  return { ...a, total: decimalMoney(a.total), discount: decimalMoney(a.discount) };
+export function checkoutResult(o: CheckoutOutcome): CheckoutResultModel {
+  const t = o.session.totals;
+  return {
+    checkoutSessionId: o.checkoutSessionId,
+    status: o.status,
+    orderId: o.orderId,
+    orderCode: o.orderCode,
+    subtotal: decimalMoney(t.subtotal),
+    discount: decimalMoney(t.discount),
+    shippingFee: decimalMoney(t.shippingFee),
+    tax: decimalMoney(t.tax),
+    total: decimalMoney(t.total),
+    failureReason: o.session.failureReason ?? null,
+    checkoutUrl: o.checkoutUrl,
+  };
+}
+
+export function recommendation(r: Recommendation): RecommendationModel {
+  return { product: { id: r.productId }, score: r.score, reason: r.reason };
 }
 
 export function order(o: OrderDto): OrderModel {

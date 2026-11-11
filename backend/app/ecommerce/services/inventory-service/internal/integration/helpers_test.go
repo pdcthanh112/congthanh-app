@@ -20,10 +20,11 @@ import (
 type fakeClaims struct {
 	mu   sync.Mutex
 	sent map[string]int32 // customer → qty
+	all  []app.PublishedClaim
 	fail bool
 }
 
-func (f *fakeClaims) PublishClaim(_ context.Context, _, _, _, customerID string, qty int32) error {
+func (f *fakeClaims) PublishClaim(_ context.Context, c app.PublishedClaim) error {
 	f.mu.Lock()
 	defer f.mu.Unlock()
 	if f.fail {
@@ -32,8 +33,16 @@ func (f *fakeClaims) PublishClaim(_ context.Context, _, _, _, customerID string,
 	if f.sent == nil {
 		f.sent = map[string]int32{}
 	}
-	f.sent[customerID] += qty
+	f.sent[c.CustomerID] += c.Quantity
+	f.all = append(f.all, c)
 	return nil
+}
+
+// reset xoá claim của test trước (biến dùng chung cả package).
+func (f *fakeClaims) reset() {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	f.sent, f.all, f.fail = nil, nil, false
 }
 
 var claims = &fakeClaims{}

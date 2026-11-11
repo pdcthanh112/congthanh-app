@@ -1,0 +1,120 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: pyrra-kubernetes
+  labels: {app.kubernetes.io/name: pyrra, app.kubernetes.io/component: kubernetes}
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: pyrra-api
+  labels: {app.kubernetes.io/name: pyrra, app.kubernetes.io/component: api}
+automountServiceAccountToken: false
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: pyrra-kubernetes
+rules:
+- apiGroups: [pyrra.dev]
+  resources: [servicelevelobjectives]
+  verbs: [get, list, watch, create, update, patch, delete]
+- apiGroups: [pyrra.dev]
+  resources: [servicelevelobjectives/status]
+  verbs: [get, patch, update]
+- apiGroups: [pyrra.dev]
+  resources: [servicelevelobjectives/finalizers]
+  verbs: [update]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: pyrra-kubernetes
+roleRef: {apiGroup: rbac.authorization.k8s.io, kind: ClusterRole, name: pyrra-kubernetes}
+subjects:
+- {kind: ServiceAccount, name: pyrra-kubernetes, namespace: observability}
+---
+# Operator: đọc SLO, ghi rule + alert vào Mimir ruler qua gateway (lgtm-distributed).
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pyrra-kubernetes
+  labels: {app.kubernetes.io/name: pyrra, app.kubernetes.io/component: kubernetes}
+spec:
+  replicas: 1
+  selector:
+    matchLabels: {app.kubernetes.io/name: pyrra, app.kubernetes.io/component: kubernetes}
+  template:
+    metadata:
+      labels: {app.kubernetes.io/name: pyrra, app.kubernetes.io/component: kubernetes}
+    spec:
+      serviceAccountName: pyrra-kubernetes
+      securityContext: {runAsNonRoot: true, runAsUser: 65532, seccompProfile: {type: RuntimeDefault}}
+      containers:
+      - name: pyrra
+        image: ghcr.io/pyrra-dev/pyrra:v0.10.2
+        args:
+        - kubernetes
+        - --generic-rules
+        - --mimir-url=http://lgtm-mimir-nginx.observability
+        - --mimir-deployment-mode=distributed
+        - --mimir-write-alerting-rules
+        - --external-url=https://pyrra.congthanh.vn
+        ports:
+        - {name: http, containerPort: 9444}
+        - {name: metrics, containerPort: 8080}
+        resources:
+          requests: {cpu: 20m, memory: 64Mi}
+          limits: {memory: 128Mi}
+        securityContext: {allowPrivilegeEscalation: false, readOnlyRootFilesystem: true, capabilities: {drop: [ALL]}}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: pyrra-kubernetes
+  labels: {app.kubernetes.io/name: pyrra, app.kubernetes.io/component: kubernetes}
+spec:
+  selector: {app.kubernetes.io/name: pyrra, app.kubernetes.io/component: kubernetes}
+  ports:
+  - {name: http, port: 9444, targetPort: http}
+  - {name: metrics, port: 8080, targetPort: metrics}
+---
+# API + UI: đọc danh sách SLO từ operator, truy vấn error budget từ Mimir.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pyrra-api
+  labels: {app.kubernetes.io/name: pyrra, app.kubernetes.io/component: api}
+spec:
+  replicas: 1
+  selector:
+    matchLabels: {app.kubernetes.io/name: pyrra, app.kubernetes.io/component: api}
+  template:
+    metadata:
+      labels: {app.kubernetes.io/name: pyrra, app.kubernetes.io/component: api}
+    spec:
+      serviceAccountName: pyrra-api
+      securityContext: {runAsNonRoot: true, runAsUser: 65532, seccompProfile: {type: RuntimeDefault}}
+      containers:
+      - name: pyrra
+        image: ghcr.io/pyrra-dev/pyrra:v0.10.2
+        args:
+        - api
+        - --api-url=http://pyrra-kubernetes.observability.svc.cluster.local:9444
+        - --prometheus-url=http://lgtm-mimir-nginx.observability/prometheus
+        ports:
+        - {name: http, containerPort: 9099}
+        resources:
+          requests: {cpu: 20m, memory: 64Mi}
+          limits: {memory: 128Mi}
+        securityContext: {allowPrivilegeEscalation: false, readOnlyRootFilesystem: true, capabilities: {drop: [ALL]}}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: pyrra-api
+  labels: {app.kubernetes.io/name: pyrra, app.kubernetes.io/component: api}
+spec:
+  selector: {app.kubernetes.io/name: pyrra, app.kubernetes.io/component: api}
+  ports:
+  - {name: http, port: 9099, targetPort: http}

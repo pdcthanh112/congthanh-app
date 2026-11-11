@@ -20,7 +20,7 @@
     "services/backoffice-bff"
   ],
   "scripts": {
-    "proto": "npm run generate -w @ecom/proto",
+    "proto": "npm run generate -w @ecommerce/proto",
     "build": "npm run build --workspaces --if-present",
     "typecheck": "npm run typecheck --workspaces --if-present",
     "test": "vitest run",

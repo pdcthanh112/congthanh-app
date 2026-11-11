@@ -1,5 +1,5 @@
 plugins {
-    id("congthanh.spring-service")
+    id("congthanh.spring-native")
 }
 
 description = "Promotion service (hexagonal): vouchers, discount quotes and redemptions for checkout"

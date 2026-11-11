@@ -1,4 +1,4 @@
-# Outbox Event Router: bảng <schema>.outbox → topic ecom.<aggregatetype>.events.
+# Outbox Event Router: bảng <schema>.outbox → topic ecommerce.<aggregatetype>.events.
 # inventory, cart (Go); order/payment/promotion/product (Java, đợt 2);
 # catalog/customer/review/message (NestJS, đợt 3: schema <svc>_service, cùng cấu trúc bảng outbox).
 apiVersion: kafka.strimzi.io/v1beta2
@@ -13,7 +13,7 @@ spec:
   tasksMax: 1
   config:
     plugin.name: pgoutput
-    database.hostname: ecom-db-rw.data.svc.cluster.local
+    database.hostname: ecommerce-db-rw.data.svc.cluster.local
     database.port: '5432'
     database.dbname: ecommerce
     database.user: ${secrets:messaging/debezium-db:username}
@@ -28,7 +28,7 @@ spec:
     transforms: outbox
     transforms.outbox.type: io.debezium.transforms.outbox.EventRouter
     transforms.outbox.route.by.field: aggregatetype
-    transforms.outbox.route.topic.replacement: ecom.${routedByValue}.events
+    transforms.outbox.route.topic.replacement: ecommerce.${routedByValue}.events
     transforms.outbox.table.field.event.key: aggregateid
     transforms.outbox.table.field.event.payload: payload
     transforms.outbox.table.fields.additional.placement: type:header:ce_type,traceparent:header:traceparent,id:header:ce_id
@@ -48,7 +48,7 @@ spec:
   tasksMax: 1
   config:
     plugin.name: pgoutput
-    database.hostname: ecom-db-rw.data.svc.cluster.local
+    database.hostname: ecommerce-db-rw.data.svc.cluster.local
     database.port: '5432'
     database.dbname: ecommerce
     database.user: ${secrets:messaging/debezium-db:username}
@@ -63,7 +63,7 @@ spec:
     transforms: outbox
     transforms.outbox.type: io.debezium.transforms.outbox.EventRouter
     transforms.outbox.route.by.field: aggregatetype
-    transforms.outbox.route.topic.replacement: ecom.${routedByValue}.events
+    transforms.outbox.route.topic.replacement: ecommerce.${routedByValue}.events
     transforms.outbox.table.field.event.key: aggregateid
     transforms.outbox.table.field.event.payload: payload
     transforms.outbox.table.fields.additional.placement: type:header:ce_type,traceparent:header:traceparent,id:header:ce_id
@@ -83,7 +83,7 @@ spec:
   tasksMax: 1
   config:
     plugin.name: pgoutput
-    database.hostname: ecom-db-rw.data.svc.cluster.local
+    database.hostname: ecommerce-db-rw.data.svc.cluster.local
     database.port: '5432'
     database.dbname: ecommerce
     database.user: ${secrets:messaging/debezium-db:username}
@@ -98,7 +98,7 @@ spec:
     transforms: outbox
     transforms.outbox.type: io.debezium.transforms.outbox.EventRouter
     transforms.outbox.route.by.field: aggregatetype
-    transforms.outbox.route.topic.replacement: ecom.${routedByValue}.events
+    transforms.outbox.route.topic.replacement: ecommerce.${routedByValue}.events
     transforms.outbox.table.field.event.key: aggregateid
     transforms.outbox.table.field.event.payload: payload
     transforms.outbox.table.fields.additional.placement: type:header:ce_type,traceparent:header:traceparent,id:header:ce_id
@@ -118,7 +118,7 @@ spec:
   tasksMax: 1
   config:
     plugin.name: pgoutput
-    database.hostname: ecom-db-rw.data.svc.cluster.local
+    database.hostname: ecommerce-db-rw.data.svc.cluster.local
     database.port: '5432'
     database.dbname: ecommerce
     database.user: ${secrets:messaging/debezium-db:username}
@@ -133,7 +133,7 @@ spec:
     transforms: outbox
     transforms.outbox.type: io.debezium.transforms.outbox.EventRouter
     transforms.outbox.route.by.field: aggregatetype
-    transforms.outbox.route.topic.replacement: ecom.${routedByValue}.events
+    transforms.outbox.route.topic.replacement: ecommerce.${routedByValue}.events
     transforms.outbox.table.field.event.key: aggregateid
     transforms.outbox.table.field.event.payload: payload
     transforms.outbox.table.fields.additional.placement: type:header:ce_type,traceparent:header:traceparent,id:header:ce_id
@@ -153,7 +153,7 @@ spec:
   tasksMax: 1
   config:
     plugin.name: pgoutput
-    database.hostname: ecom-db-rw.data.svc.cluster.local
+    database.hostname: ecommerce-db-rw.data.svc.cluster.local
     database.port: '5432'
     database.dbname: ecommerce
     database.user: ${secrets:messaging/debezium-db:username}
@@ -168,7 +168,7 @@ spec:
     transforms: outbox
     transforms.outbox.type: io.debezium.transforms.outbox.EventRouter
     transforms.outbox.route.by.field: aggregatetype
-    transforms.outbox.route.topic.replacement: ecom.${routedByValue}.events
+    transforms.outbox.route.topic.replacement: ecommerce.${routedByValue}.events
     transforms.outbox.table.field.event.key: aggregateid
     transforms.outbox.table.field.event.payload: payload
     transforms.outbox.table.fields.additional.placement: type:header:ce_type,traceparent:header:traceparent,id:header:ce_id
@@ -188,7 +188,7 @@ spec:
   tasksMax: 1
   config:
     plugin.name: pgoutput
-    database.hostname: ecom-db-rw.data.svc.cluster.local
+    database.hostname: ecommerce-db-rw.data.svc.cluster.local
     database.port: '5432'
     database.dbname: ecommerce
     database.user: ${secrets:messaging/debezium-db:username}
@@ -203,7 +203,7 @@ spec:
     transforms: outbox
     transforms.outbox.type: io.debezium.transforms.outbox.EventRouter
     transforms.outbox.route.by.field: aggregatetype
-    transforms.outbox.route.topic.replacement: ecom.${routedByValue}.events
+    transforms.outbox.route.topic.replacement: ecommerce.${routedByValue}.events
     transforms.outbox.table.field.event.key: aggregateid
     transforms.outbox.table.field.event.payload: payload
     transforms.outbox.table.fields.additional.placement: type:header:ce_type,traceparent:header:traceparent,id:header:ce_id
@@ -223,7 +223,7 @@ spec:
   tasksMax: 1
   config:
     plugin.name: pgoutput
-    database.hostname: ecom-db-rw.data.svc.cluster.local
+    database.hostname: ecommerce-db-rw.data.svc.cluster.local
     database.port: '5432'
     database.dbname: ecommerce
     database.user: ${secrets:messaging/debezium-db:username}
@@ -238,7 +238,7 @@ spec:
     transforms: outbox
     transforms.outbox.type: io.debezium.transforms.outbox.EventRouter
     transforms.outbox.route.by.field: aggregatetype
-    transforms.outbox.route.topic.replacement: ecom.${routedByValue}.events
+    transforms.outbox.route.topic.replacement: ecommerce.${routedByValue}.events
     transforms.outbox.table.field.event.key: aggregateid
     transforms.outbox.table.field.event.payload: payload
     transforms.outbox.table.fields.additional.placement: type:header:ce_type,traceparent:header:traceparent,id:header:ce_id
@@ -258,7 +258,7 @@ spec:
   tasksMax: 1
   config:
     plugin.name: pgoutput
-    database.hostname: ecom-db-rw.data.svc.cluster.local
+    database.hostname: ecommerce-db-rw.data.svc.cluster.local
     database.port: '5432'
     database.dbname: ecommerce
     database.user: ${secrets:messaging/debezium-db:username}
@@ -273,7 +273,7 @@ spec:
     transforms: outbox
     transforms.outbox.type: io.debezium.transforms.outbox.EventRouter
     transforms.outbox.route.by.field: aggregatetype
-    transforms.outbox.route.topic.replacement: ecom.${routedByValue}.events
+    transforms.outbox.route.topic.replacement: ecommerce.${routedByValue}.events
     transforms.outbox.table.field.event.key: aggregateid
     transforms.outbox.table.field.event.payload: payload
     transforms.outbox.table.fields.additional.placement: type:header:ce_type,traceparent:header:traceparent,id:header:ce_id
@@ -293,7 +293,7 @@ spec:
   tasksMax: 1
   config:
     plugin.name: pgoutput
-    database.hostname: ecom-db-rw.data.svc.cluster.local
+    database.hostname: ecommerce-db-rw.data.svc.cluster.local
     database.port: '5432'
     database.dbname: ecommerce
     database.user: ${secrets:messaging/debezium-db:username}
@@ -308,7 +308,7 @@ spec:
     transforms: outbox
     transforms.outbox.type: io.debezium.transforms.outbox.EventRouter
     transforms.outbox.route.by.field: aggregatetype
-    transforms.outbox.route.topic.replacement: ecom.${routedByValue}.events
+    transforms.outbox.route.topic.replacement: ecommerce.${routedByValue}.events
     transforms.outbox.table.field.event.key: aggregateid
     transforms.outbox.table.field.event.payload: payload
     transforms.outbox.table.fields.additional.placement: type:header:ce_type,traceparent:header:traceparent,id:header:ce_id
@@ -328,7 +328,7 @@ spec:
   tasksMax: 1
   config:
     plugin.name: pgoutput
-    database.hostname: ecom-db-rw.data.svc.cluster.local
+    database.hostname: ecommerce-db-rw.data.svc.cluster.local
     database.port: '5432'
     database.dbname: ecommerce
     database.user: ${secrets:messaging/debezium-db:username}
@@ -343,7 +343,7 @@ spec:
     transforms: outbox
     transforms.outbox.type: io.debezium.transforms.outbox.EventRouter
     transforms.outbox.route.by.field: aggregatetype
-    transforms.outbox.route.topic.replacement: ecom.${routedByValue}.events
+    transforms.outbox.route.topic.replacement: ecommerce.${routedByValue}.events
     transforms.outbox.table.field.event.key: aggregateid
     transforms.outbox.table.field.event.payload: payload
     transforms.outbox.table.fields.additional.placement: type:header:ce_type,traceparent:header:traceparent,id:header:ce_id
@@ -363,7 +363,7 @@ spec:
   tasksMax: 1
   config:
     plugin.name: pgoutput
-    database.hostname: ecom-db-rw.data.svc.cluster.local
+    database.hostname: ecommerce-db-rw.data.svc.cluster.local
     database.port: '5432'
     database.dbname: ecommerce
     database.user: ${secrets:messaging/debezium-db:username}
@@ -378,7 +378,77 @@ spec:
     transforms: outbox
     transforms.outbox.type: io.debezium.transforms.outbox.EventRouter
     transforms.outbox.route.by.field: aggregatetype
-    transforms.outbox.route.topic.replacement: ecom.${routedByValue}.events
+    transforms.outbox.route.topic.replacement: ecommerce.${routedByValue}.events
+    transforms.outbox.table.field.event.key: aggregateid
+    transforms.outbox.table.field.event.payload: payload
+    transforms.outbox.table.fields.additional.placement: type:header:ce_type,traceparent:header:traceparent,id:header:ce_id
+    key.converter: org.apache.kafka.connect.storage.StringConverter
+    value.converter: io.debezium.converters.BinaryDataConverter
+    heartbeat.interval.ms: '10000'
+---
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaConnector
+metadata:
+  name: pricing-outbox
+  namespace: messaging
+  labels:
+    strimzi.io/cluster: debezium
+spec:
+  class: io.debezium.connector.postgresql.PostgresConnector
+  tasksMax: 1
+  config:
+    plugin.name: pgoutput
+    database.hostname: ecommerce-db-rw.data.svc.cluster.local
+    database.port: '5432'
+    database.dbname: ecommerce
+    database.user: ${secrets:messaging/debezium-db:username}
+    database.password: ${secrets:messaging/debezium-db:password}
+    topic.prefix: cdc.pricing
+    schema.include.list: pricing
+    table.include.list: pricing.outbox
+    slot.name: debezium_pricing
+    publication.name: dbz_pricing_outbox
+    publication.autocreate.mode: filtered
+    tombstones.on.delete: 'false'
+    transforms: outbox
+    transforms.outbox.type: io.debezium.transforms.outbox.EventRouter
+    transforms.outbox.route.by.field: aggregatetype
+    transforms.outbox.route.topic.replacement: ecommerce.${routedByValue}.events
+    transforms.outbox.table.field.event.key: aggregateid
+    transforms.outbox.table.field.event.payload: payload
+    transforms.outbox.table.fields.additional.placement: type:header:ce_type,traceparent:header:traceparent,id:header:ce_id
+    key.converter: org.apache.kafka.connect.storage.StringConverter
+    value.converter: io.debezium.converters.BinaryDataConverter
+    heartbeat.interval.ms: '10000'
+---
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaConnector
+metadata:
+  name: fraud-outbox
+  namespace: messaging
+  labels:
+    strimzi.io/cluster: debezium
+spec:
+  class: io.debezium.connector.postgresql.PostgresConnector
+  tasksMax: 1
+  config:
+    plugin.name: pgoutput
+    database.hostname: ecommerce-db-rw.data.svc.cluster.local
+    database.port: '5432'
+    database.dbname: ecommerce
+    database.user: ${secrets:messaging/debezium-db:username}
+    database.password: ${secrets:messaging/debezium-db:password}
+    topic.prefix: cdc.fraud
+    schema.include.list: fraud
+    table.include.list: fraud.outbox
+    slot.name: debezium_fraud
+    publication.name: dbz_fraud_outbox
+    publication.autocreate.mode: filtered
+    tombstones.on.delete: 'false'
+    transforms: outbox
+    transforms.outbox.type: io.debezium.transforms.outbox.EventRouter
+    transforms.outbox.route.by.field: aggregatetype
+    transforms.outbox.route.topic.replacement: ecommerce.${routedByValue}.events
     transforms.outbox.table.field.event.key: aggregateid
     transforms.outbox.table.field.event.payload: payload
     transforms.outbox.table.fields.additional.placement: type:header:ce_type,traceparent:header:traceparent,id:header:ce_id

@@ -15,7 +15,7 @@ spec:
         name: {type: string, pattern: "^[a-z][a-z0-9-]+-service$", description: "vd. shipping-service"}
         httpPort: {type: integer, default: 8080}
         grpcPort: {type: integer, default: 9090}
-        domain: {type: string, description: "tên miền event, vd. shipping → topic ecom.shipping.events"}
+        domain: {type: string, description: "tên miền event, vd. shipping → topic ecommerce.shipping.events"}
   steps:
     - id: fetch
       action: fetch:template

@@ -19,19 +19,19 @@ func TestShipmentLifecycle(t *testing.T) {
 	svc := app.NewService(postgres.New(pool), postgres.UUIDv7{}, carrier.Internal{})
 	ctx := context.Background()
 
-	q, err := svc.Quote(ctx, domain.Address{CountryCode: "VN", RegionCode: "HCM"}, domain.Parcel{WeightGrams: 1200, DeclaredValue: 200000, Currency: "VND"})
-	if err != nil || len(q) != 2 || q[0].Fee != 24000 {
+	q, err := svc.Quote(ctx, domain.Address{CountryCode: "US", RegionCode: "NY"}, domain.Parcel{WeightGrams: 1200, DeclaredValue: 2000, Currency: "USD"})
+	if err != nil || len(q) != 2 || q[0].Fee != 599 {
 		t.Fatalf("seed quotes: %+v %v", q, err)
 	}
 
-	addr := &domain.Address{RecipientName: "An", Line1: "1 Lê Lợi", RegionCode: "hcm", CountryCode: "vn"}
+	addr := &domain.Address{RecipientName: "Alex Johnson", Line1: "350 5th Ave", RegionCode: "ny", CountryCode: "us"}
 	for range 2 { // event giao lại không tạo trùng
 		if err := svc.OnOrderPlaced(ctx, "o1", "c1", addr); err != nil {
 			t.Fatal(err)
 		}
 	}
 	sh, err := svc.ForOrder(ctx, "o1", "c1", false)
-	if err != nil || sh.Status != domain.StatusPending || sh.Address.CountryCode != "VN" || len(sh.Events) != 1 {
+	if err != nil || sh.Status != domain.StatusPending || sh.Address.CountryCode != "US" || len(sh.Events) != 1 {
 		t.Fatalf("%+v %v", sh, err)
 	}
 	if _, err := svc.ForOrder(ctx, "o1", "someone-else", false); apperr.KindOf(err) != apperr.KindNotFound {
@@ -43,7 +43,7 @@ func TestShipmentLifecycle(t *testing.T) {
 		t.Fatalf("%+v %v", sh, err)
 	}
 	for _, st := range []domain.Status{domain.StatusPickedUp, domain.StatusInTransit, domain.StatusOutForDelivery, domain.StatusDelivered} {
-		if _, err := svc.UpdateStatus(ctx, sh.ID, st, "", "HCM hub"); err != nil {
+		if _, err := svc.UpdateStatus(ctx, sh.ID, st, "", "Newark NJ hub"); err != nil {
 			t.Fatalf("-> %s: %v", st, err)
 		}
 	}

@@ -1,0 +1,23 @@
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: recommendation-service
+  description: Gợi ý sản phẩm (mua kèm, tương tự qua pgvector, xu hướng, cho riêng bạn) (FastAPI)
+  tags:
+  - python
+  annotations:
+    github.com/project-slug: pdcthanh112/CongThanhApp
+    backstage.io/source-location: url:https://github.com/pdcthanh112/CongThanhApp/tree/main/backend/app/ecommerce/services/recommendation-service
+    argocd/app-selector: app.kubernetes.io/name=recommendation-service
+    grafana/dashboard-selector: tags @> 'recommendation-service'
+    backstage.io/techdocs-ref: dir:../../docs
+spec:
+  type: service
+  lifecycle: production
+  owner: team-ecommerce
+  system: ecommerce
+  providesApis:
+  - recommendation-api-rest
+  dependsOn:
+  - resource:ecommerce-postgres
+  - resource:ecommerce-kafka

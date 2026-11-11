@@ -1,0 +1,18 @@
+syntax = "proto3";
+
+package ecommerce.pricing.v1;
+
+import "ecommerce/common/v1/money.proto";
+import "google/protobuf/timestamp.proto";
+
+option java_multiple_files = true;
+option java_package = "com.congthanh.ecommerce.pricing.v1";
+
+message PriceChanged {
+  string product_id = 1;
+  string price_list = 2;
+  ecommerce.common.v1.Money old_price = 3;
+  ecommerce.common.v1.Money new_price = 4;
+  string reason = 5;
+  google.protobuf.Timestamp effective_at = 6;
+}

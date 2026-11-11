@@ -1,0 +1,24 @@
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: fraud-service
+  description: Chấm điểm rủi ro giao dịch, hàng chờ duyệt và danh sách chặn (FastAPI)
+  tags:
+  - python
+  annotations:
+    github.com/project-slug: pdcthanh112/CongThanhApp
+    backstage.io/source-location: url:https://github.com/pdcthanh112/CongThanhApp/tree/main/backend/app/ecommerce/services/fraud-service
+    argocd/app-selector: app.kubernetes.io/name=fraud-service
+    grafana/dashboard-selector: tags @> 'fraud-service'
+    backstage.io/techdocs-ref: dir:../../docs
+spec:
+  type: service
+  lifecycle: production
+  owner: team-ecommerce
+  system: ecommerce
+  providesApis:
+  - fraud-api-rest
+  dependsOn:
+  - resource:ecommerce-postgres
+  - resource:ecommerce-kafka
+  - resource:ecommerce-redis

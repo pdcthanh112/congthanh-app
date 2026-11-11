@@ -1,2 +1,7 @@
-media_certificate_arn      = "arn:aws:acm:us-east-1:000000000000:certificate/REPLACE_ME"
-opensearch_master_role_arn = "arn:aws:iam::000000000000:role/opensearch-admin"
+domain_name = "congthanhapp.com"
+# Điền sau lần apply đầu, khi Service APISIX đã có NLB nội bộ.
+api_origin_lb_arn = ""
+# Lấy từ https://www.elastic.co/docs/deploy-manage/security/aws-privatelink-traffic-filters (region ap-southeast-1).
+elastic_privatelink_service_name = "com.amazonaws.vpce.ap-southeast-1.vpce-svc-REPLACE_ME"
+shield_advanced       = false
+security_alert_emails = []

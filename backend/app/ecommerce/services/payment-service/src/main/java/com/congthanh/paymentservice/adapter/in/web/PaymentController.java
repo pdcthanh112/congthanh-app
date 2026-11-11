@@ -24,6 +24,7 @@ import java.math.BigDecimal;
 import java.net.URI;
 import java.time.Instant;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -63,19 +64,20 @@ class PaymentController {
         return ResponseEntity.ok(PaymentView.of(p));
     }
 
-    /** IPN của VNPay. VNPay đọc RspCode trong body JSON, không đọc HTTP status. */
-    @GetMapping("/vnpay/ipn")
-    Map<String, String> vnpayIpn(@RequestParam Map<String, String> params) {
-        try {
-            var out = payments.handleCallback(PaymentMethod.VN_PAY, params);
-            return Map.of("RspCode", "00", "Message", out.success() ? "Confirm Success" : "Confirm Failed");
-        } catch (com.congthanh.paymentservice.domain.exception.PaymentException e) {
-            return switch (e.kind()) {
-                case INVALID -> Map.of("RspCode", "97", "Message", "Invalid Checksum");
-                case NOT_FOUND -> Map.of("RspCode", "01", "Message", "Order not found");
-                default -> Map.of("RspCode", "99", "Message", "Unknown error");
-            };
-        }
+    record InstallmentOptionView(String method, BigDecimal minAmount, BigDecimal maxAmount, String currency) {
+    }
+
+    /**
+     * Đối tác trả góp hợp lệ cho số tiền (ADR 0016). Cố ý không trả số tiền mỗi kỳ hay APR: frontend dùng
+     * Stripe Payment Method Messaging Element / PayPal Pay Later messages để hiển thị điều khoản.
+     */
+    @Operation(summary = "Pay-later partners available for an amount (public)")
+    @GetMapping("/installment-options")
+    List<InstallmentOptionView> installmentOptions(@RequestParam BigDecimal amount,
+                                                   @RequestParam(defaultValue = "USD") String currency) {
+        return payments.installmentOptions(amount, currency).stream()
+                .map(o -> new InstallmentOptionView(o.method().name(), o.minAmount(), o.maxAmount(), o.currency()))
+                .toList();
     }
 
     @GetMapping("/paypal/return")
@@ -94,7 +96,7 @@ class PaymentController {
 
     @PostMapping("/webhooks/stripe")
     ResponseEntity<Void> stripeWebhook(@RequestHeader("Stripe-Signature") String signature, @RequestBody String payload) {
-        payments.handleCallback(PaymentMethod.STRIPE, Map.of("payload", payload, "signature", signature));
+        payments.handleCallback(PaymentMethod.CARD, Map.of("payload", payload, "signature", signature));
         return ResponseEntity.ok().build();
     }
 

@@ -13,7 +13,7 @@ import (
 
 const (
 	Source        = "cart-service"
-	AggregateType = "cart" // Debezium route → topic ecom.cart.events
+	AggregateType = "cart" // Debezium route → topic ecommerce.cart.events
 )
 
 func ToOutbox(e domain.Event) (outbox.Message, error) {

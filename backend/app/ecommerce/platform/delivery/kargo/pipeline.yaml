@@ -1,0 +1,627 @@
+# SINH bằng tools/scripts/gen-kargo.py từ deploy/helm/values/* — đừng sửa tay.
+apiVersion: kargo.akuity.io/v1alpha1
+kind: Project
+metadata:
+  name: congthanhapp
+  annotations:
+    argocd.argoproj.io/sync-wave: '-1'
+---
+apiVersion: kargo.akuity.io/v1alpha1
+kind: ProjectConfig
+metadata:
+  name: congthanhapp
+  namespace: congthanhapp
+spec:
+  promotionPolicies:
+  - stageSelector:
+      name: dev
+    autoPromotionEnabled: true
+  - stageSelector:
+      name: staging
+    autoPromotionEnabled: true
+  - stageSelector:
+      name: prod
+    autoPromotionEnabled: false
+---
+apiVersion: kargo.akuity.io/v1alpha1
+kind: Warehouse
+metadata:
+  name: services
+  namespace: congthanhapp
+spec:
+  interval: 5m
+  freightCreationPolicy: Automatic
+  subscriptions:
+  - name: backoffice-bff
+    image:
+      repoURL: ghcr.io/pdcthanh112/congthanhapp/backoffice-bff
+      imageSelectionStrategy: NewestBuild
+      allowTagsRegexes:
+      - ^[0-9a-f]{12}$
+      discoveryLimit: 5
+  - name: cart-service
+    image:
+      repoURL: ghcr.io/pdcthanh112/congthanhapp/cart-service
+      imageSelectionStrategy: NewestBuild
+      allowTagsRegexes:
+      - ^[0-9a-f]{12}$
+      discoveryLimit: 5
+  - name: catalog-service
+    image:
+      repoURL: ghcr.io/pdcthanh112/congthanhapp/catalog-service
+      imageSelectionStrategy: NewestBuild
+      allowTagsRegexes:
+      - ^[0-9a-f]{12}$
+      discoveryLimit: 5
+  - name: chatbot-service
+    image:
+      repoURL: ghcr.io/pdcthanh112/congthanhapp/chatbot-service
+      imageSelectionStrategy: NewestBuild
+      allowTagsRegexes:
+      - ^[0-9a-f]{12}$
+      discoveryLimit: 5
+  - name: checkout-service
+    image:
+      repoURL: ghcr.io/pdcthanh112/congthanhapp/checkout-service
+      imageSelectionStrategy: NewestBuild
+      allowTagsRegexes:
+      - ^[0-9a-f]{12}$
+      discoveryLimit: 5
+  - name: commerce-mcp-service
+    image:
+      repoURL: ghcr.io/pdcthanh112/congthanhapp/commerce-mcp-service
+      imageSelectionStrategy: NewestBuild
+      allowTagsRegexes:
+      - ^[0-9a-f]{12}$
+      discoveryLimit: 5
+  - name: customer-service
+    image:
+      repoURL: ghcr.io/pdcthanh112/congthanhapp/customer-service
+      imageSelectionStrategy: NewestBuild
+      allowTagsRegexes:
+      - ^[0-9a-f]{12}$
+      discoveryLimit: 5
+  - name: fraud-service
+    image:
+      repoURL: ghcr.io/pdcthanh112/congthanhapp/fraud-service
+      imageSelectionStrategy: NewestBuild
+      allowTagsRegexes:
+      - ^[0-9a-f]{12}$
+      discoveryLimit: 5
+  - name: graphql-router
+    image:
+      repoURL: ghcr.io/pdcthanh112/congthanhapp/graphql-router
+      imageSelectionStrategy: NewestBuild
+      allowTagsRegexes:
+      - ^[0-9a-f]{12}$
+      discoveryLimit: 5
+  - name: graphql-router-backoffice
+    image:
+      repoURL: ghcr.io/pdcthanh112/congthanhapp/graphql-router-backoffice
+      imageSelectionStrategy: NewestBuild
+      allowTagsRegexes:
+      - ^[0-9a-f]{12}$
+      discoveryLimit: 5
+  - name: inventory-service
+    image:
+      repoURL: ghcr.io/pdcthanh112/congthanhapp/inventory-service
+      imageSelectionStrategy: NewestBuild
+      allowTagsRegexes:
+      - ^[0-9a-f]{12}$
+      discoveryLimit: 5
+  - name: media-service
+    image:
+      repoURL: ghcr.io/pdcthanh112/congthanhapp/media-service
+      imageSelectionStrategy: NewestBuild
+      allowTagsRegexes:
+      - ^[0-9a-f]{12}$
+      discoveryLimit: 5
+  - name: message-service
+    image:
+      repoURL: ghcr.io/pdcthanh112/congthanhapp/message-service
+      imageSelectionStrategy: NewestBuild
+      allowTagsRegexes:
+      - ^[0-9a-f]{12}$
+      discoveryLimit: 5
+  - name: notification-service
+    image:
+      repoURL: ghcr.io/pdcthanh112/congthanhapp/notification-service
+      imageSelectionStrategy: NewestBuild
+      allowTagsRegexes:
+      - ^[0-9a-f]{12}$
+      discoveryLimit: 5
+  - name: order-service
+    image:
+      repoURL: ghcr.io/pdcthanh112/congthanhapp/order-service
+      imageSelectionStrategy: NewestBuild
+      allowTagsRegexes:
+      - ^[0-9a-f]{12}$
+      discoveryLimit: 5
+  - name: payment-service
+    image:
+      repoURL: ghcr.io/pdcthanh112/congthanhapp/payment-service
+      imageSelectionStrategy: NewestBuild
+      allowTagsRegexes:
+      - ^[0-9a-f]{12}$
+      discoveryLimit: 5
+  - name: pricing-service
+    image:
+      repoURL: ghcr.io/pdcthanh112/congthanhapp/pricing-service
+      imageSelectionStrategy: NewestBuild
+      allowTagsRegexes:
+      - ^[0-9a-f]{12}$
+      discoveryLimit: 5
+  - name: product-service
+    image:
+      repoURL: ghcr.io/pdcthanh112/congthanhapp/product-service
+      imageSelectionStrategy: NewestBuild
+      allowTagsRegexes:
+      - ^[0-9a-f]{12}$
+      discoveryLimit: 5
+  - name: promotion-service
+    image:
+      repoURL: ghcr.io/pdcthanh112/congthanhapp/promotion-service
+      imageSelectionStrategy: NewestBuild
+      allowTagsRegexes:
+      - ^[0-9a-f]{12}$
+      discoveryLimit: 5
+  - name: recommendation-service
+    image:
+      repoURL: ghcr.io/pdcthanh112/congthanhapp/recommendation-service
+      imageSelectionStrategy: NewestBuild
+      allowTagsRegexes:
+      - ^[0-9a-f]{12}$
+      discoveryLimit: 5
+  - name: review-service
+    image:
+      repoURL: ghcr.io/pdcthanh112/congthanhapp/review-service
+      imageSelectionStrategy: NewestBuild
+      allowTagsRegexes:
+      - ^[0-9a-f]{12}$
+      discoveryLimit: 5
+  - name: search-service
+    image:
+      repoURL: ghcr.io/pdcthanh112/congthanhapp/search-service
+      imageSelectionStrategy: NewestBuild
+      allowTagsRegexes:
+      - ^[0-9a-f]{12}$
+      discoveryLimit: 5
+  - name: shipping-service
+    image:
+      repoURL: ghcr.io/pdcthanh112/congthanhapp/shipping-service
+      imageSelectionStrategy: NewestBuild
+      allowTagsRegexes:
+      - ^[0-9a-f]{12}$
+      discoveryLimit: 5
+  - name: storefront-bff
+    image:
+      repoURL: ghcr.io/pdcthanh112/congthanhapp/storefront-bff
+      imageSelectionStrategy: NewestBuild
+      allowTagsRegexes:
+      - ^[0-9a-f]{12}$
+      discoveryLimit: 5
+  - name: supplier-service
+    image:
+      repoURL: ghcr.io/pdcthanh112/congthanhapp/supplier-service
+      imageSelectionStrategy: NewestBuild
+      allowTagsRegexes:
+      - ^[0-9a-f]{12}$
+      discoveryLimit: 5
+  - name: tax-service
+    image:
+      repoURL: ghcr.io/pdcthanh112/congthanhapp/tax-service
+      imageSelectionStrategy: NewestBuild
+      allowTagsRegexes:
+      - ^[0-9a-f]{12}$
+      discoveryLimit: 5
+  - name: translate-service
+    image:
+      repoURL: ghcr.io/pdcthanh112/congthanhapp/translate-service
+      imageSelectionStrategy: NewestBuild
+      allowTagsRegexes:
+      - ^[0-9a-f]{12}$
+      discoveryLimit: 5
+  - name: webhook-service
+    image:
+      repoURL: ghcr.io/pdcthanh112/congthanhapp/webhook-service
+      imageSelectionStrategy: NewestBuild
+      allowTagsRegexes:
+      - ^[0-9a-f]{12}$
+      discoveryLimit: 5
+  - name: stream-processor
+    image:
+      repoURL: ghcr.io/pdcthanh112/congthanhapp/stream-processor
+      imageSelectionStrategy: NewestBuild
+      allowTagsRegexes:
+      - ^[0-9a-f]{12}$
+      discoveryLimit: 5
+---
+apiVersion: kargo.akuity.io/v1alpha1
+kind: PromotionTask
+metadata:
+  name: update-images
+  namespace: congthanhapp
+spec:
+  vars:
+  - name: env
+  steps:
+  - uses: git-clone
+    config:
+      repoURL: https://github.com/pdcthanh112/CongThanhApp.git
+      checkout:
+      - branch: main
+        path: ./src
+      author:
+        name: kargo
+        email: kargo@congthanhapp.local
+  - uses: yaml-update
+    as: update-backoffice-bff
+    config:
+      path: ./src/backend/app/ecommerce/deploy/helm/values/backoffice-bff/values-${{ vars.env }}.yaml
+      updates:
+      - key: image.tag
+        value: ${{ imageFrom('ghcr.io/pdcthanh112/congthanhapp/backoffice-bff').Tag }}
+      - key: image.digest
+        value: ${{ imageFrom('ghcr.io/pdcthanh112/congthanhapp/backoffice-bff').Digest }}
+  - uses: yaml-update
+    as: update-cart-service
+    config:
+      path: ./src/backend/app/ecommerce/deploy/helm/values/cart-service/values-${{ vars.env }}.yaml
+      updates:
+      - key: image.tag
+        value: ${{ imageFrom('ghcr.io/pdcthanh112/congthanhapp/cart-service').Tag }}
+      - key: image.digest
+        value: ${{ imageFrom('ghcr.io/pdcthanh112/congthanhapp/cart-service').Digest }}
+  - uses: yaml-update
+    as: update-catalog-service
+    config:
+      path: ./src/backend/app/ecommerce/deploy/helm/values/catalog-service/values-${{ vars.env }}.yaml
+      updates:
+      - key: image.tag
+        value: ${{ imageFrom('ghcr.io/pdcthanh112/congthanhapp/catalog-service').Tag }}
+      - key: image.digest
+        value: ${{ imageFrom('ghcr.io/pdcthanh112/congthanhapp/catalog-service').Digest }}
+  - uses: yaml-update
+    as: update-chatbot-service
+    config:
+      path: ./src/backend/app/ecommerce/deploy/helm/values/chatbot-service/values-${{ vars.env }}.yaml
+      updates:
+      - key: image.tag
+        value: ${{ imageFrom('ghcr.io/pdcthanh112/congthanhapp/chatbot-service').Tag }}
+      - key: image.digest
+        value: ${{ imageFrom('ghcr.io/pdcthanh112/congthanhapp/chatbot-service').Digest }}
+  - uses: yaml-update
+    as: update-checkout-service
+    config:
+      path: ./src/backend/app/ecommerce/deploy/helm/values/checkout-service/values-${{ vars.env }}.yaml
+      updates:
+      - key: image.tag
+        value: ${{ imageFrom('ghcr.io/pdcthanh112/congthanhapp/checkout-service').Tag }}
+      - key: image.digest
+        value: ${{ imageFrom('ghcr.io/pdcthanh112/congthanhapp/checkout-service').Digest }}
+  - uses: yaml-update
+    as: update-commerce-mcp-service
+    config:
+      path: ./src/backend/app/ecommerce/deploy/helm/values/commerce-mcp-service/values-${{ vars.env }}.yaml
+      updates:
+      - key: image.tag
+        value: ${{ imageFrom('ghcr.io/pdcthanh112/congthanhapp/commerce-mcp-service').Tag }}
+      - key: image.digest
+        value: ${{ imageFrom('ghcr.io/pdcthanh112/congthanhapp/commerce-mcp-service').Digest }}
+  - uses: yaml-update
+    as: update-customer-service
+    config:
+      path: ./src/backend/app/ecommerce/deploy/helm/values/customer-service/values-${{ vars.env }}.yaml
+      updates:
+      - key: image.tag
+        value: ${{ imageFrom('ghcr.io/pdcthanh112/congthanhapp/customer-service').Tag }}
+      - key: image.digest
+        value: ${{ imageFrom('ghcr.io/pdcthanh112/congthanhapp/customer-service').Digest }}
+  - uses: yaml-update
+    as: update-fraud-service
+    config:
+      path: ./src/backend/app/ecommerce/deploy/helm/values/fraud-service/values-${{ vars.env }}.yaml
+      updates:
+      - key: image.tag
+        value: ${{ imageFrom('ghcr.io/pdcthanh112/congthanhapp/fraud-service').Tag }}
+      - key: image.digest
+        value: ${{ imageFrom('ghcr.io/pdcthanh112/congthanhapp/fraud-service').Digest }}
+  - uses: yaml-update
+    as: update-graphql-router
+    config:
+      path: ./src/backend/app/ecommerce/deploy/helm/values/graphql-router/values-${{ vars.env }}.yaml
+      updates:
+      - key: image.tag
+        value: ${{ imageFrom('ghcr.io/pdcthanh112/congthanhapp/graphql-router').Tag }}
+      - key: image.digest
+        value: ${{ imageFrom('ghcr.io/pdcthanh112/congthanhapp/graphql-router').Digest }}
+  - uses: yaml-update
+    as: update-graphql-router-backoffice
+    config:
+      path: ./src/backend/app/ecommerce/deploy/helm/values/graphql-router-backoffice/values-${{ vars.env }}.yaml
+      updates:
+      - key: image.tag
+        value: ${{ imageFrom('ghcr.io/pdcthanh112/congthanhapp/graphql-router-backoffice').Tag }}
+      - key: image.digest
+        value: ${{ imageFrom('ghcr.io/pdcthanh112/congthanhapp/graphql-router-backoffice').Digest }}
+  - uses: yaml-update
+    as: update-inventory-service
+    config:
+      path: ./src/backend/app/ecommerce/deploy/helm/values/inventory-service/values-${{ vars.env }}.yaml
+      updates:
+      - key: image.tag
+        value: ${{ imageFrom('ghcr.io/pdcthanh112/congthanhapp/inventory-service').Tag }}
+      - key: image.digest
+        value: ${{ imageFrom('ghcr.io/pdcthanh112/congthanhapp/inventory-service').Digest }}
+  - uses: yaml-update
+    as: update-media-service
+    config:
+      path: ./src/backend/app/ecommerce/deploy/helm/values/media-service/values-${{ vars.env }}.yaml
+      updates:
+      - key: image.tag
+        value: ${{ imageFrom('ghcr.io/pdcthanh112/congthanhapp/media-service').Tag }}
+      - key: image.digest
+        value: ${{ imageFrom('ghcr.io/pdcthanh112/congthanhapp/media-service').Digest }}
+  - uses: yaml-update
+    as: update-message-service
+    config:
+      path: ./src/backend/app/ecommerce/deploy/helm/values/message-service/values-${{ vars.env }}.yaml
+      updates:
+      - key: image.tag
+        value: ${{ imageFrom('ghcr.io/pdcthanh112/congthanhapp/message-service').Tag }}
+      - key: image.digest
+        value: ${{ imageFrom('ghcr.io/pdcthanh112/congthanhapp/message-service').Digest }}
+  - uses: yaml-update
+    as: update-notification-service
+    config:
+      path: ./src/backend/app/ecommerce/deploy/helm/values/notification-service/values-${{ vars.env }}.yaml
+      updates:
+      - key: image.tag
+        value: ${{ imageFrom('ghcr.io/pdcthanh112/congthanhapp/notification-service').Tag }}
+      - key: image.digest
+        value: ${{ imageFrom('ghcr.io/pdcthanh112/congthanhapp/notification-service').Digest }}
+  - uses: yaml-update
+    as: update-order-service
+    config:
+      path: ./src/backend/app/ecommerce/deploy/helm/values/order-service/values-${{ vars.env }}.yaml
+      updates:
+      - key: image.tag
+        value: ${{ imageFrom('ghcr.io/pdcthanh112/congthanhapp/order-service').Tag }}
+      - key: image.digest
+        value: ${{ imageFrom('ghcr.io/pdcthanh112/congthanhapp/order-service').Digest }}
+  - uses: yaml-update
+    as: update-payment-service
+    config:
+      path: ./src/backend/app/ecommerce/deploy/helm/values/payment-service/values-${{ vars.env }}.yaml
+      updates:
+      - key: image.tag
+        value: ${{ imageFrom('ghcr.io/pdcthanh112/congthanhapp/payment-service').Tag }}
+      - key: image.digest
+        value: ${{ imageFrom('ghcr.io/pdcthanh112/congthanhapp/payment-service').Digest }}
+  - uses: yaml-update
+    as: update-pricing-service
+    config:
+      path: ./src/backend/app/ecommerce/deploy/helm/values/pricing-service/values-${{ vars.env }}.yaml
+      updates:
+      - key: image.tag
+        value: ${{ imageFrom('ghcr.io/pdcthanh112/congthanhapp/pricing-service').Tag }}
+      - key: image.digest
+        value: ${{ imageFrom('ghcr.io/pdcthanh112/congthanhapp/pricing-service').Digest }}
+  - uses: yaml-update
+    as: update-product-service
+    config:
+      path: ./src/backend/app/ecommerce/deploy/helm/values/product-service/values-${{ vars.env }}.yaml
+      updates:
+      - key: image.tag
+        value: ${{ imageFrom('ghcr.io/pdcthanh112/congthanhapp/product-service').Tag }}
+      - key: image.digest
+        value: ${{ imageFrom('ghcr.io/pdcthanh112/congthanhapp/product-service').Digest }}
+  - uses: yaml-update
+    as: update-promotion-service
+    config:
+      path: ./src/backend/app/ecommerce/deploy/helm/values/promotion-service/values-${{ vars.env }}.yaml
+      updates:
+      - key: image.tag
+        value: ${{ imageFrom('ghcr.io/pdcthanh112/congthanhapp/promotion-service').Tag }}
+      - key: image.digest
+        value: ${{ imageFrom('ghcr.io/pdcthanh112/congthanhapp/promotion-service').Digest }}
+  - uses: yaml-update
+    as: update-recommendation-service
+    config:
+      path: ./src/backend/app/ecommerce/deploy/helm/values/recommendation-service/values-${{ vars.env }}.yaml
+      updates:
+      - key: image.tag
+        value: ${{ imageFrom('ghcr.io/pdcthanh112/congthanhapp/recommendation-service').Tag }}
+      - key: image.digest
+        value: ${{ imageFrom('ghcr.io/pdcthanh112/congthanhapp/recommendation-service').Digest }}
+  - uses: yaml-update
+    as: update-review-service
+    config:
+      path: ./src/backend/app/ecommerce/deploy/helm/values/review-service/values-${{ vars.env }}.yaml
+      updates:
+      - key: image.tag
+        value: ${{ imageFrom('ghcr.io/pdcthanh112/congthanhapp/review-service').Tag }}
+      - key: image.digest
+        value: ${{ imageFrom('ghcr.io/pdcthanh112/congthanhapp/review-service').Digest }}
+  - uses: yaml-update
+    as: update-search-service
+    config:
+      path: ./src/backend/app/ecommerce/deploy/helm/values/search-service/values-${{ vars.env }}.yaml
+      updates:
+      - key: image.tag
+        value: ${{ imageFrom('ghcr.io/pdcthanh112/congthanhapp/search-service').Tag }}
+      - key: image.digest
+        value: ${{ imageFrom('ghcr.io/pdcthanh112/congthanhapp/search-service').Digest }}
+  - uses: yaml-update
+    as: update-shipping-service
+    config:
+      path: ./src/backend/app/ecommerce/deploy/helm/values/shipping-service/values-${{ vars.env }}.yaml
+      updates:
+      - key: image.tag
+        value: ${{ imageFrom('ghcr.io/pdcthanh112/congthanhapp/shipping-service').Tag }}
+      - key: image.digest
+        value: ${{ imageFrom('ghcr.io/pdcthanh112/congthanhapp/shipping-service').Digest }}
+  - uses: yaml-update
+    as: update-storefront-bff
+    config:
+      path: ./src/backend/app/ecommerce/deploy/helm/values/storefront-bff/values-${{ vars.env }}.yaml
+      updates:
+      - key: image.tag
+        value: ${{ imageFrom('ghcr.io/pdcthanh112/congthanhapp/storefront-bff').Tag }}
+      - key: image.digest
+        value: ${{ imageFrom('ghcr.io/pdcthanh112/congthanhapp/storefront-bff').Digest }}
+  - uses: yaml-update
+    as: update-supplier-service
+    config:
+      path: ./src/backend/app/ecommerce/deploy/helm/values/supplier-service/values-${{ vars.env }}.yaml
+      updates:
+      - key: image.tag
+        value: ${{ imageFrom('ghcr.io/pdcthanh112/congthanhapp/supplier-service').Tag }}
+      - key: image.digest
+        value: ${{ imageFrom('ghcr.io/pdcthanh112/congthanhapp/supplier-service').Digest }}
+  - uses: yaml-update
+    as: update-tax-service
+    config:
+      path: ./src/backend/app/ecommerce/deploy/helm/values/tax-service/values-${{ vars.env }}.yaml
+      updates:
+      - key: image.tag
+        value: ${{ imageFrom('ghcr.io/pdcthanh112/congthanhapp/tax-service').Tag }}
+      - key: image.digest
+        value: ${{ imageFrom('ghcr.io/pdcthanh112/congthanhapp/tax-service').Digest }}
+  - uses: yaml-update
+    as: update-translate-service
+    config:
+      path: ./src/backend/app/ecommerce/deploy/helm/values/translate-service/values-${{ vars.env }}.yaml
+      updates:
+      - key: image.tag
+        value: ${{ imageFrom('ghcr.io/pdcthanh112/congthanhapp/translate-service').Tag }}
+      - key: image.digest
+        value: ${{ imageFrom('ghcr.io/pdcthanh112/congthanhapp/translate-service').Digest }}
+  - uses: yaml-update
+    as: update-webhook-service
+    config:
+      path: ./src/backend/app/ecommerce/deploy/helm/values/webhook-service/values-${{ vars.env }}.yaml
+      updates:
+      - key: image.tag
+        value: ${{ imageFrom('ghcr.io/pdcthanh112/congthanhapp/webhook-service').Tag }}
+      - key: image.digest
+        value: ${{ imageFrom('ghcr.io/pdcthanh112/congthanhapp/webhook-service').Digest }}
+  - uses: kustomize-set-image
+    as: update-stream-processor
+    config:
+      path: ./src/backend/app/ecommerce/platform/streaming/flink/overlays/${{ vars.env }}
+      images:
+      - image: ghcr.io/pdcthanh112/congthanhapp/stream-processor
+        digest: ${{ imageFrom('ghcr.io/pdcthanh112/congthanhapp/stream-processor').Digest }}
+  - uses: git-commit
+    as: commit
+    config:
+      path: ./src
+      message: 'kargo: promote ${{ ctx.stage }} lên freight ${{ ctx.targetFreight.name }}'
+---
+apiVersion: kargo.akuity.io/v1alpha1
+kind: Stage
+metadata:
+  name: dev
+  namespace: congthanhapp
+  labels:
+    environment: dev
+spec:
+  requestedFreight:
+  - origin:
+      kind: Warehouse
+      name: services
+    sources:
+      direct: true
+  promotionTemplate:
+    spec:
+      vars:
+      - name: env
+        value: dev
+      steps:
+      - task:
+          name: update-images
+      - uses: git-push
+        config:
+          path: ./src
+          targetBranch: main
+  verification:
+    analysisTemplates:
+    - name: ecommerce-health
+---
+apiVersion: kargo.akuity.io/v1alpha1
+kind: Stage
+metadata:
+  name: staging
+  namespace: congthanhapp
+  labels:
+    environment: staging
+spec:
+  requestedFreight:
+  - origin:
+      kind: Warehouse
+      name: services
+    sources:
+      stages:
+      - dev
+  promotionTemplate:
+    spec:
+      vars:
+      - name: env
+        value: staging
+      steps:
+      - task:
+          name: update-images
+      - uses: git-push
+        config:
+          path: ./src
+          targetBranch: main
+  verification:
+    analysisTemplates:
+    - name: ecommerce-health
+---
+apiVersion: kargo.akuity.io/v1alpha1
+kind: Stage
+metadata:
+  name: prod
+  namespace: congthanhapp
+  labels:
+    environment: prod
+spec:
+  requestedFreight:
+  - origin:
+      kind: Warehouse
+      name: services
+    sources:
+      stages:
+      - staging
+  promotionTemplate:
+    spec:
+      vars:
+      - name: env
+        value: prod
+      steps:
+      - task:
+          name: update-images
+      - uses: git-push
+        as: push
+        config:
+          path: ./src
+          generateTargetBranch: true
+      - uses: git-open-pr
+        as: open-pr
+        config:
+          repoURL: https://github.com/pdcthanh112/CongThanhApp.git
+          sourceBranch: ${{ outputs.push.branch }}
+          targetBranch: main
+          title: 'release(prod): freight ${{ ctx.targetFreight.name }}'
+          labels:
+          - release
+          - kargo
+      - uses: git-wait-for-pr
+        config:
+          repoURL: https://github.com/pdcthanh112/CongThanhApp.git
+          prNumber: ${{ outputs['open-pr'].pr.id }}
+  verification:
+    analysisTemplates:
+    - name: ecommerce-health

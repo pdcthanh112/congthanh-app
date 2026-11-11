@@ -1,4 +1,4 @@
-import { CurrentPrincipal, DomainError, type Principal, Public } from '@ecom/platform';
+import { CurrentPrincipal, DomainError, type Principal, Public } from '@ecommerce/platform';
 import {
   Args,
   Context,

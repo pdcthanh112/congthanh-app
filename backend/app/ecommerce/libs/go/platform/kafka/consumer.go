@@ -96,7 +96,7 @@ func (c *Consumer) handle(ctx context.Context, r *kgo.Record) error {
 	ctx, span := otel.Tracer("kafka").Start(ctx, "consume "+env.GetType())
 	defer span.End()
 
-	// Consumer không có DB (pool nil): handler tự idempotent (ví dụ search-service ghi OpenSearch theo version).
+	// Consumer không có DB (pool nil): handler tự idempotent (ví dụ search-service ghi Elasticsearch theo version).
 	if c.pool == nil {
 		return c.handler(ctx, nil, env)
 	}

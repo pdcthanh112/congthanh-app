@@ -1,4 +1,4 @@
-import type { Database } from '@ecom/platform';
+import type { Database } from '@ecommerce/platform';
 import { and, desc, eq, lt, or, sql } from 'drizzle-orm';
 import type { ConversationRepository, ConversationSummary, MessageRepository } from '../../../application/ports.js';
 import type { ChatMessage, Conversation } from '../../../domain/conversation.js';

@@ -1,6 +1,6 @@
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { createPool, runMigrations } from '@ecom/platform';
+import { createPool, runMigrations } from '@ecommerce/platform';
 import { sql } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/node-postgres';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
@@ -14,14 +14,14 @@ const SCHEMA = 'customer_service';
 const migrations = join(dirname(fileURLToPath(import.meta.url)), '..', 'drizzle');
 const draft = (name: string): AddressDraft => ({
   fullName: name,
-  phoneNumber: '0901234567',
+  phoneNumber: '+12125550100',
   label: 'HOME',
-  countryCode: 'VN',
-  provinceCode: '79',
+  countryCode: 'US',
+  provinceCode: 'NY',
   districtCode: null,
   wardCode: null,
-  addressLine: '1 Lê Lợi',
-  postalCode: null,
+  addressLine: '350 5th Ave',
+  postalCode: '10118',
   latitude: null,
   longitude: null,
 });

@@ -1,0 +1,72 @@
+# Job Flink application mode. Nâng cấp = đổi image → operator lấy savepoint, dừng job cũ, chạy job mới từ savepoint.
+# State backend RocksDB (incremental) trên S3 (bucket terraform module flink_state, quyền qua EKS Pod Identity của SA flink).
+apiVersion: flink.apache.org/v1beta1
+kind: FlinkDeployment
+metadata:
+  name: stream-processor
+  labels:
+    app.kubernetes.io/name: stream-processor
+    app.kubernetes.io/part-of: ecommerce
+spec:
+  # Tag/digest thật do overlay (Kargo kustomize-set-image) đặt; base chỉ giữ tên image.
+  image: ghcr.io/pdcthanh112/congthanhapp/stream-processor
+  imagePullPolicy: IfNotPresent
+  flinkVersion: v2_2
+  serviceAccount: flink
+  mode: native
+  flinkConfiguration:
+    taskmanager.numberOfTaskSlots: "2"
+    parallelism.default: "2"
+    state.backend.type: rocksdb
+    state.backend.incremental: "true"
+    execution.checkpointing.dir: s3://BUCKET/checkpoints
+    execution.checkpointing.savepoint-dir: s3://BUCKET/savepoints
+    execution.checkpointing.interval: 60s
+    execution.checkpointing.min-pause: 30s
+    execution.checkpointing.num-retained: "3"
+    execution.checkpointing.externalized-checkpoint-retention: RETAIN_ON_CANCELLATION
+    restart-strategy.type: exponential-delay
+    high-availability.type: kubernetes
+    high-availability.storageDir: s3://BUCKET/ha
+    kubernetes.operator.savepoint.history.max.age: 7d
+    kubernetes.operator.periodic.savepoint.interval: 6h
+    kubernetes.operator.job.autoscaler.enabled: "true"
+    kubernetes.operator.job.autoscaler.metrics.window: 10m
+    kubernetes.operator.job.autoscaler.target.utilization: "0.6"
+    kubernetes.operator.job.autoscaler.stabilization.interval: 5m
+    jobmanager.scheduler: adaptive
+    metrics.reporter.prom.factory.class: org.apache.flink.metrics.prometheus.PrometheusReporterFactory
+    metrics.reporter.prom.port: "9249"
+  jobManager:
+    replicas: 1
+    resource: {memory: 1536m, cpu: 0.5}
+  taskManager:
+    resource: {memory: 2560m, cpu: 1}
+  podTemplate:
+    metadata:
+      labels:
+        app.kubernetes.io/name: stream-processor
+    spec:
+      securityContext: {runAsNonRoot: true, runAsUser: 9999, fsGroup: 9999}
+      containers:
+      - name: flink-main-container
+        ports:
+        - {name: metrics, containerPort: 9249}
+        env:
+        - {name: PIPELINES, value: all}
+        - {name: KAFKA_BROKERS, value: ecommerce-kafka-bootstrap.messaging.svc.cluster.local:9092}
+        - {name: KAFKA_SECURITY_PROTOCOL, value: SASL_PLAINTEXT}  # mTLS do Istio Ambient lo (namespace có nhãn ambient)
+        - {name: KAFKA_SASL_MECHANISM, value: SCRAM-SHA-512}
+        - {name: KAFKA_USERNAME, value: stream-processor}
+        - name: KAFKA_PASSWORD
+          valueFrom: {secretKeyRef: {name: stream-processor, key: KAFKA_PASSWORD}}
+        - {name: STOCK_COVER_HOURS, value: "48"}
+        securityContext:
+          allowPrivilegeEscalation: false
+          capabilities: {drop: [ALL]}
+  job:
+    jarURI: local:///opt/flink/usrlib/stream-processor.jar
+    entryClass: com.congthanh.stream.StreamProcessorApp
+    parallelism: 2
+    upgradeMode: savepoint
+    state: running

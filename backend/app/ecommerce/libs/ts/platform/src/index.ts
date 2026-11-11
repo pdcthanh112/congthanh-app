@@ -21,4 +21,4 @@ export * from './health/health.module.js';
 export * from './http/rest-client.js';
 export * from './kafka/event-consumer.js';
 export * from './logging/logger.module.js';
-export * from './realtime/valkey-pubsub.js';
+export * from './realtime/redis-pubsub.js';

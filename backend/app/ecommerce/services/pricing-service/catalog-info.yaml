@@ -1,0 +1,25 @@
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: pricing-service
+  description: Bảng giá, giá theo nhóm khách, sale hẹn giờ và flash sale
+  tags:
+  - go
+  annotations:
+    github.com/project-slug: pdcthanh112/CongThanhApp
+    backstage.io/source-location: url:https://github.com/pdcthanh112/CongThanhApp/tree/main/backend/app/ecommerce/services/pricing-service
+    argocd/app-selector: app.kubernetes.io/name=pricing-service
+    grafana/dashboard-selector: tags @> 'pricing-service'
+    backstage.io/techdocs-ref: dir:../../docs
+spec:
+  type: service
+  lifecycle: production
+  owner: team-ecommerce
+  system: ecommerce
+  providesApis:
+  - pricing-api-grpc
+  - pricing-api-rest
+  dependsOn:
+  - resource:ecommerce-postgres
+  - resource:ecommerce-kafka
+  - resource:ecommerce-redis

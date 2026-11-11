@@ -67,7 +67,7 @@ final class OrderDtos {
     }
 
     record OrderDto(String orderId, String orderCode, String status, List<OrderLineDto> lines, MoneyDto subtotal,
-                    MoneyDto discount, MoneyDto total, String promotionCode, String paymentMethod,
+                    MoneyDto discount, MoneyDto shippingFee, MoneyDto tax, MoneyDto total, String promotionCode, String paymentMethod,
                     AddressDto shippingAddress, AddressDto billingAddress, String note, String cancelReason,
                     Instant placedAt, Instant updatedAt) {
 
@@ -75,7 +75,8 @@ final class OrderDtos {
             return new OrderDto(o.id(), o.orderCode(), o.status().name(),
                     o.lines().stream().map(l -> new OrderLineDto(l.productId(), l.sku(), l.name(), l.quantity(),
                             MoneyDto.of(l.unitPrice()), MoneyDto.of(l.total()))).toList(),
-                    MoneyDto.of(o.subtotal()), MoneyDto.of(o.discount()), MoneyDto.of(o.total()), o.promotionCode(),
+                    MoneyDto.of(o.subtotal()), MoneyDto.of(o.discount()),
+                    MoneyDto.of(o.shippingFee()), MoneyDto.of(o.tax()), MoneyDto.of(o.total()), o.promotionCode(),
                     o.checkout().paymentMethod().name(), AddressDto.of(o.shippingAddress()),
                     AddressDto.of(o.billingAddress()), o.note(), o.cancelReason(), o.placedAt(), o.updatedAt());
         }

@@ -24,9 +24,9 @@ const (
 
 type TaxAddress struct {
 	state protoimpl.MessageState `protogen:"open.v1"`
-	// ISO 3166-1 alpha-2, ví dụ "VN".
+	// ISO 3166-1 alpha-2, ví dụ "US".
 	CountryCode string `protobuf:"bytes,1,opt,name=country_code,json=countryCode,proto3" json:"country_code,omitempty"`
-	// Mã tỉnh/thành (cùng mã với customer-service), có thể trống.
+	// Mã bang/tỉnh (ISO 3166-2 bỏ tiền tố quốc gia, ví dụ "CA"; cùng mã với customer-service), có thể trống.
 	RegionCode    string `protobuf:"bytes,2,opt,name=region_code,json=regionCode,proto3" json:"region_code,omitempty"`
 	PostalCode    string `protobuf:"bytes,3,opt,name=postal_code,json=postalCode,proto3" json:"postal_code,omitempty"`
 	unknownFields protoimpl.UnknownFields

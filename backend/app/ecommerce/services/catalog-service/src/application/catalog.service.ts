@@ -1,8 +1,8 @@
-import { DomainError } from '@ecom/platform/errors';
-import { Inject, Injectable } from '@nestjs/common';
-import { type BrandDraft, type BrandProps, normalizeBrand } from '../domain/brand.js';
-import { Category, type CategoryDraft, checkDepth } from '../domain/category.js';
-import { MAX_TAGS_PER_PRODUCT, normalizeTagName, type TagProps, type TagStatus } from '../domain/tag.js';
+import { DomainError } from "@ecommerce/platform/errors";
+import { Inject, Injectable } from "@nestjs/common";
+import { type BrandDraft, type BrandProps, normalizeBrand } from "../domain/brand.js";
+import { Category, type CategoryDraft, checkDepth } from "../domain/category.js";
+import { MAX_TAGS_PER_PRODUCT, normalizeTagName, type TagProps, type TagStatus } from "../domain/tag.js";
 import {
   CLOCK,
   type Clock,
@@ -14,9 +14,8 @@ import {
   type TransactionScope,
   UNIT_OF_WORK,
   type UnitOfWork,
-} from './ports.js';
+} from "./ports.js";
 
-/** Use case ghi của catalog. Đọc đơn giản đi thẳng qua ReadRepositories (resolver, gRPC). */
 @Injectable()
 export class CatalogService {
   constructor(
@@ -41,7 +40,7 @@ export class CatalogService {
     });
   }
 
-  updateCategory(id: string, version: number, draft: Omit<CategoryDraft, 'parentId'>): Promise<Category> {
+  updateCategory(id: string, version: number, draft: Omit<CategoryDraft, "parentId">): Promise<Category> {
     return this.mutateCategory(id, version, async (category, tx) => {
       category.rename(draft, this.clock.now());
       await this.ensureSlugFree(tx, category.slug, id);
@@ -59,7 +58,7 @@ export class CatalogService {
   deactivateCategory(id: string, version: number): Promise<Category> {
     return this.mutateCategory(id, version, async (category, tx) => {
       if ((await tx.categories.countChildren(id, true)) > 0) {
-        throw DomainError.conflict('category still has active subcategories', 'CATEGORY_HAS_CHILDREN');
+        throw DomainError.conflict("category still has active subcategories", "CATEGORY_HAS_CHILDREN");
       }
       category.deactivate(this.clock.now());
     });
@@ -73,7 +72,7 @@ export class CatalogService {
   async validateCategories(ids: readonly string[]): Promise<string[]> {
     const unique = [...new Set(ids)];
     const found = await this.read.categories.findByIds(unique);
-    const active = new Set(found.filter((c) => c.status === 'ACTIVE').map((c) => c.id));
+    const active = new Set(found.filter((c) => c.status === "ACTIVE").map((c) => c.id));
     return unique.filter((id) => !active.has(id));
   }
 
@@ -82,8 +81,7 @@ export class CatalogService {
   createBrand(draft: BrandDraft): Promise<BrandProps> {
     return this.uow.run(async (tx) => {
       const data = normalizeBrand(draft);
-      if (await tx.brands.slugTaken(data.slug))
-        throw DomainError.conflict(`slug "${data.slug}" is taken`, 'SLUG_TAKEN');
+      if (await tx.brands.slugTaken(data.slug)) throw DomainError.conflict(`slug "${data.slug}" is taken`, "SLUG_TAKEN");
       const brand = await tx.brands.insert({ ...data, active: true });
       await tx.events.brandChanged(brand);
       return brand;
@@ -95,8 +93,7 @@ export class CatalogService {
       const current = await tx.brands.findById(id);
       if (!current) throw DomainError.notFound(`brand ${id} not found`);
       const data = normalizeBrand(draft);
-      if (await tx.brands.slugTaken(data.slug, id))
-        throw DomainError.conflict(`slug "${data.slug}" is taken`, 'SLUG_TAKEN');
+      if (await tx.brands.slugTaken(data.slug, id)) throw DomainError.conflict(`slug "${data.slug}" is taken`, "SLUG_TAKEN");
       const brand = { ...current, ...data, active: draft.active ?? current.active };
       await tx.brands.update(brand);
       await tx.events.brandChanged(brand);
@@ -131,7 +128,7 @@ export class CatalogService {
         updatedAt: this.clock.now(),
       };
       if (next.name !== tag.name && (await tx.tags.findByName(next.name))) {
-        throw DomainError.conflict(`tag "${next.name}" already exists`, 'TAG_EXISTS');
+        throw DomainError.conflict(`tag "${next.name}" already exists`, "TAG_EXISTS");
       }
       await tx.tags.update(next);
       return next;
@@ -146,8 +143,8 @@ export class CatalogService {
         throw DomainError.invalid(`a product can have at most ${MAX_TAGS_PER_PRODUCT} tags`);
       }
       const found = await tx.tags.findByIds(unique);
-      const missing = unique.filter((id) => !found.some((t) => t.id === id && t.status === 'ACTIVE'));
-      if (missing.length > 0) throw DomainError.invalid(`unknown or inactive tags: ${missing.join(', ')}`);
+      const missing = unique.filter((id) => !found.some((t) => t.id === id && t.status === "ACTIVE"));
+      if (missing.length > 0) throw DomainError.invalid(`unknown or inactive tags: ${missing.join(", ")}`);
       await tx.tags.setProductTags(productId, unique);
       await tx.events.productTagsChanged(productId, unique);
       return unique;
@@ -156,20 +153,16 @@ export class CatalogService {
 
   // ---------- nội bộ ----------
 
-  private mutateCategory(
-    id: string,
-    version: number,
-    change: (category: Category, tx: TransactionScope) => Promise<void>,
-  ): Promise<Category> {
+  private mutateCategory(id: string, version: number, change: (category: Category, tx: TransactionScope) => Promise<void>): Promise<Category> {
     return this.uow.run(async (tx) => {
       const category = await tx.categories.findById(id);
       if (!category) throw DomainError.notFound(`category ${id} not found`);
       if (category.snapshot().version !== version) {
-        throw DomainError.conflict('category was modified by someone else; reload and retry', 'STALE_VERSION');
+        throw DomainError.conflict("category was modified by someone else; reload and retry", "STALE_VERSION");
       }
       await change(category, tx);
       if (!(await tx.categories.update(category, version))) {
-        throw DomainError.conflict('category was modified by someone else; reload and retry', 'STALE_VERSION');
+        throw DomainError.conflict("category was modified by someone else; reload and retry", "STALE_VERSION");
       }
       const path = await tx.categories.pathTo(id);
       await tx.events.categoryChanged(category, path);
@@ -185,7 +178,7 @@ export class CatalogService {
 
   private async ensureSlugFree(tx: TransactionScope, slug: string, exceptId?: string): Promise<void> {
     if (await tx.categories.slugTaken(slug, exceptId)) {
-      throw DomainError.conflict(`slug "${slug}" is taken`, 'SLUG_TAKEN');
+      throw DomainError.conflict(`slug "${slug}" is taken`, "SLUG_TAKEN");
     }
   }
 }

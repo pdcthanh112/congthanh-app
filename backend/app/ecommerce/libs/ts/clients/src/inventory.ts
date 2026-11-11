@@ -1,9 +1,9 @@
-import { bearer, fromGrpcError, grpcClient, resiliencePolicy } from '@ecom/platform';
+import { bearer, fromGrpcError, grpcClient, resiliencePolicy } from '@ecommerce/platform';
 import {
   InventoryAdjustment_AdjustmentType as AdjustmentType,
   InventoryService,
   InventoryLevel_InventoryStatus as Status,
-} from '@ecom/proto/ecommerce/inventory/v1/inventory_service_pb';
+} from '@ecommerce/proto/ecommerce/inventory/v1/inventory_service_pb';
 
 export type StockStatus = 'IN_STOCK' | 'LOW_STOCK' | 'OUT_OF_STOCK' | 'BACKORDER' | 'DISCONTINUED';
 
