@@ -48,7 +48,7 @@ tools/        script sinh cấu hình, Backstage template, agent
 | webhook-service | Go 1.26 | 5023 | | webhook bên thứ ba: HMAC, thử lại có backoff, chặn SSRF |
 | pricing-service | Go 1.26 | 5025 | 9099 | bảng giá theo nhóm khách, lịch giảm giá, lịch sử giá (giá thấp nhất 30 ngày) |
 | clickstream-collector | Go 1.26 | 5029 | | thu thập view/search/add-to-cart từ web/app vào Kafka cho data lakehouse (mục 12) |
-| product-service | Java 25 / Spring Boot 4 | 5008 | 29090 | sản phẩm |
+| product-service | Java 25 / Spring Boot 4 | 5008 | 29090 | sản phẩm; read model trang sản phẩm trên MongoDB (CQRS) |
 | checkout-service | Java 25 / Spring Boot 4 | 5027 | 19095 | phiên checkout, báo giá, kiểm tra gian lận, chạy saga Temporal (queue `checkout-workflow`) |
 | order-service | Java 25 / Spring Boot 4 | 5006 | 19090 | đơn hàng, activity của saga, gRPC `PlaceOrder` |
 | payment-service | Java 25 / Spring Boot 4 | 5018 | 9090 | thanh toán: thẻ, Apple Pay, Google Pay (Stripe), PayPal, sandbox |
@@ -260,6 +260,24 @@ Trên AWS dùng dịch vụ quản lý; manifest Strimzi/CNPG trong `platform/` 
 | ScyllaDB | lịch sử chat | `platform/data/scylla.yaml` |
 | Iceberg trên S3 | data lake, replay/ML | Kafka Connect Iceberg sink; local: Spark + Polaris (mục 12) |
 | Elasticsearch 9 | full-text search | Elastic Cloud (PrivateLink) |
+| MongoDB 8 | read model trang sản phẩm (product-service) | MongoDB Atlas (PrivateLink) / `mongo:8.0` local |
+
+**Read model trang sản phẩm (CQRS, ADR 0020)**
+
+product-service ghi Postgres + outbox như mọi service. Read model trong MongoDB (collection `product`, mỗi sản
+phẩm một document đã gộp danh mục, ảnh, thuộc tính, variant, giá, điểm review, tồn kho) do chính product-service
+dựng khi đọc lại event từ Kafka (consumer group `product-read-model`): event của nó thì đọc lại Postgres, event giá
+(pricing), review, tồn kho (inventory), danh mục/thương hiệu (catalog) thì cập nhật từng phần. Trang chi tiết đọc
+một document theo slug; chưa có thì dựng tạm từ Postgres. Mongo sập thì trang vẫn chạy (đọc Postgres), consumer
+đứng chờ rồi chạy tiếp, không mất event.
+
+- Dựng lại toàn bộ (lần đầu, đổi cấu trúc document, sau sự cố):
+  `curl -X POST -H "Authorization: Bearer <token ADMIN>" https://api.<domain>/api/ecommerce/products/read-model/rebuild`
+  (chạy nền trên một pod, kết quả trong log).
+- Event lỗi nhiều lần nằm ở `<topic>.dlq`; độ trễ projection = consumer lag của group `product-read-model`.
+- Atlas: đặt `MONGODB_ATLAS_CLIENT_ID`/`MONGODB_ATLAS_CLIENT_SECRET` (service account của organization), điền
+  `atlas_org_id`, `terraform apply`, rồi lưu vào Vault:
+  `vault kv patch secret/ecommerce/product-service mongodb_uri="mongodb+srv://product-service:<terraform output -json mongodb_user_passwords>@<host trong mongodb_private_srv>/ecommerce_product?retryWrites=true&w=majority"`
 
 **Biên, bảo mật, sao lưu trên AWS** (ADR 0019)
 

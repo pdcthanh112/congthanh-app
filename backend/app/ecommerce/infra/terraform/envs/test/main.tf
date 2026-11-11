@@ -63,6 +63,22 @@ module "search" {
   zone_count                = 1
 }
 
+# Read model CQRS của product-service (trang sản phẩm), xem ADR 0020.
+module "mongodb" {
+  source                    = "../../modules/mongodb-atlas"
+  name                      = "${local.name}-mongo"
+  atlas_org_id              = var.atlas_org_id
+  aws_region                = var.region
+  vpc_id                    = module.network.vpc_id
+  subnet_ids                = module.network.private_subnets
+  allowed_security_group_id = module.eks.node_security_group_id
+  instance_size             = "M10"
+  min_instance_size         = "M10"
+  max_instance_size         = "M20"
+  backup_enabled            = false
+  databases                 = { product-service = "ecommerce_product" }
+}
+
 module "storage" {
   source              = "../../modules/s3-cdn"
   prefix              = local.name

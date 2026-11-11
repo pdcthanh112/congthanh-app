@@ -1,8 +1,10 @@
 terraform {
   required_version = ">= 1.10"
   required_providers {
-    aws = { source = "hashicorp/aws", version = "~> 6.0" }
-    ec  = { source = "elastic/ec", version = "~> 0.13" }
+    aws          = { source = "hashicorp/aws", version = "~> 6.0" }
+    ec           = { source = "elastic/ec", version = "~> 0.13" }
+    mongodbatlas = { source = "mongodb/mongodbatlas", version = "~> 2.0" }
+    random       = { source = "hashicorp/random", version = "~> 3.6" }
   }
   backend "s3" {
     bucket       = "congthanhapp-terraform-state"
@@ -30,3 +32,6 @@ provider "aws" {
 
 # Elastic Cloud: đặt biến môi trường EC_API_KEY trước khi chạy terraform.
 provider "ec" {}
+
+# MongoDB Atlas: đặt MONGODB_ATLAS_CLIENT_ID / MONGODB_ATLAS_CLIENT_SECRET (service account của organization).
+provider "mongodbatlas" {}

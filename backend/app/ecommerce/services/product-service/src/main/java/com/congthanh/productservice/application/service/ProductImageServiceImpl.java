@@ -9,6 +9,8 @@ import com.congthanh.productservice.application.port.out.product.ProductReposito
 import com.congthanh.productservice.application.port.out.productImage.ProductImageRepository;
 import com.congthanh.productservice.application.port.in.ProductImageService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -22,6 +24,8 @@ public class ProductImageServiceImpl implements ProductImageService {
 
     private final ProductImageRepository productImageRepository;
 
+    private final ApplicationEventPublisher events;
+
     @Override
     public List<ProductImageDTO> getImageByProduct(String productId) {
         List<ProductImage> data = productRepository.getImageByProduct(productId);
@@ -34,6 +38,7 @@ public class ProductImageServiceImpl implements ProductImageService {
     }
 
     @Override
+    @Transactional
     public ProductImageDTO addProductImage(ProductImageDTO productImageDTO) {
         Product product = productRepository.findById(productImageDTO.getProduct()).orElseThrow(() -> new NotFoundException(("not found")));
         ProductImage image = ProductImage.builder()
@@ -41,6 +46,7 @@ public class ProductImageServiceImpl implements ProductImageService {
                 .imagePath(productImageDTO.getImagePath())
                 .build();
         ProductImage result = productImageRepository.save(image);
+        events.publishEvent(ProductServiceImpl.changed(product)); // outbox + read model trang sản phẩm
         return ProductImageMapper.mapProductImageEntityToDTO(result);
     }
 }

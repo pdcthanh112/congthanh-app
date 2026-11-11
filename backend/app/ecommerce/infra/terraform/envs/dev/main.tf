@@ -63,6 +63,21 @@ module "search" {
   zone_count                = 1
 }
 
+module "mongodb" {
+  source                    = "../../modules/mongodb-atlas"
+  name                      = "${local.name}-mongo"
+  atlas_org_id              = var.atlas_org_id
+  aws_region                = var.region
+  vpc_id                    = module.network.vpc_id
+  subnet_ids                = module.network.private_subnets
+  allowed_security_group_id = module.eks.node_security_group_id
+  instance_size             = "M10"
+  min_instance_size         = "M10"
+  max_instance_size         = "M20"
+  backup_enabled            = false
+  databases                 = { product-service = "ecommerce_product" }
+}
+
 module "storage" {
   source              = "../../modules/s3-cdn"
   prefix              = local.name
@@ -71,7 +86,6 @@ module "storage" {
   web_acl_arn         = module.waf.web_acl_arn
 }
 
-# --- Biên: Route 53, ACM, WAF, CloudFront ---
 module "dns" {
   source      = "../../modules/dns"
   domain_name = var.domain_name
@@ -98,7 +112,6 @@ module "edge" {
   price_class               = "PriceClass_100"
 }
 
-# Checkpoint/savepoint của stream-processor (Flink). Checkpoint cũ tự dọn sau 7 ngày, savepoint đặt ở prefix savepoints/.
 module "flink_state" {
   source           = "../../modules/workload-bucket"
   name             = "${local.name}-flink-state"
@@ -108,7 +121,6 @@ module "flink_state" {
   force_destroy    = true
 }
 
-# Backup cluster (Velero): manifest + snapshot EBS của PVC.
 module "velero_backup" {
   source           = "../../modules/workload-bucket"
   name             = "${local.name}-velero"

@@ -20,6 +20,7 @@ class SecurityConfig {
                 .authorizeHttpRequests(a -> a
                         .requestMatchers("/actuator/health/**", "/actuator/prometheus", "/actuator/info").permitAll()
                         .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html", "/graphiql/**").permitAll()
+                        .requestMatchers("/api/ecommerce/products/read-model/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.GET, "/api/ecommerce/**").permitAll()
                         .requestMatchers("/graphql").permitAll()
                         .requestMatchers("/api/ecommerce/**").hasAnyRole("SELLER", "ADMIN")

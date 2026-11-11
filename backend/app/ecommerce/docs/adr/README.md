@@ -23,3 +23,4 @@ Không sửa ADR đã "Accepted"; muốn đổi thì viết ADR mới và đánh
 | 0017 | [Dùng Redis thay Valkey](0017-redis-instead-of-valkey.md) | Proposed |
 | 0018 | [Flash sale: từ suất đã giành tới đơn hàng, phòng chờ ảo, scale trước theo lịch](0018-flash-sale-orders-waiting-room-prescaling.md) | Proposed |
 | 0019 | [Elasticsearch trên Elastic Cloud; CloudFront + WAF trước API; AWS Backup và GuardDuty](0019-elasticsearch-edge-backup-guardduty.md) | Proposed |
+| 0020 | [Read model trang sản phẩm trên MongoDB, dựng từ event Kafka; MongoDB Atlas](0020-product-read-model-mongodb.md) | Proposed |

@@ -22,6 +22,19 @@ spring:
       uri: ${MONGODB_URI:mongodb://localhost:27017/ecommerce_product}
     redis:
       url: ${REDIS_URL:redis://localhost:6379/0}
+  kafka:
+    bootstrap-servers: ${KAFKA_BROKERS:localhost:29092}
+    consumer:
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.ByteArrayDeserializer
+      properties:
+        isolation.level: read_committed
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.ByteArraySerializer
+    listener:
+      auto-startup: ${KAFKA_CONSUMERS_ENABLED:true}
   graphql:
     graphiql:
       enabled: ${GRAPHIQL_ENABLED:false}
@@ -50,6 +63,10 @@ server:
 
 product:
   currency: ${PRODUCT_CURRENCY:USD}
+  read-model:
+    # Bảng giá (pricing-service) hiển thị trên trang sản phẩm.
+    price-list: ${PRODUCT_PRICE_LIST:default}
+    consumer-concurrency: ${READ_MODEL_CONSUMER_CONCURRENCY:3}
   # S3: đặt PRODUCT_S3_REGION (env → product.s3.region) thì mới tạo S3Client; local không cần AWS.
 
 # worker-id phải khác nhau giữa các pod (Helm gán từ ordinal của StatefulSet hoặc hash tên pod).

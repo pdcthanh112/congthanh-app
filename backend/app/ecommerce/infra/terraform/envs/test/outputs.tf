@@ -9,3 +9,8 @@ output "api_domain" { value = module.edge.api_domain }
 output "media_cdn" { value = module.edge.media_domain }
 output "flink_state_bucket" { value = module.flink_state.bucket }
 output "velero_bucket" { value = module.velero_backup.bucket }
+output "mongodb_private_srv" { value = module.mongodb.private_srv_connection_string }
+output "mongodb_user_passwords" {
+  value     = module.mongodb.user_passwords
+  sensitive = true
+}

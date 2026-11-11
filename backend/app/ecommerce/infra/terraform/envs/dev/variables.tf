@@ -15,3 +15,7 @@ variable "elastic_privatelink_service_name" {
   type        = string
   description = "VPC endpoint service của Elastic Cloud cho region này (xem modules/elastic-cloud/variables.tf)"
 }
+variable "atlas_org_id" {
+  type        = string
+  description = "Organization ID trên MongoDB Atlas"
+}

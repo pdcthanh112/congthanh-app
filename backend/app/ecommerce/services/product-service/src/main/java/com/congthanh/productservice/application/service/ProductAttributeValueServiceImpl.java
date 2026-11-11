@@ -13,6 +13,8 @@ import com.congthanh.productservice.application.port.out.productAttribute.Produc
 import com.congthanh.productservice.application.port.in.ProductAttributeValueService;
 import jakarta.persistence.Tuple;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -27,6 +29,8 @@ public class ProductAttributeValueServiceImpl implements ProductAttributeValueSe
     private final ProductAttributeRepository productAttributeRepository;
 
     private final ProductRepository productRepository;
+
+    private final ApplicationEventPublisher events;
 
     @Override
     public List<ProductAttributeValueDTO> getAttributeByProduct(String productId) {
@@ -51,6 +55,7 @@ public class ProductAttributeValueServiceImpl implements ProductAttributeValueSe
     }
 
     @Override
+    @Transactional
     public ProductAttributeValueDTO createAttributeValue(ProductAttributeValueRequest request) {
         ProductAttribute attribute = productAttributeRepository.findById(request.getAttribute()).orElseThrow(() -> new NotFoundException("attribute not found"));
         Product product = productRepository.findById(request.getProduct()).orElseThrow(() -> new NotFoundException("product not found"));
@@ -60,10 +65,12 @@ public class ProductAttributeValueServiceImpl implements ProductAttributeValueSe
                 .value(request.getValue())
                 .build();
         ProductAttributeValue result = productAttributeValueRepository.save(productAttributeValue);
+        events.publishEvent(ProductServiceImpl.changed(product)); // outbox + read model trang sản phẩm
         return ProductAttributeValueMapper.mapProductAttributeValueEntityToDTO(result);
     }
 
     @Override
+    @Transactional
     public ProductAttributeValueDTO updateAttributeValue(ProductAttributeValueRequest request) {
         ProductAttributeValue productAttributeValue = productAttributeValueRepository.findProductAttributeValueOfProduct(request.getAttribute(), request.getProduct());
         if (productAttributeValue == null) {
@@ -71,6 +78,7 @@ public class ProductAttributeValueServiceImpl implements ProductAttributeValueSe
         }
         productAttributeValue.setValue(request.getValue());
         ProductAttributeValue result = productAttributeValueRepository.save(productAttributeValue);
+        events.publishEvent(ProductServiceImpl.changed(productAttributeValue.getProduct()));
         return ProductAttributeValueMapper.mapProductAttributeValueEntityToDTO(result);
     }
 }

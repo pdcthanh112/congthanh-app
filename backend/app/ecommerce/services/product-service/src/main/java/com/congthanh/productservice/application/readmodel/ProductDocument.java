@@ -1,67 +1,86 @@
 package com.congthanh.productservice.application.readmodel;
 
 import com.congthanh.productservice.domain.model.enums.ProductStatus;
-import jakarta.persistence.Id;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import org.springframework.data.mongodb.core.index.Indexed;
+import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
-@Document(collection = "product")
 @Data
 @NoArgsConstructor
-@AllArgsConstructor
-@Builder
+@Document(collection = "product")
 public class ProductDocument {
 
     @Id
     private String id;
-
-    private String name;
-
-    private List<ProductCategory> category;
-
-    @Indexed(unique = true)
     private String slug;
-
+    private String name;
     private String sku;
-
     private String gtin;
-
-    @Indexed(name = "has_variant")
-    private boolean hasVariant;
-
     private String description;
-
-    private BigDecimal price;
-
-    private String thumbnail;
-
-    private List<ProductImage> image = new ArrayList<>();
-
-    private List<ProductAttributeDocument> attribute = new ArrayList<>();
-
-    private String supplier;
-
-    private String brand;
-
-    @Indexed(name = "is_featured")
-    private boolean isFeatured;
-
     private ProductStatus status;
+    private boolean featured;
+    private boolean hasVariant;
+    private String parentId;
+    private String supplier;
+    private Brand brand;
+    private List<Category> categories = new ArrayList<>();
+    private String thumbnail;
+    private List<Image> images = new ArrayList<>();
+    private List<Attribute> attributes = new ArrayList<>();
+    private List<Variant> variants = new ArrayList<>();
+    private BigDecimal basePrice;
+    private String currency;
 
-    record ProductCategory(Long id, String categoryId, @Indexed(name = "display_order") int displayOrder) {
+    private Map<String, Price> prices = new HashMap<>();
+    private Rating rating;
+    private Map<String, Integer> stock = new HashMap<>();
+    private Boolean inStock;
+
+    private Long coreVersion;
+    /** Mốc thời gian (epoch ms) của lần cập nhật từng phần: "price_<list>", "rating", "stock_<kho>", ... */
+    private Map<String, Long> versions = new HashMap<>();
+    private Instant updatedAt;
+
+    public record Brand(Long id, String name, String slug) {
     }
 
-    record ProductImage(Long id, @Indexed(name = "image_path") String imagePath) {
+    public record Category(String id, String name, String slug) {
     }
 
-    record ProductAttributeDocument(Long id, String attribute, String value) {
+    public record Image(Long id, String url, int order) {
+    }
+
+    public record Attribute(String name, String value) {
+    }
+
+    public record VariantOption(Long optionId, String name, String value) {
+    }
+
+    public record Variant(String id, String name, String slug, String sku, String gtin, BigDecimal price,
+                          String thumbnail, List<Image> images, List<VariantOption> options) {
+    }
+
+    public record Price(BigDecimal amount, String currency, Instant effectiveAt) {
+    }
+
+    public record Rating(double average, long count, List<Long> stars) {
+    }
+
+    public boolean isComplete() {
+        return coreVersion != null;
+    }
+
+    /** Giá bán theo bảng giá {@code priceList}; chưa có thì dùng giá gốc. */
+    public BigDecimal effectivePrice(String priceList) {
+        Price p = prices == null ? null : prices.get(priceList);
+        return p != null ? p.amount() : basePrice;
     }
 }

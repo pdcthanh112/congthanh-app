@@ -23,3 +23,7 @@ variable "security_alert_emails" {
   type    = list(string)
   default = []
 }
+variable "atlas_org_id" {
+  type        = string
+  description = "Organization ID trên MongoDB Atlas"
+}

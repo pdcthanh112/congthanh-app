@@ -14,6 +14,10 @@ public record ProductDetailVm(
         Boolean hasVariant,
         BigDecimal price,
         String thumbnail,
-        List<String> images
+        List<String> images,
+        Double averageRating,
+        Long reviewCount,
+        Boolean inStock,
+        List<ProductVariantVm> variants
 ) {
 }

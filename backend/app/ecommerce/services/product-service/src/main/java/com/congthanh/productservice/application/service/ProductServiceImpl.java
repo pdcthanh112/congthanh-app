@@ -3,8 +3,8 @@ package com.congthanh.productservice.application.service;
 import java.util.ArrayList;
 import com.congthanh.productservice.application.event.ProductChanged;
 import com.congthanh.productservice.application.port.out.CategoryCatalog;
-import com.congthanh.productservice.application.port.out.product.ProductDocumentRepository;
 import com.congthanh.productservice.application.port.out.productCategory.ProductCategoryRepository;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.transaction.annotation.Transactional;
 import com.congthanh.productservice.domain.model.*;
@@ -26,7 +26,7 @@ import com.congthanh.productservice.domain.support.SnowflakeIdGenerator;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
-//import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -46,7 +46,7 @@ public class ProductServiceImpl implements ProductService {
 
     private final ProductAttributeService productAttributeService;
 
-    private final ProductDocumentRepository productDocuments;
+    private final ProductReadModelUseCase readModel;
 
     private final ProductCategoryRepository productCategoryRepository;
 
@@ -59,6 +59,10 @@ public class ProductServiceImpl implements ProductService {
     private final ProductImageRepository productImageRepository;
 
     private final VariantOptionCombinationRepository variantOptionCombinationRepository;
+
+    /** Bảng giá của pricing-service dùng cho giá hiển thị trên trang sản phẩm. */
+    @Value("${product.read-model.price-list:default}")
+    private String priceList;
 
     @Override
 //    @Cacheable("products")
@@ -89,9 +93,9 @@ public class ProductServiceImpl implements ProductService {
     }
 
     @Override
-//    @Cacheable(cacheNames = "products", key = "product-#id")
+   @Cacheable(cacheNames = "products", key = "product-#id")
     public ProductDTO getProductById(String id) {
-        ProductDocument data = readModelById(id);
+        ProductDocument data = readModel.getById(id);
         return ProductDTO.builder()
                 .id(data.getId())
                 .name(data.getName())
@@ -111,7 +115,7 @@ public class ProductServiceImpl implements ProductService {
 
     @Override
     public ProductDTO getProductDTOBySlug(String slug) {
-        ProductDocument data = readModelBySlug(slug);
+        ProductDocument data = readModel.getBySlug(slug);
         return ProductDTO.builder()
                 .id(data.getId())
                 .name(data.getName())
@@ -121,7 +125,7 @@ public class ProductServiceImpl implements ProductService {
 
     @Override
     public ProductVm getProductVmBySlug(String slug) {
-        ProductDocument data = readModelBySlug(slug);
+        ProductDocument data = readModel.getBySlug(slug);
         return ProductVm.builder()
                 .id(data.getId())
                 .name(data.getName())
@@ -132,49 +136,43 @@ public class ProductServiceImpl implements ProductService {
 
     @Override
     public ProductDetailVm getProductDetailBySlug(String slug) {
-        Product product = productRepository.findProductBySlug(slug).orElseThrow(() -> new NotFoundException("Product not found"));
+        ProductDocument d = readModel.getBySlug(slug);
+        var brand = d.getBrand();
+        return new ProductDetailVm(
+                d.getId(),
+                d.getName(),
+                brand == null ? null : (brand.name() != null ? brand.name() : String.valueOf(brand.id())),
+                d.getCategories().stream().map(c -> new ProductCategoryVm(c.id(), c.name(), c.slug())).toList(),
+                d.getAttributes().stream().map(a -> new ProductAttributeVm(a.name(), a.value())).toList(),
+                d.getDescription(),
+                d.isFeatured(),
+                d.isHasVariant(),
+                d.effectivePrice(priceList),
+                d.getThumbnail(),
+                d.getImages().stream().map(ProductDocument.Image::url).toList(),
+                d.getRating() == null ? null : d.getRating().average(),
+                d.getRating() == null ? 0L : d.getRating().count(),
+                d.getInStock(),
+                d.getVariants().stream().map(ProductServiceImpl::variantVm).toList()
+        );
+    }
 
-        List<String> categoryIds = product.getCategory().stream().map(ProductCategory::getCategoryId).toList();
-        List<ProductCategoryVm> category = categoryCatalog.byIds(categoryIds).stream().map(item -> new ProductCategoryVm(item.id(), item.name(), item.slug())).toList();
-
-        ProductImage thumbnail = productImageRepository.findById(product.getThumbnail()).orElseThrow(() -> new NotFoundException("Product image not found"));
-
-//        List<String> images = productImageRepository.getProductImages(product.getId()).stream().map(ProductImage::getImagePath).toList();
-        List<String> images = new ArrayList<>();
-        if (CollectionUtils.isNotEmpty(product.getImage())) {
-            for (ProductImage image : product.getImage()) {
-                images.add(image.getImagePath());
+    private static ProductVariantVm variantVm(ProductDocument.Variant v) {
+        Map<Long, String> options = new LinkedHashMap<>();
+        for (ProductDocument.VariantOption o : v.options()) {
+            if (o.optionId() != null) {
+                options.put(o.optionId(), o.value());
             }
         }
-
-        Set<ProductAttributeValue> productAttributeValues = product.getAttribute();
-
-        List<ProductAttributeVm> attributeVms = new ArrayList<>();
-//        if (CollectionUtils.isNotEmpty(productAttributeValues)) {
-//            List<ProductAttributeGroup> productAttributeGroups = productAttributeValues.stream()
-//                    .map(productAttributeValue
-//                            -> productAttributeValue.getProductAttribute().getProductAttributeGroup())
-//                    .distinct()
-//                    .toList();
-
-        return new ProductDetailVm(
-                product.getId(),
-                product.getName(),
-                product.getBrand() == null ? null : product.getBrand().toString(),
-                category,
-                attributeVms,
-                product.getDescription(),
-                product.isFeatured(),
-                product.isHasVariant(),
-                product.getPrice(),
-                thumbnail.getImagePath(),
-                images
-        );
+        List<ProductImageVm> images = v.images().stream().map(i -> new ProductImageVm(i.id(), i.url())).toList();
+        ProductImageVm thumbnail = images.stream().filter(i -> Objects.equals(i.imagePath(), v.thumbnail())).findFirst()
+                .orElse(null);
+        return new ProductVariantVm(v.id(), v.name(), v.slug(), v.sku(), v.gtin(), v.price(), thumbnail, images, options);
     }
 
     /**
      * Ghi trực tiếp vào Postgres (thay cho CommandGateway → Aggregate → EventHandler của Axon), rồi phát
-     * ProductChanged: outbox ghi trong cùng transaction, read model Mongo cập nhật sau commit.
+     * ProductChanged: outbox ghi trong cùng transaction; read model Mongo cập nhật khi đọc lại event từ Kafka.
      * Ảnh: client upload thẳng lên media-service bằng presigned URL; ở đây chỉ nhận id/thứ tự.
      */
     @Override
@@ -357,30 +355,6 @@ public class ProductServiceImpl implements ProductService {
         return null;
     }
 
-
-    /** Đọc từ read model Mongo; chưa có (projection trễ hoặc mới dựng) thì đọc thẳng Postgres. */
-    private ProductDocument readModelById(String id) {
-        return productDocuments.findById(id).orElseGet(() -> toDocument(productRepository.findById(id)
-                .orElseThrow(() -> new NotFoundException("Product not found"))));
-    }
-
-    private ProductDocument readModelBySlug(String slug) {
-        return productDocuments.findBySlug(slug).orElseGet(() -> toDocument(productRepository.findProductBySlug(slug)
-                .orElseThrow(() -> new NotFoundException("Product not found"))));
-    }
-
-    private static ProductDocument toDocument(Product p) {
-        ProductDocument d = new ProductDocument();
-        d.setId(p.getId());
-        d.setName(p.getName());
-        d.setSlug(p.getSlug());
-        d.setSku(p.getSku());
-        d.setDescription(p.getDescription());
-        d.setPrice(p.getPrice());
-        d.setHasVariant(p.isHasVariant());
-        d.setStatus(p.getStatus());
-        return d;
-    }
 
     static ProductChanged changed(Product p) {
         List<String> categoryIds = p.getCategory() == null ? List.of()
