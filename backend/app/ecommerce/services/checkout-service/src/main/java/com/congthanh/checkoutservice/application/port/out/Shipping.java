@@ -6,7 +6,6 @@ import com.congthanh.checkoutservice.domain.model.Money;
 
 import java.util.List;
 
-/** Phí giao theo địa chỉ và kiện hàng (shipping-service). */
 public interface Shipping {
 
     List<ShippingOption> quote(Address destination, int weightGrams, Money declaredValue);

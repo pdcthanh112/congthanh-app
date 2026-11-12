@@ -8,6 +8,5 @@ public interface SessionRepository {
 
     Optional<CheckoutSession> findById(String id);
 
-    /** Lưu có kiểm tra version (optimistic locking); lỗi CONFLICT nếu phiên vừa bị sửa song song. */
     CheckoutSession save(CheckoutSession session);
 }

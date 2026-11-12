@@ -1,7 +1,3 @@
-# syntax=docker/dockerfile:1
-# Build context: backend/app/ecommerce
-#   docker build -f services/checkout-service/Dockerfile -t congthanhapp/checkout-service .
-# (CI dùng Jib: ./gradlew :services:checkout-service:jib — không cần Dockerfile)
 FROM eclipse-temurin:25-jdk AS build
 WORKDIR /workspace
 COPY gradlew settings.gradle.kts build.gradle.kts gradle.properties ./

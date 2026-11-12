@@ -1,5 +1,3 @@
-# checkout-service. Mọi giá trị môi trường đọc từ biến môi trường (12-factor); mặc định chạy được local
-# với deploy/local/docker-compose.yaml.
 spring:
   application:
     name: checkout-service
@@ -99,12 +97,12 @@ resilience4j:
         exponential-backoff-multiplier: 2
         retry-exception-predicate: com.congthanh.checkoutservice.adapter.out.grpc.TransientFailure
     instances:
-      product: {base-config: default}
-      pricing: {base-config: default}
-      promotion: {base-config: default}
-      shipping: {base-config: default}
-      tax: {base-config: default}
-      order: {base-config: default}
+      product: { base-config: default }
+      pricing: { base-config: default }
+      promotion: { base-config: default }
+      shipping: { base-config: default }
+      tax: { base-config: default }
+      order: { base-config: default }
   circuitbreaker:
     configs:
       default:
@@ -117,11 +115,11 @@ resilience4j:
         permitted-number-of-calls-in-half-open-state: 3
         record-failure-predicate: com.congthanh.checkoutservice.adapter.out.grpc.TransientFailure
     instances:
-      product: {base-config: default}
-      pricing: {base-config: default}
-      promotion: {base-config: default}
-      shipping: {base-config: default}
-      tax: {base-config: default}
+      product: { base-config: default }
+      pricing: { base-config: default }
+      promotion: { base-config: default }
+      shipping: { base-config: default }
+      tax: { base-config: default }
 
 management:
   endpoints:

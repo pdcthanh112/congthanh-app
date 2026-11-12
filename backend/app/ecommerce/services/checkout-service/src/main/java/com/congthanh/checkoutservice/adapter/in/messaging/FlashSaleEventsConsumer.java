@@ -13,11 +13,6 @@ import org.springframework.transaction.support.TransactionTemplate;
 
 import java.time.Instant;
 
-/**
- * Khách giành được suất flash sale ở inventory-service → mở sẵn phiên checkout cho suất đó (id phiên = claim id).
- * Kafka là bộ đệm giữa cú bấm "giành" (Redis, vài nghìn lượt/giây) và phần báo giá chậm hơn nhiều ở đây: lúc cao
- * điểm phiên chỉ xuất hiện trễ hơn chứ không làm nghẽn luồng giành. Use case idempotent theo claim id.
- */
 @Component
 class FlashSaleEventsConsumer {
 

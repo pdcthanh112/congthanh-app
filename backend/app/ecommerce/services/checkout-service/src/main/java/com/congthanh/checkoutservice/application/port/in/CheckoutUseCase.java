@@ -20,13 +20,9 @@ public interface CheckoutUseCase {
 
     CheckoutSession cancel(Customer customer, String sessionId, String reason);
 
-    /** Kết quả duyệt tay từ fraud-service (event ecommerce.fraud.events). */
+
     void onFraudReviewDecided(String sessionId, boolean approved, String note);
 
-    /**
-     * Khách giành được suất flash sale (event FlashSaleClaimed): mở sẵn phiên checkout cho suất đó. Idempotent theo
-     * claim id.
-     */
     void onFlashSaleClaimed(FlashSaleClaim claim);
 
     record FlashSaleClaim(String claimId, String saleId, String productId, String customerId, int quantity,
@@ -43,7 +39,6 @@ public interface CheckoutUseCase {
                        Address billingAddress, String note) {
     }
 
-    /** Field null = giữ nguyên. {@code clearPromotion} để bỏ voucher. */
     record UpdateCommand(List<CheckoutSession.Item> items, String promotionCode, boolean clearPromotion,
                          Address shippingAddress, Address billingAddress, String shippingCarrier,
                          String shippingServiceCode, String note) {
