@@ -38,13 +38,14 @@ class CheckoutWorkflowTest {
     private WorkflowClient client;
     private final List<String> calls = new CopyOnWriteArrayList<>();
     private final FakePayments payments = new FakePayments();
+    private final FakeSteps steps = new FakeSteps();
 
     @BeforeEach
     void setUp() {
         env = TestWorkflowEnvironment.newInstance();
         // Như production: workflow ở checkout-service, activity order ở order-service, thanh toán ở payment-service.
         env.newWorker(TaskQueues.CHECKOUT_WORKFLOW).registerWorkflowImplementationTypes(CheckoutWorkflowImpl.class);
-        env.newWorker(TaskQueues.CHECKOUT).registerActivitiesImplementations(new FakeSteps());
+        env.newWorker(TaskQueues.CHECKOUT).registerActivitiesImplementations(steps);
         env.newWorker(TaskQueues.PAYMENT).registerActivitiesImplementations(payments);
         env.start();
         client = env.getWorkflowClient();
@@ -73,8 +74,8 @@ class CheckoutWorkflowTest {
 
         assertThat(result.confirmed()).isTrue();
         assertThat(result.paymentId()).isEqualTo("pay-" + ORDER);
-        assertThat(calls).containsExactly("redeemPromotion", "reserveInventory", "authorize", "commitInventory",
-                "capture", "confirmOrder:pay-" + ORDER);
+        assertThat(calls).containsExactly("redeemPromotion", "reserveInventory", "authorize", "capture",
+                "commitInventory", "confirmOrder:pay-" + ORDER);
     }
 
     @Test
@@ -102,7 +103,7 @@ class CheckoutWorkflowTest {
         CheckoutResult result = run.join();
         assertThat(result.confirmed()).isTrue();
         assertThat(result.paymentId()).isEqualTo("vnp-1");
-        assertThat(calls).containsExactly("reserveInventory", "authorize", "commitInventory", "capture",
+        assertThat(calls).containsExactly("reserveInventory", "authorize", "capture", "commitInventory",
                 "confirmOrder:vnp-1");
     }
 
@@ -137,6 +138,41 @@ class CheckoutWorkflowTest {
         assertThat(calls).endsWith("refund", "releaseInventory", "cancelOrder:changed my mind");
     }
 
+    @Test
+    void rejectedCaptureCompensates() {
+        payments.rejectCapture = true;
+
+        CheckoutResult result = stub().run(input("STRIPE", false));
+
+        assertThat(result.confirmed()).isFalse();
+        assertThat(calls).containsExactly("reserveInventory", "authorize", "capture", "refund", "releaseInventory",
+                "cancelOrder:authorization expired");
+    }
+
+    @Test
+    void rejectedInventoryCommitRefundsCapturedPayment() {
+        steps.rejectCommit = true;
+
+        CheckoutResult result = stub().run(input("STRIPE", false));
+
+        assertThat(result.confirmed()).isFalse();
+        assertThat(calls).containsExactly("reserveInventory", "authorize", "capture", "commitInventory", "refund",
+                "releaseInventory", "cancelOrder:reservation expired");
+    }
+
+    @Test
+    void rejectedConfirmAfterCommitRefundsAndCancelsInsteadOfFailingWorkflow() {
+        steps.rejectConfirm = true;
+        CheckoutWorkflow wf = stub();
+
+        CheckoutResult result = wf.run(input("STRIPE", false));
+
+        assertThat(result.confirmed()).isFalse();
+        assertThat(wf.status().step()).isEqualTo(CheckoutState.Step.CANCELLED);
+        assertThat(calls).containsExactly("reserveInventory", "authorize", "capture", "commitInventory",
+                "confirmOrder:pay-" + ORDER, "refund", "cancelOrder:order is not pending");
+    }
+
     private static void awaitStep(CheckoutWorkflow wf, CheckoutState.Step step) {
         long deadline = System.nanoTime() + Duration.ofSeconds(10).toNanos();
         while (wf.status().step() != step) {
@@ -148,18 +184,32 @@ class CheckoutWorkflowTest {
     }
 
     private final class FakeSteps implements CheckoutActivities {
+        volatile boolean rejectCommit;
+        volatile boolean rejectConfirm;
+
         @Override public void redeemPromotion(String orderId) { calls.add("redeemPromotion"); }
         @Override public void cancelPromotionRedemption(String orderId, String reason) { calls.add("cancelPromotionRedemption"); }
         @Override public String reserveInventory(String orderId) { calls.add("reserveInventory"); return CheckoutContract.reservationId(orderId); }
         @Override public void releaseInventory(String orderId, String reason) { calls.add("releaseInventory"); }
-        @Override public void commitInventory(String orderId) { calls.add("commitInventory"); }
-        @Override public void confirmOrder(String orderId, String paymentId) { calls.add("confirmOrder:" + paymentId); }
+        @Override public void commitInventory(String orderId) {
+            calls.add("commitInventory");
+            if (rejectCommit) {
+                throw ApplicationFailure.newNonRetryableFailure("reservation expired", CheckoutActivities.REJECTED);
+            }
+        }
+        @Override public void confirmOrder(String orderId, String paymentId) {
+            calls.add("confirmOrder:" + paymentId);
+            if (rejectConfirm) {
+                throw ApplicationFailure.newNonRetryableFailure("order is not pending", CheckoutActivities.REJECTED);
+            }
+        }
         @Override public void cancelOrder(String orderId, String reason) { calls.add("cancelOrder:" + reason); }
     }
 
     private final class FakePayments implements PaymentActivities {
         volatile boolean decline;
         volatile boolean redirect;
+        volatile boolean rejectCapture;
 
         @Override
         public PaymentAuthorization authorize(AuthorizePaymentRequest request) {
@@ -173,7 +223,12 @@ class CheckoutWorkflowTest {
                     : new PaymentAuthorization(id, PaymentAuthorization.Status.AUTHORIZED, null);
         }
 
-        @Override public void capture(String orderId) { calls.add("capture"); }
+        @Override public void capture(String orderId) {
+            calls.add("capture");
+            if (rejectCapture) {
+                throw ApplicationFailure.newNonRetryableFailure("authorization expired", PaymentFailures.DECLINED);
+            }
+        }
         @Override public void refund(RefundPaymentRequest request) { calls.add("refund"); }
     }
 }

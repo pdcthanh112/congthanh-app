@@ -42,8 +42,6 @@ export const grpcEnv = z.object({
   GRPC_PORT: z.coerce.number().int().positive(),
 });
 
-export type BaseEnv = z.infer<typeof baseEnv>;
-
 /** Parse và kiểm tra env một lần lúc khởi động; sai cấu hình thì dừng ngay với thông báo rõ. */
 export function loadEnv<T extends z.ZodType>(schema: T, source: NodeJS.ProcessEnv = process.env): z.infer<T> {
   const parsed = schema.safeParse(source);

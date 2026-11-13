@@ -50,12 +50,9 @@ func run() error {
 	if err := db.Migrate(ctx, pool, migrations.FS, "goose_db_version"); err != nil {
 		return err
 	}
-	verifier, err := auth.NewVerifier(ctx, auth.Config{JWKSURL: cfg.JWKSURL, HMACSecret: cfg.JWTSecret, Issuer: cfg.JWTIssuer})
+	verifier, err := auth.NewVerifier(ctx, auth.Config{JWKSURL: cfg.JWKSURL, HMACSecret: cfg.JWTSecret, Issuer: cfg.JWTIssuer, Disabled: cfg.AuthDisabled})
 	if err != nil {
 		return err
-	}
-	if verifier == nil {
-		slog.Warn("JWT verification is disabled (set JWT_JWKS_URL or JWT_SECRET)")
 	}
 	store, err := s3store.New(ctx, s3store.Config{
 		Bucket: cfg.S3Bucket, Region: cfg.S3Region, Endpoint: cfg.S3Endpoint, PathStyle: cfg.S3PathStyle,

@@ -2,7 +2,9 @@ package app
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"log/slog"
 	"strings"
 	"time"
 
@@ -188,17 +190,48 @@ func (s *Service) ClaimFlashSale(ctx context.Context, saleID, productID, custome
 	if err != nil {
 		return Claim{}, err
 	}
-	err = s.claims.PublishClaim(ctx, PublishedClaim{
+	pc := PublishedClaim{
 		ClaimID: c.ClaimID, SaleID: saleID, ProductID: productID, CustomerID: customerID, Quantity: qty, ExpiresAt: c.ExpiresAt,
-	})
-	if err != nil {
-		// Không ghi được Kafka → không ai mở phiên checkout cho claim này: trả suất lại ngay.
+	}
+	err = s.claims.PublishClaim(ctx, pc)
+	switch {
+	case err == nil:
+	case errors.Is(err, ErrClaimNotPublished):
+		// Chắc chắn chưa ghi → không ai mở phiên checkout cho claim này: trả suất lại ngay.
 		if _, uerr := s.flash.ReleaseClaim(context.WithoutCancel(ctx), saleID, productID, c.ClaimID); uerr != nil {
 			return Claim{}, fmt.Errorf("publish claim: %w (release also failed: %v)", err, uerr)
 		}
 		return Claim{}, fmt.Errorf("publish claim: %w", err)
+	default:
+		// Mơ hồ (timeout...): event có thể đã lên Kafka và phiên checkout sắp mở. Nhả suất lúc này có thể bán lố,
+		// nên giữ claim, gửi lại ở nền (checkout-service bỏ qua bản trùng theo claim id). Gửi mãi không được thì
+		// claim hết hạn và SweepFlashClaims trả suất về sale.
+		slog.WarnContext(ctx, "flash sale claim publish uncertain, retrying in background", "claim", c.ClaimID, "err", err)
+		go s.republishClaim(context.WithoutCancel(ctx), pc)
 	}
 	return c, nil
+}
+
+// republishClaim gửi lại FlashSaleClaimed tới khi được, chắc chắn thất bại, hoặc claim sắp hết hạn.
+func (s *Service) republishClaim(ctx context.Context, pc PublishedClaim) {
+	delay := 200 * time.Millisecond
+	for {
+		if !s.now().Add(delay).Before(pc.ExpiresAt) {
+			slog.ErrorContext(ctx, "gave up republishing flash sale claim; it will expire", "claim", pc.ClaimID)
+			return
+		}
+		time.Sleep(delay)
+		err := s.claims.PublishClaim(ctx, pc)
+		if err == nil {
+			return
+		}
+		if errors.Is(err, ErrClaimNotPublished) {
+			// Bản gửi đầu có thể vẫn đã lên Kafka, nên không nhả suất ở đây; claim tự hết hạn nếu không ai đặt đơn.
+			slog.ErrorContext(ctx, "flash sale claim republish rejected; it will expire", "claim", pc.ClaimID, "err", err)
+			return
+		}
+		delay = min(delay*2, 10*time.Second)
+	}
 }
 
 // flashClaimOf cho biết reservation của saga có phải là một claim flash sale không.

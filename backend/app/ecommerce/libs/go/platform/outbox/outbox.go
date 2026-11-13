@@ -96,7 +96,8 @@ CREATE TABLE IF NOT EXISTS outbox (
     created_at    TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 CREATE TABLE IF NOT EXISTS processed_events (
-    event_id     TEXT PRIMARY KEY,
+    event_id     TEXT        NOT NULL,
     consumer     TEXT        NOT NULL,
-    processed_at TIMESTAMPTZ NOT NULL DEFAULT now()
+    processed_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+    PRIMARY KEY (event_id, consumer)
 );`

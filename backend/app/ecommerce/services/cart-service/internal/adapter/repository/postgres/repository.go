@@ -25,12 +25,41 @@ func New(pool *pgxpool.Pool, ids *idgen.Generator) *Repository {
 }
 
 var (
-	_ app.Reader     = (*Repository)(nil)
-	_ app.UnitOfWork = (*Repository)(nil)
-	_ app.Tx         = (*tx)(nil)
+	_ app.Reader        = (*Repository)(nil)
+	_ app.UnitOfWork    = (*Repository)(nil)
+	_ app.PendingOrders = (*Repository)(nil)
+	_ app.Tx            = (*tx)(nil)
 )
 
 func (r *Repository) Ping(ctx context.Context) error { return r.pool.Ping(ctx) }
+
+// pendingRetention: đơn treo quá lâu (mất OrderConfirmed/OrderCancelled) thì bỏ, để bảng không phình.
+const pendingRetention = "7 days"
+
+func (r *Repository) RememberOrder(ctx context.Context, orderID, customerID string, productIDs []string) error {
+	if _, err := r.pool.Exec(ctx, `DELETE FROM pending_order_clears WHERE created_at < now() - $1::interval`, pendingRetention); err != nil {
+		return err
+	}
+	_, err := r.pool.Exec(ctx, `INSERT INTO pending_order_clears (order_id, customer_id, product_ids) VALUES ($1, $2, $3)
+		ON CONFLICT (order_id) DO NOTHING`, orderID, customerID, productIDs)
+	return err
+}
+
+func (r *Repository) PendingOrder(ctx context.Context, orderID string) (string, []string, bool, error) {
+	var customerID string
+	var productIDs []string
+	err := r.pool.QueryRow(ctx, `SELECT customer_id, product_ids FROM pending_order_clears WHERE order_id = $1`, orderID).
+		Scan(&customerID, &productIDs)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return "", nil, false, nil
+	}
+	return customerID, productIDs, err == nil, err
+}
+
+func (r *Repository) ForgetOrder(ctx context.Context, orderID string) error {
+	_, err := r.pool.Exec(ctx, `DELETE FROM pending_order_clears WHERE order_id = $1`, orderID)
+	return err
+}
 
 func (r *Repository) Do(ctx context.Context, fn func(ctx context.Context, t app.Tx) error) error {
 	t, err := r.pool.Begin(ctx)

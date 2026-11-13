@@ -1,4 +1,3 @@
-// Package http: API quản trị webhook dưới /api/ecommerce/webhooks (chỉ ADMIN).
 package http
 
 import (
@@ -25,7 +24,7 @@ func New(svc *app.Service, v *auth.Verifier) *Handler { return &Handler{svc: svc
 
 func (h *Handler) Mount(r chi.Router) {
 	r.Route("/api/ecommerce/webhooks", func(r chi.Router) {
-		r.Use(auth.Middleware(h.verifier), auth.RequireAuth(h.verifier), h.requireAdmin)
+		r.Use(auth.Middleware(h.verifier), auth.RequireRole(h.verifier, "ADMIN"))
 		r.Method(http.MethodGet, "/events", H(h.events))
 		r.Method(http.MethodGet, "/", H(h.list))
 		r.Method(http.MethodPost, "/", H(h.create))
@@ -35,18 +34,6 @@ func (h *Handler) Mount(r chi.Router) {
 		r.Method(http.MethodPost, "/{id}/ping", H(h.ping))
 		r.Method(http.MethodGet, "/{id}/deliveries", H(h.deliveries))
 		r.Method(http.MethodPost, "/deliveries/{deliveryId}/retry", H(h.retry))
-	})
-}
-
-func (h *Handler) requireAdmin(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if h.verifier != nil {
-			if p, _ := auth.FromContext(r.Context()); !p.HasRole("ADMIN") {
-				httpx.Fail(w, r, httpx.Forbidden("ADMIN role required"))
-				return
-			}
-		}
-		next.ServeHTTP(w, r)
 	})
 }
 

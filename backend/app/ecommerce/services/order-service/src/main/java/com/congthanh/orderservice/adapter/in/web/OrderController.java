@@ -19,6 +19,7 @@ import io.swagger.v3.oas.annotations.enums.ParameterIn;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -38,17 +39,12 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/ecommerce")
 @Tag(name = "Orders", description = "Checkout and order history")
+@RequiredArgsConstructor
 class OrderController {
 
     private final PlaceOrderUseCase placeOrder;
     private final CancelOrderUseCase cancelOrder;
     private final OrderQueries queries;
-
-    OrderController(PlaceOrderUseCase placeOrder, CancelOrderUseCase cancelOrder, OrderQueries queries) {
-        this.placeOrder = placeOrder;
-        this.cancelOrder = cancelOrder;
-        this.queries = queries;
-    }
 
     @Operation(summary = "Place an order and start checkout",
             description = "Returns 202 at once; poll checkoutUrl for progress (and the payment redirect URL, if any). "

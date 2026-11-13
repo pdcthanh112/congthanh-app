@@ -21,7 +21,6 @@
     "@nestjs/common": "^12.4.2",
     "@nestjs/core": "^12.4.2",
     "@nestjs/graphql": "^14.2.0",
-    "dataloader": "^2.2.3",
     "drizzle-orm": "^0.45.4",
     "graphql": "^16.15.0",
     "ioredis": "^6.0.0",

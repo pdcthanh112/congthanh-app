@@ -7,6 +7,7 @@ import (
 )
 
 type Config struct {
+	AuthDisabled                                 bool // AUTH_DISABLED=true: tắt xác thực, chỉ cho dev/test
 	HTTPAddr, DatabaseURL, DBSchema              string
 	S3Bucket, S3Region, S3Endpoint, S3PresignURL string
 	S3PathStyle                                  bool
@@ -37,6 +38,7 @@ func Load() Config {
 		LogLevel:        c.String("LOG_LEVEL", "info"),
 		JWKSURL:         c.String("JWT_JWKS_URL", ""),
 		JWTSecret:       c.String("JWT_SECRET", ""),
+		AuthDisabled:    c.Bool("AUTH_DISABLED", false),
 		JWTIssuer:       c.String("JWT_ISSUER", ""),
 		Version:         c.String("SERVICE_VERSION", "dev"),
 	}

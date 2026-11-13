@@ -1,6 +1,7 @@
 # Outbox Event Router: bảng <schema>.outbox → topic ecommerce.<aggregatetype>.events.
 # inventory, cart (Go); order/payment/promotion/product (Java, đợt 2);
 # catalog/customer/review/message (NestJS, đợt 3: schema <svc>_service, cùng cấu trúc bảng outbox).
+# skipped.operations d: janitor của service xoá hàng outbox cũ, lệnh DELETE đó không phải event.
 apiVersion: kafka.strimzi.io/v1beta2
 kind: KafkaConnector
 metadata:
@@ -25,6 +26,7 @@ spec:
     publication.name: dbz_inventory_outbox
     publication.autocreate.mode: filtered
     tombstones.on.delete: 'false'
+    skipped.operations: d,t
     transforms: outbox
     transforms.outbox.type: io.debezium.transforms.outbox.EventRouter
     transforms.outbox.route.by.field: aggregatetype
@@ -60,6 +62,7 @@ spec:
     publication.name: dbz_cart_outbox
     publication.autocreate.mode: filtered
     tombstones.on.delete: 'false'
+    skipped.operations: d,t
     transforms: outbox
     transforms.outbox.type: io.debezium.transforms.outbox.EventRouter
     transforms.outbox.route.by.field: aggregatetype
@@ -95,6 +98,7 @@ spec:
     publication.name: dbz_order_outbox
     publication.autocreate.mode: filtered
     tombstones.on.delete: 'false'
+    skipped.operations: d,t
     transforms: outbox
     transforms.outbox.type: io.debezium.transforms.outbox.EventRouter
     transforms.outbox.route.by.field: aggregatetype
@@ -130,6 +134,7 @@ spec:
     publication.name: dbz_payment_outbox
     publication.autocreate.mode: filtered
     tombstones.on.delete: 'false'
+    skipped.operations: d,t
     transforms: outbox
     transforms.outbox.type: io.debezium.transforms.outbox.EventRouter
     transforms.outbox.route.by.field: aggregatetype
@@ -165,6 +170,7 @@ spec:
     publication.name: dbz_promotion_outbox
     publication.autocreate.mode: filtered
     tombstones.on.delete: 'false'
+    skipped.operations: d,t
     transforms: outbox
     transforms.outbox.type: io.debezium.transforms.outbox.EventRouter
     transforms.outbox.route.by.field: aggregatetype
@@ -200,6 +206,7 @@ spec:
     publication.name: dbz_product_outbox
     publication.autocreate.mode: filtered
     tombstones.on.delete: 'false'
+    skipped.operations: d,t
     transforms: outbox
     transforms.outbox.type: io.debezium.transforms.outbox.EventRouter
     transforms.outbox.route.by.field: aggregatetype
@@ -235,6 +242,7 @@ spec:
     publication.name: dbz_catalog_outbox
     publication.autocreate.mode: filtered
     tombstones.on.delete: 'false'
+    skipped.operations: d,t
     transforms: outbox
     transforms.outbox.type: io.debezium.transforms.outbox.EventRouter
     transforms.outbox.route.by.field: aggregatetype
@@ -270,6 +278,7 @@ spec:
     publication.name: dbz_customer_outbox
     publication.autocreate.mode: filtered
     tombstones.on.delete: 'false'
+    skipped.operations: d,t
     transforms: outbox
     transforms.outbox.type: io.debezium.transforms.outbox.EventRouter
     transforms.outbox.route.by.field: aggregatetype
@@ -305,6 +314,7 @@ spec:
     publication.name: dbz_review_outbox
     publication.autocreate.mode: filtered
     tombstones.on.delete: 'false'
+    skipped.operations: d,t
     transforms: outbox
     transforms.outbox.type: io.debezium.transforms.outbox.EventRouter
     transforms.outbox.route.by.field: aggregatetype
@@ -340,6 +350,7 @@ spec:
     publication.name: dbz_message_outbox
     publication.autocreate.mode: filtered
     tombstones.on.delete: 'false'
+    skipped.operations: d,t
     transforms: outbox
     transforms.outbox.type: io.debezium.transforms.outbox.EventRouter
     transforms.outbox.route.by.field: aggregatetype
@@ -375,6 +386,7 @@ spec:
     publication.name: dbz_shipping_outbox
     publication.autocreate.mode: filtered
     tombstones.on.delete: 'false'
+    skipped.operations: d,t
     transforms: outbox
     transforms.outbox.type: io.debezium.transforms.outbox.EventRouter
     transforms.outbox.route.by.field: aggregatetype
@@ -410,6 +422,7 @@ spec:
     publication.name: dbz_pricing_outbox
     publication.autocreate.mode: filtered
     tombstones.on.delete: 'false'
+    skipped.operations: d,t
     transforms: outbox
     transforms.outbox.type: io.debezium.transforms.outbox.EventRouter
     transforms.outbox.route.by.field: aggregatetype
@@ -445,6 +458,7 @@ spec:
     publication.name: dbz_fraud_outbox
     publication.autocreate.mode: filtered
     tombstones.on.delete: 'false'
+    skipped.operations: d,t
     transforms: outbox
     transforms.outbox.type: io.debezium.transforms.outbox.EventRouter
     transforms.outbox.route.by.field: aggregatetype

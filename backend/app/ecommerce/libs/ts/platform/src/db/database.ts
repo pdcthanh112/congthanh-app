@@ -6,10 +6,6 @@ import pg from 'pg';
 
 // biome-ignore lint/suspicious/noExplicitAny: schema cụ thể do từng service khai báo
 export type Database<S extends Record<string, unknown> = any> = NodePgDatabase<S>;
-/** Transaction của Drizzle; adapter persistence nhận vào để ghi nghiệp vụ + outbox cùng commit. */
-export type Tx<S extends Record<string, unknown> = Record<string, unknown>> = Parameters<
-  Parameters<Database<S>['transaction']>[0]
->[0];
 
 export const DB = Symbol('DB');
 export const PG_POOL = Symbol('PG_POOL');

@@ -10,20 +10,14 @@ import com.congthanh.paymentservice.application.port.in.PaymentUseCases.Authoriz
 import com.congthanh.paymentservice.domain.exception.PaymentException;
 import com.congthanh.paymentservice.domain.model.PaymentMethod;
 import io.temporal.failure.ApplicationFailure;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
-/**
- * Activity Payment.* trên task queue "payment". Bị từ chối/không hỗ trợ → lỗi không retry để saga bù trừ;
- * cổng lỗi mạng (UNAVAILABLE) → ném nguyên để Temporal retry theo backoff của workflow.
- */
 @Component
+@RequiredArgsConstructor
 public class PaymentActivitiesImpl implements PaymentActivities {
 
     private final PaymentUseCases payments;
-
-    public PaymentActivitiesImpl(PaymentUseCases payments) {
-        this.payments = payments;
-    }
 
     @Override
     public PaymentAuthorization authorize(AuthorizePaymentRequest r) {

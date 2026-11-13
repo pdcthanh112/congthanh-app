@@ -2,8 +2,8 @@ package integration_test
 
 import (
 	"context"
+	"errors"
 	"fmt"
-	"os"
 	"sync"
 	"sync/atomic"
 	"testing"
@@ -78,9 +78,6 @@ func startSale(t *testing.T, svc *app.Service, in app.FlashSaleInput) string {
 // thành đơn qua saga (Reserve → Commit theo id đơn = id claim) mà không giữ thêm hàng trong Postgres;
 // cuối sale số bán được chốt vào Postgres, phần dư trả về kho.
 func TestFlashSaleNeverOversells(t *testing.T) {
-	if os.Getenv("TEST_REDIS_URL") == "" {
-		t.Skip("TEST_REDIS_URL not set")
-	}
 	svc, _ := setup(t)
 	ctx := context.Background()
 	seed(t, svc, "hot", "WH-DEFAULT", 100)
@@ -141,9 +138,6 @@ func TestFlashSaleNeverOversells(t *testing.T) {
 // Vòng đời claim: sai khách/sai số lượng bị từ chối; saga bù trừ thì suất quay lại; claim không đặt đơn
 // trước hạn bị thu hồi, còn claim đã có đơn (CONFIRMED) thì không.
 func TestFlashSaleClaimLifecycle(t *testing.T) {
-	if os.Getenv("TEST_REDIS_URL") == "" {
-		t.Skip("TEST_REDIS_URL not set")
-	}
 	svc, _ := setupWith(t, app.Options{FlashClaimTTL: time.Second})
 	ctx := context.Background()
 	seed(t, svc, "hot", "WH-DEFAULT", 10)
@@ -216,11 +210,37 @@ func TestFlashSaleClaimLifecycle(t *testing.T) {
 	}
 }
 
+// Gửi FlashSaleClaimed lỗi: chắc chắn chưa ghi thì trả suất ngay; mơ hồ (timeout) thì giữ claim và gửi lại ở nền.
+func TestFlashSaleClaimPublishFailures(t *testing.T) {
+	svc, _ := setup(t)
+	ctx := context.Background()
+	seed(t, svc, "hot2", "WH-DEFAULT", 10)
+	sale := startSale(t, svc, app.FlashSaleInput{ProductID: "hot2", Quantity: 1, PerCustomerLimit: 1})
+
+	claims.failNext(fmt.Errorf("%w: topic authorization failed", app.ErrClaimNotPublished), 1)
+	if _, err := svc.ClaimFlashSale(ctx, sale, "hot2", "alice", 1); !errors.Is(err, app.ErrClaimNotPublished) {
+		t.Fatalf("definite failure must fail the claim: %v", err)
+	}
+
+	claims.failNext(context.DeadlineExceeded, 1)
+	c, err := svc.ClaimFlashSale(ctx, sale, "hot2", "alice", 1)
+	if err != nil {
+		t.Fatalf("slot must have been returned and the ambiguous failure must keep the claim: %v", err)
+	}
+	if _, err := svc.ClaimFlashSale(ctx, sale, "hot2", "bob", 1); domain.KindOf(err) != domain.KindConflict {
+		t.Fatalf("claim kept after ambiguous publish, sale must be sold out: %v", err)
+	}
+	deadline := time.Now().Add(3 * time.Second)
+	for claims.published(c.ClaimID) == 0 {
+		if time.Now().After(deadline) {
+			t.Fatal("claim was never republished")
+		}
+		time.Sleep(50 * time.Millisecond)
+	}
+}
+
 // Phòng chờ: phải xếp hàng mới được giành, vào theo thứ tự đến và theo tốc độ admitPerSecond.
 func TestFlashSaleWaitingRoom(t *testing.T) {
-	if os.Getenv("TEST_REDIS_URL") == "" {
-		t.Skip("TEST_REDIS_URL not set")
-	}
 	svc, _ := setup(t)
 	ctx := context.Background()
 	seed(t, svc, "hot", "WH-DEFAULT", 100)

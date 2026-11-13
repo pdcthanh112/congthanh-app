@@ -1,4 +1,4 @@
-// Package integration_test chạy use case thuế trên Postgres thật (bỏ qua khi thiếu TEST_DATABASE_URL).
+// Package integration_test chạy use case thuế trên Postgres thật (TEST_DATABASE_URL hoặc container của testkit).
 package integration_test
 
 import (

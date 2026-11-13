@@ -12,6 +12,7 @@ import com.congthanh.productservice.grpc.ProductDeleted;
 import com.congthanh.productservice.grpc.ProductUpserted;
 import com.congthanh.reviewservice.grpc.ProductRatingChanged;
 import com.google.protobuf.Timestamp;
+import lombok.RequiredArgsConstructor;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Component;
@@ -20,15 +21,12 @@ import java.math.BigDecimal;
 import java.time.Instant;
 
 @Component
+@RequiredArgsConstructor
 class ProductReadModelConsumer {
 
     static final String GROUP = "product-read-model";
 
     private final ProductReadModelUseCase readModel;
-
-    ProductReadModelConsumer(ProductReadModelUseCase readModel) {
-        this.readModel = readModel;
-    }
 
     @KafkaListener(groupId = GROUP, concurrency = "${product.read-model.consumer-concurrency:3}",
             topics = {"ecommerce.product.events", "ecommerce.pricing.events", "ecommerce.review.events",

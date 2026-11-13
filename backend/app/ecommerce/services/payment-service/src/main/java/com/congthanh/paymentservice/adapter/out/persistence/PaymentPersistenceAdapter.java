@@ -11,6 +11,7 @@ import com.congthanh.paymentservice.domain.model.PaymentMethod;
 import com.congthanh.paymentservice.domain.model.PaymentStatus;
 import com.congthanh.platform.outbox.OutboxWriter;
 import com.google.protobuf.Message;
+import lombok.RequiredArgsConstructor;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -20,17 +21,13 @@ import java.math.RoundingMode;
 import java.util.Optional;
 
 @Component
+@RequiredArgsConstructor
 class PaymentPersistenceAdapter implements PaymentRepository {
 
     static final String AGGREGATE = "payment";
 
     private final PaymentJpaRepository jpa;
     private final OutboxWriter outbox;
-
-    PaymentPersistenceAdapter(PaymentJpaRepository jpa, OutboxWriter outbox) {
-        this.jpa = jpa;
-        this.outbox = outbox;
-    }
 
     @Override
     @Transactional(readOnly = true)

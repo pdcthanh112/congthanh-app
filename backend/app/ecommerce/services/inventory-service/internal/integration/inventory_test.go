@@ -3,7 +3,6 @@ package integration_test
 import (
 	"context"
 	"fmt"
-	"os"
 	"sync"
 	"testing"
 	"time"
@@ -12,15 +11,15 @@ import (
 
 	"github.com/pdcthanh112/CongThanhApp/backend/app/ecommerce/libs/go/platform/db"
 	"github.com/pdcthanh112/CongThanhApp/backend/app/ecommerce/libs/go/platform/idgen"
+	"github.com/pdcthanh112/CongThanhApp/backend/app/ecommerce/libs/go/platform/testkit"
 	"github.com/pdcthanh112/CongThanhApp/backend/app/ecommerce/services/inventory-service/internal/adapter/repository/postgres"
 	"github.com/pdcthanh112/CongThanhApp/backend/app/ecommerce/services/inventory-service/internal/app"
 	"github.com/pdcthanh112/CongThanhApp/backend/app/ecommerce/services/inventory-service/internal/domain"
 	"github.com/pdcthanh112/CongThanhApp/backend/app/ecommerce/services/inventory-service/migrations"
 )
 
-// Test tích hợp: cần Postgres thật. Chạy với
-//
-//	TEST_DATABASE_URL=postgres://postgres@localhost:5432/test?sslmode=disable go test ./...
+// Test tích hợp trên Postgres + Redis thật: dùng TEST_DATABASE_URL/TEST_REDIS_URL nếu có, không thì testkit
+// tự bật container (cần Docker).
 func setup(t *testing.T) (*app.Service, *pgxpool.Pool) {
 	t.Helper()
 	return setupWith(t, app.Options{})
@@ -28,10 +27,7 @@ func setup(t *testing.T) (*app.Service, *pgxpool.Pool) {
 
 func setupWith(t *testing.T, opt app.Options) (*app.Service, *pgxpool.Pool) {
 	t.Helper()
-	url := os.Getenv("TEST_DATABASE_URL")
-	if url == "" {
-		t.Skip("TEST_DATABASE_URL not set")
-	}
+	url := testkit.PostgresURL(t)
 	ctx := context.Background()
 	schema := fmt.Sprintf("inv_test_%d", time.Now().UnixNano())
 	pool, err := db.Connect(ctx, url, schema)

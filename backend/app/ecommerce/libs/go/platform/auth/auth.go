@@ -4,13 +4,16 @@
 //   - JWKS (Keycloak / OIDC): kiểm tra chữ ký RS256/ES256 bằng khoá công khai lấy từ JWKS URL.
 //   - HMAC: secret dùng chung (tương thích token do auth-service cũ phát hành).
 //
-// Không cấu hình gì thì Verifier là nil và middleware cho qua (chỉ dùng khi dev).
+// Thiếu cấu hình thì NewVerifier trả lỗi để service không khởi động (fail-closed): gõ sai một biến môi trường không
+// được phép tắt toàn bộ xác thực. Chỉ khi đặt rõ Disabled (AUTH_DISABLED=true, dùng cho dev/test) thì Verifier là
+// nil và mọi middleware cho qua.
 package auth
 
 import (
 	"context"
 	"errors"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"slices"
 	"strings"
@@ -30,22 +33,34 @@ func (p Principal) HasRole(role string) bool {
 	})
 }
 
+func (p Principal) HasAnyRole(roles ...string) bool {
+	return slices.ContainsFunc(roles, p.HasRole)
+}
+
 type Config struct {
 	JWKSURL    string
 	HMACSecret string
 	Issuer     string
 	Audience   string
+	// Disabled tắt xác thực (AUTH_DISABLED=true). Chỉ dùng cho dev/test; production phải có JWKSURL hoặc HMACSecret.
+	Disabled bool
 }
+
+// ErrNotConfigured: không có JWKS/HMAC mà cũng không bật Disabled.
+var ErrNotConfigured = errors.New("auth is not configured: set JWT_JWKS_URL or JWT_SECRET (or AUTH_DISABLED=true for local dev only)")
 
 type Verifier struct {
 	keyfunc jwt.Keyfunc
 	opts    []jwt.ParserOption
 }
 
-// NewVerifier trả về nil, nil khi chưa cấu hình JWKS hay HMAC.
+// NewVerifier trả về nil, nil chỉ khi c.Disabled; thiếu cấu hình mà không Disabled thì trả ErrNotConfigured.
 func NewVerifier(ctx context.Context, c Config) (*Verifier, error) {
 	v := &Verifier{}
 	switch {
+	case c.Disabled:
+		slog.Warn("JWT verification is DISABLED (AUTH_DISABLED=true): every request is allowed; never use in production")
+		return nil, nil
 	case c.JWKSURL != "":
 		k, err := keyfunc.NewDefaultCtx(ctx, []string{c.JWKSURL})
 		if err != nil {
@@ -58,7 +73,7 @@ func NewVerifier(ctx context.Context, c Config) (*Verifier, error) {
 		v.keyfunc = func(*jwt.Token) (any, error) { return secret, nil }
 		v.opts = append(v.opts, jwt.WithValidMethods([]string{"HS256", "HS384", "HS512"}))
 	default:
-		return nil, nil
+		return nil, ErrNotConfigured
 	}
 	if c.Issuer != "" {
 		v.opts = append(v.opts, jwt.WithIssuer(c.Issuer))
@@ -155,7 +170,7 @@ func Middleware(v *Verifier) func(http.Handler) http.Handler {
 	}
 }
 
-// RequireAuth chặn request chưa đăng nhập. Khi auth bị tắt (Verifier nil) thì cho qua.
+// RequireAuth chặn request chưa đăng nhập. Khi auth bị tắt rõ ràng (Verifier nil) thì cho qua.
 func RequireAuth(v *Verifier) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -168,6 +183,33 @@ func RequireAuth(v *Verifier) func(http.Handler) http.Handler {
 			next.ServeHTTP(w, r)
 		})
 	}
+}
+
+// RequireRole chặn request không có ít nhất một trong các role (không phân biệt hoa thường, bỏ tiền tố ROLE_).
+// Chưa đăng nhập → 401, sai role → 403. Đặt sau Middleware; tự kiểm tra đăng nhập nên không cần RequireAuth.
+func RequireRole(v *Verifier, roles ...string) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			if v != nil {
+				p, ok := FromContext(r.Context())
+				if !ok {
+					unauthorized(w, "Authentication required")
+					return
+				}
+				if !p.HasAnyRole(roles...) {
+					forbidden(w, "requires one of roles: "+strings.Join(roles, ", "))
+					return
+				}
+			}
+			next.ServeHTTP(w, r)
+		})
+	}
+}
+
+func forbidden(w http.ResponseWriter, msg string) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusForbidden)
+	_, _ = fmt.Fprintf(w, `{"message":%q,"data":null,"status":"Failed","errorCode":403}`, msg)
 }
 
 func unauthorized(w http.ResponseWriter, msg string) {

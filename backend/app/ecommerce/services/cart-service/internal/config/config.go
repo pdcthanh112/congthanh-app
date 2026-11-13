@@ -7,6 +7,7 @@ import (
 )
 
 type Config struct {
+	AuthDisabled      bool // AUTH_DISABLED=true: tắt xác thực, chỉ cho dev/test
 	HTTPAddr          string
 	GRPCAddr          string
 	DatabaseURL       string
@@ -45,6 +46,7 @@ func Load() Config {
 		LogLevel:          c.String("LOG_LEVEL", "info"),
 		JWKSURL:           c.String("JWT_JWKS_URL", ""),
 		JWTSecret:         c.String("JWT_SECRET", ""),
+		AuthDisabled:      c.Bool("AUTH_DISABLED", false),
 		JWTIssuer:         c.String("JWT_ISSUER", ""),
 		KafkaBrokers:      splitList(c.String("KAFKA_BROKERS", "")),
 		KafkaGroup:        c.String("KAFKA_GROUP", "cart-service"),

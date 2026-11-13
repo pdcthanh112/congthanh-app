@@ -1,6 +1,7 @@
 package com.congthanh.productservice.adapter.in.web;
 
 import com.congthanh.productservice.application.port.in.ProductReadModelUseCase;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -11,14 +12,11 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 @RestController
 @RequestMapping("/api/ecommerce/products/read-model")
+@RequiredArgsConstructor
 class ProductReadModelController {
 
     private final ProductReadModelUseCase readModel;
     private final AtomicBoolean running = new AtomicBoolean();
-
-    ProductReadModelController(ProductReadModelUseCase readModel) {
-        this.readModel = readModel;
-    }
 
     @PostMapping("/rebuild")
     ResponseEntity<Map<String, String>> rebuild() {

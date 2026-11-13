@@ -19,6 +19,7 @@ import io.swagger.v3.oas.annotations.enums.ParameterIn;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -41,15 +42,11 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/ecommerce/checkout")
 @Tag(name = "Checkout", description = "Checkout sessions: quote, place, track")
+@RequiredArgsConstructor
 class CheckoutController {
 
     private final CheckoutUseCase checkout;
     private final PlaceLimiter placeLimiter;
-
-    CheckoutController(CheckoutUseCase checkout, PlaceLimiter placeLimiter) {
-        this.checkout = checkout;
-        this.placeLimiter = placeLimiter;
-    }
 
     @Operation(summary = "Open a checkout session and quote it",
             description = "Prices come from pricing-service (customer group from the token), plus voucher, shipping and tax "
@@ -115,10 +112,6 @@ class CheckoutController {
         return request.getRemoteAddr();
     }
 
-    /**
-     * Khách từ JWT Keycloak: vai trò realm làm nhóm khách cho bảng giá (VIP, WHOLESALE...), email và thời điểm
-     * tạo tài khoản (claim "created_at" nếu realm có mapper) cho fraud-service.
-     */
     static Customer customer(Jwt jwt) {
         List<String> roles = new ArrayList<>();
         if (jwt.getClaims().get("realm_access") instanceof Map<?, ?> m && m.get("roles") instanceof Collection<?> rs) {

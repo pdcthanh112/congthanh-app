@@ -20,7 +20,6 @@ dependencyResolutionManagement {
 rootProject.name = "congthanhapp-ecommerce"
 
 // Thư viện Java dùng chung (libs/java/*)
-include(":libs:java:common-core")
 include(":libs:java:proto")
 include(":libs:java:platform")
 include(":libs:java:workflow-contracts")

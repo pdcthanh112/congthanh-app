@@ -30,18 +30,23 @@ import java.time.Duration;
  * pod chết giữa chừng thì worker khác replay và chạy tiếp đúng bước đó; không có bảng saga tự viết.
  *
  * <pre>
- *  redeem voucher ─► giữ hàng ─► authorize ─► [chờ khách trả tiền ở cổng] ─► commit kho ─► capture ─► confirm
- *       │                │            │                 │                       ▲
- *       └──── lỗi ở bất kỳ bước nào trước commit: bù trừ ngược (refund ◄ release ◄ cancel voucher) rồi huỷ đơn
+ *  redeem voucher ─► giữ hàng ─► authorize ─► [chờ khách trả tiền ở cổng] ─► capture ─► commit kho ─► confirm
+ *       │                │            │                 │                     │            │
+ *       └──── lỗi ở bất kỳ bước nào tới commit kho: bù trừ ngược (refund ◄ release ◄ cancel voucher) rồi huỷ đơn
  * </pre>
  *
- * Commit kho là bước "pivot": sau đó saga chỉ đi tiếp (capture, confirm retry đến khi xong), không bù trừ.
+ * Capture đứng trước commit kho vì tiền hoàn lại được (refund), còn hàng đã commit thì không trả về kho được.
+ * Commit kho là bước "pivot": retry lỗi tạm thời tới khi xong, chỉ bù trừ khi inventory từ chối hẳn (chắc chắn
+ * chưa commit). Sau pivot chỉ còn confirm; nếu confirm bị từ chối hẳn thì hoàn tiền, huỷ đơn và ghi log lỗi để
+ * vận hành xử lý phần hàng đã xuất, chứ không để workflow fail với tiền đã trừ.
  * Đổi logic workflow sau khi đã chạy production phải dùng {@code Workflow.getVersion} để không vỡ replay.
  */
 public class CheckoutWorkflowImpl implements CheckoutWorkflow {
 
     private static final Logger log = Workflow.getLogger(CheckoutWorkflowImpl.class);
     private static final Duration DEFAULT_PAYMENT_TIMEOUT = Duration.ofMinutes(15);
+    /** Đổi thứ tự capture/commit kho; workflow cũ đang chạy vẫn replay theo nhánh DEFAULT_VERSION. */
+    static final String CAPTURE_BEFORE_COMMIT = "capture-before-commit";
 
     private static final RetryOptions FORWARD_RETRY = RetryOptions.newBuilder()
             .setInitialInterval(Duration.ofSeconds(1))
@@ -141,13 +146,45 @@ public class CheckoutWorkflowImpl implements CheckoutWorkflow {
             }
             abortIfCancelRequested();
 
-            // Pivot: từ đây không bù trừ nữa.
+            if (Workflow.getVersion(CAPTURE_BEFORE_COMMIT, Workflow.DEFAULT_VERSION, 1) == Workflow.DEFAULT_VERSION) {
+                return legacyCommitThenCapture(orderId, paymentId, saga);
+            }
+
+            // Capture có thể bị từ chối (authorization hết hạn...): vẫn còn bù trừ được, refund lo cả hai trường hợp.
+            step = Step.CAPTURING_PAYMENT;
+            payments.capture(orderId);
+
+            // Pivot. Lỗi tạm thời thì retry mãi; chỉ lỗi nghiệp vụ (giữ chỗ đã hết hạn/đã nhả) mới tới catch.
             step = Step.COMMITTING_INVENTORY;
-            steps.commitInventory(orderId);
+            mustComplete.commitInventory(orderId);
         } catch (ActivityFailure | CheckoutAborted e) {
             return compensate(orderId, saga, e);
         }
 
+        try {
+            mustComplete.confirmOrder(orderId, paymentId);
+        } catch (ActivityFailure e) {
+            failureReason = reason(e);
+            log.error("checkout {}: confirm rejected after inventory commit ({}); refunding and cancelling,"
+                    + " committed stock needs manual review", orderId, failureReason);
+            step = Step.COMPENSATING;
+            paymentsMustComplete.refund(new RefundPaymentRequest(orderId, "order confirmation failed"));
+            mustComplete.cancelOrder(orderId, failureReason);
+            step = Step.CANCELLED;
+            return new CheckoutResult(orderId, false, null, failureReason);
+        }
+        step = Step.COMPLETED;
+        return new CheckoutResult(orderId, true, paymentId, null);
+    }
+
+    /** Thứ tự cũ (commit kho rồi mới capture), chỉ để replay workflow bắt đầu trước khi đổi. */
+    private CheckoutResult legacyCommitThenCapture(String orderId, String paymentId, Saga saga) {
+        try {
+            step = Step.COMMITTING_INVENTORY;
+            steps.commitInventory(orderId);
+        } catch (ActivityFailure e) {
+            return compensate(orderId, saga, e);
+        }
         step = Step.CAPTURING_PAYMENT;
         paymentsMustComplete.capture(orderId);
         mustComplete.confirmOrder(orderId, paymentId);
@@ -175,7 +212,7 @@ public class CheckoutWorkflowImpl implements CheckoutWorkflow {
 
     @Override
     public void cancel(String reason) {
-        // Chỉ có tác dụng trước pivot; sau khi commit kho thì đơn đi tới cùng.
+        // Chỉ có tác dụng trước capture; sau đó đơn đi tới cùng.
         if (cancelRequest == null) {
             cancelRequest = reason == null || reason.isBlank() ? "cancelled by customer" : reason;
         }

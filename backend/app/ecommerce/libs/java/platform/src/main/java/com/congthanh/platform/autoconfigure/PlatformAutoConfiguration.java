@@ -4,6 +4,7 @@ import com.congthanh.platform.idempotency.IdempotencyKeyFilter;
 import com.congthanh.platform.idempotency.IdempotencyStore;
 import com.congthanh.platform.inbox.ProcessedEvents;
 import com.congthanh.platform.migration.LiquibaseSchemaCreator;
+import com.congthanh.platform.outbox.OutboxJanitor;
 import com.congthanh.platform.outbox.OutboxWriter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -66,6 +67,44 @@ public class PlatformAutoConfiguration {
     }
 
     @Configuration(proxyBeanMethods = false)
+    @ConditionalOnBooleanProperty(name = "platform.outbox.janitor-enabled", matchIfMissing = true)
+    @EnableScheduling
+    static class OutboxJanitorConfiguration {
+
+        @Bean
+        @ConditionalOnMissingBean
+        OutboxJanitor outboxJanitor(DataSource dataSource, PlatformProperties props, Clock clock) {
+            return new OutboxJanitor(JdbcClient.create(dataSource), props.outbox().retention(),
+                    props.outbox().processedRetention(), clock);
+        }
+
+        @Bean
+        OutboxJanitorTask outboxJanitorTask(ObjectProvider<OutboxJanitor> janitor) {
+            return new OutboxJanitorTask(janitor);
+        }
+    }
+
+    static class OutboxJanitorTask {
+        private final ObjectProvider<OutboxJanitor> janitor;
+
+        OutboxJanitorTask(ObjectProvider<OutboxJanitor> janitor) {
+            this.janitor = janitor;
+        }
+
+        @Scheduled(fixedDelayString = "${platform.outbox.janitor-interval:PT5M}", initialDelayString = "PT1M")
+        void purge() {
+            try {
+                OutboxJanitor.Purged p = janitor.getObject().purge();
+                if (p.outbox() + p.processedEvents() > 0) {
+                    log.info("purged {} outbox rows, {} processed_events rows", p.outbox(), p.processedEvents());
+                }
+            } catch (RuntimeException e) {
+                log.warn("outbox janitor failed: {}", e.toString());
+            }
+        }
+    }
+
+    @Configuration(proxyBeanMethods = false)
     @ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
     @ConditionalOnBooleanProperty(name = "platform.idempotency.enabled", matchIfMissing = true)
     @EnableScheduling
@@ -74,7 +113,8 @@ public class PlatformAutoConfiguration {
         @Bean
         @ConditionalOnMissingBean
         IdempotencyStore idempotencyStore(DataSource dataSource, PlatformProperties props, Clock clock) {
-            return new IdempotencyStore(JdbcClient.create(dataSource), props.idempotency().ttl(), clock);
+            return new IdempotencyStore(JdbcClient.create(dataSource), props.idempotency().ttl(),
+                    props.idempotency().lease(), clock);
         }
 
         /** Chạy sau Spring Security (order -100) để biết principal. */

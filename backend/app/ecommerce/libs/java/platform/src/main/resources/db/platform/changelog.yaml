@@ -7,3 +7,5 @@ databaseChangeLog:
       file: db/platform/002-processed-events.sql
   - include:
       file: db/platform/003-idempotency-keys.sql
+  - include:
+      file: db/platform/004-idempotency-lease.sql

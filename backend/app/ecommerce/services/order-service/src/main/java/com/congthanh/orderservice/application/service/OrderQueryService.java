@@ -7,26 +7,23 @@ import com.congthanh.orderservice.application.port.out.OrderRepository;
 import com.congthanh.orderservice.domain.exception.OrderException;
 import com.congthanh.orderservice.domain.model.Order;
 import com.congthanh.orderservice.domain.model.OrderStatus;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
 
 @Service
+@RequiredArgsConstructor
 public class OrderQueryService implements OrderQueries {
 
     private final OrderRepository orders;
     private final CheckoutOrchestrator checkout;
 
-    public OrderQueryService(OrderRepository orders, CheckoutOrchestrator checkout) {
-        this.orders = orders;
-        this.checkout = checkout;
-    }
-
     @Override
     public Order get(String orderCode, Requester requester) {
         Order order = orders.findByCode(orderCode)
                 .orElseThrow(() -> OrderException.notFound("order " + orderCode + " not found"));
-        // Không lộ việc đơn tồn tại với người không có quyền.
+
         if (!requester.canAccess(order.customerId())) {
             throw OrderException.notFound("order " + orderCode + " not found");
         }

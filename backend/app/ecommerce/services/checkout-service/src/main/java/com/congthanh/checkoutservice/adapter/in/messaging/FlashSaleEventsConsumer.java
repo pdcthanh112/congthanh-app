@@ -6,6 +6,7 @@ import com.congthanh.ecommerce.common.v1.EventEnvelope;
 import com.congthanh.inventoryservice.grpc.FlashSaleClaimed;
 import com.congthanh.platform.inbox.EventEnvelopes;
 import com.congthanh.platform.inbox.ProcessedEvents;
+import lombok.RequiredArgsConstructor;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Component;
@@ -14,17 +15,12 @@ import org.springframework.transaction.support.TransactionTemplate;
 import java.time.Instant;
 
 @Component
+@RequiredArgsConstructor
 class FlashSaleEventsConsumer {
 
     private final CheckoutUseCase checkout;
     private final ProcessedEvents processed;
     private final TransactionTemplate tx;
-
-    FlashSaleEventsConsumer(CheckoutUseCase checkout, ProcessedEvents processed, TransactionTemplate tx) {
-        this.checkout = checkout;
-        this.processed = processed;
-        this.tx = tx;
-    }
 
     @KafkaListener(topics = "ecommerce.inventory.events", groupId = FraudEventsConsumer.CONSUMER,
             concurrency = "${checkout.flash-sale.consumer-concurrency:3}")

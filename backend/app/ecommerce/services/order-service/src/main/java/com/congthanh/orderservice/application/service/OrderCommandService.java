@@ -19,6 +19,7 @@ import com.congthanh.orderservice.domain.model.Money;
 import com.congthanh.orderservice.domain.model.Order;
 import com.congthanh.orderservice.domain.model.OrderLine;
 import com.congthanh.orderservice.domain.model.OrderStatus;
+import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -31,6 +32,7 @@ import java.util.List;
 import java.util.Map;
 
 @Service
+@RequiredArgsConstructor
 public class OrderCommandService implements PlaceOrderUseCase, CheckoutStepsUseCase, CancelOrderUseCase {
 
     private static final Logger log = LoggerFactory.getLogger(OrderCommandService.class);
@@ -45,24 +47,6 @@ public class OrderCommandService implements PlaceOrderUseCase, CheckoutStepsUseC
     private final TransactionTemplate tx;
     private final Clock clock;
 
-    public OrderCommandService(OrderRepository orders, ProductCatalog catalog, Promotions promotions,
-                               Inventory inventory, CheckoutOrchestrator checkout, OrderIdentity identity,
-                               TransactionTemplate tx, Clock clock) {
-        this.orders = orders;
-        this.catalog = catalog;
-        this.promotions = promotions;
-        this.inventory = inventory;
-        this.checkout = checkout;
-        this.identity = identity;
-        this.tx = tx;
-        this.clock = clock;
-    }
-
-    /**
-     * 1) lấy giá từ product-service, báo giá voucher; 2) lưu đơn PENDING + OrderPlaced (outbox) trong một
-     * transaction; 3) sau commit mới start workflow. Nếu bước 3 lỗi, {@link CheckoutRecovery} start lại
-     * (workflow id = checkout-&lt;orderId&gt; nên không bao giờ có hai saga cho một đơn).
-     */
     @Override
     public PlacedOrder place(PlaceOrderCommand cmd) {
         Priced priced = cmd.priced();

@@ -15,6 +15,7 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.PositiveOrZero;
 import jakarta.validation.constraints.Size;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -33,15 +34,11 @@ import java.time.Instant;
 @RestController
 @RequestMapping("/api/ecommerce/promotions")
 @Tag(name = "Promotions")
+@RequiredArgsConstructor
 class PromotionController {
 
     private final PromotionAdmin admin;
     private final CheckoutDiscounts discounts;
-
-    PromotionController(PromotionAdmin admin, CheckoutDiscounts discounts) {
-        this.admin = admin;
-        this.discounts = discounts;
-    }
 
     record PromotionRequest(@NotBlank @Size(max = 32) String code, @NotNull PromotionType type,
                             @NotNull DiscountRule.Kind discountKind, @NotNull @Positive BigDecimal discountValue,

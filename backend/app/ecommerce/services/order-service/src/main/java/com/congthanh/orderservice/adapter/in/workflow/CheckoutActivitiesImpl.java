@@ -4,24 +4,18 @@ import com.congthanh.ecommerce.workflow.checkout.CheckoutActivities;
 import com.congthanh.orderservice.application.port.in.CheckoutStepsUseCase;
 import com.congthanh.orderservice.domain.exception.OrderException;
 import io.temporal.failure.ApplicationFailure;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 import java.util.function.Supplier;
 
-/**
- * Lỗi nghiệp vụ (REJECTED, INVALID, NOT_FOUND, CONFLICT) → ApplicationFailure không retry, workflow
- * chuyển sang bù trừ. Lỗi hạ tầng (UNAVAILABLE, exception khác) → để Temporal retry theo RetryOptions.
- */
 @Component
+@RequiredArgsConstructor
 public class CheckoutActivitiesImpl implements CheckoutActivities {
 
     public static final String REJECTED = CheckoutActivities.REJECTED;
 
     private final CheckoutStepsUseCase steps;
-
-    public CheckoutActivitiesImpl(CheckoutStepsUseCase steps) {
-        this.steps = steps;
-    }
 
     @Override
     public void redeemPromotion(String orderId) {

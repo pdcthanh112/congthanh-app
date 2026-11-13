@@ -29,7 +29,8 @@ import java.util.Set;
  * <ul>
  *   <li>lần đầu: xử lý bình thường, lưu status + body (trừ 5xx, để client thử lại);</li>
  *   <li>gửi lại cùng key + cùng payload: trả lại đúng response cũ, kèm {@code Idempotent-Replayed: true};</li>
- *   <li>cùng key nhưng payload khác: 422; request đầu còn đang chạy: 409.</li>
+ *   <li>cùng key nhưng payload khác: 422; request đầu còn đang chạy: 409;</li>
+ *   <li>request đầu giữ key quá lease (pod chết giữa chừng): request gửi lại tiếp quản và chạy lại.</li>
  * </ul>
  * Key gắn với principal (sub của JWT) nên hai người dùng không đụng key của nhau.
  */
@@ -92,12 +93,13 @@ public class IdempotencyKeyFilter extends OncePerRequestFilter {
             chain.doFilter(cached, wrapped);
             int status = wrapped.getStatus();
             if (status < 500) {
-                store.complete(principal, key, status, wrapped.getContentType(), wrapped.getContentAsByteArray());
+                store.complete(principal, key, begin.token(), status, wrapped.getContentType(),
+                        wrapped.getContentAsByteArray());
                 stored = true;
             }
         } finally {
             if (!stored) {
-                store.release(principal, key);
+                store.release(principal, key, begin.token());
             }
             wrapped.copyBodyToResponse();
         }

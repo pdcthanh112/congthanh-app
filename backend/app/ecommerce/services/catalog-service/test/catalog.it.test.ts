@@ -10,7 +10,7 @@ import { CatalogService } from '../src/application/catalog.service.js';
 
 /**
  * Kiểm thử tích hợp với Postgres thật (schema riêng, xoá sau khi chạy).
- * Bật bằng TEST_DATABASE_URL, ví dụ postgres://postgres@localhost:5432/ecommerce (CI dùng service container).
+ * Postgres lấy từ TEST_DATABASE_URL, hoặc container do vitest.global-setup.ts bật khi biến này trống.
  */
 const url = process.env.TEST_DATABASE_URL;
 const SCHEMA = 'catalog_service';

@@ -2,6 +2,7 @@ package com.congthanh.paymentservice.adapter.in.web;
 
 import com.congthanh.paymentservice.application.port.in.PaymentUseCases;
 import com.congthanh.paymentservice.domain.model.PaymentMethod;
+import lombok.RequiredArgsConstructor;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBooleanProperty;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -16,15 +17,11 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/ecommerce/payment/sandbox")
 @ConditionalOnBooleanProperty("payment.sandbox.enabled")
+@RequiredArgsConstructor
 public class SandboxController {
 
     private final PaymentUseCases payments;
     private final SandboxSigner signer;
-
-    SandboxController(PaymentUseCases payments, SandboxSigner signer) {
-        this.payments = payments;
-        this.signer = signer;
-    }
 
     @GetMapping(value = "/pay", produces = MediaType.TEXT_HTML_VALUE)
     String page(@RequestParam String ref, @RequestParam String method, @RequestParam String sig) {

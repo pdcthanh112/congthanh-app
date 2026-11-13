@@ -1,14 +1,11 @@
 // Package dbtest tạo schema Postgres tạm cho test tích hợp: chạy migration goose, xoá schema khi test xong.
-// Bỏ qua test khi không có TEST_DATABASE_URL.
-//
-//	TEST_DATABASE_URL=postgres://postgres@localhost:5432/test?sslmode=disable go test ./...
+// Postgres lấy từ testkit: TEST_DATABASE_URL nếu có, không thì tự bật container (Testcontainers).
 package dbtest
 
 import (
 	"context"
 	"fmt"
 	"io/fs"
-	"os"
 	"strings"
 	"testing"
 	"time"
@@ -16,14 +13,12 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/pdcthanh112/CongThanhApp/backend/app/ecommerce/libs/go/platform/db"
+	"github.com/pdcthanh112/CongThanhApp/backend/app/ecommerce/libs/go/platform/testkit"
 )
 
 func New(t *testing.T, prefix string, migrations fs.FS) *pgxpool.Pool {
 	t.Helper()
-	url := os.Getenv("TEST_DATABASE_URL")
-	if url == "" {
-		t.Skip("TEST_DATABASE_URL not set")
-	}
+	url := testkit.PostgresURL(t)
 	ctx := context.Background()
 	schema := fmt.Sprintf("%s_test_%d", strings.ReplaceAll(prefix, "-", "_"), time.Now().UnixNano())
 	pool, err := db.Connect(ctx, url, schema)

@@ -5,16 +5,14 @@ import com.congthanh.ecommerce.order.v1.OrderCancelled;
 import com.congthanh.platform.inbox.EventEnvelopes;
 import com.congthanh.platform.inbox.ProcessedEvents;
 import com.congthanh.promotionservice.application.port.in.CheckoutDiscounts;
+import lombok.RequiredArgsConstructor;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.support.TransactionTemplate;
 
-/**
- * Lưới an toàn song song với bù trừ của saga: đơn bị huỷ thì trả lượt voucher. Cả hai đường đều
- * idempotent; processed_events ghi cùng transaction để Kafka giao lại không xử lý hai lần.
- */
 @Component
+@RequiredArgsConstructor
 class OrderEventsConsumer {
 
     static final String CONSUMER = "promotion-service";
@@ -22,12 +20,6 @@ class OrderEventsConsumer {
     private final CheckoutDiscounts discounts;
     private final ProcessedEvents processed;
     private final TransactionTemplate tx;
-
-    OrderEventsConsumer(CheckoutDiscounts discounts, ProcessedEvents processed, TransactionTemplate tx) {
-        this.discounts = discounts;
-        this.processed = processed;
-        this.tx = tx;
-    }
 
     @KafkaListener(topics = "ecommerce.order.events", groupId = CONSUMER)
     void onOrderEvent(ConsumerRecord<String, byte[]> record) {

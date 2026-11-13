@@ -8,6 +8,7 @@ import (
 )
 
 type Config struct {
+	AuthDisabled     bool // AUTH_DISABLED=true: tắt xác thực, chỉ cho dev/test
 	HTTPAddr         string
 	GRPCAddr         string
 	DatabaseURL      string
@@ -38,13 +39,14 @@ func Load() Config {
 		DatabaseURL:      c.String("DATABASE_URL", "postgres://postgres:123456@localhost:5432/CongThanhApp-Ecommerce?sslmode=disable"),
 		DBSchema:         c.String("DB_SCHEMA", "inventory"),
 		NodeID:           int64(c.Int("NODE_ID", 4)),
-		ReservationTTL:   c.Duration("RESERVATION_TTL", 15*time.Minute),
+		ReservationTTL:   c.Duration("RESERVATION_TTL", 30*time.Minute), // order-service gửi expiry_time riêng (payment timeout + margin)
 		SweepInterval:    c.Duration("RESERVATION_SWEEP_INTERVAL", time.Minute),
 		FlashClaimTTL:    c.Duration("FLASH_CLAIM_TTL", 10*time.Minute),
 		LogFormat:        c.String("LOG_FORMAT", "json"),
 		LogLevel:         c.String("LOG_LEVEL", "info"),
 		JWKSURL:          c.String("JWT_JWKS_URL", ""),
 		JWTSecret:        c.String("JWT_SECRET", ""),
+		AuthDisabled:     c.Bool("AUTH_DISABLED", false),
 		JWTIssuer:        c.String("JWT_ISSUER", ""),
 		DefaultWarehouse: c.String("DEFAULT_WAREHOUSE_ID", "WH-DEFAULT"),
 		RedisURL:         c.String("REDIS_URL", ""),

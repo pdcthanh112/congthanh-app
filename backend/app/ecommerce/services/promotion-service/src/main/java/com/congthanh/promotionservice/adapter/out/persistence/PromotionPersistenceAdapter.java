@@ -12,6 +12,7 @@ import com.congthanh.promotionservice.grpc.PromotionExpired;
 import com.congthanh.promotionservice.grpc.PromotionRedeemed;
 import com.congthanh.promotionservice.grpc.RedemptionCancelled;
 import com.google.protobuf.Message;
+import lombok.RequiredArgsConstructor;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -19,6 +20,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.Optional;
 
 @Component
+@RequiredArgsConstructor
 class PromotionPersistenceAdapter implements PromotionRepository {
 
     static final String AGGREGATE = "promotion";
@@ -26,12 +28,6 @@ class PromotionPersistenceAdapter implements PromotionRepository {
     private final PromotionJpaRepository promotions;
     private final RedemptionJpaRepository redemptions;
     private final OutboxWriter outbox;
-
-    PromotionPersistenceAdapter(PromotionJpaRepository promotions, RedemptionJpaRepository redemptions, OutboxWriter outbox) {
-        this.promotions = promotions;
-        this.redemptions = redemptions;
-        this.outbox = outbox;
-    }
 
     @Override
     public Optional<Promotion> findById(long id) {

@@ -16,6 +16,7 @@ import (
 	"github.com/pdcthanh112/CongThanhApp/backend/app/ecommerce/libs/go/platform/kafka"
 	"github.com/pdcthanh112/CongThanhApp/backend/app/ecommerce/libs/go/platform/logging"
 	"github.com/pdcthanh112/CongThanhApp/backend/app/ecommerce/libs/go/platform/otel"
+	"github.com/pdcthanh112/CongThanhApp/backend/app/ecommerce/libs/go/platform/outbox"
 	"github.com/pdcthanh112/CongThanhApp/backend/app/ecommerce/libs/go/platform/server"
 	pb "github.com/pdcthanh112/CongThanhApp/backend/app/ecommerce/libs/go/proto/ecommerce/cart/v1"
 	grpcadapter "github.com/pdcthanh112/CongThanhApp/backend/app/ecommerce/services/cart-service/internal/adapter/grpc"
@@ -63,12 +64,9 @@ func run() error {
 	if err != nil {
 		return err
 	}
-	verifier, err := auth.NewVerifier(ctx, auth.Config{JWKSURL: cfg.JWKSURL, HMACSecret: cfg.JWTSecret, Issuer: cfg.JWTIssuer})
+	verifier, err := auth.NewVerifier(ctx, auth.Config{JWKSURL: cfg.JWKSURL, HMACSecret: cfg.JWTSecret, Issuer: cfg.JWTIssuer, Disabled: cfg.AuthDisabled})
 	if err != nil {
 		return err
-	}
-	if verifier == nil {
-		slog.Warn("JWT verification is disabled (set JWT_JWKS_URL or JWT_SECRET)")
 	}
 
 	// --- driven adapters ---
@@ -84,7 +82,7 @@ func run() error {
 	defer inventoryConn.Close()
 	repo := postgres.New(pool, ids)
 
-	svc := app.NewService(repo, repo, grpcclient.NewProducts(productConn), grpcclient.NewInventory(inventoryConn), app.Options{
+	svc := app.NewService(repo, repo, repo, grpcclient.NewProducts(productConn), grpcclient.NewInventory(inventoryConn), app.Options{
 		MaxItemQuantity: cfg.MaxItemQuantity, MaxItemsPerCart: cfg.MaxItemsPerCart, ValidateProducts: cfg.ValidateProducts,
 	})
 
@@ -108,6 +106,9 @@ func run() error {
 
 	router := server.NewRouter(serviceName, repo.Ping)
 	httpadapter.New(svc, verifier).Mount(router)
+
+	// Dọn outbox (Debezium đã đọc qua WAL) và processed_events quá hạn.
+	bg = append(bg, outbox.NewJanitor(pool, outbox.JanitorConfig{}).Run)
 
 	return server.Run(ctx, server.Options{
 		HTTPAddr: cfg.HTTPAddr, HTTPHandler: router,

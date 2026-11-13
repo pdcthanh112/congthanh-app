@@ -7,6 +7,7 @@ import (
 )
 
 type Config struct {
+	AuthDisabled                             bool // AUTH_DISABLED=true: tắt xác thực, chỉ cho dev/test
 	HTTPAddr, GRPCAddr                       string
 	ElasticsearchURL, ElasticsearchIndex     string
 	ElasticsearchUser, ElasticsearchPassword string
@@ -33,6 +34,7 @@ func Load() Config {
 		LogLevel:              c.String("LOG_LEVEL", "info"),
 		JWKSURL:               c.String("JWT_JWKS_URL", ""),
 		JWTSecret:             c.String("JWT_SECRET", ""),
+		AuthDisabled:          c.Bool("AUTH_DISABLED", false),
 		JWTIssuer:             c.String("JWT_ISSUER", ""),
 		Version:               c.String("SERVICE_VERSION", "dev"),
 	}

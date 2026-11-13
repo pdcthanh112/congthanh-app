@@ -9,6 +9,7 @@ export * from './config/env.js';
 export * from './db/database.js';
 export * from './db/database.module.js';
 export * from './db/inbox.js';
+export * from './db/janitor.js';
 export * from './db/outbox.js';
 export * from './db/platform-tables.js';
 export * from './errors/domain-error.js';

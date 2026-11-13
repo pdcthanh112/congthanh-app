@@ -16,20 +16,21 @@ type Options struct {
 type Service struct {
 	read     Reader
 	uow      UnitOfWork
+	pending  PendingOrders
 	products ProductCatalog
 	stock    StockChecker
 	policy   domain.Policy
 	validate bool
 }
 
-func NewService(read Reader, uow UnitOfWork, products ProductCatalog, stock StockChecker, opt Options) *Service {
+func NewService(read Reader, uow UnitOfWork, pending PendingOrders, products ProductCatalog, stock StockChecker, opt Options) *Service {
 	if opt.MaxItemQuantity <= 0 {
 		opt.MaxItemQuantity = 99
 	}
 	if opt.MaxItemsPerCart <= 0 {
 		opt.MaxItemsPerCart = 100
 	}
-	return &Service{read: read, uow: uow, products: products, stock: stock,
+	return &Service{read: read, uow: uow, pending: pending, products: products, stock: stock,
 		policy:   domain.Policy{MaxItemQuantity: opt.MaxItemQuantity, MaxItemsPerCart: opt.MaxItemsPerCart},
 		validate: opt.ValidateProducts && products != nil}
 }
@@ -221,7 +222,33 @@ func (s *Service) Clear(ctx context.Context, cartID int64, productIDs []string) 
 	return n, err
 }
 
-// ClearOrdered bỏ khỏi giỏ mặc định các sản phẩm vừa đặt (event OrderPlaced).
+// OrderPlaced ghi nhớ sản phẩm của đơn; giỏ chưa bị đụng tới vì đơn có thể còn bị huỷ (thanh toán lỗi, hết hàng).
+func (s *Service) OrderPlaced(ctx context.Context, orderID, customerID string, productIDs []string) error {
+	if orderID == "" || customerID == "" || len(productIDs) == 0 {
+		return nil
+	}
+	return s.pending.RememberOrder(ctx, orderID, customerID, productIDs)
+}
+
+// OrderConfirmed (đã thanh toán) mới bỏ các sản phẩm của đơn khỏi giỏ mặc định. Gọi lại an toàn.
+func (s *Service) OrderConfirmed(ctx context.Context, orderID string) (int, error) {
+	customerID, productIDs, ok, err := s.pending.PendingOrder(ctx, orderID)
+	if err != nil || !ok {
+		return 0, err
+	}
+	n, err := s.ClearOrdered(ctx, customerID, productIDs)
+	if err != nil {
+		return 0, err
+	}
+	return n, s.pending.ForgetOrder(ctx, orderID)
+}
+
+// OrderCancelled bỏ phần ghi nhớ; giỏ giữ nguyên.
+func (s *Service) OrderCancelled(ctx context.Context, orderID string) error {
+	return s.pending.ForgetOrder(ctx, orderID)
+}
+
+// ClearOrdered bỏ khỏi giỏ mặc định các sản phẩm của đơn đã xác nhận.
 func (s *Service) ClearOrdered(ctx context.Context, customerID string, productIDs []string) (int, error) {
 	c, err := s.read.GetDefault(ctx, customerID)
 	if domain.KindOf(err) == domain.KindNotFound || len(productIDs) == 0 {

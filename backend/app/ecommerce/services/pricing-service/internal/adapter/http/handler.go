@@ -33,7 +33,7 @@ func (h *Handler) Mount(r chi.Router) {
 		r.Method(http.MethodPost, "/quote", H(h.quote))
 
 		r.Group(func(r chi.Router) {
-			r.Use(auth.RequireAuth(h.verifier), h.requireAdmin)
+			r.Use(auth.RequireRole(h.verifier, "ADMIN"))
 			r.Method(http.MethodGet, "/price-lists", H(h.lists))
 			r.Method(http.MethodPost, "/price-lists", H(h.createList))
 			r.Method(http.MethodPut, "/price-lists/{code}", H(h.updateList))
@@ -45,18 +45,6 @@ func (h *Handler) Mount(r chi.Router) {
 			r.Method(http.MethodPost, "/schedules/{id}/cancel", H(h.cancelSchedule))
 			r.Method(http.MethodGet, "/products/{productId}/history", H(h.history))
 		})
-	})
-}
-
-func (h *Handler) requireAdmin(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if h.verifier != nil {
-			if p, _ := auth.FromContext(r.Context()); !p.HasRole("ADMIN") {
-				httpx.Fail(w, r, httpx.Forbidden("requires role ADMIN"))
-				return
-			}
-		}
-		next.ServeHTTP(w, r)
 	})
 }
 

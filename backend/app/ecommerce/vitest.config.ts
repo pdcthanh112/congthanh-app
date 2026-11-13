@@ -17,6 +17,7 @@ export default defineConfig({
   test: {
     include: ['libs/ts/*/src/**/*.test.ts', 'services/*/src/**/*.test.ts', 'services/*/test/**/*.test.ts'],
     environment: 'node',
+    globalSetup: ['./vitest.global-setup.ts'],
     pool: 'forks',
   },
 });

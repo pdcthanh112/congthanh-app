@@ -12,6 +12,7 @@ import com.congthanh.paymentservice.domain.model.Money;
 import com.congthanh.paymentservice.domain.model.Payment;
 import com.congthanh.paymentservice.domain.model.PaymentMethod;
 import com.congthanh.paymentservice.domain.model.PaymentStatus;
+import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -26,11 +27,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-/**
- * Gọi cổng thanh toán NGOÀI transaction DB (không giữ connection khi chờ mạng), và ghi trạng thái
- * trước/sau mỗi lần gọi để lần retry biết đã tới bước nào.
- */
 @Service
+@RequiredArgsConstructor
 public class PaymentService implements PaymentUseCases {
 
     private static final Logger log = LoggerFactory.getLogger(PaymentService.class);
@@ -41,16 +39,6 @@ public class PaymentService implements PaymentUseCases {
     private final TransactionTemplate tx;
     private final Clock clock;
     private final InstallmentPolicy installments;
-
-    public PaymentService(PaymentRepository payments, PaymentProviders providers, CheckoutNotifier checkout,
-                          TransactionTemplate tx, Clock clock, InstallmentPolicy installments) {
-        this.payments = payments;
-        this.providers = providers;
-        this.checkout = checkout;
-        this.tx = tx;
-        this.clock = clock;
-        this.installments = installments;
-    }
 
     @Override
     public Authorization authorize(AuthorizeCommand cmd) {

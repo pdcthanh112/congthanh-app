@@ -57,7 +57,7 @@ func run() error {
 		slog.Warn("elasticsearch not ready, retrying", "err", err)
 		time.Sleep(5 * time.Second)
 	}
-	verifier, err := auth.NewVerifier(ctx, auth.Config{JWKSURL: cfg.JWKSURL, HMACSecret: cfg.JWTSecret, Issuer: cfg.JWTIssuer})
+	verifier, err := auth.NewVerifier(ctx, auth.Config{JWKSURL: cfg.JWKSURL, HMACSecret: cfg.JWTSecret, Issuer: cfg.JWTIssuer, Disabled: cfg.AuthDisabled})
 	if err != nil {
 		return err
 	}

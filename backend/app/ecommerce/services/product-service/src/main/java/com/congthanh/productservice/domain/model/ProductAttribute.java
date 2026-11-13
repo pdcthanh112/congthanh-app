@@ -1,6 +1,5 @@
 package com.congthanh.productservice.domain.model;
 
-import com.congthanh.commonservice.model.BaseEntity;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -8,10 +7,10 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Entity
-@Data
+@Getter
+@Setter
 @NoArgsConstructor
 @AllArgsConstructor
-@EqualsAndHashCode(callSuper = true)
 @Builder
 @Table(name = "product_attribute")
 public class ProductAttribute extends BaseEntity {

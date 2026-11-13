@@ -14,7 +14,6 @@ plugins {
 val libs = the<LibrariesForLibs>()
 
 dependencies {
-    implementation(project(":libs:java:common-core"))
     implementation(project(":libs:java:platform"))
     implementation(project(":libs:java:proto"))
 

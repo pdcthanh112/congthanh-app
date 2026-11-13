@@ -1,17 +1,16 @@
 // Package integration_test chạy use case thật trên Postgres (+ Redis cho flash sale).
 //
-//	TEST_DATABASE_URL=postgres://postgres@localhost:5432/test?sslmode=disable \
-//	TEST_REDIS_URL=redis://localhost:6379/15 go test ./internal/integration/...
+//	go test ./internal/integration/...   (tự bật container; hoặc đặt TEST_DATABASE_URL, TEST_REDIS_URL)
 package integration_test
 
 import (
 	"context"
-	"os"
 	"sync"
 	"testing"
 
 	goredis "github.com/redis/go-redis/v9"
 
+	"github.com/pdcthanh112/CongThanhApp/backend/app/ecommerce/libs/go/platform/testkit"
 	"github.com/pdcthanh112/CongThanhApp/backend/app/ecommerce/services/inventory-service/internal/adapter/repository/redis"
 	"github.com/pdcthanh112/CongThanhApp/backend/app/ecommerce/services/inventory-service/internal/app"
 )
@@ -21,14 +20,17 @@ type fakeClaims struct {
 	mu   sync.Mutex
 	sent map[string]int32 // customer → qty
 	all  []app.PublishedClaim
-	fail bool
+	// failWith != nil: failTimes lần gửi tới trả lỗi này (failTimes < 0 = luôn lỗi).
+	failWith  error
+	failTimes int
 }
 
 func (f *fakeClaims) PublishClaim(_ context.Context, c app.PublishedClaim) error {
 	f.mu.Lock()
 	defer f.mu.Unlock()
-	if f.fail {
-		return context.DeadlineExceeded
+	if f.failWith != nil && f.failTimes != 0 {
+		f.failTimes--
+		return f.failWith
 	}
 	if f.sent == nil {
 		f.sent = map[string]int32{}
@@ -38,21 +40,36 @@ func (f *fakeClaims) PublishClaim(_ context.Context, c app.PublishedClaim) error
 	return nil
 }
 
+func (f *fakeClaims) failNext(err error, times int) {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	f.failWith, f.failTimes = err, times
+}
+
+func (f *fakeClaims) published(claimID string) int {
+	f.mu.Lock()
+	defer f.mu.Unlock()
+	n := 0
+	for _, c := range f.all {
+		if c.ClaimID == claimID {
+			n++
+		}
+	}
+	return n
+}
+
 // reset xoá claim của test trước (biến dùng chung cả package).
 func (f *fakeClaims) reset() {
 	f.mu.Lock()
 	defer f.mu.Unlock()
-	f.sent, f.all, f.fail = nil, nil, false
+	f.sent, f.all, f.failWith, f.failTimes = nil, nil, nil, 0
 }
 
 var claims = &fakeClaims{}
 
-// flashStore trả Redis store khi có TEST_REDIS_URL; nil thì flash sale tắt.
+// flashStore trả Redis store (TEST_REDIS_URL hoặc container của testkit).
 func flashStore(t *testing.T) app.FlashSaleStore {
-	url := os.Getenv("TEST_REDIS_URL")
-	if url == "" {
-		return nil
-	}
+	url := testkit.RedisURL(t)
 	opt, err := goredis.ParseURL(url)
 	if err != nil {
 		t.Fatal(err)

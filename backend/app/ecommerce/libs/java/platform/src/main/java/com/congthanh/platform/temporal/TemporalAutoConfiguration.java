@@ -10,6 +10,7 @@ import io.temporal.common.reporter.MicrometerClientStatsReporter;
 import io.temporal.serviceclient.WorkflowServiceStubs;
 import io.temporal.serviceclient.WorkflowServiceStubsOptions;
 import io.temporal.worker.WorkerFactory;
+import io.temporal.worker.WorkerOptions;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.ObjectProvider;
@@ -19,6 +20,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.SmartLifecycle;
 import org.springframework.context.annotation.Bean;
+import org.springframework.core.env.Environment;
 
 import java.util.List;
 import java.util.concurrent.TimeUnit;
@@ -63,8 +65,21 @@ public class TemporalAutoConfiguration {
 
     @Bean
     TemporalWorkers temporalWorkers(WorkerFactory factory, List<TemporalWorkerRegistration> registrations,
-                                    TemporalProperties props) {
-        return new TemporalWorkers(factory, registrations, props);
+                                    TemporalProperties props, Environment env) {
+        return new TemporalWorkers(factory, registrations, props, workerOptions(env));
+    }
+
+    /**
+     * spring.threads.virtual.enabled chỉ áp cho Tomcat, Kafka listener, @Scheduled; worker Temporal có thread pool
+     * riêng. Activity chủ yếu chờ gRPC/DB nên chạy trên virtual thread (mỗi slot không còn giữ một platform thread).
+     * Workflow thread giữ nguyên: Temporal tự lập lịch chúng một cách tất định.
+     */
+    static WorkerOptions workerOptions(Environment env) {
+        boolean virtual = env.getProperty("spring.threads.virtual.enabled", Boolean.class, false);
+        return WorkerOptions.newBuilder()
+                .setUsingVirtualThreadsOnActivityWorker(virtual)
+                .setUsingVirtualThreadsOnLocalActivityWorker(virtual)
+                .build();
     }
 
     /** Start worker sau khi context sẵn sàng, stop trước khi datasource đóng. */
@@ -72,12 +87,15 @@ public class TemporalAutoConfiguration {
         private final WorkerFactory factory;
         private final List<TemporalWorkerRegistration> registrations;
         private final TemporalProperties props;
+        private final WorkerOptions options;
         private volatile boolean running;
 
-        TemporalWorkers(WorkerFactory factory, List<TemporalWorkerRegistration> registrations, TemporalProperties props) {
+        TemporalWorkers(WorkerFactory factory, List<TemporalWorkerRegistration> registrations, TemporalProperties props,
+                        WorkerOptions options) {
             this.factory = factory;
             this.registrations = registrations;
             this.props = props;
+            this.options = options;
         }
 
         @Override
@@ -87,7 +105,7 @@ public class TemporalAutoConfiguration {
                 return;
             }
             for (TemporalWorkerRegistration r : registrations) {
-                r.register().accept(factory.newWorker(r.taskQueue()));
+                r.register().accept(factory.newWorker(r.taskQueue(), options));
                 log.info("temporal worker polling task queue '{}' on {}", r.taskQueue(), props.target());
             }
             factory.start();

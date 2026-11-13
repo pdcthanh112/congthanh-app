@@ -7,6 +7,7 @@ import com.congthanh.promotionservice.domain.exception.PromotionException;
 import com.congthanh.promotionservice.domain.model.Promotion;
 import com.congthanh.promotionservice.domain.model.Quote;
 import com.congthanh.promotionservice.domain.model.Redemption;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -16,15 +17,11 @@ import java.util.Locale;
 import java.util.Optional;
 
 @Service
+@RequiredArgsConstructor
 public class PromotionService implements CheckoutDiscounts, PromotionAdmin {
 
     private final PromotionRepository repo;
     private final Clock clock;
-
-    public PromotionService(PromotionRepository repo, Clock clock) {
-        this.repo = repo;
-        this.clock = clock;
-    }
 
     @Override
     @Transactional(readOnly = true)

@@ -2,9 +2,11 @@
 SHELL := /bin/bash
 COMPOSE := docker compose -f deploy/local/docker-compose.yaml --env-file .env
 PROFILES ?=
-GO_MODULES := libs/go/platform services/cart-service data/ingestion/clickstream-collector services/inventory-service services/pricing-service services/webhook-service
-TEST_DATABASE_URL ?= postgres://postgres:postgres@localhost:5432/ecommerce?sslmode=disable
-TEST_REDIS_URL ?= redis://localhost:6379/15
+GO_MODULES := libs/go/platform services/cart-service data/ingestion/clickstream-collector services/inventory-service services/media-service services/pricing-service services/search-service services/shipping-service services/tax-service services/webhook-service
+# Để trống: test tự bật Postgres/Redis bằng Testcontainers (cần Docker). Muốn dùng stack của make up thì đặt
+# TEST_DATABASE_URL=postgres://postgres:postgres@localhost:5432/ecommerce?sslmode=disable TEST_REDIS_URL=redis://localhost:6379/15
+TEST_DATABASE_URL ?=
+TEST_REDIS_URL ?=
 
 .PHONY: help up down logs ps proto proto-python gen check test test-go test-java lint build-java token
 
@@ -48,13 +50,13 @@ check: ## Kiểm tra code/cấu hình sinh ra còn khớp (như CI)
 
 test: test-go test-java test-node ## Chạy toàn bộ test
 
-test-go: ## Test Go (cần Postgres/Redis: make up)
+test-go: ## Test Go (cần Docker cho Testcontainers, hoặc đặt TEST_DATABASE_URL/TEST_REDIS_URL)
 	@for m in $(GO_MODULES); do echo "== $$m"; (cd $$m && go vet ./... && TEST_DATABASE_URL=$(TEST_DATABASE_URL) TEST_REDIS_URL=$(TEST_REDIS_URL) go test -race ./...) || exit 1; done
 
 test-java: ## Test Java
 	./gradlew test
 
-test-node: ## Test NestJS/BFF (Vitest; test Postgres chạy khi có TEST_DATABASE_URL)
+test-node: ## Test NestJS/BFF (Vitest; TEST_DATABASE_URL trống thì tự bật Postgres bằng Testcontainers)
 	TEST_DATABASE_URL=$(TEST_DATABASE_URL) npm test
 
 lint: ## golangci-lint cho Go; Biome + dependency-cruiser cho TS

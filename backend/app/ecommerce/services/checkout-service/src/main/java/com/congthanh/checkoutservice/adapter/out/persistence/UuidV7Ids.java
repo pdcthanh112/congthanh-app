@@ -1,22 +1,19 @@
 package com.congthanh.checkoutservice.adapter.out.persistence;
 
 import com.congthanh.checkoutservice.application.port.out.Ids;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 import java.security.SecureRandom;
 import java.time.Clock;
 import java.util.UUID;
 
-/** UUIDv7 (RFC 9562): sắp theo thời gian, tốt cho chỉ mục B-tree. */
 @Component
+@RequiredArgsConstructor
 class UuidV7Ids implements Ids {
 
     private final SecureRandom random = new SecureRandom();
     private final Clock clock;
-
-    UuidV7Ids(Clock clock) {
-        this.clock = clock;
-    }
 
     @Override
     public String newId() {

@@ -15,6 +15,14 @@ type Reader interface {
 	Item(ctx context.Context, cartID, itemID int64) (domain.Item, error)
 }
 
+// PendingOrders nhớ sản phẩm của đơn đã đặt nhưng chưa thanh toán xong.
+type PendingOrders interface {
+	// RememberOrder idempotent: gọi lại cùng orderID không đổi gì.
+	RememberOrder(ctx context.Context, orderID, customerID string, productIDs []string) error
+	PendingOrder(ctx context.Context, orderID string) (customerID string, productIDs []string, found bool, err error)
+	ForgetOrder(ctx context.Context, orderID string) error
+}
+
 type UnitOfWork interface {
 	Do(ctx context.Context, fn func(ctx context.Context, tx Tx) error) error
 }

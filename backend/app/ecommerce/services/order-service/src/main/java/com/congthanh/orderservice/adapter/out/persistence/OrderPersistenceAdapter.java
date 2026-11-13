@@ -9,6 +9,7 @@ import com.congthanh.orderservice.domain.model.OrderLine;
 import com.congthanh.orderservice.domain.model.OrderStatus;
 import com.congthanh.orderservice.domain.model.PaymentMethod;
 import com.congthanh.platform.outbox.OutboxWriter;
+import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Limit;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -18,17 +19,13 @@ import java.util.List;
 import java.util.Optional;
 
 @Component
+@RequiredArgsConstructor
 class OrderPersistenceAdapter implements OrderRepository {
 
     static final String AGGREGATE = "order";
 
     private final OrderJpaRepository jpa;
     private final OutboxWriter outbox;
-
-    OrderPersistenceAdapter(OrderJpaRepository jpa, OutboxWriter outbox) {
-        this.jpa = jpa;
-        this.outbox = outbox;
-    }
 
     @Override
     @Transactional(readOnly = true)

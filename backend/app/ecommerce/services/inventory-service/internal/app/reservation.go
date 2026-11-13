@@ -30,7 +30,7 @@ type Service struct {
 
 func NewService(uow UnitOfWork, read Reader, wh WarehouseRepository, flash FlashSaleStore, claims ClaimPublisher, opt Options) *Service {
 	if opt.ReservationTTL == 0 {
-		opt.ReservationTTL = 15 * time.Minute
+		opt.ReservationTTL = 30 * time.Minute
 	}
 	if opt.DefaultWarehouse == "" {
 		opt.DefaultWarehouse = "WH-DEFAULT"

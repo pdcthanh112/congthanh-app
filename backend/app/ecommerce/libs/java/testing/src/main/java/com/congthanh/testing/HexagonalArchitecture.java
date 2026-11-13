@@ -5,25 +5,16 @@ import com.tngtech.archunit.lang.ArchRule;
 import java.util.ArrayList;
 import java.util.List;
 
+import static com.tngtech.archunit.core.domain.properties.CanBeAnnotated.Predicates.annotatedWith;
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses;
+import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noMethods;
 import static com.tngtech.archunit.library.dependencies.SlicesRuleDefinition.slices;
 
-/**
- * Luật hexagonal dùng chung cho service Java. Cấu trúc gói:
- * <pre>
- * &lt;base&gt;.domain        model + quy tắc nghiệp vụ, không phụ thuộc framework
- * &lt;base&gt;.application   use case (port.in), port ra ngoài (port.out), service điều phối
- * &lt;base&gt;.adapter.in.*  web, grpc, graphql, messaging, workflow: gọi port.in
- * &lt;base&gt;.adapter.out.* persistence, grpc client, payment provider...: hiện thực port.out
- * &lt;base&gt;.config        lắp ráp (Spring @Configuration)
- * </pre>
- */
 public final class HexagonalArchitecture {
 
     private HexagonalArchitecture() {
     }
 
-    /** Domain thuần Java: không Spring, không JPA, không gRPC/Temporal. */
     public static List<ArchRule> strict(String base) {
         List<ArchRule> rules = new ArrayList<>(common(base));
         rules.add(noClasses().that().resideInAPackage(base + ".domain..")
@@ -38,10 +29,6 @@ public final class HexagonalArchitecture {
         return rules;
     }
 
-    /**
-     * Cho service còn dùng JPA entity làm domain model (product-service): domain được phép
-     * dùng annotation JPA, nhưng vẫn không được biết tới adapter hay web/gRPC.
-     */
     public static List<ArchRule> pragmatic(String base) {
         List<ArchRule> rules = new ArrayList<>(common(base));
         rules.add(noClasses().that().resideInAPackage(base + ".domain..")
@@ -62,6 +49,13 @@ public final class HexagonalArchitecture {
                         .as("application depends only on domain and its own ports"),
                 slices().matching(base + ".adapter.(*).(*)..").should().notDependOnEachOther()
                         .as("adapters are independent of each other"),
+                noMethods().that().haveNameMatching("equals|hashCode|toString")
+                        .and().areDeclaredInClassesThat(annotatedWith("jakarta.persistence.Entity")
+                                .or(annotatedWith("jakarta.persistence.MappedSuperclass"))
+                                .or(annotatedWith("jakarta.persistence.Embeddable")))
+                        .should().beAnnotatedWith("lombok.Generated")
+                        .allowEmptyShould(true)
+                        .as("JPA entities must not use Lombok-generated equals/hashCode/toString"),
                 noClasses().that().resideInAPackage(base + ".adapter.in..")
                         .should().dependOnClassesThat().resideInAPackage(base + ".application.service..")
                         .as("inbound adapters call use-case ports, not service implementations"));

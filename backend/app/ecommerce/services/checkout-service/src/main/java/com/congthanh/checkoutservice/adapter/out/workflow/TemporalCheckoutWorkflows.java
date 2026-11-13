@@ -8,18 +8,16 @@ import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
 import io.temporal.client.WorkflowClient;
 import io.temporal.client.WorkflowNotFoundException;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 import java.util.Optional;
 
 @Component
+@RequiredArgsConstructor
 class TemporalCheckoutWorkflows implements CheckoutWorkflows {
 
     private final WorkflowClient client;
-
-    TemporalCheckoutWorkflows(WorkflowClient client) {
-        this.client = client;
-    }
 
     @Override
     public Optional<Progress> progress(String orderId) {
@@ -35,7 +33,6 @@ class TemporalCheckoutWorkflows implements CheckoutWorkflows {
             }
             return Optional.empty();
         } catch (RuntimeException e) {
-            // Query lỗi (worker đang deploy) không làm hỏng API đọc phiên.
             return Optional.empty();
         }
     }

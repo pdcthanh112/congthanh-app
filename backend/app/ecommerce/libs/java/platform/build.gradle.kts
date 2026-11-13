@@ -14,10 +14,14 @@ dependencies {
     // Tuỳ chọn: chỉ bật khi service có trên classpath (order, payment).
     compileOnly(platform(libs.temporal.bom))
     compileOnly(libs.temporal.sdk)
+    testImplementation(platform(libs.temporal.bom))
+    testImplementation(libs.temporal.sdk)
     compileOnly("io.micrometer:micrometer-core")
     compileOnly("org.springframework.boot:spring-boot-starter-security-oauth2-resource-server")
     annotationProcessor("org.springframework.boot:spring-boot-autoconfigure-processor")
     annotationProcessor("org.springframework.boot:spring-boot-configuration-processor")
 
     testRuntimeOnly("com.h2database:h2")
+    testRuntimeOnly("org.postgresql:postgresql")
+    testImplementation("org.testcontainers:testcontainers-postgresql")
 }

@@ -2,6 +2,7 @@ package com.congthanh.productservice.adapter.out.readmodel;
 
 import com.congthanh.productservice.application.port.out.ProductReadModelStore;
 import com.congthanh.productservice.application.readmodel.ProductDocument;
+import lombok.RequiredArgsConstructor;
 import org.bson.Document;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -30,6 +31,7 @@ import static org.springframework.data.mongodb.core.query.Criteria.where;
 import static org.springframework.data.mongodb.core.query.Query.query;
 
 @Component
+@RequiredArgsConstructor
 class MongoProductReadModelStore implements ProductReadModelStore {
 
     static final String COLLECTION = "product";
@@ -37,16 +39,12 @@ class MongoProductReadModelStore implements ProductReadModelStore {
 
     private final MongoTemplate mongo;
 
-    MongoProductReadModelStore(MongoTemplate mongo) {
-        this.mongo = mongo;
-    }
 
-    /** Tạo index khi khởi động; Mongo chưa sẵn sàng thì chỉ ghi log (lần khởi động sau tạo tiếp). */
     @EventListener(ApplicationReadyEvent.class)
     void ensureIndexes() {
         try {
             var ops = mongo.indexOps(COLLECTION);
-            // partial: document mới có giá/tồn kho (chưa có phần lõi) không có slug, không được chiếm chỗ trong index unique.
+
             ops.createIndex(new Index("slug", Sort.Direction.ASC).named("slug_unique").unique()
                     .partial(PartialIndexFilter.of(where("slug").exists(true))));
             ops.createIndex(new Index("categories.id", Sort.Direction.ASC).named("category_id"));

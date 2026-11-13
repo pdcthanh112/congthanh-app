@@ -4,6 +4,7 @@ package app
 
 import (
 	"context"
+	"errors"
 	"time"
 
 	"github.com/pdcthanh112/CongThanhApp/backend/app/ecommerce/services/inventory-service/internal/domain"
@@ -96,7 +97,11 @@ type FlashSaleStore interface {
 	Drain(ctx context.Context, saleID, productID string) (initial, remaining int32, err error)
 }
 
+// ErrClaimNotPublished: ClaimPublisher chắc chắn event chưa được ghi. Lỗi khác là mơ hồ (có thể đã ghi).
+var ErrClaimNotPublished = errors.New("flash sale claim not published")
+
 // ClaimPublisher đẩy lượt giành hàng flash sale lên Kafka (luồng nóng, không qua outbox).
+// Lỗi bọc ErrClaimNotPublished khi chắc chắn chưa ghi; lỗi khác coi như có thể đã ghi.
 type ClaimPublisher interface {
 	PublishClaim(ctx context.Context, c PublishedClaim) error
 }

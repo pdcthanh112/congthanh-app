@@ -10,10 +10,3 @@ export function slugify(input: string): string {
     .replace(/^-+|-+$/g, '')
     .slice(0, 120);
 }
-
-export function assertSlug(slug: string): string {
-  if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug)) {
-    throw new Error(`invalid slug "${slug}"`);
-  }
-  return slug;
-}

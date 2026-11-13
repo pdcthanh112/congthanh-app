@@ -36,12 +36,12 @@ func (h *Handler) Mount(r chi.Router) {
 		})
 		// Quản trị và hãng vận chuyển (vai trò SHIPPER) cập nhật hành trình.
 		r.Group(func(r chi.Router) {
-			r.Use(auth.RequireAuth(h.verifier), h.requireRole("ADMIN", "SHIPPER"))
+			r.Use(auth.RequireRole(h.verifier, "ADMIN", "SHIPPER"))
 			r.Method(http.MethodGet, "/shipments/{id}", H(h.get))
 			r.Method(http.MethodPost, "/shipments/{id}/status", H(h.status))
 		})
 		r.Group(func(r chi.Router) {
-			r.Use(auth.RequireAuth(h.verifier), h.requireRole("ADMIN"))
+			r.Use(auth.RequireRole(h.verifier, "ADMIN"))
 			r.Method(http.MethodPost, "/shipments/{id}/label", H(h.label))
 			r.Method(http.MethodGet, "/rates", H(h.listRates))
 			r.Method(http.MethodPost, "/rates", H(h.createRate))
@@ -49,25 +49,6 @@ func (h *Handler) Mount(r chi.Router) {
 			r.Method(http.MethodDelete, "/rates/{id}", H(h.deleteRate))
 		})
 	})
-}
-
-func (h *Handler) requireRole(roles ...string) func(http.Handler) http.Handler {
-	return func(next http.Handler) http.Handler {
-		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			if h.verifier != nil {
-				p, _ := auth.FromContext(r.Context())
-				ok := false
-				for _, role := range roles {
-					ok = ok || p.HasRole(role)
-				}
-				if !ok {
-					httpx.Fail(w, r, httpx.Forbidden("requires one of roles: "+strings.Join(roles, ", ")))
-					return
-				}
-			}
-			next.ServeHTTP(w, r)
-		})
-	}
 }
 
 type quoteBody struct {

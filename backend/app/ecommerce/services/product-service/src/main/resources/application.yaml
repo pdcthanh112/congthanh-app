@@ -67,7 +67,6 @@ product:
     # Bảng giá (pricing-service) hiển thị trên trang sản phẩm.
     price-list: ${PRODUCT_PRICE_LIST:default}
     consumer-concurrency: ${READ_MODEL_CONSUMER_CONCURRENCY:3}
-  # S3: đặt PRODUCT_S3_REGION (env → product.s3.region) thì mới tạo S3Client; local không cần AWS.
 
 # worker-id phải khác nhau giữa các pod (Helm gán từ ordinal của StatefulSet hoặc hash tên pod).
 snowflake:

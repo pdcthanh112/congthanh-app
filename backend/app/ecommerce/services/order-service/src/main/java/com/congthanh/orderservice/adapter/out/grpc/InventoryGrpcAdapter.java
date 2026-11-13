@@ -8,9 +8,12 @@ import com.congthanh.inventoryservice.grpc.ReserveInventoryRequest;
 import com.congthanh.orderservice.application.port.out.Inventory;
 import com.congthanh.orderservice.domain.model.OrderLine;
 import io.grpc.StatusRuntimeException;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.grpc.client.GrpcChannelFactory;
 import org.springframework.stereotype.Component;
 
+import java.time.Clock;
+import java.time.Duration;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
@@ -19,9 +22,20 @@ import java.util.concurrent.TimeUnit;
 class InventoryGrpcAdapter implements Inventory {
 
     private final InventoryServiceGrpc.InventoryServiceBlockingStub stub;
+    private final Clock clock;
+    /** Giữ hàng lâu hơn thời gian chờ thanh toán: hàng không được tự nhả trong lúc saga còn chờ khách trả tiền. */
+    private final Duration hold;
 
-    InventoryGrpcAdapter(GrpcChannelFactory channels) {
+    InventoryGrpcAdapter(GrpcChannelFactory channels, Clock clock,
+                         @Value("${order.checkout.payment-timeout:PT15M}") Duration paymentTimeout,
+                         @Value("${order.checkout.reservation-margin:PT15M}") Duration margin) {
         this.stub = InventoryServiceGrpc.newBlockingStub(channels.createChannel("inventory"));
+        this.clock = clock;
+        this.hold = reservationHold(paymentTimeout, margin);
+    }
+
+    static Duration reservationHold(Duration paymentTimeout, Duration margin) {
+        return paymentTimeout.plus(margin.isNegative() ? Duration.ZERO : margin);
     }
 
     @Override
@@ -31,6 +45,7 @@ class InventoryGrpcAdapter implements Inventory {
                     .setReservationId(reservationId)
                     .setCustomerId(customerId)
                     .setReservationType(ReserveInventoryRequest.ReservationType.ORDER)
+                    .setExpiryTime(clock.instant().plus(hold).getEpochSecond())
                     .addAllItems(items(lines))
                     .build());
             return new Reservation(res.getSuccess(), res.getReservationId(), res.getMessage());

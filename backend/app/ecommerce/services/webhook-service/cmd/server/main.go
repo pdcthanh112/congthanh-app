@@ -1,5 +1,3 @@
-// webhook-service: bên thứ ba (ERP, kế toán, vận chuyển) đăng ký URL nhận sự kiện đơn hàng/sản phẩm/
-// vận chuyển; gửi có ký HMAC, thử lại theo backoff, chặn SSRF (thay service webhook Java).
 package main
 
 import (
@@ -13,6 +11,7 @@ import (
 	"github.com/pdcthanh112/CongThanhApp/backend/app/ecommerce/libs/go/platform/kafka"
 	"github.com/pdcthanh112/CongThanhApp/backend/app/ecommerce/libs/go/platform/logging"
 	"github.com/pdcthanh112/CongThanhApp/backend/app/ecommerce/libs/go/platform/otel"
+	"github.com/pdcthanh112/CongThanhApp/backend/app/ecommerce/libs/go/platform/outbox"
 	"github.com/pdcthanh112/CongThanhApp/backend/app/ecommerce/libs/go/platform/server"
 	"github.com/pdcthanh112/CongThanhApp/backend/app/ecommerce/services/webhook-service/internal/adapter/delivery"
 	httpadapter "github.com/pdcthanh112/CongThanhApp/backend/app/ecommerce/services/webhook-service/internal/adapter/http"
@@ -51,12 +50,9 @@ func run() error {
 	if err := db.Migrate(ctx, pool, migrations.FS, "goose_db_version"); err != nil {
 		return err
 	}
-	verifier, err := auth.NewVerifier(ctx, auth.Config{JWKSURL: cfg.JWKSURL, HMACSecret: cfg.JWTSecret, Issuer: cfg.JWTIssuer})
+	verifier, err := auth.NewVerifier(ctx, auth.Config{JWKSURL: cfg.JWKSURL, HMACSecret: cfg.JWTSecret, Issuer: cfg.JWTIssuer, Disabled: cfg.AuthDisabled})
 	if err != nil {
 		return err
-	}
-	if verifier == nil {
-		slog.Warn("JWT verification is disabled (set JWT_JWKS_URL or JWT_SECRET)")
 	}
 	if cfg.AllowInsecure {
 		slog.Warn("WEBHOOK_ALLOW_INSECURE=true: http:// URLs and private addresses are allowed (dev only)")
@@ -99,5 +95,8 @@ func run() error {
 
 	router := server.NewRouter(serviceName, repo.Ping)
 	httpadapter.New(svc, verifier).Mount(router)
+	// Dọn outbox (Debezium đã đọc qua WAL) và processed_events quá hạn.
+	bg = append(bg, outbox.NewJanitor(pool, outbox.JanitorConfig{}).Run)
+
 	return server.Run(ctx, server.Options{HTTPAddr: cfg.HTTPAddr, HTTPHandler: router, Background: bg})
 }
