@@ -1,8 +1,3 @@
-#!/usr/bin/env python3
-"""Sinh api/asyncapi/asyncapi.yaml từ api/proto/ecommerce/*/v1/*_events.proto.
-
-  python3 tools/scripts/gen-asyncapi.py [--check]
-"""
 import pathlib
 import re
 import sys
@@ -16,6 +11,9 @@ PRODUCERS = {
     "payment": "payment-service", "product": "product-service", "promotion": "promotion-service",
     "catalog": "catalog-service", "review": "review-service", "customer": "customer-service", "message": "message-service",
     "shipping": "shipping-service", "pricing": "pricing-service", "fraud": "fraud-service",
+    "returns": "returns-service", "ledger": "ledger-service", "privacy": "privacy-service",
+    "storedvalue": "stored-value-service", "dispute": "dispute-service", "reconciliation": "reconciliation-service",
+    "loyalty": "loyalty-service", "subscription": "subscription-service", "moderation": "moderation-service",
     "stream": "stream-processor",
 }
 
