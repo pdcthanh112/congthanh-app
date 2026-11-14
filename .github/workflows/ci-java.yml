@@ -42,7 +42,7 @@ jobs:
         run: ./gradlew build --scan --no-daemon
       - name: Spring AOT (kiểm tra cho GraalVM native)
         run: ./gradlew processAot --no-daemon
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: failure()
         with:
           {
