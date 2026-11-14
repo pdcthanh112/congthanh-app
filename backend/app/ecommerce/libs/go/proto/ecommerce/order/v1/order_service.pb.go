@@ -205,8 +205,12 @@ type PlaceOrderRequest struct {
 	ShippingAddress *OrderAddress          `protobuf:"bytes,11,opt,name=shipping_address,json=shippingAddress,proto3" json:"shipping_address,omitempty"`
 	BillingAddress  *OrderAddress          `protobuf:"bytes,12,opt,name=billing_address,json=billingAddress,proto3" json:"billing_address,omitempty"`
 	Note            string                 `protobuf:"bytes,13,opt,name=note,proto3" json:"note,omitempty"`
-	unknownFields   protoimpl.UnknownFields
-	sizeCache       protoimpl.SizeCache
+	// Phần trả bằng store credit (stored-value-service) và điểm thưởng (loyalty-service); saga giữ chỗ hai phần này
+	// rồi chỉ charge cổng thanh toán phần còn lại (ADR 0027).
+	StoreCredit   *v1.Money `protobuf:"bytes,14,opt,name=store_credit,json=storeCredit,proto3" json:"store_credit,omitempty"`
+	LoyaltyPoints int64     `protobuf:"varint,15,opt,name=loyalty_points,json=loyaltyPoints,proto3" json:"loyalty_points,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *PlaceOrderRequest) Reset() {
@@ -330,6 +334,20 @@ func (x *PlaceOrderRequest) GetNote() string {
 	return ""
 }
 
+func (x *PlaceOrderRequest) GetStoreCredit() *v1.Money {
+	if x != nil {
+		return x.StoreCredit
+	}
+	return nil
+}
+
+func (x *PlaceOrderRequest) GetLoyaltyPoints() int64 {
+	if x != nil {
+		return x.LoyaltyPoints
+	}
+	return 0
+}
+
 type PlaceOrderResponse struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	OrderId       string                 `protobuf:"bytes,1,opt,name=order_id,json=orderId,proto3" json:"order_id,omitempty"`
@@ -428,7 +446,7 @@ const file_ecommerce_order_v1_order_service_proto_rawDesc = "" +
 	"\x04city\x18\a \x01(\tR\x04city\x12!\n" +
 	"\fcountry_code\x18\b \x01(\tR\vcountryCode\x12\x1f\n" +
 	"\vpostal_code\x18\t \x01(\tR\n" +
-	"postalCode\"\xcd\x04\n" +
+	"postalCode\"\xb3\x05\n" +
 	"\x11PlaceOrderRequest\x12\x19\n" +
 	"\border_id\x18\x01 \x01(\tR\aorderId\x12\x1f\n" +
 	"\vcustomer_id\x18\x02 \x01(\tR\n" +
@@ -445,7 +463,9 @@ const file_ecommerce_order_v1_order_service_proto_rawDesc = "" +
 	" \x01(\tR\bclientIp\x12K\n" +
 	"\x10shipping_address\x18\v \x01(\v2 .ecommerce.order.v1.OrderAddressR\x0fshippingAddress\x12I\n" +
 	"\x0fbilling_address\x18\f \x01(\v2 .ecommerce.order.v1.OrderAddressR\x0ebillingAddress\x12\x12\n" +
-	"\x04note\x18\r \x01(\tR\x04note\"\xd0\x01\n" +
+	"\x04note\x18\r \x01(\tR\x04note\x12=\n" +
+	"\fstore_credit\x18\x0e \x01(\v2\x1a.ecommerce.common.v1.MoneyR\vstoreCredit\x12%\n" +
+	"\x0eloyalty_points\x18\x0f \x01(\x03R\rloyaltyPoints\"\xd0\x01\n" +
 	"\x12PlaceOrderResponse\x12\x19\n" +
 	"\border_id\x18\x01 \x01(\tR\aorderId\x12\x1d\n" +
 	"\n" +
@@ -455,8 +475,8 @@ const file_ecommerce_order_v1_order_service_proto_rawDesc = "" +
 	"\bdiscount\x18\x05 \x01(\v2\x1a.ecommerce.common.v1.MoneyR\bdiscount2k\n" +
 	"\fOrderService\x12[\n" +
 	"\n" +
-	"PlaceOrder\x12%.ecommerce.order.v1.PlaceOrderRequest\x1a&.ecommerce.order.v1.PlaceOrderResponseB\xf9\x01\n" +
-	"\x16com.ecommerce.order.v1B\x11OrderServiceProtoP\x01Zbgithub.com/pdcthanh112/CongThanhApp/backend/app/ecommerce/libs/go/proto/ecommerce/order/v1;orderv1\xa2\x02\x03EOX\xaa\x02\x12Ecommerce.Order.V1\xca\x02\x12Ecommerce\\Order\\V1\xe2\x02\x1eEcommerce\\Order\\V1\\GPBMetadata\xea\x02\x14Ecommerce::Order::V1b\x06proto3"
+	"PlaceOrder\x12%.ecommerce.order.v1.PlaceOrderRequest\x1a&.ecommerce.order.v1.PlaceOrderResponseB$\n" +
+	" com.congthanh.ecommerce.order.v1P\x01b\x06proto3"
 
 var (
 	file_ecommerce_order_v1_order_service_proto_rawDescOnce sync.Once
@@ -479,21 +499,22 @@ var file_ecommerce_order_v1_order_service_proto_goTypes = []any{
 	(*v1.Money)(nil),           // 4: ecommerce.common.v1.Money
 }
 var file_ecommerce_order_v1_order_service_proto_depIdxs = []int32{
-	4, // 0: ecommerce.order.v1.PricedLine.unit_price:type_name -> ecommerce.common.v1.Money
-	0, // 1: ecommerce.order.v1.PlaceOrderRequest.lines:type_name -> ecommerce.order.v1.PricedLine
-	4, // 2: ecommerce.order.v1.PlaceOrderRequest.shipping_fee:type_name -> ecommerce.common.v1.Money
-	4, // 3: ecommerce.order.v1.PlaceOrderRequest.tax:type_name -> ecommerce.common.v1.Money
-	1, // 4: ecommerce.order.v1.PlaceOrderRequest.shipping_address:type_name -> ecommerce.order.v1.OrderAddress
-	1, // 5: ecommerce.order.v1.PlaceOrderRequest.billing_address:type_name -> ecommerce.order.v1.OrderAddress
-	4, // 6: ecommerce.order.v1.PlaceOrderResponse.total:type_name -> ecommerce.common.v1.Money
-	4, // 7: ecommerce.order.v1.PlaceOrderResponse.discount:type_name -> ecommerce.common.v1.Money
-	2, // 8: ecommerce.order.v1.OrderService.PlaceOrder:input_type -> ecommerce.order.v1.PlaceOrderRequest
-	3, // 9: ecommerce.order.v1.OrderService.PlaceOrder:output_type -> ecommerce.order.v1.PlaceOrderResponse
-	9, // [9:10] is the sub-list for method output_type
-	8, // [8:9] is the sub-list for method input_type
-	8, // [8:8] is the sub-list for extension type_name
-	8, // [8:8] is the sub-list for extension extendee
-	0, // [0:8] is the sub-list for field type_name
+	4,  // 0: ecommerce.order.v1.PricedLine.unit_price:type_name -> ecommerce.common.v1.Money
+	0,  // 1: ecommerce.order.v1.PlaceOrderRequest.lines:type_name -> ecommerce.order.v1.PricedLine
+	4,  // 2: ecommerce.order.v1.PlaceOrderRequest.shipping_fee:type_name -> ecommerce.common.v1.Money
+	4,  // 3: ecommerce.order.v1.PlaceOrderRequest.tax:type_name -> ecommerce.common.v1.Money
+	1,  // 4: ecommerce.order.v1.PlaceOrderRequest.shipping_address:type_name -> ecommerce.order.v1.OrderAddress
+	1,  // 5: ecommerce.order.v1.PlaceOrderRequest.billing_address:type_name -> ecommerce.order.v1.OrderAddress
+	4,  // 6: ecommerce.order.v1.PlaceOrderRequest.store_credit:type_name -> ecommerce.common.v1.Money
+	4,  // 7: ecommerce.order.v1.PlaceOrderResponse.total:type_name -> ecommerce.common.v1.Money
+	4,  // 8: ecommerce.order.v1.PlaceOrderResponse.discount:type_name -> ecommerce.common.v1.Money
+	2,  // 9: ecommerce.order.v1.OrderService.PlaceOrder:input_type -> ecommerce.order.v1.PlaceOrderRequest
+	3,  // 10: ecommerce.order.v1.OrderService.PlaceOrder:output_type -> ecommerce.order.v1.PlaceOrderResponse
+	10, // [10:11] is the sub-list for method output_type
+	9,  // [9:10] is the sub-list for method input_type
+	9,  // [9:9] is the sub-list for extension type_name
+	9,  // [9:9] is the sub-list for extension extendee
+	0,  // [0:9] is the sub-list for field type_name
 }
 
 func init() { file_ecommerce_order_v1_order_service_proto_init() }

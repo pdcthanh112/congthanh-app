@@ -102,7 +102,7 @@ services:
     profiles: [apps-go]
     image: curlimages/curl:8.16.0
     depends_on:
-      { connect: { condition: service_healthy }, shipping-service: { condition: service_started }, pricing-service: { condition: service_started } }
+      { connect: { condition: service_healthy }, shipping-service: { condition: service_started }, pricing-service: { condition: service_started }, privacy-service: { condition: service_started } }
     volumes: ["../../platform/messaging/debezium/local:/connectors:ro"]
     entrypoint: ["sh", "-c"]
     command:
@@ -111,18 +111,24 @@ services:
         curl -sf -X PUT -H 'Content-Type: application/json' --data @/connectors/shipping-outbox.json http://connect:8083/connectors/shipping-outbox/config >/dev/null && echo "registered shipping-outbox"
         until curl -sf http://pricing-service:5025/health/ready >/dev/null; do sleep 2; done
         curl -sf -X PUT -H 'Content-Type: application/json' --data @/connectors/pricing-outbox.json http://connect:8083/connectors/pricing-outbox/config >/dev/null && echo "registered pricing-outbox"
+        until curl -sf http://privacy-service:5033/health/ready >/dev/null; do sleep 2; done
+        curl -sf -X PUT -H 'Content-Type: application/json' --data @/connectors/privacy-outbox.json http://connect:8083/connectors/privacy-outbox/config >/dev/null && echo "registered privacy-outbox"
     restart: "no"
 
   connect-init-python:
     profiles: [apps-python]
     image: curlimages/curl:8.16.0
-    depends_on: { connect: { condition: service_healthy }, fraud-service: { condition: service_started } }
+    depends_on: { connect: { condition: service_healthy }, fraud-service: { condition: service_started }, reconciliation-service: { condition: service_started }, moderation-service: { condition: service_started } }
     volumes: ["../../platform/messaging/debezium/local:/connectors:ro"]
     entrypoint: ["sh", "-c"]
     command:
       - |
         until curl -sf http://fraud-service:5026/health/ready >/dev/null; do sleep 2; done
         curl -sf -X PUT -H 'Content-Type: application/json' --data @/connectors/fraud-outbox.json http://connect:8083/connectors/fraud-outbox/config >/dev/null && echo "registered fraud-outbox"
+        until curl -sf http://reconciliation-service:5036/health/ready >/dev/null; do sleep 2; done
+        curl -sf -X PUT -H 'Content-Type: application/json' --data @/connectors/reconciliation-outbox.json http://connect:8083/connectors/reconciliation-outbox/config >/dev/null && echo "registered reconciliation-outbox"
+        until curl -sf http://moderation-service:5039/health/ready >/dev/null; do sleep 2; done
+        curl -sf -X PUT -H 'Content-Type: application/json' --data @/connectors/moderation-outbox.json http://connect:8083/connectors/moderation-outbox/config >/dev/null && echo "registered moderation-outbox"
     restart: "no"
 
   keycloak:
@@ -215,6 +221,13 @@ services:
     build: { context: ../.., dockerfile: services/webhook-service/Dockerfile }
     ports: ["5023:5023"]
     environment: { <<: *go-env, DB_SCHEMA: webhook, WEBHOOK_ALLOW_INSECURE: "true" }
+    depends_on: { postgres: { condition: service_healthy }, kafka: { condition: service_healthy } }
+
+  privacy-service:
+    profiles: [apps-go]
+    build: { context: ../.., dockerfile: services/privacy-service/Dockerfile }
+    ports: ["5033:5033"]
+    environment: { <<: *go-env, DB_SCHEMA: privacy }
     depends_on: { postgres: { condition: service_healthy }, kafka: { condition: service_healthy } }
 
   pricing-service:
@@ -341,6 +354,98 @@ services:
       DATABASE_URL: jdbc:postgresql://postgres:5432/ecommerce?currentSchema=promotion_service
     depends_on: { postgres: { condition: service_healthy }, kafka: { condition: service_healthy } }
 
+  ledger-service:
+    profiles: [apps-java]
+    build: { context: ../.., dockerfile: services/ledger-service/Dockerfile }
+    ports: ["5031:5031"]
+    environment:
+      <<: *java-env
+      DATABASE_URL: jdbc:postgresql://postgres:5432/ecommerce?currentSchema=ledger_service
+    depends_on: { postgres: { condition: service_healthy }, kafka: { condition: service_healthy } }
+
+  returns-service:
+    profiles: [apps-java]
+    build: { context: ../.., dockerfile: services/returns-service/Dockerfile }
+    ports: ["5032:5032"]
+    environment:
+      <<: *java-env
+      DATABASE_URL: jdbc:postgresql://postgres:5432/ecommerce?currentSchema=returns_service
+      RETURNS_WINDOW: P30D
+      RETURNS_RESTOCKING_FEE_PERCENT: "0"
+    depends_on: { postgres: { condition: service_healthy }, kafka: { condition: service_healthy } }
+
+  stored-value-service:
+    profiles: [apps-java]
+    build: { context: ../.., dockerfile: services/stored-value-service/Dockerfile }
+    ports: ["5034:5034"]
+    environment:
+      <<: *java-env
+      DATABASE_URL: jdbc:postgresql://postgres:5432/ecommerce?currentSchema=stored_value_service
+    depends_on: { postgres: { condition: service_healthy } }
+
+  dispute-service:
+    profiles: [apps-java]
+    build: { context: ../.., dockerfile: services/dispute-service/Dockerfile }
+    ports: ["5035:5035"]
+    environment:
+      <<: *java-env
+      DATABASE_URL: jdbc:postgresql://postgres:5432/ecommerce?currentSchema=dispute_service
+      # Trống = sandbox: nộp/chấp nhận chỉ ghi log; nhập tranh chấp thử bằng POST /api/ecommerce/disputes
+      STRIPE_API_KEY: ${STRIPE_API_KEY:-}
+      STRIPE_DISPUTE_WEBHOOK_SECRET: ${STRIPE_DISPUTE_WEBHOOK_SECRET:-}
+    depends_on: { postgres: { condition: service_healthy }, kafka: { condition: service_healthy } }
+
+  loyalty-service:
+    profiles: [apps-java]
+    build: { context: ../.., dockerfile: services/loyalty-service/Dockerfile }
+    ports: ["5037:5037"]
+    environment:
+      <<: *java-env
+      DATABASE_URL: jdbc:postgresql://postgres:5432/ecommerce?currentSchema=loyalty_service
+    depends_on: { postgres: { condition: service_healthy }, kafka: { condition: service_healthy } }
+
+  subscription-service:
+    profiles: [apps-java]
+    build: { context: ../.., dockerfile: services/subscription-service/Dockerfile }
+    ports: ["5038:5038"]
+    environment:
+      <<: *java-env
+      DATABASE_URL: jdbc:postgresql://postgres:5432/ecommerce?currentSchema=subscription_service
+      CHECKOUT_URL: http://checkout-service:5027
+      SUBSCRIPTIONS_RENEWALS_ENABLED: "true"
+    depends_on: { postgres: { condition: service_healthy }, kafka: { condition: service_healthy } }
+
+  connect-init-java:
+    profiles: [apps-java]
+    image: curlimages/curl:8.16.0
+    depends_on:
+      { connect: { condition: service_healthy }, order-service: { condition: service_started }, product-service: { condition: service_started }, payment-service: { condition: service_started }, promotion-service: { condition: service_started }, ledger-service: { condition: service_started }, returns-service: { condition: service_started }, stored-value-service: { condition: service_started }, dispute-service: { condition: service_started }, loyalty-service: { condition: service_started }, subscription-service: { condition: service_started } }
+    volumes: ["../../platform/messaging/debezium/local:/connectors:ro"]
+    entrypoint: ["sh", "-c"]
+    command:
+      - |
+        until curl -sf http://order-service:5006/actuator/health/readiness >/dev/null; do sleep 3; done
+        curl -sf -X PUT -H 'Content-Type: application/json' --data @/connectors/order-outbox.json http://connect:8083/connectors/order-outbox/config >/dev/null && echo "registered order-outbox"
+        until curl -sf http://product-service:5008/actuator/health/readiness >/dev/null; do sleep 3; done
+        curl -sf -X PUT -H 'Content-Type: application/json' --data @/connectors/product-outbox.json http://connect:8083/connectors/product-outbox/config >/dev/null && echo "registered product-outbox"
+        until curl -sf http://payment-service:5018/actuator/health/readiness >/dev/null; do sleep 3; done
+        curl -sf -X PUT -H 'Content-Type: application/json' --data @/connectors/payment-outbox.json http://connect:8083/connectors/payment-outbox/config >/dev/null && echo "registered payment-outbox"
+        until curl -sf http://promotion-service:5009/actuator/health/readiness >/dev/null; do sleep 3; done
+        curl -sf -X PUT -H 'Content-Type: application/json' --data @/connectors/promotion-outbox.json http://connect:8083/connectors/promotion-outbox/config >/dev/null && echo "registered promotion-outbox"
+        until curl -sf http://ledger-service:5031/actuator/health/readiness >/dev/null; do sleep 3; done
+        curl -sf -X PUT -H 'Content-Type: application/json' --data @/connectors/ledger-outbox.json http://connect:8083/connectors/ledger-outbox/config >/dev/null && echo "registered ledger-outbox"
+        until curl -sf http://returns-service:5032/actuator/health/readiness >/dev/null; do sleep 3; done
+        curl -sf -X PUT -H 'Content-Type: application/json' --data @/connectors/returns-outbox.json http://connect:8083/connectors/returns-outbox/config >/dev/null && echo "registered returns-outbox"
+        until curl -sf http://stored-value-service:5034/actuator/health/readiness >/dev/null; do sleep 3; done
+        curl -sf -X PUT -H 'Content-Type: application/json' --data @/connectors/storedvalue-outbox.json http://connect:8083/connectors/storedvalue-outbox/config >/dev/null && echo "registered storedvalue-outbox"
+        until curl -sf http://dispute-service:5035/actuator/health/readiness >/dev/null; do sleep 3; done
+        curl -sf -X PUT -H 'Content-Type: application/json' --data @/connectors/dispute-outbox.json http://connect:8083/connectors/dispute-outbox/config >/dev/null && echo "registered dispute-outbox"
+        until curl -sf http://loyalty-service:5037/actuator/health/readiness >/dev/null; do sleep 3; done
+        curl -sf -X PUT -H 'Content-Type: application/json' --data @/connectors/loyalty-outbox.json http://connect:8083/connectors/loyalty-outbox/config >/dev/null && echo "registered loyalty-outbox"
+        until curl -sf http://subscription-service:5038/actuator/health/readiness >/dev/null; do sleep 3; done
+        curl -sf -X PUT -H 'Content-Type: application/json' --data @/connectors/subscription-outbox.json http://connect:8083/connectors/subscription-outbox/config >/dev/null && echo "registered subscription-outbox"
+    restart: "no"
+
   checkout-service:
     profiles: [apps-java]
     build: { context: ../.., dockerfile: services/checkout-service/Dockerfile }
@@ -355,6 +460,7 @@ services:
       TAX_GRPC_ADDR: tax-service:9096
       ORDER_GRPC_ADDR: order-service:19090
       FRAUD_URL: http://fraud-service:5026
+      CUSTOMER_GRPC_ADDR: customer-service:19094
     depends_on: { postgres: { condition: service_healthy }, kafka: { condition: service_healthy } }
 
   stream-jobmanager:
@@ -400,7 +506,7 @@ services:
     profiles: [apps-node]
     build: { <<: *node-build, args: { SERVICE: review-service } }
     ports: ["5010:5010"]
-    environment: { <<: *node-env, PRODUCT_GRPC_ADDR: "product-service:29090", KAFKA_BROKERS: "kafka:9092" }
+    environment: { <<: *node-env, PRODUCT_GRPC_ADDR: "product-service:29090", KAFKA_BROKERS: "kafka:9092", MODERATION_URL: "http://moderation-service:5039" }
     depends_on: { postgres: { condition: service_healthy }, kafka: { condition: service_healthy } }
 
   notification-service:
@@ -421,7 +527,7 @@ services:
     profiles: [apps-node]
     build: { <<: *node-build, args: { SERVICE: message-service } }
     ports: ["5012:5012"]
-    environment: { <<: *node-env, PRODUCT_GRPC_ADDR: "product-service:29090", REDIS_URL: "redis://redis:6379/3" }
+    environment: { <<: *node-env, PRODUCT_GRPC_ADDR: "product-service:29090", REDIS_URL: "redis://redis:6379/3", MODERATION_URL: "http://moderation-service:5039" }
     depends_on: { postgres: { condition: service_healthy }, redis: { condition: service_healthy } }
 
   storefront-bff:
@@ -546,6 +652,30 @@ services:
     entrypoint: ["sh", "-c"]
     command: ["python manage.py migrate_schema && exec python -m gunicorn -c config/gunicorn.py config.wsgi"]
     depends_on: { postgres: { condition: service_healthy } }
+  reconciliation-service:
+    profiles: [apps-python]
+    build: { <<: *python-build, args: { SERVICE: reconciliation-service } }
+    ports: ["5036:5036"]
+    environment:
+      <<: *python-env
+      HTTP_PORT: "5036"
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/ecommerce
+      DB_SCHEMA: reconciliation
+      KAFKA_BROKERS: kafka:9092
+      STRIPE_API_KEY: ${STRIPE_API_KEY:-}
+    depends_on: { postgres: { condition: service_healthy }, kafka: { condition: service_healthy } }
+
+  moderation-service:
+    profiles: [apps-python]
+    build: { <<: *python-build, args: { SERVICE: moderation-service } }
+    ports: ["5039:5039"]
+    environment:
+      <<: *python-env
+      HTTP_PORT: "5039"
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/ecommerce
+      DB_SCHEMA: moderation
+    depends_on: { postgres: { condition: service_healthy } }
+
   fraud-service:
     profiles: [apps-python]
     build: { <<: *python-build, args: { SERVICE: fraud-service } }

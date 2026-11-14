@@ -1,0 +1,59 @@
+syntax = "proto3";
+
+package ecommerce.loyalty.v1;
+
+import "ecommerce/common/v1/money.proto";
+
+option java_multiple_files = true;
+option java_package = "com.congthanh.ecommerce.loyalty.v1";
+
+// Topic: ecommerce.loyalty.events, key = customer id.
+// value = giá trị quy đổi USD của số điểm (points × point_value) để ledger ghi nợ phải trả liability:loyalty_points.
+
+// Điểm tích từ đơn, còn chờ (chưa tiêu được) tới khi hết hạn trả hàng.
+message PointsEarned {
+  string customer_id = 1;
+  string order_id = 2;
+  int64 points = 3;
+  string lot_id = 4;
+}
+
+// Điểm chờ thành khả dụng: lúc này mới là nghĩa vụ tài chính.
+message PointsConfirmed {
+  string customer_id = 1;
+  string lot_id = 2;
+  string order_id = 3;
+  int64 points = 4;
+  ecommerce.common.v1.Money value = 5;
+}
+
+message PointsRedeemed {
+  string customer_id = 1;
+  string redemption_id = 2;
+  string order_id = 3;
+  int64 points = 4;
+  ecommerce.common.v1.Money value = 5;
+}
+
+// Đảo điểm vì trả hàng/huỷ đơn. confirmed=false: đảo điểm còn chờ (chưa từng vào sổ).
+message PointsReversed {
+  string customer_id = 1;
+  string order_id = 2;
+  int64 points = 3;
+  bool confirmed = 4;
+  ecommerce.common.v1.Money value = 5;
+  string reason = 6;
+}
+
+message PointsExpired {
+  string customer_id = 1;
+  string lot_id = 2;
+  int64 points = 3;
+  ecommerce.common.v1.Money value = 4;
+}
+
+message TierChanged {
+  string customer_id = 1;
+  string from_tier = 2;
+  string to_tier = 3;
+}

@@ -70,6 +70,14 @@ export interface ProductDirectory {
   sellerOf(productId: string): Promise<string | undefined>;
 }
 
+export interface ContentModeration {
+  /** null = không kiểm được (service lỗi/tắt): giữ quyết định mặc định. */
+  check(input: { contentType: 'REVIEW'; contentId: string; authorId: string; text: string }): Promise<{
+    decision: 'APPROVE' | 'REJECT' | 'REDACT' | 'ESCALATE';
+    redactedText: string;
+  } | null>;
+}
+
 export interface Clock {
   now(): Date;
 }
@@ -87,3 +95,4 @@ export const PRODUCT_DIRECTORY = Symbol('PRODUCT_DIRECTORY');
 export const CLOCK = Symbol('CLOCK');
 export const ID_GENERATOR = Symbol('ID_GENERATOR');
 export const REVIEW_SETTINGS = Symbol('REVIEW_SETTINGS');
+export const CONTENT_MODERATION = Symbol('CONTENT_MODERATION');

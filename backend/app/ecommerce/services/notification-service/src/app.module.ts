@@ -10,8 +10,8 @@ import {
   PlatformDatabaseModule,
   PlatformHealthModule,
   PlatformLoggerModule,
-  subgraphConfig,
   RedisPubSub,
+  subgraphConfig,
 } from '@ecommerce/platform';
 import type { ApolloFederationDriverConfig } from '@nestjs/apollo';
 import { type DynamicModule, Module } from '@nestjs/common';
@@ -19,6 +19,7 @@ import { GraphQLModule } from '@nestjs/graphql';
 import { v7 as uuidv7 } from 'uuid';
 import { NotificationResolver } from './adapters/in/graphql/notification.resolver.js';
 import { domainEventsConsumer } from './adapters/in/kafka/domain-events.consumer.js';
+import { erasureConsumer } from './adapters/in/kafka/privacy-erasure.js';
 import { EmailSender } from './adapters/out/channels/email.sender.js';
 import { FcmSender } from './adapters/out/channels/fcm.sender.js';
 import { SmsSender } from './adapters/out/channels/sms.sender.js';
@@ -42,6 +43,7 @@ import {
 } from './application/ports.js';
 import type { Env } from './config/env.js';
 
+const PRIVACY_CONSUMER = Symbol('PRIVACY_CONSUMER');
 const serviceDir = join(dirname(fileURLToPath(import.meta.url)), '..');
 
 /** Chỉ bật kênh có cấu hình; thiếu thì lượt gửi kênh đó bị SKIPPED (thấy rõ trong bảng deliveries). */
@@ -103,6 +105,12 @@ export class AppModule {
         DeliveryWorker,
         NotificationResolver,
         { provide: UNIT_OF_WORK, useClass: DrizzleUnitOfWork },
+        {
+          provide: PRIVACY_CONSUMER,
+          inject: [DB],
+          useFactory: (db: Database<typeof schema>) =>
+            erasureConsumer(db, env.KAFKA_BROKERS, env.KAFKA_CLIENT_ID ?? env.SERVICE_NAME),
+        },
         { provide: READ_REPOSITORIES, inject: [DB], useFactory: (db: Database<typeof schema>) => readRepositories(db) },
         { provide: CLOCK, useValue: { now: () => new Date() } },
         { provide: ID_GENERATOR, useValue: { next: () => uuidv7() } },

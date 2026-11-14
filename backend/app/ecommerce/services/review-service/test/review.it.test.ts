@@ -28,6 +28,12 @@ describe.skipIf(!url)('review-service + Postgres', () => {
     clock,
     { next: () => `r-${++seq}` },
     { mediaUrlPrefix: PREFIX },
+    {
+      check: async ({ text }) =>
+        text.includes('call me')
+          ? { decision: 'REDACT' as const, redactedText: text.replace(/call me.*/, '[phone removed]') }
+          : null,
+    },
   );
   const orders = new OrderEventsHandler(uow, clock);
   const buyer = { id: 'c1', name: 'Trần Thị Bình' };

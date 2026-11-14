@@ -19,6 +19,18 @@ public interface PaymentUseCases {
     /** Bù trừ: void nếu chưa thu, refund nếu đã thu, không làm gì nếu chưa có payment. */
     void refund(String orderId, String reason);
 
+    /**
+     * Hoàn một phần số đã thu (trả hàng). Idempotent theo {@code refundId}: gọi lại trả kết quả cũ.
+     * Vượt số còn hoàn được hoặc payment chưa capture: PaymentException INVALID/CONFLICT.
+     */
+    RefundResult refundPartial(PartialRefundCommand command);
+
+    record PartialRefundCommand(String orderId, String refundId, BigDecimal amount, String currency, String reason) {
+    }
+
+    record RefundResult(String refundId, String paymentId, BigDecimal amount, String currency, boolean fullyRefunded) {
+    }
+
     /** Kết quả từ cổng (return PayPal, webhook Stripe, sandbox). Idempotent. */
     CallbackOutcome handleCallback(PaymentMethod method, Map<String, String> params);
 

@@ -32,10 +32,16 @@ final class OrderEventMapper {
                     .setCheckoutWorkflowId(e.checkoutWorkflowId())
                     .setShippingAddress(address(e.shippingAddress()))
                     .build();
-            case OrderEvent.OrderConfirmed e -> OrderConfirmed.newBuilder()
-                    .setOrderId(e.orderId())
-                    .setPaymentId(nullToEmpty(e.paymentId()))
-                    .build();
+            case OrderEvent.OrderConfirmed e -> {
+                OrderConfirmed.Builder b = OrderConfirmed.newBuilder()
+                        .setOrderId(e.orderId())
+                        .setPaymentId(nullToEmpty(e.paymentId()))
+                        .setCustomerId(nullToEmpty(e.customerId()));
+                if (e.total() != null) {
+                    b.setTotal(money(e.total()));
+                }
+                yield b.build();
+            }
             case OrderEvent.OrderCancelled e -> OrderCancelled.newBuilder()
                     .setOrderId(e.orderId())
                     .setReason(nullToEmpty(e.reason()))

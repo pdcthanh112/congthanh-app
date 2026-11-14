@@ -20,6 +20,8 @@ class SecurityConfig {
                 .authorizeHttpRequests(a -> a
                         .requestMatchers("/actuator/health/**", "/actuator/prometheus", "/actuator/info").permitAll()
                         .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
+                        // Gọi nội bộ (subscription-service); chặn ở mesh, không có route gateway.
+                        .requestMatchers(HttpMethod.POST, "/internal/checkout/subscription-orders").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/ecommerce/checkout/**").hasRole("CUSTOMER")
                         .requestMatchers(HttpMethod.PATCH, "/api/ecommerce/checkout/**").hasRole("CUSTOMER")
                         .requestMatchers("/api/ecommerce/checkout/**").authenticated()

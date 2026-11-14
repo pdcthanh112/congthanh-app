@@ -4,7 +4,7 @@ import com.congthanh.productservice.application.dto.ProductAttributeValueDTO;
 import com.congthanh.productservice.domain.model.ProductAttributeValue;
 import com.congthanh.productservice.domain.model.Product;
 import com.congthanh.productservice.domain.model.ProductAttribute;
-import com.congthanh.productservice.domain.exception.NotFoundException;
+import com.congthanh.commonservice.exception.NotFoundException;
 import com.congthanh.productservice.application.mapper.ProductAttributeValueMapper;
 import com.congthanh.productservice.application.dto.request.ProductAttributeValueRequest;
 import com.congthanh.productservice.application.port.out.productAtrributeValue.ProductAttributeValueRepository;

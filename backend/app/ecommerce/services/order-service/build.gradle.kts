@@ -5,6 +5,7 @@ plugins {
 description = "Order service (hexagonal): checkout, order lifecycle; runs the checkout saga activities (workflow lives in checkout-service)"
 
 dependencies {
+    implementation("org.springframework.boot:spring-boot-starter-kafka")
     implementation(project(":libs:java:workflow-contracts"))
     implementation("org.springframework.boot:spring-boot-starter-data-jpa")
 

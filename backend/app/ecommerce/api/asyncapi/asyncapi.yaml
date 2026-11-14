@@ -1,9 +1,9 @@
+# SINH từ api/proto/ecommerce/*/v1/*_events.proto bằng tools/scripts/gen-asyncapi.py
 asyncapi: 3.0.0
 info:
   title: CongThanhApp e-commerce events
   version: 1.0.0
-  description:
-    Event miền trên Kafka. Mỗi record là ecommerce.common.v1.EventEnvelope
+  description: Event miền trên Kafka. Mỗi record là ecommerce.common.v1.EventEnvelope
     (Protobuf) bọc event trong `payload` (Any). Header ce_type = tên đầy đủ của event,
     traceparent = W3C trace context. Key = aggregate id.
 defaultContentType: application/x-protobuf
@@ -15,235 +15,397 @@ servers:
     host: ecommerce-kafka-bootstrap.messaging.svc.cluster.local:9092
     protocol: kafka
     security:
-      - type: scramSha512
+    - type: scramSha512
 channels:
   cartEvents:
     address: ecommerce.cart.events
     messages:
       CartItemAdded:
-        $ref: "#/components/messages/cart.CartItemAdded"
+        $ref: '#/components/messages/cart.CartItemAdded'
       CartItemRemoved:
-        $ref: "#/components/messages/cart.CartItemRemoved"
+        $ref: '#/components/messages/cart.CartItemRemoved'
       CartCleared:
-        $ref: "#/components/messages/cart.CartCleared"
-    description: "Event của cart-service; DLQ: ecommerce.cart.events.dlq"
+        $ref: '#/components/messages/cart.CartCleared'
+    description: 'Event của cart-service; DLQ: ecommerce.cart.events.dlq'
   catalogEvents:
     address: ecommerce.catalog.events
     messages:
       CategoryUpserted:
-        $ref: "#/components/messages/catalog.CategoryUpserted"
+        $ref: '#/components/messages/catalog.CategoryUpserted'
       BrandUpserted:
-        $ref: "#/components/messages/catalog.BrandUpserted"
+        $ref: '#/components/messages/catalog.BrandUpserted'
       ProductTagsChanged:
-        $ref: "#/components/messages/catalog.ProductTagsChanged"
-    description: "Event của catalog-service; DLQ: ecommerce.catalog.events.dlq"
+        $ref: '#/components/messages/catalog.ProductTagsChanged'
+    description: 'Event của catalog-service; DLQ: ecommerce.catalog.events.dlq'
   customerEvents:
     address: ecommerce.customer.events
     messages:
       WishlistItemAdded:
-        $ref: "#/components/messages/customer.WishlistItemAdded"
+        $ref: '#/components/messages/customer.WishlistItemAdded'
       WishlistItemRemoved:
-        $ref: "#/components/messages/customer.WishlistItemRemoved"
-    description: "Event của customer-service; DLQ: ecommerce.customer.events.dlq"
+        $ref: '#/components/messages/customer.WishlistItemRemoved'
+    description: 'Event của customer-service; DLQ: ecommerce.customer.events.dlq'
+  disputeEvents:
+    address: ecommerce.dispute.events
+    messages:
+      DisputeOpened:
+        $ref: '#/components/messages/dispute.DisputeOpened'
+      DisputeEvidenceSubmitted:
+        $ref: '#/components/messages/dispute.DisputeEvidenceSubmitted'
+      DisputeClosed:
+        $ref: '#/components/messages/dispute.DisputeClosed'
+    description: 'Event của dispute-service; DLQ: ecommerce.dispute.events.dlq'
   fraudEvents:
     address: ecommerce.fraud.events
     messages:
       FraudReviewRequested:
-        $ref: "#/components/messages/fraud.FraudReviewRequested"
+        $ref: '#/components/messages/fraud.FraudReviewRequested'
       FraudReviewDecided:
-        $ref: "#/components/messages/fraud.FraudReviewDecided"
-    description: "Event của fraud-service; DLQ: ecommerce.fraud.events.dlq"
+        $ref: '#/components/messages/fraud.FraudReviewDecided'
+    description: 'Event của fraud-service; DLQ: ecommerce.fraud.events.dlq'
   inventoryEvents:
     address: ecommerce.inventory.events
     messages:
       InventoryReserved:
-        $ref: "#/components/messages/inventory.InventoryReserved"
+        $ref: '#/components/messages/inventory.InventoryReserved'
       InventoryReservationFailed:
-        $ref: "#/components/messages/inventory.InventoryReservationFailed"
+        $ref: '#/components/messages/inventory.InventoryReservationFailed'
       InventoryReleased:
-        $ref: "#/components/messages/inventory.InventoryReleased"
+        $ref: '#/components/messages/inventory.InventoryReleased'
       InventoryCommitted:
-        $ref: "#/components/messages/inventory.InventoryCommitted"
+        $ref: '#/components/messages/inventory.InventoryCommitted'
       StockLevelChanged:
-        $ref: "#/components/messages/inventory.StockLevelChanged"
+        $ref: '#/components/messages/inventory.StockLevelChanged'
       LowStockDetected:
-        $ref: "#/components/messages/inventory.LowStockDetected"
+        $ref: '#/components/messages/inventory.LowStockDetected'
       FlashSaleClaimed:
-        $ref: "#/components/messages/inventory.FlashSaleClaimed"
-    description: "Event của inventory-service; DLQ: ecommerce.inventory.events.dlq"
+        $ref: '#/components/messages/inventory.FlashSaleClaimed'
+    description: 'Event của inventory-service; DLQ: ecommerce.inventory.events.dlq'
+  ledgerEvents:
+    address: ecommerce.ledger.events
+    messages:
+      Posting:
+        $ref: '#/components/messages/ledger.Posting'
+      JournalEntryPosted:
+        $ref: '#/components/messages/ledger.JournalEntryPosted'
+      PostingFailed:
+        $ref: '#/components/messages/ledger.PostingFailed'
+    description: 'Event của ledger-service; DLQ: ecommerce.ledger.events.dlq'
+  loyaltyEvents:
+    address: ecommerce.loyalty.events
+    messages:
+      PointsEarned:
+        $ref: '#/components/messages/loyalty.PointsEarned'
+      PointsConfirmed:
+        $ref: '#/components/messages/loyalty.PointsConfirmed'
+      PointsRedeemed:
+        $ref: '#/components/messages/loyalty.PointsRedeemed'
+      PointsReversed:
+        $ref: '#/components/messages/loyalty.PointsReversed'
+      PointsExpired:
+        $ref: '#/components/messages/loyalty.PointsExpired'
+      TierChanged:
+        $ref: '#/components/messages/loyalty.TierChanged'
+    description: 'Event của loyalty-service; DLQ: ecommerce.loyalty.events.dlq'
   messageEvents:
     address: ecommerce.message.events
     messages:
       MessageSent:
-        $ref: "#/components/messages/message.MessageSent"
-    description: "Event của message-service; DLQ: ecommerce.message.events.dlq"
+        $ref: '#/components/messages/message.MessageSent'
+    description: 'Event của message-service; DLQ: ecommerce.message.events.dlq'
+  moderationEvents:
+    address: ecommerce.moderation.events
+    messages:
+      ModerationDecided:
+        $ref: '#/components/messages/moderation.ModerationDecided'
+      UserContentStrikeIssued:
+        $ref: '#/components/messages/moderation.UserContentStrikeIssued'
+    description: 'Event của moderation-service; DLQ: ecommerce.moderation.events.dlq'
   orderEvents:
     address: ecommerce.order.events
     messages:
       OrderPlaced:
-        $ref: "#/components/messages/order.OrderPlaced"
+        $ref: '#/components/messages/order.OrderPlaced'
       ShippingAddress:
-        $ref: "#/components/messages/order.ShippingAddress"
+        $ref: '#/components/messages/order.ShippingAddress'
       OrderConfirmed:
-        $ref: "#/components/messages/order.OrderConfirmed"
+        $ref: '#/components/messages/order.OrderConfirmed'
       OrderCancelled:
-        $ref: "#/components/messages/order.OrderCancelled"
-    description: "Event của order-service; DLQ: ecommerce.order.events.dlq"
+        $ref: '#/components/messages/order.OrderCancelled'
+    description: 'Event của order-service; DLQ: ecommerce.order.events.dlq'
   paymentEvents:
     address: ecommerce.payment.events
     messages:
       PaymentAuthorized:
-        $ref: "#/components/messages/payment.PaymentAuthorized"
+        $ref: '#/components/messages/payment.PaymentAuthorized'
       PaymentFailed:
-        $ref: "#/components/messages/payment.PaymentFailed"
+        $ref: '#/components/messages/payment.PaymentFailed'
+      PaymentCaptured:
+        $ref: '#/components/messages/payment.PaymentCaptured'
       PaymentRefunded:
-        $ref: "#/components/messages/payment.PaymentRefunded"
-    description: "Event của payment-service; DLQ: ecommerce.payment.events.dlq"
+        $ref: '#/components/messages/payment.PaymentRefunded'
+    description: 'Event của payment-service; DLQ: ecommerce.payment.events.dlq'
   pricingEvents:
     address: ecommerce.pricing.events
     messages:
       PriceChanged:
-        $ref: "#/components/messages/pricing.PriceChanged"
-    description: "Event của pricing-service; DLQ: ecommerce.pricing.events.dlq"
+        $ref: '#/components/messages/pricing.PriceChanged'
+    description: 'Event của pricing-service; DLQ: ecommerce.pricing.events.dlq'
+  privacyEvents:
+    address: ecommerce.privacy.events
+    messages:
+      ConsentChanged:
+        $ref: '#/components/messages/privacy.ConsentChanged'
+      DataSubjectRequestOpened:
+        $ref: '#/components/messages/privacy.DataSubjectRequestOpened'
+      ErasureRequested:
+        $ref: '#/components/messages/privacy.ErasureRequested'
+      ErasureCompleted:
+        $ref: '#/components/messages/privacy.ErasureCompleted'
+      AccessExportRequested:
+        $ref: '#/components/messages/privacy.AccessExportRequested'
+      AccessExportReady:
+        $ref: '#/components/messages/privacy.AccessExportReady'
+      DataSubjectRequestCompleted:
+        $ref: '#/components/messages/privacy.DataSubjectRequestCompleted'
+    description: 'Event của privacy-service; DLQ: ecommerce.privacy.events.dlq'
   productEvents:
     address: ecommerce.product.events
     messages:
       ProductUpserted:
-        $ref: "#/components/messages/product.ProductUpserted"
+        $ref: '#/components/messages/product.ProductUpserted'
       ProductDeleted:
-        $ref: "#/components/messages/product.ProductDeleted"
-    description: "Event của product-service; DLQ: ecommerce.product.events.dlq"
+        $ref: '#/components/messages/product.ProductDeleted'
+    description: 'Event của product-service; DLQ: ecommerce.product.events.dlq'
   promotionEvents:
     address: ecommerce.promotion.events
     messages:
       PromotionActivated:
-        $ref: "#/components/messages/promotion.PromotionActivated"
+        $ref: '#/components/messages/promotion.PromotionActivated'
       PromotionExpired:
-        $ref: "#/components/messages/promotion.PromotionExpired"
+        $ref: '#/components/messages/promotion.PromotionExpired'
       PromotionRedeemed:
-        $ref: "#/components/messages/promotion.PromotionRedeemed"
+        $ref: '#/components/messages/promotion.PromotionRedeemed'
       RedemptionCancelled:
-        $ref: "#/components/messages/promotion.RedemptionCancelled"
-    description: "Event của promotion-service; DLQ: ecommerce.promotion.events.dlq"
+        $ref: '#/components/messages/promotion.RedemptionCancelled'
+    description: 'Event của promotion-service; DLQ: ecommerce.promotion.events.dlq'
+  reconciliationEvents:
+    address: ecommerce.reconciliation.events
+    messages:
+      ReconciliationMismatchDetected:
+        $ref: '#/components/messages/reconciliation.ReconciliationMismatchDetected'
+      ReconciliationRunCompleted:
+        $ref: '#/components/messages/reconciliation.ReconciliationRunCompleted'
+    description: 'Event của reconciliation-service; DLQ: ecommerce.reconciliation.events.dlq'
+  returnsEvents:
+    address: ecommerce.returns.events
+    messages:
+      ReturnRequested:
+        $ref: '#/components/messages/returns.ReturnRequested'
+      ReturnApproved:
+        $ref: '#/components/messages/returns.ReturnApproved'
+      ReturnRejected:
+        $ref: '#/components/messages/returns.ReturnRejected'
+      ReturnReceived:
+        $ref: '#/components/messages/returns.ReturnReceived'
+      RefundIssued:
+        $ref: '#/components/messages/returns.RefundIssued'
+      ReturnClosed:
+        $ref: '#/components/messages/returns.ReturnClosed'
+    description: 'Event của returns-service; DLQ: ecommerce.returns.events.dlq'
   reviewEvents:
     address: ecommerce.review.events
     messages:
       ReviewSubmitted:
-        $ref: "#/components/messages/review.ReviewSubmitted"
+        $ref: '#/components/messages/review.ReviewSubmitted'
       ReviewModerated:
-        $ref: "#/components/messages/review.ReviewModerated"
+        $ref: '#/components/messages/review.ReviewModerated'
       ReviewReplied:
-        $ref: "#/components/messages/review.ReviewReplied"
+        $ref: '#/components/messages/review.ReviewReplied'
       ProductRatingChanged:
-        $ref: "#/components/messages/review.ProductRatingChanged"
-    description: "Event của review-service; DLQ: ecommerce.review.events.dlq"
+        $ref: '#/components/messages/review.ProductRatingChanged'
+    description: 'Event của review-service; DLQ: ecommerce.review.events.dlq'
   shippingEvents:
     address: ecommerce.shipping.events
     messages:
       ShipmentCreated:
-        $ref: "#/components/messages/shipping.ShipmentCreated"
+        $ref: '#/components/messages/shipping.ShipmentCreated'
       ShipmentStatusChanged:
-        $ref: "#/components/messages/shipping.ShipmentStatusChanged"
-    description: "Event của shipping-service; DLQ: ecommerce.shipping.events.dlq"
+        $ref: '#/components/messages/shipping.ShipmentStatusChanged'
+    description: 'Event của shipping-service; DLQ: ecommerce.shipping.events.dlq'
+  storedvalueEvents:
+    address: ecommerce.storedvalue.events
+    messages:
+      StoredValueCredited:
+        $ref: '#/components/messages/storedvalue.StoredValueCredited'
+      StoredValueHeld:
+        $ref: '#/components/messages/storedvalue.StoredValueHeld'
+      StoredValueDebited:
+        $ref: '#/components/messages/storedvalue.StoredValueDebited'
+      StoredValueReleased:
+        $ref: '#/components/messages/storedvalue.StoredValueReleased'
+    description: 'Event của stored-value-service; DLQ: ecommerce.storedvalue.events.dlq'
   streamCustomerRiskFeatures:
     address: ecommerce.stream.customer-risk
     messages:
       CustomerRiskFeatures:
-        $ref: "#/components/messages/stream.CustomerRiskFeatures"
-    description: "Feature do stream-processor (Flink) tính; topic compacted, key = id thực thể"
+        $ref: '#/components/messages/stream.CustomerRiskFeatures'
+    description: Feature do stream-processor (Flink) tính; topic compacted, key =
+      id thực thể
   streamProductTrending:
     address: ecommerce.stream.product-trending
     messages:
       ProductTrending:
-        $ref: "#/components/messages/stream.ProductTrending"
-    description: "Feature do stream-processor (Flink) tính; topic compacted, key = id thực thể"
+        $ref: '#/components/messages/stream.ProductTrending'
+    description: Feature do stream-processor (Flink) tính; topic compacted, key =
+      id thực thể
   streamStockCover:
     address: ecommerce.stream.stock-cover
     messages:
       StockCover:
-        $ref: "#/components/messages/stream.StockCover"
-    description: "Feature do stream-processor (Flink) tính; topic compacted, key = id thực thể"
+        $ref: '#/components/messages/stream.StockCover'
+    description: Feature do stream-processor (Flink) tính; topic compacted, key =
+      id thực thể
+  subscriptionEvents:
+    address: ecommerce.subscription.events
+    messages:
+      SubscriptionCreated:
+        $ref: '#/components/messages/subscription.SubscriptionCreated'
+      SubscriptionRenewalUpcoming:
+        $ref: '#/components/messages/subscription.SubscriptionRenewalUpcoming'
+      SubscriptionOrderPlaced:
+        $ref: '#/components/messages/subscription.SubscriptionOrderPlaced'
+      RenewalFailed:
+        $ref: '#/components/messages/subscription.RenewalFailed'
+      SubscriptionStatusChanged:
+        $ref: '#/components/messages/subscription.SubscriptionStatusChanged'
+    description: 'Event của subscription-service; DLQ: ecommerce.subscription.events.dlq'
 operations:
   publishCartEvents:
     action: send
     channel:
-      $ref: "#/channels/cartEvents"
+      $ref: '#/channels/cartEvents'
     summary: cart-service ghi qua outbox → Debezium
   publishCatalogEvents:
     action: send
     channel:
-      $ref: "#/channels/catalogEvents"
+      $ref: '#/channels/catalogEvents'
     summary: catalog-service ghi qua outbox → Debezium
   publishCustomerEvents:
     action: send
     channel:
-      $ref: "#/channels/customerEvents"
+      $ref: '#/channels/customerEvents'
     summary: customer-service ghi qua outbox → Debezium
+  publishDisputeEvents:
+    action: send
+    channel:
+      $ref: '#/channels/disputeEvents'
+    summary: dispute-service ghi qua outbox → Debezium
   publishFraudEvents:
     action: send
     channel:
-      $ref: "#/channels/fraudEvents"
+      $ref: '#/channels/fraudEvents'
     summary: fraud-service ghi qua outbox → Debezium
   publishInventoryEvents:
     action: send
     channel:
-      $ref: "#/channels/inventoryEvents"
+      $ref: '#/channels/inventoryEvents'
     summary: inventory-service ghi qua outbox → Debezium
+  publishLedgerEvents:
+    action: send
+    channel:
+      $ref: '#/channels/ledgerEvents'
+    summary: ledger-service ghi qua outbox → Debezium
+  publishLoyaltyEvents:
+    action: send
+    channel:
+      $ref: '#/channels/loyaltyEvents'
+    summary: loyalty-service ghi qua outbox → Debezium
   publishMessageEvents:
     action: send
     channel:
-      $ref: "#/channels/messageEvents"
+      $ref: '#/channels/messageEvents'
     summary: message-service ghi qua outbox → Debezium
+  publishModerationEvents:
+    action: send
+    channel:
+      $ref: '#/channels/moderationEvents'
+    summary: moderation-service ghi qua outbox → Debezium
   publishOrderEvents:
     action: send
     channel:
-      $ref: "#/channels/orderEvents"
+      $ref: '#/channels/orderEvents'
     summary: order-service ghi qua outbox → Debezium
   publishPaymentEvents:
     action: send
     channel:
-      $ref: "#/channels/paymentEvents"
+      $ref: '#/channels/paymentEvents'
     summary: payment-service ghi qua outbox → Debezium
   publishPricingEvents:
     action: send
     channel:
-      $ref: "#/channels/pricingEvents"
+      $ref: '#/channels/pricingEvents'
     summary: pricing-service ghi qua outbox → Debezium
+  publishPrivacyEvents:
+    action: send
+    channel:
+      $ref: '#/channels/privacyEvents'
+    summary: privacy-service ghi qua outbox → Debezium
   publishProductEvents:
     action: send
     channel:
-      $ref: "#/channels/productEvents"
+      $ref: '#/channels/productEvents'
     summary: product-service ghi qua outbox → Debezium
   publishPromotionEvents:
     action: send
     channel:
-      $ref: "#/channels/promotionEvents"
+      $ref: '#/channels/promotionEvents'
     summary: promotion-service ghi qua outbox → Debezium
+  publishReconciliationEvents:
+    action: send
+    channel:
+      $ref: '#/channels/reconciliationEvents'
+    summary: reconciliation-service ghi qua outbox → Debezium
+  publishReturnsEvents:
+    action: send
+    channel:
+      $ref: '#/channels/returnsEvents'
+    summary: returns-service ghi qua outbox → Debezium
   publishReviewEvents:
     action: send
     channel:
-      $ref: "#/channels/reviewEvents"
+      $ref: '#/channels/reviewEvents'
     summary: review-service ghi qua outbox → Debezium
   publishShippingEvents:
     action: send
     channel:
-      $ref: "#/channels/shippingEvents"
+      $ref: '#/channels/shippingEvents'
     summary: shipping-service ghi qua outbox → Debezium
+  publishStoredvalueEvents:
+    action: send
+    channel:
+      $ref: '#/channels/storedvalueEvents'
+    summary: stored-value-service ghi qua outbox → Debezium
   publishStreamCustomerRiskFeatures:
     action: send
     channel:
-      $ref: "#/channels/streamCustomerRiskFeatures"
+      $ref: '#/channels/streamCustomerRiskFeatures'
     summary: stream-processor ghi trực tiếp (Kafka sink, at-least-once)
   publishStreamProductTrending:
     action: send
     channel:
-      $ref: "#/channels/streamProductTrending"
+      $ref: '#/channels/streamProductTrending'
     summary: stream-processor ghi trực tiếp (Kafka sink, at-least-once)
   publishStreamStockCover:
     action: send
     channel:
-      $ref: "#/channels/streamStockCover"
+      $ref: '#/channels/streamStockCover'
     summary: stream-processor ghi trực tiếp (Kafka sink, at-least-once)
+  publishSubscriptionEvents:
+    action: send
+    channel:
+      $ref: '#/channels/subscriptionEvents'
+    summary: subscription-service ghi qua outbox → Debezium
 components:
   messages:
     cart.CartItemAdded:
@@ -364,6 +526,51 @@ components:
           ce_type:
             type: string
             const: ecommerce.customer.v1.WishlistItemRemoved
+          traceparent:
+            type: string
+    dispute.DisputeOpened:
+      name: DisputeOpened
+      title: ecommerce.dispute.v1.DisputeOpened
+      payload:
+        schemaFormat: application/vnd.google.protobuf;version=3
+        schema:
+          $ref: ../../api/proto/ecommerce/dispute/v1/dispute_events.proto
+      headers:
+        type: object
+        properties:
+          ce_type:
+            type: string
+            const: ecommerce.dispute.v1.DisputeOpened
+          traceparent:
+            type: string
+    dispute.DisputeEvidenceSubmitted:
+      name: DisputeEvidenceSubmitted
+      title: ecommerce.dispute.v1.DisputeEvidenceSubmitted
+      payload:
+        schemaFormat: application/vnd.google.protobuf;version=3
+        schema:
+          $ref: ../../api/proto/ecommerce/dispute/v1/dispute_events.proto
+      headers:
+        type: object
+        properties:
+          ce_type:
+            type: string
+            const: ecommerce.dispute.v1.DisputeEvidenceSubmitted
+          traceparent:
+            type: string
+    dispute.DisputeClosed:
+      name: DisputeClosed
+      title: ecommerce.dispute.v1.DisputeClosed
+      payload:
+        schemaFormat: application/vnd.google.protobuf;version=3
+        schema:
+          $ref: ../../api/proto/ecommerce/dispute/v1/dispute_events.proto
+      headers:
+        type: object
+        properties:
+          ce_type:
+            type: string
+            const: ecommerce.dispute.v1.DisputeClosed
           traceparent:
             type: string
     fraud.FraudReviewRequested:
@@ -501,6 +708,141 @@ components:
             const: ecommerce.inventory.v1.FlashSaleClaimed
           traceparent:
             type: string
+    ledger.Posting:
+      name: Posting
+      title: ecommerce.ledger.v1.Posting
+      payload:
+        schemaFormat: application/vnd.google.protobuf;version=3
+        schema:
+          $ref: ../../api/proto/ecommerce/ledger/v1/ledger_events.proto
+      headers:
+        type: object
+        properties:
+          ce_type:
+            type: string
+            const: ecommerce.ledger.v1.Posting
+          traceparent:
+            type: string
+    ledger.JournalEntryPosted:
+      name: JournalEntryPosted
+      title: ecommerce.ledger.v1.JournalEntryPosted
+      payload:
+        schemaFormat: application/vnd.google.protobuf;version=3
+        schema:
+          $ref: ../../api/proto/ecommerce/ledger/v1/ledger_events.proto
+      headers:
+        type: object
+        properties:
+          ce_type:
+            type: string
+            const: ecommerce.ledger.v1.JournalEntryPosted
+          traceparent:
+            type: string
+    ledger.PostingFailed:
+      name: PostingFailed
+      title: ecommerce.ledger.v1.PostingFailed
+      payload:
+        schemaFormat: application/vnd.google.protobuf;version=3
+        schema:
+          $ref: ../../api/proto/ecommerce/ledger/v1/ledger_events.proto
+      headers:
+        type: object
+        properties:
+          ce_type:
+            type: string
+            const: ecommerce.ledger.v1.PostingFailed
+          traceparent:
+            type: string
+    loyalty.PointsEarned:
+      name: PointsEarned
+      title: ecommerce.loyalty.v1.PointsEarned
+      payload:
+        schemaFormat: application/vnd.google.protobuf;version=3
+        schema:
+          $ref: ../../api/proto/ecommerce/loyalty/v1/loyalty_events.proto
+      headers:
+        type: object
+        properties:
+          ce_type:
+            type: string
+            const: ecommerce.loyalty.v1.PointsEarned
+          traceparent:
+            type: string
+    loyalty.PointsConfirmed:
+      name: PointsConfirmed
+      title: ecommerce.loyalty.v1.PointsConfirmed
+      payload:
+        schemaFormat: application/vnd.google.protobuf;version=3
+        schema:
+          $ref: ../../api/proto/ecommerce/loyalty/v1/loyalty_events.proto
+      headers:
+        type: object
+        properties:
+          ce_type:
+            type: string
+            const: ecommerce.loyalty.v1.PointsConfirmed
+          traceparent:
+            type: string
+    loyalty.PointsRedeemed:
+      name: PointsRedeemed
+      title: ecommerce.loyalty.v1.PointsRedeemed
+      payload:
+        schemaFormat: application/vnd.google.protobuf;version=3
+        schema:
+          $ref: ../../api/proto/ecommerce/loyalty/v1/loyalty_events.proto
+      headers:
+        type: object
+        properties:
+          ce_type:
+            type: string
+            const: ecommerce.loyalty.v1.PointsRedeemed
+          traceparent:
+            type: string
+    loyalty.PointsReversed:
+      name: PointsReversed
+      title: ecommerce.loyalty.v1.PointsReversed
+      payload:
+        schemaFormat: application/vnd.google.protobuf;version=3
+        schema:
+          $ref: ../../api/proto/ecommerce/loyalty/v1/loyalty_events.proto
+      headers:
+        type: object
+        properties:
+          ce_type:
+            type: string
+            const: ecommerce.loyalty.v1.PointsReversed
+          traceparent:
+            type: string
+    loyalty.PointsExpired:
+      name: PointsExpired
+      title: ecommerce.loyalty.v1.PointsExpired
+      payload:
+        schemaFormat: application/vnd.google.protobuf;version=3
+        schema:
+          $ref: ../../api/proto/ecommerce/loyalty/v1/loyalty_events.proto
+      headers:
+        type: object
+        properties:
+          ce_type:
+            type: string
+            const: ecommerce.loyalty.v1.PointsExpired
+          traceparent:
+            type: string
+    loyalty.TierChanged:
+      name: TierChanged
+      title: ecommerce.loyalty.v1.TierChanged
+      payload:
+        schemaFormat: application/vnd.google.protobuf;version=3
+        schema:
+          $ref: ../../api/proto/ecommerce/loyalty/v1/loyalty_events.proto
+      headers:
+        type: object
+        properties:
+          ce_type:
+            type: string
+            const: ecommerce.loyalty.v1.TierChanged
+          traceparent:
+            type: string
     message.MessageSent:
       name: MessageSent
       title: ecommerce.message.v1.MessageSent
@@ -514,6 +856,36 @@ components:
           ce_type:
             type: string
             const: ecommerce.message.v1.MessageSent
+          traceparent:
+            type: string
+    moderation.ModerationDecided:
+      name: ModerationDecided
+      title: ecommerce.moderation.v1.ModerationDecided
+      payload:
+        schemaFormat: application/vnd.google.protobuf;version=3
+        schema:
+          $ref: ../../api/proto/ecommerce/moderation/v1/moderation_events.proto
+      headers:
+        type: object
+        properties:
+          ce_type:
+            type: string
+            const: ecommerce.moderation.v1.ModerationDecided
+          traceparent:
+            type: string
+    moderation.UserContentStrikeIssued:
+      name: UserContentStrikeIssued
+      title: ecommerce.moderation.v1.UserContentStrikeIssued
+      payload:
+        schemaFormat: application/vnd.google.protobuf;version=3
+        schema:
+          $ref: ../../api/proto/ecommerce/moderation/v1/moderation_events.proto
+      headers:
+        type: object
+        properties:
+          ce_type:
+            type: string
+            const: ecommerce.moderation.v1.UserContentStrikeIssued
           traceparent:
             type: string
     order.OrderPlaced:
@@ -606,6 +978,21 @@ components:
             const: ecommerce.payment.v1.PaymentFailed
           traceparent:
             type: string
+    payment.PaymentCaptured:
+      name: PaymentCaptured
+      title: ecommerce.payment.v1.PaymentCaptured
+      payload:
+        schemaFormat: application/vnd.google.protobuf;version=3
+        schema:
+          $ref: ../../api/proto/ecommerce/payment/v1/payment_events.proto
+      headers:
+        type: object
+        properties:
+          ce_type:
+            type: string
+            const: ecommerce.payment.v1.PaymentCaptured
+          traceparent:
+            type: string
     payment.PaymentRefunded:
       name: PaymentRefunded
       title: ecommerce.payment.v1.PaymentRefunded
@@ -634,6 +1021,111 @@ components:
           ce_type:
             type: string
             const: ecommerce.pricing.v1.PriceChanged
+          traceparent:
+            type: string
+    privacy.ConsentChanged:
+      name: ConsentChanged
+      title: ecommerce.privacy.v1.ConsentChanged
+      payload:
+        schemaFormat: application/vnd.google.protobuf;version=3
+        schema:
+          $ref: ../../api/proto/ecommerce/privacy/v1/privacy_events.proto
+      headers:
+        type: object
+        properties:
+          ce_type:
+            type: string
+            const: ecommerce.privacy.v1.ConsentChanged
+          traceparent:
+            type: string
+    privacy.DataSubjectRequestOpened:
+      name: DataSubjectRequestOpened
+      title: ecommerce.privacy.v1.DataSubjectRequestOpened
+      payload:
+        schemaFormat: application/vnd.google.protobuf;version=3
+        schema:
+          $ref: ../../api/proto/ecommerce/privacy/v1/privacy_events.proto
+      headers:
+        type: object
+        properties:
+          ce_type:
+            type: string
+            const: ecommerce.privacy.v1.DataSubjectRequestOpened
+          traceparent:
+            type: string
+    privacy.ErasureRequested:
+      name: ErasureRequested
+      title: ecommerce.privacy.v1.ErasureRequested
+      payload:
+        schemaFormat: application/vnd.google.protobuf;version=3
+        schema:
+          $ref: ../../api/proto/ecommerce/privacy/v1/privacy_events.proto
+      headers:
+        type: object
+        properties:
+          ce_type:
+            type: string
+            const: ecommerce.privacy.v1.ErasureRequested
+          traceparent:
+            type: string
+    privacy.ErasureCompleted:
+      name: ErasureCompleted
+      title: ecommerce.privacy.v1.ErasureCompleted
+      payload:
+        schemaFormat: application/vnd.google.protobuf;version=3
+        schema:
+          $ref: ../../api/proto/ecommerce/privacy/v1/privacy_events.proto
+      headers:
+        type: object
+        properties:
+          ce_type:
+            type: string
+            const: ecommerce.privacy.v1.ErasureCompleted
+          traceparent:
+            type: string
+    privacy.AccessExportRequested:
+      name: AccessExportRequested
+      title: ecommerce.privacy.v1.AccessExportRequested
+      payload:
+        schemaFormat: application/vnd.google.protobuf;version=3
+        schema:
+          $ref: ../../api/proto/ecommerce/privacy/v1/privacy_events.proto
+      headers:
+        type: object
+        properties:
+          ce_type:
+            type: string
+            const: ecommerce.privacy.v1.AccessExportRequested
+          traceparent:
+            type: string
+    privacy.AccessExportReady:
+      name: AccessExportReady
+      title: ecommerce.privacy.v1.AccessExportReady
+      payload:
+        schemaFormat: application/vnd.google.protobuf;version=3
+        schema:
+          $ref: ../../api/proto/ecommerce/privacy/v1/privacy_events.proto
+      headers:
+        type: object
+        properties:
+          ce_type:
+            type: string
+            const: ecommerce.privacy.v1.AccessExportReady
+          traceparent:
+            type: string
+    privacy.DataSubjectRequestCompleted:
+      name: DataSubjectRequestCompleted
+      title: ecommerce.privacy.v1.DataSubjectRequestCompleted
+      payload:
+        schemaFormat: application/vnd.google.protobuf;version=3
+        schema:
+          $ref: ../../api/proto/ecommerce/privacy/v1/privacy_events.proto
+      headers:
+        type: object
+        properties:
+          ce_type:
+            type: string
+            const: ecommerce.privacy.v1.DataSubjectRequestCompleted
           traceparent:
             type: string
     product.ProductUpserted:
@@ -726,6 +1218,126 @@ components:
             const: ecommerce.promotion.v1.RedemptionCancelled
           traceparent:
             type: string
+    reconciliation.ReconciliationMismatchDetected:
+      name: ReconciliationMismatchDetected
+      title: ecommerce.reconciliation.v1.ReconciliationMismatchDetected
+      payload:
+        schemaFormat: application/vnd.google.protobuf;version=3
+        schema:
+          $ref: ../../api/proto/ecommerce/reconciliation/v1/reconciliation_events.proto
+      headers:
+        type: object
+        properties:
+          ce_type:
+            type: string
+            const: ecommerce.reconciliation.v1.ReconciliationMismatchDetected
+          traceparent:
+            type: string
+    reconciliation.ReconciliationRunCompleted:
+      name: ReconciliationRunCompleted
+      title: ecommerce.reconciliation.v1.ReconciliationRunCompleted
+      payload:
+        schemaFormat: application/vnd.google.protobuf;version=3
+        schema:
+          $ref: ../../api/proto/ecommerce/reconciliation/v1/reconciliation_events.proto
+      headers:
+        type: object
+        properties:
+          ce_type:
+            type: string
+            const: ecommerce.reconciliation.v1.ReconciliationRunCompleted
+          traceparent:
+            type: string
+    returns.ReturnRequested:
+      name: ReturnRequested
+      title: ecommerce.returns.v1.ReturnRequested
+      payload:
+        schemaFormat: application/vnd.google.protobuf;version=3
+        schema:
+          $ref: ../../api/proto/ecommerce/returns/v1/returns_events.proto
+      headers:
+        type: object
+        properties:
+          ce_type:
+            type: string
+            const: ecommerce.returns.v1.ReturnRequested
+          traceparent:
+            type: string
+    returns.ReturnApproved:
+      name: ReturnApproved
+      title: ecommerce.returns.v1.ReturnApproved
+      payload:
+        schemaFormat: application/vnd.google.protobuf;version=3
+        schema:
+          $ref: ../../api/proto/ecommerce/returns/v1/returns_events.proto
+      headers:
+        type: object
+        properties:
+          ce_type:
+            type: string
+            const: ecommerce.returns.v1.ReturnApproved
+          traceparent:
+            type: string
+    returns.ReturnRejected:
+      name: ReturnRejected
+      title: ecommerce.returns.v1.ReturnRejected
+      payload:
+        schemaFormat: application/vnd.google.protobuf;version=3
+        schema:
+          $ref: ../../api/proto/ecommerce/returns/v1/returns_events.proto
+      headers:
+        type: object
+        properties:
+          ce_type:
+            type: string
+            const: ecommerce.returns.v1.ReturnRejected
+          traceparent:
+            type: string
+    returns.ReturnReceived:
+      name: ReturnReceived
+      title: ecommerce.returns.v1.ReturnReceived
+      payload:
+        schemaFormat: application/vnd.google.protobuf;version=3
+        schema:
+          $ref: ../../api/proto/ecommerce/returns/v1/returns_events.proto
+      headers:
+        type: object
+        properties:
+          ce_type:
+            type: string
+            const: ecommerce.returns.v1.ReturnReceived
+          traceparent:
+            type: string
+    returns.RefundIssued:
+      name: RefundIssued
+      title: ecommerce.returns.v1.RefundIssued
+      payload:
+        schemaFormat: application/vnd.google.protobuf;version=3
+        schema:
+          $ref: ../../api/proto/ecommerce/returns/v1/returns_events.proto
+      headers:
+        type: object
+        properties:
+          ce_type:
+            type: string
+            const: ecommerce.returns.v1.RefundIssued
+          traceparent:
+            type: string
+    returns.ReturnClosed:
+      name: ReturnClosed
+      title: ecommerce.returns.v1.ReturnClosed
+      payload:
+        schemaFormat: application/vnd.google.protobuf;version=3
+        schema:
+          $ref: ../../api/proto/ecommerce/returns/v1/returns_events.proto
+      headers:
+        type: object
+        properties:
+          ce_type:
+            type: string
+            const: ecommerce.returns.v1.ReturnClosed
+          traceparent:
+            type: string
     review.ReviewSubmitted:
       name: ReviewSubmitted
       title: ecommerce.review.v1.ReviewSubmitted
@@ -816,6 +1428,66 @@ components:
             const: ecommerce.shipping.v1.ShipmentStatusChanged
           traceparent:
             type: string
+    storedvalue.StoredValueCredited:
+      name: StoredValueCredited
+      title: ecommerce.storedvalue.v1.StoredValueCredited
+      payload:
+        schemaFormat: application/vnd.google.protobuf;version=3
+        schema:
+          $ref: ../../api/proto/ecommerce/storedvalue/v1/storedvalue_events.proto
+      headers:
+        type: object
+        properties:
+          ce_type:
+            type: string
+            const: ecommerce.storedvalue.v1.StoredValueCredited
+          traceparent:
+            type: string
+    storedvalue.StoredValueHeld:
+      name: StoredValueHeld
+      title: ecommerce.storedvalue.v1.StoredValueHeld
+      payload:
+        schemaFormat: application/vnd.google.protobuf;version=3
+        schema:
+          $ref: ../../api/proto/ecommerce/storedvalue/v1/storedvalue_events.proto
+      headers:
+        type: object
+        properties:
+          ce_type:
+            type: string
+            const: ecommerce.storedvalue.v1.StoredValueHeld
+          traceparent:
+            type: string
+    storedvalue.StoredValueDebited:
+      name: StoredValueDebited
+      title: ecommerce.storedvalue.v1.StoredValueDebited
+      payload:
+        schemaFormat: application/vnd.google.protobuf;version=3
+        schema:
+          $ref: ../../api/proto/ecommerce/storedvalue/v1/storedvalue_events.proto
+      headers:
+        type: object
+        properties:
+          ce_type:
+            type: string
+            const: ecommerce.storedvalue.v1.StoredValueDebited
+          traceparent:
+            type: string
+    storedvalue.StoredValueReleased:
+      name: StoredValueReleased
+      title: ecommerce.storedvalue.v1.StoredValueReleased
+      payload:
+        schemaFormat: application/vnd.google.protobuf;version=3
+        schema:
+          $ref: ../../api/proto/ecommerce/storedvalue/v1/storedvalue_events.proto
+      headers:
+        type: object
+        properties:
+          ce_type:
+            type: string
+            const: ecommerce.storedvalue.v1.StoredValueReleased
+          traceparent:
+            type: string
     stream.CustomerRiskFeatures:
       name: CustomerRiskFeatures
       title: ecommerce.stream.v1.CustomerRiskFeatures
@@ -859,5 +1531,80 @@ components:
           ce_type:
             type: string
             const: ecommerce.stream.v1.StockCover
+          traceparent:
+            type: string
+    subscription.SubscriptionCreated:
+      name: SubscriptionCreated
+      title: ecommerce.subscription.v1.SubscriptionCreated
+      payload:
+        schemaFormat: application/vnd.google.protobuf;version=3
+        schema:
+          $ref: ../../api/proto/ecommerce/subscription/v1/subscription_events.proto
+      headers:
+        type: object
+        properties:
+          ce_type:
+            type: string
+            const: ecommerce.subscription.v1.SubscriptionCreated
+          traceparent:
+            type: string
+    subscription.SubscriptionRenewalUpcoming:
+      name: SubscriptionRenewalUpcoming
+      title: ecommerce.subscription.v1.SubscriptionRenewalUpcoming
+      payload:
+        schemaFormat: application/vnd.google.protobuf;version=3
+        schema:
+          $ref: ../../api/proto/ecommerce/subscription/v1/subscription_events.proto
+      headers:
+        type: object
+        properties:
+          ce_type:
+            type: string
+            const: ecommerce.subscription.v1.SubscriptionRenewalUpcoming
+          traceparent:
+            type: string
+    subscription.SubscriptionOrderPlaced:
+      name: SubscriptionOrderPlaced
+      title: ecommerce.subscription.v1.SubscriptionOrderPlaced
+      payload:
+        schemaFormat: application/vnd.google.protobuf;version=3
+        schema:
+          $ref: ../../api/proto/ecommerce/subscription/v1/subscription_events.proto
+      headers:
+        type: object
+        properties:
+          ce_type:
+            type: string
+            const: ecommerce.subscription.v1.SubscriptionOrderPlaced
+          traceparent:
+            type: string
+    subscription.RenewalFailed:
+      name: RenewalFailed
+      title: ecommerce.subscription.v1.RenewalFailed
+      payload:
+        schemaFormat: application/vnd.google.protobuf;version=3
+        schema:
+          $ref: ../../api/proto/ecommerce/subscription/v1/subscription_events.proto
+      headers:
+        type: object
+        properties:
+          ce_type:
+            type: string
+            const: ecommerce.subscription.v1.RenewalFailed
+          traceparent:
+            type: string
+    subscription.SubscriptionStatusChanged:
+      name: SubscriptionStatusChanged
+      title: ecommerce.subscription.v1.SubscriptionStatusChanged
+      payload:
+        schemaFormat: application/vnd.google.protobuf;version=3
+        schema:
+          $ref: ../../api/proto/ecommerce/subscription/v1/subscription_events.proto
+      headers:
+        type: object
+        properties:
+          ce_type:
+            type: string
+            const: ecommerce.subscription.v1.SubscriptionStatusChanged
           traceparent:
             type: string

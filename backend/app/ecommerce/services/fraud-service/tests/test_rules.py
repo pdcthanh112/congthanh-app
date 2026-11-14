@@ -96,3 +96,15 @@ def test_stream_features_add_short_window_signals():
     assert a.score == 65 and a.decision == Decision.REVIEW
     # không có feature stream: giữ nguyên kết quả cũ
     assert evaluate(tx(), clean, Velocity(), [], NOW).score == 0
+
+
+def test_lost_fraud_chargeback_pushes_to_review():
+    a = evaluate(
+        tx(),
+        History(paid_orders=10, avg_paid_amount=10_000, known_address=True, fraud_chargebacks=1),
+        Velocity(),
+        [],
+        NOW,
+    )
+    assert "PRIOR_FRAUD_CHARGEBACK" in a.reasons
+    assert a.score >= 50

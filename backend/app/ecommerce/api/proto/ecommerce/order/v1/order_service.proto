@@ -43,6 +43,10 @@ message PlaceOrderRequest {
   OrderAddress shipping_address = 11;
   OrderAddress billing_address = 12;
   string note = 13;
+  // Phần trả bằng store credit (stored-value-service) và điểm thưởng (loyalty-service); saga giữ chỗ hai phần này
+  // rồi chỉ charge cổng thanh toán phần còn lại (ADR 0027).
+  ecommerce.common.v1.Money store_credit = 14;
+  int64 loyalty_points = 15;
 }
 
 message PlaceOrderResponse {

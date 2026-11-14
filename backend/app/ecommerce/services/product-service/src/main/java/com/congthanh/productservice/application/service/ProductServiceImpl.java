@@ -14,7 +14,7 @@ import com.congthanh.productservice.domain.model.enums.ProductStatus;
 import com.congthanh.productservice.application.dto.ProductDTO;
 import com.congthanh.productservice.application.readmodel.ProductDocument;
 import com.congthanh.productservice.application.dto.request.CreateProductRequest;
-import com.congthanh.productservice.domain.exception.NotFoundException;
+import com.congthanh.commonservice.exception.NotFoundException;
 import com.congthanh.productservice.application.mapper.ProductMapper;
 import com.congthanh.productservice.application.dto.viewmodel.*;
 import com.congthanh.productservice.application.port.out.product.ProductRepository;

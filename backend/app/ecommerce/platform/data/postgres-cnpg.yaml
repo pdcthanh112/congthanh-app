@@ -39,6 +39,15 @@ spec:
       - {name: pricing_service, login: true, passwordSecret: {name: db-pricing-service}}
       - {name: fraud_service, login: true, passwordSecret: {name: db-fraud-service}}
       - {name: recommendation_service, login: true, passwordSecret: {name: db-recommendation-service}}
+      - {name: ledger_service, login: true, passwordSecret: {name: db-ledger-service}}
+      - {name: returns_service, login: true, passwordSecret: {name: db-returns-service}}
+      - {name: privacy, login: true, passwordSecret: {name: db-privacy-service}}
+      - {name: stored_value_service, login: true, passwordSecret: {name: db-stored-value-service}}
+      - {name: dispute_service, login: true, passwordSecret: {name: db-dispute-service}}
+      - {name: reconciliation, login: true, passwordSecret: {name: db-reconciliation-service}}
+      - {name: loyalty_service, login: true, passwordSecret: {name: db-loyalty-service}}
+      - {name: subscription_service, login: true, passwordSecret: {name: db-subscription-service}}
+      - {name: moderation, login: true, passwordSecret: {name: db-moderation-service}}
   backup:
     barmanObjectStore:
       destinationPath: s3://congthanhapp-pg-backup/ecommerce-db

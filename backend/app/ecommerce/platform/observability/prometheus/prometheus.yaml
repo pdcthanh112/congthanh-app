@@ -15,4 +15,4 @@ scrape_configs:
   - job_name: spring-actuator
     metrics_path: /actuator/prometheus
     static_configs:
-      - targets: ["product-service:5008", "order-service:5006", "payment-service:5018", "promotion-service:5009", "checkout-service:5027"]
+      - targets: ["product-service:5008", "order-service:5006", "payment-service:5018", "promotion-service:5009", "checkout-service:5027", "ledger-service:5031", "returns-service:5032", "stored-value-service:5034", "dispute-service:5035", "loyalty-service:5037", "subscription-service:5038"]

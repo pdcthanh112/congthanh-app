@@ -318,6 +318,60 @@ spec:
           - Describe
       - resource:
           type: topic
+          name: ecommerce.ledger.events
+        operations:
+          - Write
+          - Describe
+      - resource:
+          type: topic
+          name: ecommerce.returns.events
+        operations:
+          - Write
+          - Describe
+      - resource:
+          type: topic
+          name: ecommerce.privacy.events
+        operations:
+          - Write
+          - Describe
+      - resource:
+          type: topic
+          name: ecommerce.storedvalue.events
+        operations:
+          - Write
+          - Describe
+      - resource:
+          type: topic
+          name: ecommerce.dispute.events
+        operations:
+          - Write
+          - Describe
+      - resource:
+          type: topic
+          name: ecommerce.reconciliation.events
+        operations:
+          - Write
+          - Describe
+      - resource:
+          type: topic
+          name: ecommerce.loyalty.events
+        operations:
+          - Write
+          - Describe
+      - resource:
+          type: topic
+          name: ecommerce.subscription.events
+        operations:
+          - Write
+          - Describe
+      - resource:
+          type: topic
+          name: ecommerce.moderation.events
+        operations:
+          - Write
+          - Describe
+      - resource:
+          type: topic
           name: ecommerce.catalog.events
         operations:
           - Write
@@ -792,5 +846,342 @@ spec:
           type: group
           name: stream-processor-
           patternType: prefix
+        operations:
+          - Read
+---
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaUser
+metadata:
+  name: ledger-service
+  namespace: messaging
+  labels:
+    strimzi.io/cluster: ecommerce
+spec:
+  authentication:
+    type: scram-sha-512
+  authorization:
+    type: simple
+    acls:
+      - resource:
+          type: topic
+          name: ecommerce.payment.events
+        operations:
+          - Read
+          - Describe
+      - resource:
+          type: topic
+          name: ecommerce.payment.events.dlq
+        operations:
+          - Write
+          - Describe
+      - resource:
+          type: topic
+          name: ecommerce.storedvalue.events
+        operations:
+          - Read
+          - Describe
+      - resource:
+          type: topic
+          name: ecommerce.storedvalue.events.dlq
+        operations:
+          - Write
+          - Describe
+      - resource:
+          type: topic
+          name: ecommerce.dispute.events
+        operations:
+          - Read
+          - Describe
+      - resource:
+          type: topic
+          name: ecommerce.dispute.events.dlq
+        operations:
+          - Write
+          - Describe
+      - resource:
+          type: topic
+          name: ecommerce.loyalty.events
+        operations:
+          - Read
+          - Describe
+      - resource:
+          type: topic
+          name: ecommerce.loyalty.events.dlq
+        operations:
+          - Write
+          - Describe
+      - resource:
+          type: topic
+          name: ecommerce.reconciliation.events
+        operations:
+          - Read
+          - Describe
+      - resource:
+          type: topic
+          name: ecommerce.reconciliation.events.dlq
+        operations:
+          - Write
+          - Describe
+      - resource:
+          type: group
+          name: ledger-service
+        operations:
+          - Read
+---
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaUser
+metadata:
+  name: returns-service
+  namespace: messaging
+  labels:
+    strimzi.io/cluster: ecommerce
+spec:
+  authentication:
+    type: scram-sha-512
+  authorization:
+    type: simple
+    acls:
+      - resource:
+          type: topic
+          name: ecommerce.order.events
+        operations:
+          - Read
+          - Describe
+      - resource:
+          type: topic
+          name: ecommerce.order.events.dlq
+        operations:
+          - Write
+          - Describe
+      - resource:
+          type: topic
+          name: ecommerce.shipping.events
+        operations:
+          - Read
+          - Describe
+      - resource:
+          type: topic
+          name: ecommerce.shipping.events.dlq
+        operations:
+          - Write
+          - Describe
+      - resource:
+          type: group
+          name: returns-service
+        operations:
+          - Read
+---
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaUser
+metadata:
+  name: privacy-service
+  namespace: messaging
+  labels:
+    strimzi.io/cluster: ecommerce
+spec:
+  authentication:
+    type: scram-sha-512
+  authorization:
+    type: simple
+    acls:
+      - resource:
+          type: topic
+          name: ecommerce.privacy.events
+        operations:
+          - Read
+          - Describe
+      - resource:
+          type: topic
+          name: ecommerce.privacy.events.dlq
+        operations:
+          - Write
+          - Describe
+      - resource:
+          type: group
+          name: privacy-service
+        operations:
+          - Read
+---
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaUser
+metadata:
+  name: dispute-service
+  namespace: messaging
+  labels:
+    strimzi.io/cluster: ecommerce
+spec:
+  authentication:
+    type: scram-sha-512
+  authorization:
+    type: simple
+    acls:
+      - resource:
+          type: topic
+          name: ecommerce.order.events
+        operations:
+          - Read
+          - Describe
+      - resource:
+          type: topic
+          name: ecommerce.order.events.dlq
+        operations:
+          - Write
+          - Describe
+      - resource:
+          type: topic
+          name: ecommerce.payment.events
+        operations:
+          - Read
+          - Describe
+      - resource:
+          type: topic
+          name: ecommerce.payment.events.dlq
+        operations:
+          - Write
+          - Describe
+      - resource:
+          type: topic
+          name: ecommerce.shipping.events
+        operations:
+          - Read
+          - Describe
+      - resource:
+          type: topic
+          name: ecommerce.shipping.events.dlq
+        operations:
+          - Write
+          - Describe
+      - resource:
+          type: topic
+          name: ecommerce.returns.events
+        operations:
+          - Read
+          - Describe
+      - resource:
+          type: topic
+          name: ecommerce.returns.events.dlq
+        operations:
+          - Write
+          - Describe
+      - resource:
+          type: group
+          name: dispute-service
+        operations:
+          - Read
+---
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaUser
+metadata:
+  name: reconciliation-service
+  namespace: messaging
+  labels:
+    strimzi.io/cluster: ecommerce
+spec:
+  authentication:
+    type: scram-sha-512
+  authorization:
+    type: simple
+    acls:
+      - resource:
+          type: topic
+          name: ecommerce.payment.events
+        operations:
+          - Read
+          - Describe
+      - resource:
+          type: topic
+          name: ecommerce.payment.events.dlq
+        operations:
+          - Write
+          - Describe
+      - resource:
+          type: group
+          name: reconciliation-service
+        operations:
+          - Read
+---
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaUser
+metadata:
+  name: loyalty-service
+  namespace: messaging
+  labels:
+    strimzi.io/cluster: ecommerce
+spec:
+  authentication:
+    type: scram-sha-512
+  authorization:
+    type: simple
+    acls:
+      - resource:
+          type: topic
+          name: ecommerce.order.events
+        operations:
+          - Read
+          - Describe
+      - resource:
+          type: topic
+          name: ecommerce.order.events.dlq
+        operations:
+          - Write
+          - Describe
+      - resource:
+          type: topic
+          name: ecommerce.shipping.events
+        operations:
+          - Read
+          - Describe
+      - resource:
+          type: topic
+          name: ecommerce.shipping.events.dlq
+        operations:
+          - Write
+          - Describe
+      - resource:
+          type: topic
+          name: ecommerce.returns.events
+        operations:
+          - Read
+          - Describe
+      - resource:
+          type: topic
+          name: ecommerce.returns.events.dlq
+        operations:
+          - Write
+          - Describe
+      - resource:
+          type: group
+          name: loyalty-service
+        operations:
+          - Read
+---
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaUser
+metadata:
+  name: subscription-service
+  namespace: messaging
+  labels:
+    strimzi.io/cluster: ecommerce
+spec:
+  authentication:
+    type: scram-sha-512
+  authorization:
+    type: simple
+    acls:
+      - resource:
+          type: topic
+          name: ecommerce.order.events
+        operations:
+          - Read
+          - Describe
+      - resource:
+          type: topic
+          name: ecommerce.order.events.dlq
+        operations:
+          - Write
+          - Describe
+      - resource:
+          type: group
+          name: subscription-service
         operations:
           - Read

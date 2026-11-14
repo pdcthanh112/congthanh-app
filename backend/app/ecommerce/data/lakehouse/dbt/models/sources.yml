@@ -1,0 +1,63 @@
+version: 2
+
+sources:
+  - name: ods
+    description: Trạng thái hiện tại của bảng OLTP, Spark MERGE gần thời gian thực từ Debezium CDC.
+    database: lakehouse
+    schema: ods
+    loaded_at_field: _ods_updated_at
+    freshness:
+      warn_after: { count: 6, period: hour }
+      error_after: { count: 48, period: hour }
+    tables:
+      - name: orders
+        columns:
+          - name: id
+            data_tests: [not_null, unique]
+      - name: order_lines
+        columns:
+          - name: id
+            data_tests: [not_null, unique]
+      - name: payments
+        columns:
+          - name: id
+            data_tests: [not_null, unique]
+      - name: products
+        freshness: null
+        columns:
+          - name: id
+            data_tests: [not_null, unique]
+
+  - name: bronze
+    description: Event thô từ Kafka, chỉ append (at-least-once, có thể trùng).
+    database: lakehouse
+    schema: bronze
+    loaded_at_field: ingested_at
+    freshness:
+      warn_after: { count: 6, period: hour }
+      error_after: { count: 48, period: hour }
+    tables:
+      - name: clickstream_events
+      - name: outbox_events
+      - name: cdc_changes
+        freshness: null
+      - name: stream_signals
+        freshness: null
+
+  - name: decoded
+    description: Envelope protobuf đã giải mã bởi Spark (jobs/decode_events.py), payload dạng JSON.
+    database: lakehouse
+    schema: silver
+    loaded_at_field: kafka_ts
+    tables:
+      - name: domain_events
+        freshness:
+          warn_after: { count: 6, period: hour }
+          error_after: { count: 48, period: hour }
+        columns:
+          - name: event_id
+            data_tests: [not_null, unique]
+      - name: stream_signals
+        columns:
+          - name: event_id
+            data_tests: [not_null, unique]

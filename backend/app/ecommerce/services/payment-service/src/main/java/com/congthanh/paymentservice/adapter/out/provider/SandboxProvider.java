@@ -2,6 +2,7 @@ package com.congthanh.paymentservice.adapter.out.provider;
 
 import com.congthanh.paymentservice.application.port.out.PaymentProvider;
 import com.congthanh.paymentservice.domain.exception.PaymentException;
+import com.congthanh.paymentservice.domain.model.Money;
 import com.congthanh.paymentservice.domain.model.Payment;
 import com.congthanh.paymentservice.domain.model.PaymentMethod;
 import org.springframework.beans.factory.annotation.Value;
@@ -86,5 +87,9 @@ public class SandboxProvider implements PaymentProvider {
 
     @Override
     public void refund(Payment payment) {
+    }
+
+    @Override
+    public void refundPartial(Payment payment, String refundId, Money amount) {
     }
 }

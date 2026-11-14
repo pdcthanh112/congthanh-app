@@ -5,6 +5,7 @@ public final class PaymentFailures {
 
     public static final String DECLINED = "PaymentDeclined";
     public static final String UNSUPPORTED_METHOD = "UnsupportedPaymentMethod";
+    public static final String REFUND_REJECTED = "RefundRejected";
 
     private PaymentFailures() {
     }

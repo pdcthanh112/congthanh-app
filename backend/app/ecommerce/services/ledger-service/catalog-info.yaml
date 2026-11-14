@@ -1,0 +1,23 @@
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: ledger-service
+  description: Sổ cái kép (double-entry) cho mọi dòng tiền
+  tags:
+  - java
+  annotations:
+    github.com/project-slug: pdcthanh112/CongThanhApp
+    backstage.io/source-location: url:https://github.com/pdcthanh112/CongThanhApp/tree/main/backend/app/ecommerce/services/ledger-service
+    argocd/app-selector: app.kubernetes.io/name=ledger-service
+    grafana/dashboard-selector: tags @> 'ledger-service'
+    backstage.io/techdocs-ref: dir:../../docs
+spec:
+  type: service
+  lifecycle: experimental
+  owner: team-ecommerce
+  system: ecommerce
+  providesApis: []
+  consumesApis: []
+  dependsOn:
+  - resource:ecommerce-postgres
+  - resource:ecommerce-kafka

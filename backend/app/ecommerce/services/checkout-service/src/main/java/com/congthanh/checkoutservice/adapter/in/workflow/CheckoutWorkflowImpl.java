@@ -12,6 +12,8 @@ import com.congthanh.ecommerce.workflow.payment.PaymentActivities;
 import com.congthanh.ecommerce.workflow.payment.PaymentAuthorization;
 import com.congthanh.ecommerce.workflow.payment.PaymentFailures;
 import com.congthanh.ecommerce.workflow.payment.RefundPaymentRequest;
+import com.congthanh.ecommerce.workflow.loyalty.LoyaltyActivities;
+import com.congthanh.ecommerce.workflow.storedvalue.StoredValueActivities;
 import io.temporal.activity.ActivityOptions;
 import io.temporal.common.RetryOptions;
 import io.temporal.failure.ActivityFailure;
@@ -21,6 +23,7 @@ import io.temporal.workflow.Saga;
 import io.temporal.workflow.Workflow;
 import org.slf4j.Logger;
 
+import java.math.BigDecimal;
 import java.time.Duration;
 
 /**
@@ -30,7 +33,8 @@ import java.time.Duration;
  * pod chết giữa chừng thì worker khác replay và chạy tiếp đúng bước đó; không có bảng saga tự viết.
  *
  * <pre>
- *  redeem voucher ─► giữ hàng ─► authorize ─► [chờ khách trả tiền ở cổng] ─► capture ─► commit kho ─► confirm
+ *  redeem voucher ─► giữ hàng ─► giữ điểm + store credit ─► authorize phần còn lại ─► [chờ khách trả tiền ở cổng]
+ *  ─► capture ─► commit kho ─► trừ hẳn điểm + store credit ─► confirm
  *       │                │            │                 │                     │            │
  *       └──── lỗi ở bất kỳ bước nào tới commit kho: bù trừ ngược (refund ◄ release ◄ cancel voucher) rồi huỷ đơn
  * </pre>
@@ -47,6 +51,8 @@ public class CheckoutWorkflowImpl implements CheckoutWorkflow {
     private static final Duration DEFAULT_PAYMENT_TIMEOUT = Duration.ofMinutes(15);
     /** Đổi thứ tự capture/commit kho; workflow cũ đang chạy vẫn replay theo nhánh DEFAULT_VERSION. */
     static final String CAPTURE_BEFORE_COMMIT = "capture-before-commit";
+    /** ADR 0027: giữ store credit + điểm thưởng trước khi authorize, chỉ charge phần còn lại. */
+    static final String TENDERS = "store-credit-and-loyalty";
 
     private static final RetryOptions FORWARD_RETRY = RetryOptions.newBuilder()
             .setInitialInterval(Duration.ofSeconds(1))
@@ -93,6 +99,38 @@ public class CheckoutWorkflowImpl implements CheckoutWorkflow {
                     .setRetryOptions(MUST_COMPLETE_RETRY)
                     .build());
 
+    private final StoredValueActivities storedValue = Workflow.newActivityStub(StoredValueActivities.class,
+            ActivityOptions.newBuilder()
+                    .setTaskQueue(TaskQueues.STORED_VALUE)
+                    .setStartToCloseTimeout(Duration.ofSeconds(15))
+                    .setRetryOptions(RetryOptions.newBuilder().setInitialInterval(Duration.ofSeconds(1))
+                            .setBackoffCoefficient(2).setMaximumInterval(Duration.ofSeconds(30)).setMaximumAttempts(6)
+                            .setDoNotRetry(StoredValueActivities.REJECTED).build())
+                    .build());
+
+    private final StoredValueActivities storedValueMustComplete = Workflow.newActivityStub(StoredValueActivities.class,
+            ActivityOptions.newBuilder()
+                    .setTaskQueue(TaskQueues.STORED_VALUE)
+                    .setStartToCloseTimeout(Duration.ofSeconds(15))
+                    .setRetryOptions(MUST_COMPLETE_RETRY)
+                    .build());
+
+    private final LoyaltyActivities loyalty = Workflow.newActivityStub(LoyaltyActivities.class,
+            ActivityOptions.newBuilder()
+                    .setTaskQueue(TaskQueues.LOYALTY)
+                    .setStartToCloseTimeout(Duration.ofSeconds(15))
+                    .setRetryOptions(RetryOptions.newBuilder().setInitialInterval(Duration.ofSeconds(1))
+                            .setBackoffCoefficient(2).setMaximumInterval(Duration.ofSeconds(30)).setMaximumAttempts(6)
+                            .setDoNotRetry(LoyaltyActivities.REJECTED).build())
+                    .build());
+
+    private final LoyaltyActivities loyaltyMustComplete = Workflow.newActivityStub(LoyaltyActivities.class,
+            ActivityOptions.newBuilder()
+                    .setTaskQueue(TaskQueues.LOYALTY)
+                    .setStartToCloseTimeout(Duration.ofSeconds(15))
+                    .setRetryOptions(MUST_COMPLETE_RETRY)
+                    .build());
+
     private Step step = Step.STARTED;
     private String paymentRedirectUrl;
     private String failureReason;
@@ -119,13 +157,24 @@ public class CheckoutWorkflowImpl implements CheckoutWorkflow {
             steps.reserveInventory(orderId);
             abortIfCancelRequested();
 
-            step = Step.AUTHORIZING_PAYMENT;
-            saga.addCompensation(paymentsMustComplete::refund, new RefundPaymentRequest(orderId, "checkout cancelled"));
-            PaymentAuthorization auth = payments.authorize(new AuthorizePaymentRequest(orderId, in.customerId(),
-                    in.amount(), in.currency(), in.paymentMethod(), in.paymentToken(), in.returnUrl(), in.clientIp()));
-            paymentId = auth.paymentId();
+            boolean tenders = Workflow.getVersion(TENDERS, Workflow.DEFAULT_VERSION, 1) != Workflow.DEFAULT_VERSION;
+            BigDecimal payable = in.amount();
+            if (tenders) {
+                payable = reserveTenders(in, saga);
+                abortIfCancelRequested();
+            }
+            boolean charge = !tenders || payable.signum() > 0;
 
-            if (auth.status() == PaymentAuthorization.Status.ACTION_REQUIRED) {
+            PaymentAuthorization auth = null;
+            if (charge) {
+                step = Step.AUTHORIZING_PAYMENT;
+                saga.addCompensation(paymentsMustComplete::refund, new RefundPaymentRequest(orderId, "checkout cancelled"));
+                auth = payments.authorize(new AuthorizePaymentRequest(orderId, in.customerId(),
+                        payable, in.currency(), in.paymentMethod(), in.paymentToken(), in.returnUrl(), in.clientIp()));
+                paymentId = auth.paymentId();
+            }
+
+            if (auth != null && auth.status() == PaymentAuthorization.Status.ACTION_REQUIRED) {
                 step = Step.AWAITING_PAYMENT;
                 paymentRedirectUrl = auth.redirectUrl();
                 Duration timeout = in.paymentTimeoutSeconds() > 0
@@ -151,14 +200,24 @@ public class CheckoutWorkflowImpl implements CheckoutWorkflow {
             }
 
             // Capture có thể bị từ chối (authorization hết hạn...): vẫn còn bù trừ được, refund lo cả hai trường hợp.
-            step = Step.CAPTURING_PAYMENT;
-            payments.capture(orderId);
+            if (charge) {
+                step = Step.CAPTURING_PAYMENT;
+                payments.capture(orderId);
+            }
 
             // Pivot. Lỗi tạm thời thì retry mãi; chỉ lỗi nghiệp vụ (giữ chỗ đã hết hạn/đã nhả) mới tới catch.
             step = Step.COMMITTING_INVENTORY;
             mustComplete.commitInventory(orderId);
         } catch (ActivityFailure | CheckoutAborted e) {
             return compensate(orderId, saga, e);
+        }
+
+        // Sau pivot: trừ hẳn store credit và điểm đã giữ (phải xong, retry mãi).
+        if (in.usesStoreCredit() && heldStoreCredit) {
+            storedValueMustComplete.capture(orderId);
+        }
+        if (in.usesLoyaltyPoints() && reservedPoints) {
+            loyaltyMustComplete.commit(orderId);
         }
 
         try {
@@ -175,6 +234,36 @@ public class CheckoutWorkflowImpl implements CheckoutWorkflow {
         }
         step = Step.COMPLETED;
         return new CheckoutResult(orderId, true, paymentId, null);
+    }
+
+    private boolean heldStoreCredit;
+    private boolean reservedPoints;
+
+    /**
+     * Giữ điểm thưởng và store credit (hold id / redemption id = order id, idempotent), đăng ký bù trừ trước khi gọi.
+     *
+     * @return số tiền còn phải charge cổng thanh toán
+     */
+    private BigDecimal reserveTenders(CheckoutInput in, Saga saga) {
+        BigDecimal payable = in.amount();
+        step = Step.RESERVING_TENDERS;
+        if (in.usesLoyaltyPoints()) {
+            saga.addCompensation(loyaltyMustComplete::release, in.orderId());
+            BigDecimal value = loyalty.reserve(in.orderId(), in.customerId(), in.orderId(), in.loyaltyPoints());
+            reservedPoints = true;
+            payable = payable.subtract(value);
+        }
+        if (in.usesStoreCredit()) {
+            saga.addCompensation(storedValueMustComplete::release, in.orderId(), "checkout cancelled");
+            storedValue.hold(new StoredValueActivities.HoldRequest(in.customerId(), in.orderId(), in.orderId(),
+                    in.storeCredit(), in.currency()));
+            heldStoreCredit = true;
+            payable = payable.subtract(in.storeCredit());
+        }
+        if (payable.signum() < 0) {
+            throw new CheckoutAborted("store credit and loyalty points exceed the order total by " + payable.negate());
+        }
+        return payable;
     }
 
     /** Thứ tự cũ (commit kho rồi mới capture), chỉ để replay workflow bắt đầu trước khi đổi. */

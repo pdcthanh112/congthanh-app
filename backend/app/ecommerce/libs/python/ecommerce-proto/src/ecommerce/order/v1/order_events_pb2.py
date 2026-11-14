@@ -25,7 +25,7 @@ _sym_db = _symbol_database.Default()
 from ecommerce.common.v1 import money_pb2 as ecommerce_dot_common_dot_v1_dot_money__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n%ecommerce/order/v1/order_events.proto\x12\x12\x65\x63ommerce.order.v1\x1a\x1f\x65\x63ommerce/common/v1/money.proto\"a\n\tOrderLine\x12\x12\n\nproduct_id\x18\x01 \x01(\t\x12\x10\n\x08quantity\x18\x02 \x01(\x05\x12.\n\nunit_price\x18\x03 \x01(\x0b\x32\x1a.ecommerce.common.v1.Money\"\xea\x01\n\x0bOrderPlaced\x12\x10\n\x08order_id\x18\x01 \x01(\t\x12\x13\n\x0b\x63ustomer_id\x18\x02 \x01(\t\x12,\n\x05lines\x18\x03 \x03(\x0b\x32\x1d.ecommerce.order.v1.OrderLine\x12)\n\x05total\x18\x04 \x01(\x0b\x32\x1a.ecommerce.common.v1.Money\x12\x1c\n\x14\x63heckout_workflow_id\x18\x05 \x01(\t\x12=\n\x10shipping_address\x18\x06 \x01(\x0b\x32#.ecommerce.order.v1.ShippingAddress\"\xb6\x01\n\x0fShippingAddress\x12\x16\n\x0erecipient_name\x18\x01 \x01(\t\x12\r\n\x05phone\x18\x02 \x01(\t\x12\r\n\x05line1\x18\x03 \x01(\t\x12\r\n\x05line2\x18\x04 \x01(\t\x12\x0c\n\x04ward\x18\x05 \x01(\t\x12\x10\n\x08\x64istrict\x18\x06 \x01(\t\x12\x13\n\x0bregion_code\x18\x07 \x01(\t\x12\x13\n\x0bpostal_code\x18\x08 \x01(\t\x12\x14\n\x0c\x63ountry_code\x18\t \x01(\t\"6\n\x0eOrderConfirmed\x12\x10\n\x08order_id\x18\x01 \x01(\t\x12\x12\n\npayment_id\x18\x02 \x01(\t\"J\n\x0eOrderCancelled\x12\x10\n\x08order_id\x18\x01 \x01(\t\x12\x0e\n\x06reason\x18\x02 \x01(\t\x12\x16\n\x0ereservation_id\x18\x03 \x01(\tB$\n com.congthanh.ecommerce.order.v1P\x01\x62\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n%ecommerce/order/v1/order_events.proto\x12\x12\x65\x63ommerce.order.v1\x1a\x1f\x65\x63ommerce/common/v1/money.proto\"a\n\tOrderLine\x12\x12\n\nproduct_id\x18\x01 \x01(\t\x12\x10\n\x08quantity\x18\x02 \x01(\x05\x12.\n\nunit_price\x18\x03 \x01(\x0b\x32\x1a.ecommerce.common.v1.Money\"\xea\x01\n\x0bOrderPlaced\x12\x10\n\x08order_id\x18\x01 \x01(\t\x12\x13\n\x0b\x63ustomer_id\x18\x02 \x01(\t\x12,\n\x05lines\x18\x03 \x03(\x0b\x32\x1d.ecommerce.order.v1.OrderLine\x12)\n\x05total\x18\x04 \x01(\x0b\x32\x1a.ecommerce.common.v1.Money\x12\x1c\n\x14\x63heckout_workflow_id\x18\x05 \x01(\t\x12=\n\x10shipping_address\x18\x06 \x01(\x0b\x32#.ecommerce.order.v1.ShippingAddress\"\xb6\x01\n\x0fShippingAddress\x12\x16\n\x0erecipient_name\x18\x01 \x01(\t\x12\r\n\x05phone\x18\x02 \x01(\t\x12\r\n\x05line1\x18\x03 \x01(\t\x12\r\n\x05line2\x18\x04 \x01(\t\x12\x0c\n\x04ward\x18\x05 \x01(\t\x12\x10\n\x08\x64istrict\x18\x06 \x01(\t\x12\x13\n\x0bregion_code\x18\x07 \x01(\t\x12\x13\n\x0bpostal_code\x18\x08 \x01(\t\x12\x14\n\x0c\x63ountry_code\x18\t \x01(\t\"v\n\x0eOrderConfirmed\x12\x10\n\x08order_id\x18\x01 \x01(\t\x12\x12\n\npayment_id\x18\x02 \x01(\t\x12\x13\n\x0b\x63ustomer_id\x18\x03 \x01(\t\x12)\n\x05total\x18\x04 \x01(\x0b\x32\x1a.ecommerce.common.v1.Money\"J\n\x0eOrderCancelled\x12\x10\n\x08order_id\x18\x01 \x01(\t\x12\x0e\n\x06reason\x18\x02 \x01(\t\x12\x16\n\x0ereservation_id\x18\x03 \x01(\tB$\n com.congthanh.ecommerce.order.v1P\x01\x62\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -40,7 +40,7 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_SHIPPINGADDRESS']._serialized_start=431
   _globals['_SHIPPINGADDRESS']._serialized_end=613
   _globals['_ORDERCONFIRMED']._serialized_start=615
-  _globals['_ORDERCONFIRMED']._serialized_end=669
-  _globals['_ORDERCANCELLED']._serialized_start=671
-  _globals['_ORDERCANCELLED']._serialized_end=745
+  _globals['_ORDERCONFIRMED']._serialized_end=733
+  _globals['_ORDERCANCELLED']._serialized_start=735
+  _globals['_ORDERCANCELLED']._serialized_end=809
 # @@protoc_insertion_point(module_scope)

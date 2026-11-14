@@ -15,7 +15,11 @@ public sealed interface OrderEvent {
                        String checkoutWorkflowId, Address shippingAddress) implements OrderEvent {
     }
 
-    record OrderConfirmed(String orderId, String paymentId) implements OrderEvent {
+    record OrderConfirmed(String orderId, String paymentId, String customerId, Money total) implements OrderEvent {
+
+        public OrderConfirmed(String orderId, String paymentId) {
+            this(orderId, paymentId, null, null);
+        }
     }
 
     record OrderCancelled(String orderId, String reason, String reservationId) implements OrderEvent {

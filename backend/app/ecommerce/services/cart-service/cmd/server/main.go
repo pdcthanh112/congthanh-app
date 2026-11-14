@@ -3,6 +3,7 @@ package main
 
 import (
 	"context"
+	"github.com/jackc/pgx/v5"
 	"log/slog"
 	"os"
 
@@ -17,6 +18,7 @@ import (
 	"github.com/pdcthanh112/CongThanhApp/backend/app/ecommerce/libs/go/platform/logging"
 	"github.com/pdcthanh112/CongThanhApp/backend/app/ecommerce/libs/go/platform/otel"
 	"github.com/pdcthanh112/CongThanhApp/backend/app/ecommerce/libs/go/platform/outbox"
+	"github.com/pdcthanh112/CongThanhApp/backend/app/ecommerce/libs/go/platform/privacy"
 	"github.com/pdcthanh112/CongThanhApp/backend/app/ecommerce/libs/go/platform/server"
 	pb "github.com/pdcthanh112/CongThanhApp/backend/app/ecommerce/libs/go/proto/ecommerce/cart/v1"
 	grpcadapter "github.com/pdcthanh112/CongThanhApp/backend/app/ecommerce/services/cart-service/internal/adapter/grpc"
@@ -95,6 +97,14 @@ func run() error {
 			return err
 		}
 		bg = append(bg, cons.Run)
+		// Yêu cầu xoá dữ liệu từ privacy-service: xoá giỏ và hàng chờ dọn giỏ của khách (ADR 0027).
+		privacyCons, err := kafka.NewConsumer(kafka.ConsumerConfig{
+			Brokers: cfg.KafkaBrokers, Group: cfg.KafkaGroup + "-privacy", Topics: []string{privacy.Topic},
+		}, pool, privacy.Handler("cart-service", "cart-service", eraseCustomer))
+		if err != nil {
+			return err
+		}
+		bg = append(bg, privacyCons.Run)
 	} else {
 		slog.Warn("KAFKA_BROKERS not set: ordered items will not be removed from carts automatically")
 	}
@@ -115,4 +125,15 @@ func run() error {
 		GRPCAddr: cfg.GRPCAddr, GRPCServer: grpcSrv,
 		Background: bg,
 	})
+}
+
+// eraseCustomer xoá giỏ hàng (cart_items xoá theo ON DELETE CASCADE) và hàng chờ dọn giỏ của khách.
+func eraseCustomer(ctx context.Context, tx pgx.Tx, subjectID, _ string) (string, error) {
+	if _, err := tx.Exec(ctx, `DELETE FROM carts WHERE customer_id = $1`, subjectID); err != nil {
+		return "", err
+	}
+	if _, err := tx.Exec(ctx, `DELETE FROM pending_order_clears WHERE customer_id = $1`, subjectID); err != nil {
+		return "", err
+	}
+	return "", nil
 }

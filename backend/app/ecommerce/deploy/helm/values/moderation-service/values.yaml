@@ -1,0 +1,25 @@
+# moderation-service: kiểm duyệt nội dung (FastAPI + Claude), ADR 0026. Ghi đè theo môi trường ở values-<env>.yaml.
+nameOverride: moderation-service
+runtime: python
+image:
+  repository: ghcr.io/pdcthanh112/congthanhapp/moderation-service
+ports:
+  http: 5039
+env:
+  DB_SCHEMA: moderation
+  JWT_JWKS_URL: http://keycloak-service.identity.svc.cluster.local:8080/realms/ecommerce/protocol/openid-connect/certs
+  ANTHROPIC_MODEL: claude-haiku-5-5
+  POLICY_VERSION: "2026-11"
+secretEnv:
+- name: DATABASE_URL
+  key: ecommerce/moderation-service
+  property: database_url
+- name: ANTHROPIC_API_KEY
+  key: ecommerce/moderation-service
+  property: anthropic_api_key
+- name: BANNED_TERMS
+  key: ecommerce/moderation-service
+  property: banned_terms
+resources:
+  requests: {cpu: 100m, memory: 192Mi}
+  limits: {memory: 384Mi}

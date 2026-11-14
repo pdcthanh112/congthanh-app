@@ -206,6 +206,23 @@ func RequireRole(v *Verifier, roles ...string) func(http.Handler) http.Handler {
 	}
 }
 
+// Authorize là bản kiểm tra role dùng trong handler (khi không gắn được middleware theo route).
+func Authorize(ctx context.Context, v *Verifier, roles ...string) error {
+	if v == nil {
+		return nil
+	}
+	p, ok := FromContext(ctx)
+	if !ok {
+		return ErrNoToken
+	}
+	if !p.HasAnyRole(roles...) {
+		return ErrForbidden
+	}
+	return nil
+}
+
+var ErrForbidden = errors.New("insufficient role")
+
 func forbidden(w http.ResponseWriter, msg string) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusForbidden)

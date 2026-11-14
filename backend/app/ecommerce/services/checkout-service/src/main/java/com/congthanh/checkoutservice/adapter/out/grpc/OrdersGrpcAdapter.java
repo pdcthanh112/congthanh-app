@@ -43,6 +43,10 @@ class OrdersGrpcAdapter implements Orders {
         if (s.billingAddress() != null) {
             req.setBillingAddress(address(s.billingAddress()));
         }
+        if (p.storeCredit() != null && p.storeCredit().signum() > 0) {
+            req.setStoreCredit(Protos.toProto(new com.congthanh.checkoutservice.domain.model.Money(p.storeCredit(), s.currency())));
+        }
+        req.setLoyaltyPoints(p.points());
         s.lines().forEach(l -> req.addLines(PricedLine.newBuilder().setProductId(l.productId()).setQuantity(l.quantity())
                 .setUnitPrice(Protos.toProto(l.unitPrice()))));
         try {

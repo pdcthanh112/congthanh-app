@@ -74,6 +74,8 @@ class History:
     refunds_90d: int = 0
     payment_failures_24h: int = 0
     known_address: bool = False
+    # chargeback gian lận đã thua (dispute-service, DisputeClosed LOST + FRAUDULENT): nhãn mạnh nhất
+    fraud_chargebacks: int = 0
 
 
 @dataclass(frozen=True)
@@ -220,10 +222,18 @@ def evaluate(
             f"card from {tx.card_country.upper()}, shipping to {tx.shipping.country_code.upper()}",
         )
 
+    if history.fraud_chargebacks > 0:
+        hit("PRIOR_FRAUD_CHARGEBACK", 60, f"{history.fraud_chargebacks} lost fraud chargeback(s) on this account")
+
     if history.refunds_90d >= 3:
         hit("FREQUENT_REFUNDS", 15, f"{history.refunds_90d} refunds in 90 days")
 
-    if history.paid_orders >= 5 and history.shipments_returned == 0 and history.refunds_90d == 0:
+    if (
+        history.paid_orders >= 5
+        and history.shipments_returned == 0
+        and history.refunds_90d == 0
+        and history.fraud_chargebacks == 0
+    ):
         hit("TRUSTED_CUSTOMER", -15, f"{history.paid_orders} paid orders without problems")
 
     score = max(0, min(100, sum(h.points for h in hits)))

@@ -1,8 +1,10 @@
-import { baseEnv, databaseEnv, grpcEnv, loadEnv } from '@ecommerce/platform';
+import { baseEnv, databaseEnv, grpcEnv, kafkaEnv, loadEnv } from '@ecommerce/platform';
 import { z } from 'zod';
 
 export const envSchema = baseEnv
   .merge(databaseEnv)
+  // Kafka chỉ để nhận yêu cầu xoá dữ liệu từ privacy-service (ADR 0027).
+  .merge(kafkaEnv)
   .merge(grpcEnv)
   .extend({
     SERVICE_NAME: z.string().default('customer-service'),

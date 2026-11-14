@@ -192,6 +192,7 @@ spec:
   - from:
     - source:
         principals:
+        - cluster.local/ns/ecommerce/sa/subscription-service
         - cluster.local/ns/ecommerce/sa/storefront-bff
         - cluster.local/ns/ecommerce/sa/backoffice-bff
         - cluster.local/ns/gateway/sa/apisix
@@ -355,3 +356,267 @@ spec:
         ports:
         - '9464'
         - '8080'
+---
+apiVersion: security.istio.io/v1
+kind: AuthorizationPolicy
+metadata:
+  name: allow-returns-service
+  namespace: ecommerce
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: returns-service
+  action: ALLOW
+  rules:
+  - from:
+    - source:
+        principals:
+        - cluster.local/ns/ecommerce/sa/storefront-bff
+        - cluster.local/ns/ecommerce/sa/backoffice-bff
+        - cluster.local/ns/gateway/sa/apisix
+  - from:
+    - source:
+        namespaces:
+        - observability
+    to:
+    - operation:
+        ports:
+        - '9464'
+        - '8080'
+---
+apiVersion: security.istio.io/v1
+kind: AuthorizationPolicy
+metadata:
+  name: allow-ledger-service
+  namespace: ecommerce
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: ledger-service
+  action: ALLOW
+  rules:
+  - from:
+    - source:
+        principals:
+        - cluster.local/ns/ecommerce/sa/backoffice-bff
+        - cluster.local/ns/gateway/sa/apisix
+  - from:
+    - source:
+        namespaces:
+        - observability
+    to:
+    - operation:
+        ports:
+        - '9464'
+        - '8080'
+---
+apiVersion: security.istio.io/v1
+kind: AuthorizationPolicy
+metadata:
+  name: allow-privacy-service
+  namespace: ecommerce
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: privacy-service
+  action: ALLOW
+  rules:
+  - from:
+    - source:
+        principals:
+        - cluster.local/ns/ecommerce/sa/storefront-bff
+        - cluster.local/ns/ecommerce/sa/backoffice-bff
+        - cluster.local/ns/gateway/sa/apisix
+  - from:
+    - source:
+        namespaces:
+        - observability
+    to:
+    - operation:
+        ports:
+        - '9464'
+        - '8080'
+---
+apiVersion: security.istio.io/v1
+kind: AuthorizationPolicy
+metadata:
+  name: allow-stored-value-service
+  namespace: ecommerce
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: stored-value-service
+  action: ALLOW
+  rules:
+  - from:
+    - source:
+        principals:
+        - cluster.local/ns/ecommerce/sa/backoffice-bff
+        - cluster.local/ns/gateway/sa/apisix
+  - from:
+    - source:
+        namespaces:
+        - observability
+    to:
+    - operation:
+        ports:
+        - '9464'
+        - '8080'
+---
+apiVersion: security.istio.io/v1
+kind: AuthorizationPolicy
+metadata:
+  name: allow-dispute-service
+  namespace: ecommerce
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: dispute-service
+  action: ALLOW
+  rules:
+  - from:
+    - source:
+        principals:
+        - cluster.local/ns/ecommerce/sa/backoffice-bff
+        - cluster.local/ns/gateway/sa/apisix
+  - from:
+    - source:
+        namespaces:
+        - observability
+    to:
+    - operation:
+        ports:
+        - '9464'
+        - '8080'
+---
+apiVersion: security.istio.io/v1
+kind: AuthorizationPolicy
+metadata:
+  name: allow-reconciliation-service
+  namespace: ecommerce
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: reconciliation-service
+  action: ALLOW
+  rules:
+  - from:
+    - source:
+        principals:
+        - cluster.local/ns/ecommerce/sa/backoffice-bff
+        - cluster.local/ns/gateway/sa/apisix
+  - from:
+    - source:
+        namespaces:
+        - observability
+    to:
+    - operation:
+        ports:
+        - '9464'
+        - '8080'
+---
+apiVersion: security.istio.io/v1
+kind: AuthorizationPolicy
+metadata:
+  name: allow-loyalty-service
+  namespace: ecommerce
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: loyalty-service
+  action: ALLOW
+  rules:
+  - from:
+    - source:
+        principals:
+        - cluster.local/ns/ecommerce/sa/storefront-bff
+        - cluster.local/ns/ecommerce/sa/backoffice-bff
+        - cluster.local/ns/gateway/sa/apisix
+  - from:
+    - source:
+        namespaces:
+        - observability
+    to:
+    - operation:
+        ports:
+        - '9464'
+        - '8080'
+---
+apiVersion: security.istio.io/v1
+kind: AuthorizationPolicy
+metadata:
+  name: allow-subscription-service
+  namespace: ecommerce
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: subscription-service
+  action: ALLOW
+  rules:
+  - from:
+    - source:
+        principals:
+        - cluster.local/ns/ecommerce/sa/storefront-bff
+        - cluster.local/ns/ecommerce/sa/backoffice-bff
+        - cluster.local/ns/gateway/sa/apisix
+  - from:
+    - source:
+        namespaces:
+        - observability
+    to:
+    - operation:
+        ports:
+        - '9464'
+        - '8080'
+---
+apiVersion: security.istio.io/v1
+kind: AuthorizationPolicy
+metadata:
+  name: allow-moderation-service
+  namespace: ecommerce
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: moderation-service
+  action: ALLOW
+  rules:
+  - from:
+    - source:
+        principals:
+        - cluster.local/ns/ecommerce/sa/review-service
+        - cluster.local/ns/ecommerce/sa/message-service
+        - cluster.local/ns/ecommerce/sa/product-service
+        - cluster.local/ns/ecommerce/sa/supplier-service
+        - cluster.local/ns/ecommerce/sa/backoffice-bff
+        - cluster.local/ns/gateway/sa/apisix
+  - from:
+    - source:
+        namespaces:
+        - observability
+    to:
+    - operation:
+        ports:
+        - '9464'
+        - '8080'
+---
+# ADR 0027: checkout-service đọc sổ địa chỉ (gRPC) khi đặt đơn gia hạn subscription.
+# Chỉ mở thêm đường này; các đường gọi customer-service khác (router GraphQL) khai ở policy riêng khi cần.
+apiVersion: security.istio.io/v1
+kind: AuthorizationPolicy
+metadata:
+  name: allow-checkout-to-customer-service
+  namespace: ecommerce
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: customer-service
+  action: ALLOW
+  rules:
+  - from:
+    - source:
+        principals:
+        - cluster.local/ns/ecommerce/sa/checkout-service
+    to:
+    - operation:
+        ports:
+        - '19094'

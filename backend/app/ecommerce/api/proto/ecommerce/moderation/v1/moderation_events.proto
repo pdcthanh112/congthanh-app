@@ -1,0 +1,31 @@
+syntax = "proto3";
+
+package ecommerce.moderation.v1;
+
+option java_multiple_files = true;
+option java_package = "com.congthanh.ecommerce.moderation.v1";
+
+// Topic: ecommerce.moderation.events, key = "<content_type>:<content_id>".
+// Service sở hữu nội dung (review, message, product) nghe ModerationDecided để ẩn/hiện/che.
+
+message ModerationDecided {
+  string item_id = 1;
+  // REVIEW, MESSAGE, PRODUCT_LISTING, SUPPLIER_PROFILE
+  string content_type = 2;
+  string content_id = 3;
+  string author_id = 4;
+  // APPROVE, REJECT, REDACT (hiện bản đã che, xem redacted_text), ESCALATE (chờ người duyệt)
+  string decision = 5;
+  repeated string categories = 6;
+  // "auto" hoặc subject của người duyệt
+  string decided_by = 7;
+  string policy_version = 8;
+  string redacted_text = 9;
+}
+
+// Người dùng vi phạm lặp lại (ví dụ 3 lần bị REJECT trong 30 ngày).
+message UserContentStrikeIssued {
+  string author_id = 1;
+  int32 strikes = 2;
+  string last_item_id = 3;
+}

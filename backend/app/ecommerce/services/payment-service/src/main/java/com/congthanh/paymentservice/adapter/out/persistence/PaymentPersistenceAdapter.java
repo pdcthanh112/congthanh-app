@@ -1,6 +1,7 @@
 package com.congthanh.paymentservice.adapter.out.persistence;
 
 import com.congthanh.ecommerce.payment.v1.PaymentAuthorized;
+import com.congthanh.ecommerce.payment.v1.PaymentCaptured;
 import com.congthanh.ecommerce.payment.v1.PaymentFailed;
 import com.congthanh.ecommerce.payment.v1.PaymentRefunded;
 import com.congthanh.paymentservice.application.port.out.PaymentRepository;
@@ -28,6 +29,7 @@ class PaymentPersistenceAdapter implements PaymentRepository {
 
     private final PaymentJpaRepository jpa;
     private final OutboxWriter outbox;
+    private final PaymentRefundJpaRepository refunds;
 
     @Override
     @Transactional(readOnly = true)
@@ -64,16 +66,40 @@ class PaymentPersistenceAdapter implements PaymentRepository {
         e.failureReason = p.failureReason();
         e.authorizationExpiresAt = p.authorizationExpiresAt();
         e.updatedAt = p.updatedAt();
+        e.refundedAmount = p.refundedAmount();
         jpa.saveAndFlush(e);
         for (PaymentEvent event : p.pullEvents()) {
             outbox.write(AGGREGATE, p.orderId(), toProto(event));
         }
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public Optional<RecordedRefund> findRefund(String refundId) {
+        return refunds.findById(refundId).map(r -> new RecordedRefund(r.refundId, r.paymentId, r.orderId, r.amount,
+                r.currency, r.reason, r.createdAt));
+    }
+
+    @Override
+    @Transactional
+    public void saveRefund(Payment p, RecordedRefund r) {
+        PaymentRefundEntity e = new PaymentRefundEntity();
+        e.refundId = r.refundId();
+        e.paymentId = r.paymentId();
+        e.orderId = r.orderId();
+        e.amount = r.amount();
+        e.currency = r.currency();
+        e.reason = r.reason();
+        e.createdAt = r.createdAt();
+        refunds.saveAndFlush(e);
+        save(p);
+    }
+
     static Payment toDomain(PaymentEntity e) {
         return Payment.rehydrate(e.id, e.orderId, e.customerId, new Money(e.amount, e.currency),
                 PaymentMethod.valueOf(e.method), e.provider, e.providerRef, PaymentStatus.valueOf(e.status),
-                e.redirectUrl, e.failureReason, e.authorizationExpiresAt, e.createdAt, e.updatedAt, e.version);
+                e.redirectUrl, e.failureReason, e.authorizationExpiresAt, e.createdAt, e.updatedAt, e.version,
+                e.refundedAmount);
     }
 
     static Message toProto(PaymentEvent event) {
@@ -84,9 +110,20 @@ class PaymentPersistenceAdapter implements PaymentRepository {
                     .setMethod(a.method() == null ? "" : a.method()).build();
             case PaymentEvent.PaymentFailed f -> PaymentFailed.newBuilder()
                     .setOrderId(f.orderId()).setReason(f.reason() == null ? "" : f.reason()).build();
+            case PaymentEvent.PaymentCaptured c -> PaymentCaptured.newBuilder()
+                    .setPaymentId(c.paymentId()).setOrderId(c.orderId()).setAmount(money(c.amount()))
+                    .setProvider(nullToEmpty(c.provider())).setMethod(nullToEmpty(c.method()))
+                    .setCustomerId(nullToEmpty(c.customerId())).setProviderRef(nullToEmpty(c.providerRef())).build();
             case PaymentEvent.PaymentRefunded r -> PaymentRefunded.newBuilder()
-                    .setPaymentId(r.paymentId()).setOrderId(r.orderId()).setAmount(money(r.amount())).build();
+                    .setPaymentId(r.paymentId()).setOrderId(r.orderId()).setAmount(money(r.amount()))
+                    .setRefundId(nullToEmpty(r.refundId())).setReason(nullToEmpty(r.reason()))
+                    .setProvider(nullToEmpty(r.provider())).setFullyRefunded(r.fullyRefunded())
+                    .setProviderRef(nullToEmpty(r.providerRef())).build();
         };
+    }
+
+    private static String nullToEmpty(String s) {
+        return s == null ? "" : s;
     }
 
     static com.congthanh.ecommerce.common.v1.Money money(Money m) {

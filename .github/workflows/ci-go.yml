@@ -18,7 +18,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        module: [libs/go/platform, services/cart-service, services/inventory-service, services/tax-service, services/search-service, services/media-service, services/webhook-service, services/shipping-service, services/pricing-service, data/ingestion/clickstream-collector]
+        module: [libs/go/platform, services/cart-service, services/inventory-service, services/tax-service, services/search-service, services/media-service, services/webhook-service, services/shipping-service, services/pricing-service, services/privacy-service, data/ingestion/clickstream-collector]
     services:
       postgres:
         image: pgvector/pgvector:0.8.1-pg18-trixie
@@ -60,7 +60,7 @@ jobs:
     permissions: {contents: read, packages: write, id-token: write, attestations: write}
     strategy:
       matrix:
-        service: [cart-service, inventory-service, tax-service, search-service, media-service, webhook-service, shipping-service, pricing-service, clickstream-collector]
+        service: [cart-service, inventory-service, tax-service, search-service, media-service, webhook-service, shipping-service, pricing-service, privacy-service, clickstream-collector]
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-go@v6

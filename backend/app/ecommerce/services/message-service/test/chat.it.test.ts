@@ -33,6 +33,12 @@ describe.skipIf(!url)('message-service + Postgres', () => {
     { now: () => new Date() },
     { next: () => `id-${++seq}` },
     'https://cdn/',
+    {
+      check: async ({ text }) =>
+        text.includes('555-0199')
+          ? { decision: 'REDACT' as const, redactedText: text.replace('555-0199', '[phone removed]') }
+          : null,
+    },
   );
   const cus = { id: 'cus', isSupport: false };
   const sel = { id: 'seller-1', isSupport: false };

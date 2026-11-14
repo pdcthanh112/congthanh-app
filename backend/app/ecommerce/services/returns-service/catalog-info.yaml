@@ -1,0 +1,23 @@
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: returns-service
+  description: Đổi trả hàng (RMA) và hoàn tiền một phần
+  tags:
+  - java
+  annotations:
+    github.com/project-slug: pdcthanh112/CongThanhApp
+    backstage.io/source-location: url:https://github.com/pdcthanh112/CongThanhApp/tree/main/backend/app/ecommerce/services/returns-service
+    argocd/app-selector: app.kubernetes.io/name=returns-service
+    grafana/dashboard-selector: tags @> 'returns-service'
+    backstage.io/techdocs-ref: dir:../../docs
+spec:
+  type: service
+  lifecycle: experimental
+  owner: team-ecommerce
+  system: ecommerce
+  providesApis: []
+  consumesApis: []
+  dependsOn:
+  - resource:ecommerce-postgres
+  - resource:ecommerce-kafka

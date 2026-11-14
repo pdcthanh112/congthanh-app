@@ -25,3 +25,8 @@ Không sửa ADR đã "Accepted"; muốn đổi thì viết ADR mới và đánh
 | 0019 | [Elasticsearch trên Elastic Cloud; CloudFront + WAF trước API; AWS Backup và GuardDuty](0019-elasticsearch-edge-backup-guardduty.md) | Proposed |
 | 0020 | [Read model trang sản phẩm trên MongoDB, dựng từ event Kafka; MongoDB Atlas](0020-product-read-model-mongodb.md) | Proposed |
 | 0021 | [Gia cố độ tin cậy: saga checkout, consumer, outbox, idempotency, xác thực Go](0021-reliability-hardening.md) | Proposed |
+| 0022 | [common-core là nền chung của service Java: mô hình lỗi, access log, auditing](0022-java-common-core-foundation.md) | Proposed |
+| 0023 | [Lakehouse giai đoạn 2: dbt, data quality, Superset, giải mã protobuf, OpenLineage/Marquez, Feast, OpenMetadata, RBAC Polaris](0023-lakehouse-dbt-bi-lineage-features-catalog.md) | Proposed |
+| 0024 | [Thêm returns, ledger, privacy; hoàn tiền một phần](0024-returns-ledger-privacy.md) | Proposed |
+| 0025 | [Thêm stored-value, dispute, reconciliation](0025-stored-value-dispute-reconciliation.md) | Proposed |
+| 0026 | [Thêm loyalty, subscription, moderation](0026-loyalty-subscription-moderation.md) | Proposed |

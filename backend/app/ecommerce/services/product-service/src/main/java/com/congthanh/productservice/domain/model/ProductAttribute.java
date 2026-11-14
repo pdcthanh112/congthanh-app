@@ -1,5 +1,6 @@
 package com.congthanh.productservice.domain.model;
 
+import com.congthanh.commonservice.model.BaseEntity;
 import jakarta.persistence.*;
 import lombok.*;
 

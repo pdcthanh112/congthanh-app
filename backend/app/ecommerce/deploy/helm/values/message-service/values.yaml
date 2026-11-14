@@ -15,6 +15,7 @@ env:
   PRODUCT_GRPC_ADDR: "product-service:29090"
   REDIS_URL: "redis://redis.data.svc.cluster.local:6379/3"
   MEDIA_URL_PREFIX: "https://media.congthanh.vn/ecommerce-media/"
+  MODERATION_URL: "http://moderation-service"
 secretEnv:
 - name: DATABASE_URL
   key: ecommerce/message-service

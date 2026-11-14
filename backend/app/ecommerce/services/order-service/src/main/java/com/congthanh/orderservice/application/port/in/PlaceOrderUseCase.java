@@ -21,7 +21,15 @@ public interface PlaceOrderUseCase {
      */
     record PlaceOrderCommand(String customerId, List<Item> items, String promotionCode,
                              PaymentMethod paymentMethod, String paymentToken, String returnUrl, String clientIp,
-                             Address shippingAddress, Address billingAddress, String note, Priced priced) {
+                             Address shippingAddress, Address billingAddress, String note, Priced priced,
+                             java.math.BigDecimal storeCredit, long loyaltyPoints) {
+
+        public PlaceOrderCommand(String customerId, List<Item> items, String promotionCode,
+                                 PaymentMethod paymentMethod, String paymentToken, String returnUrl, String clientIp,
+                                 Address shippingAddress, Address billingAddress, String note, Priced priced) {
+            this(customerId, items, promotionCode, paymentMethod, paymentToken, returnUrl, clientIp, shippingAddress,
+                    billingAddress, note, priced, null, 0);
+        }
 
         public PlaceOrderCommand(String customerId, List<Item> items, String promotionCode,
                                  PaymentMethod paymentMethod, String paymentToken, String returnUrl, String clientIp,

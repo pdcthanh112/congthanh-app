@@ -1,0 +1,56 @@
+syntax = "proto3";
+
+package ecommerce.subscription.v1;
+
+option java_multiple_files = true;
+option java_package = "com.congthanh.ecommerce.subscription.v1";
+
+// Topic: ecommerce.subscription.events, key = subscription id.
+
+message SubscriptionLine {
+  string product_id = 1;
+  int32 quantity = 2;
+}
+
+message SubscriptionCreated {
+  string subscription_id = 1;
+  string customer_id = 2;
+  repeated SubscriptionLine lines = 3;
+  int32 interval_days = 4;
+  // YYYY-MM-DD (America/New_York)
+  string next_delivery_date = 5;
+}
+
+// Nhắc khách trước kỳ giao (luật gia hạn tự động của các bang yêu cầu báo trước); notification gửi email/push.
+message SubscriptionRenewalUpcoming {
+  string subscription_id = 1;
+  string customer_id = 2;
+  string next_delivery_date = 3;
+  int32 cycle = 4;
+}
+
+message SubscriptionOrderPlaced {
+  string subscription_id = 1;
+  string customer_id = 2;
+  int32 cycle = 3;
+  string order_id = 4;
+}
+
+message RenewalFailed {
+  string subscription_id = 1;
+  string customer_id = 2;
+  int32 cycle = 3;
+  int32 attempt = 4;
+  string reason = 5;
+  // RFC 3339 lần thử tiếp; trống khi đã hết số lần thử và gói bị huỷ
+  string next_attempt_at = 6;
+}
+
+message SubscriptionStatusChanged {
+  string subscription_id = 1;
+  string customer_id = 2;
+  // ACTIVE, PAUSED, PAST_DUE, CANCELLED
+  string from_status = 3;
+  string to_status = 4;
+  string reason = 5;
+}

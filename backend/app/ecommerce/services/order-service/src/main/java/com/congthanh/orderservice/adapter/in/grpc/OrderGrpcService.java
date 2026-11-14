@@ -56,7 +56,8 @@ class OrderGrpcService extends OrderServiceGrpc.OrderServiceImplBase {
                     blankToNull(req.getNote()),
                     new Priced(req.getOrderId(), prices,
                             req.hasShippingFee() ? money(req.getShippingFee()) : Money.zero(currency),
-                            req.hasTax() ? money(req.getTax()) : Money.zero(currency))));
+                            req.hasTax() ? money(req.getTax()) : Money.zero(currency)),
+                    req.hasStoreCredit() ? money(req.getStoreCredit()).amount() : null, req.getLoyaltyPoints()));
             out.onNext(PlaceOrderResponse.newBuilder()
                     .setOrderId(placed.orderId()).setOrderCode(placed.orderCode()).setStatus(placed.status().name())
                     .setTotal(proto(placed.total())).setDiscount(proto(placed.discount()))

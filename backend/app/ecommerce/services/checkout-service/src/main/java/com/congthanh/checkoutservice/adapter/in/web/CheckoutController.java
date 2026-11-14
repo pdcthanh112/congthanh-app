@@ -91,7 +91,8 @@ class CheckoutController {
         var current = checkout.get(c, id).session();
         Money expected = body.expectedTotal() == null ? null : new Money(body.expectedTotal(), current.currency());
         var placement = placeLimiter.run(() -> checkout.place(c, id, new PlaceCommand(body.paymentMethod(),
-                body.paymentToken(), body.returnUrl(), clientIp(http), body.deviceId(), expected)));
+                body.paymentToken(), body.returnUrl(), clientIp(http), body.deviceId(), expected, body.storeCredit(),
+                body.loyaltyPoints())));
         HttpStatus status = placement.outcome() == Outcome.PLACED ? HttpStatus.CREATED : HttpStatus.ACCEPTED;
         return ResponseEntity.status(status).body(SessionDto.of(placement.session(), null));
     }

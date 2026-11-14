@@ -60,6 +60,8 @@ public class OrderEntity {
     String paymentToken;
     String returnUrl;
     String clientIp;
+    java.math.BigDecimal storeCredit;
+    long loyaltyPoints;
     String reservationId;
     String paymentId;
     String cancelReason;

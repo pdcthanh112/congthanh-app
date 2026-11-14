@@ -64,6 +64,14 @@ export interface ProductDirectory {
   sellerOf(productId: string): Promise<string | undefined>;
 }
 
+export interface ContentModeration {
+  /** null = không kiểm được: gửi nguyên văn (chat không được chặn vì một service phụ lỗi). */
+  check(input: { contentType: 'MESSAGE'; contentId: string; authorId: string; text: string }): Promise<{
+    decision: 'APPROVE' | 'REJECT' | 'REDACT' | 'ESCALATE';
+    redactedText: string;
+  } | null>;
+}
+
 export interface Clock {
   now(): Date;
 }
@@ -79,3 +87,4 @@ export const PRODUCT_DIRECTORY = Symbol('PRODUCT_DIRECTORY');
 export const CLOCK = Symbol('CLOCK');
 export const ID_GENERATOR = Symbol('ID_GENERATOR');
 export const MEDIA_PREFIX = Symbol('MEDIA_PREFIX');
+export const CONTENT_MODERATION = Symbol('CONTENT_MODERATION');

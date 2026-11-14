@@ -1,0 +1,31 @@
+syntax = "proto3";
+
+package ecommerce.reconciliation.v1;
+
+import "ecommerce/common/v1/money.proto";
+
+option java_multiple_files = true;
+option java_package = "com.congthanh.ecommerce.reconciliation.v1";
+
+// Topic: ecommerce.reconciliation.events, key = run id.
+
+message ReconciliationMismatchDetected {
+  string run_id = 1;
+  string provider = 2;
+  // MISSING_INTERNAL (cổng có, mình không), MISSING_PROVIDER (mình có, cổng không), AMOUNT_MISMATCH
+  string kind = 3;
+  string provider_ref = 4;
+  string order_id = 5;
+  ecommerce.common.v1.Money provider_amount = 6;
+  ecommerce.common.v1.Money internal_amount = 7;
+}
+
+message ReconciliationRunCompleted {
+  string run_id = 1;
+  string provider = 2;
+  // YYYY-MM-DD (UTC), ngày giao dịch được đối soát
+  string business_date = 3;
+  int32 matched = 4;
+  int32 mismatched = 5;
+  ecommerce.common.v1.Money provider_fees = 6;
+}

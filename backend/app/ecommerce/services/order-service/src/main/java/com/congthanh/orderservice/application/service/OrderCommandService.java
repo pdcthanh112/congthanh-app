@@ -97,9 +97,13 @@ public class OrderCommandService implements PlaceOrderUseCase, CheckoutStepsUseC
         String orderId = priced != null && priced.orderId() != null ? priced.orderId() : identity.newOrderId();
         Order order = Order.place(orderId, identity.newOrderCode(), cmd.customerId(), lines, promotionCode, discount,
                 priced == null ? null : priced.shippingFee(), priced == null ? null : priced.tax(),
-                new CheckoutDetails(cmd.paymentMethod(), cmd.paymentToken(), cmd.returnUrl(), cmd.clientIp()),
+                new CheckoutDetails(cmd.paymentMethod(), cmd.paymentToken(), cmd.returnUrl(), cmd.clientIp(),
+                        cmd.storeCredit(), cmd.loyaltyPoints()),
                 cmd.shippingAddress(), cmd.billingAddress(), cmd.note(),
                 CheckoutContract.workflowId(orderId), clock.instant());
+        if (cmd.storeCredit() != null && cmd.storeCredit().compareTo(order.total().amount()) > 0) {
+            throw OrderException.invalid("store credit " + cmd.storeCredit() + " exceeds the order total " + order.total().amount());
+        }
         tx.executeWithoutResult(s -> orders.save(order));
 
         try {

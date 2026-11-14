@@ -38,7 +38,8 @@ class PaymentTest {
         p.captured(NOW);
 
         assertThat(p.status()).isEqualTo(PaymentStatus.CAPTURED);
-        assertThat(p.pullEvents()).singleElement().isInstanceOf(PaymentEvent.PaymentAuthorized.class);
+        assertThat(p.pullEvents()).hasSize(2)
+                .first().isInstanceOf(PaymentEvent.PaymentAuthorized.class);
     }
 
     @Test
@@ -88,5 +89,45 @@ class PaymentTest {
 
         assertThat(p.status()).isEqualTo(PaymentStatus.REFUNDED);
         assertThat(p.pullEvents()).singleElement().isInstanceOf(PaymentEvent.PaymentRefunded.class);
+    }
+
+    @Test
+    void partialRefundsAddUpAndFinishAsRefunded() {
+        Payment p = payment();
+        p.authorized("pi_1", NOW);
+        p.captured(NOW);
+        p.pullEvents();
+
+        p.partiallyRefunded("ret-1", new Money(new BigDecimal("30.00"), "USD"), "return", NOW);
+        assertThat(p.status()).isEqualTo(PaymentStatus.CAPTURED);
+        assertThat(p.refundedAmount()).isEqualByComparingTo("30.00");
+
+        p.partiallyRefunded("ret-2", new Money(new BigDecimal("59.99"), "USD"), "return", NOW);
+        assertThat(p.status()).isEqualTo(PaymentStatus.REFUNDED);
+        assertThat(p.pullEvents()).hasSize(2).last().isEqualTo(new PaymentEvent.PaymentRefunded("pay-1", "o-1",
+                new Money(new BigDecimal("59.99"), "USD"), "ret-2", "return", "stripe", true, "pi_1"));
+    }
+
+    @Test
+    void partialRefundCannotExceedCapturedAmount() {
+        Payment p = payment();
+        p.authorized("pi_1", NOW);
+        p.captured(NOW);
+        p.partiallyRefunded("ret-1", new Money(new BigDecimal("80.00"), "USD"), null, NOW);
+
+        assertThatThrownBy(() -> p.checkRefundable(new Money(new BigDecimal("10.00"), "USD")))
+                .isInstanceOf(PaymentException.class)
+                .extracting("kind").isEqualTo(PaymentException.Kind.INVALID);
+        assertThatThrownBy(() -> p.checkRefundable(new Money(new BigDecimal("1.00"), "EUR")))
+                .isInstanceOf(PaymentException.class);
+    }
+
+    @Test
+    void cannotRefundBeforeCapture() {
+        Payment p = payment();
+        p.authorized("pi_1", NOW);
+        assertThatThrownBy(() -> p.checkRefundable(new Money(new BigDecimal("1.00"), "USD")))
+                .isInstanceOf(PaymentException.class)
+                .extracting("kind").isEqualTo(PaymentException.Kind.CONFLICT);
     }
 }

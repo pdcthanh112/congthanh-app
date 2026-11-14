@@ -1,6 +1,9 @@
 package com.congthanh.promotionservice.domain.exception;
 
-public class PromotionException extends RuntimeException {
+import com.congthanh.commonservice.error.DomainException;
+import com.congthanh.commonservice.error.ErrorKind;
+
+public class PromotionException extends DomainException {
 
     public enum Kind { INVALID, NOT_FOUND, CONFLICT }
 
@@ -17,5 +20,19 @@ public class PromotionException extends RuntimeException {
 
     public Kind kind() {
         return kind;
+    }
+
+    @Override
+    public ErrorKind errorKind() {
+        return switch (kind) {
+            case INVALID -> ErrorKind.INVALID;
+            case NOT_FOUND -> ErrorKind.NOT_FOUND;
+            case CONFLICT -> ErrorKind.CONFLICT;
+        };
+    }
+
+    @Override
+    public String code() {
+        return kind.name();
     }
 }

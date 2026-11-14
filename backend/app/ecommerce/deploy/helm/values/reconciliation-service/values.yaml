@@ -1,0 +1,22 @@
+nameOverride: reconciliation-service
+runtime: python
+image:
+  repository: ghcr.io/pdcthanh112/congthanhapp/reconciliation-service
+ports:
+  http: 5036
+env:
+  DB_SCHEMA: reconciliation
+  KAFKA_BROKERS: ecommerce-kafka-bootstrap.messaging.svc.cluster.local:9092
+  JWT_JWKS_URL: http://keycloak-service.identity.svc.cluster.local:8080/realms/ecommerce/protocol/openid-connect/certs
+  DAILY_RUN_HOUR_UTC: "6"
+secretEnv:
+  - name: DATABASE_URL
+    key: ecommerce/reconciliation-service
+    property: database_url
+  # Khoá Stripe restricted chỉ đọc Balance.
+  - name: STRIPE_API_KEY
+    key: ecommerce/reconciliation-service
+    property: stripe_api_key
+resources:
+  requests: { cpu: 100m, memory: 192Mi }
+  limits: { memory: 512Mi }

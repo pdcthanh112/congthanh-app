@@ -59,6 +59,26 @@ routes:
     rate_limit: {count: 60, window: 60}
   - {name: tax,          service: tax-service,          port: 5022, paths: [/api/ecommerce/tax]}
   - {name: webhook,      service: webhook-service,      port: 5023, auth: required, paths: [/api/ecommerce/webhooks]}
+  # ADR 0024: đổi trả, sổ cái (chỉ team tài chính, service kiểm role FINANCE), quyền riêng tư CCPA/CPRA.
+  - {name: returns,      service: returns-service,      port: 5032, auth: required, paths: [/api/ecommerce/returns]}
+  - {name: ledger,       service: ledger-service,       port: 5031, auth: required, paths: [/api/ecommerce/ledger]}
+  - name: privacy
+    service: privacy-service
+    port: 5033
+    auth: required
+    paths: [/api/ecommerce/privacy]
+    # Yêu cầu xem/xoá dữ liệu kéo theo việc của hàng chục service: giới hạn chặt theo người dùng.
+    rate_limit: {count: 30, window: 60, key: consumer}
+  # ADR 0025: store credit, tranh chấp thẻ, đối soát (service tự kiểm role FINANCE/SUPPORT/ADMIN).
+  - {name: stored-value,   service: stored-value-service,   port: 5034, auth: required, paths: [/api/ecommerce/stored-value]}
+  - {name: disputes,       service: dispute-service,        port: 5035, auth: required, paths: [/api/ecommerce/disputes]}
+  # Webhook tranh chấp của Stripe: không có token người dùng, service kiểm chữ ký Stripe-Signature.
+  - {name: disputes-webhook, service: dispute-service,      port: 5035, priority: 10, paths: [/api/ecommerce/disputes/webhooks/stripe], exact: true}
+  - {name: reconciliation, service: reconciliation-service, port: 5036, auth: required, paths: [/api/ecommerce/reconciliation]}
+  # ADR 0026: điểm thưởng, mua định kỳ, kiểm duyệt (/internal/moderation không định tuyến ra ngoài).
+  - {name: loyalty,        service: loyalty-service,        port: 5037, auth: required, paths: [/api/ecommerce/loyalty]}
+  - {name: subscriptions,  service: subscription-service,   port: 5038, auth: required, paths: [/api/ecommerce/subscriptions]}
+  - {name: moderation,     service: moderation-service,     port: 5039, auth: required, paths: [/api/ecommerce/moderation]}
   - name: chatbot
     service: chatbot-service
     port: 5024

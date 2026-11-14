@@ -21,8 +21,30 @@ message PaymentFailed {
   string reason = 2;
 }
 
+// Tiền đã thật sự được thu (capture) sau khi kho commit. ledger-service ghi nhận tiền vào tài khoản
+// trung gian của cổng (psp_clearing) từ event này, không phải từ PaymentAuthorized.
+message PaymentCaptured {
+  string payment_id = 1;
+  string order_id = 2;
+  ecommerce.common.v1.Money amount = 3;
+  string provider = 4;
+  string method = 5;
+  string customer_id = 6;
+  // Mã giao dịch phía cổng (Stripe PaymentIntent pi_..., PayPal order id): reconciliation và dispute ghép theo mã này.
+  string provider_ref = 7;
+}
+
+// Một lần hoàn tiền. Một payment có thể có nhiều lần hoàn một phần (returns-service, mỗi lần một refund_id);
+// amount là số tiền của LẦN hoàn này, không phải tổng.
 message PaymentRefunded {
   string payment_id = 1;
   string order_id = 2;
   ecommerce.common.v1.Money amount = 3;
+  // Khoá idempotency của lần hoàn: return id với hoàn hàng, "full-<orderId>" với bù trừ saga.
+  string refund_id = 4;
+  string reason = 5;
+  string provider = 6;
+  // true khi tổng đã hoàn bằng số tiền đã thu (payment chuyển REFUNDED).
+  bool fully_refunded = 7;
+  string provider_ref = 8;
 }

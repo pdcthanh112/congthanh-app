@@ -10,7 +10,7 @@ import com.congthanh.productservice.grpc.ProductRequest;
 import com.congthanh.productservice.grpc.ProductResponse;
 import com.congthanh.productservice.grpc.ProductServiceGrpc;
 import com.congthanh.productservice.application.dto.ProductDTO;
-import com.congthanh.productservice.domain.exception.NotFoundException;
+import com.congthanh.commonservice.exception.NotFoundException;
 import com.congthanh.productservice.domain.model.Product;
 import com.congthanh.productservice.application.port.out.product.ProductRepository;
 import com.congthanh.productservice.application.port.in.ProductService;

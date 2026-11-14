@@ -51,7 +51,7 @@ class TemporalCheckoutOrchestrator implements CheckoutOrchestrator {
         var c = order.checkout();
         var input = new CheckoutInputPayload(order.id(), order.customerId(), order.total().amount(),
                 order.total().currency(), c.paymentMethod().name(), c.paymentToken(), c.returnUrl(), c.clientIp(),
-                order.hasPromotion(), paymentTimeout.toSeconds());
+                order.hasPromotion(), paymentTimeout.toSeconds(), c.storeCredit(), c.loyaltyPoints());
         try {
             stub.start(input);
         } catch (WorkflowExecutionAlreadyStarted ignored) {
@@ -92,7 +92,8 @@ class TemporalCheckoutOrchestrator implements CheckoutOrchestrator {
     /** Cùng shape JSON với CheckoutInput của workflow (Temporal dùng Jackson converter). */
     record CheckoutInputPayload(String orderId, String customerId, java.math.BigDecimal amount, String currency,
                                 String paymentMethod, String paymentToken, String returnUrl, String clientIp,
-                                boolean hasPromotion, long paymentTimeoutSeconds) {
+                                boolean hasPromotion, long paymentTimeoutSeconds, java.math.BigDecimal storeCredit,
+                                long loyaltyPoints) {
     }
 
     record StatePayload(String step, String paymentRedirectUrl, String failureReason) {

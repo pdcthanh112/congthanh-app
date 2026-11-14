@@ -14,6 +14,12 @@ COPY services/order-service ./services/order-service
 COPY services/payment-service ./services/payment-service
 COPY services/promotion-service ./services/promotion-service
 COPY services/checkout-service ./services/checkout-service
+COPY services/ledger-service ./services/ledger-service
+COPY services/returns-service ./services/returns-service
+COPY services/stored-value-service ./services/stored-value-service
+COPY services/dispute-service ./services/dispute-service
+COPY services/loyalty-service ./services/loyalty-service
+COPY services/subscription-service ./services/subscription-service
 RUN --mount=type=cache,target=/root/.gradle ./gradlew :services:promotion-service:bootJar --no-daemon -x test
 
 FROM eclipse-temurin:25-jre

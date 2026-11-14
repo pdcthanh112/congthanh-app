@@ -126,7 +126,8 @@ class PostgresStore:
                 count(*) FILTER (WHERE shipment_returned) AS shipments_returned,
                 COALESCE(bool_or(address_fp = $2), false) AS known_address,
                 (SELECT count(*) FROM payment_failures WHERE customer_id = $1 AND failed_at >= $3) AS failures,
-                (SELECT count(*) FROM refunds WHERE customer_id = $1 AND refunded_at >= $4) AS refunds
+                (SELECT count(*) FROM refunds WHERE customer_id = $1 AND refunded_at >= $4) AS refunds,
+                (SELECT count(*) FROM chargebacks WHERE customer_id = $1 AND outcome = 'LOST' AND reason = 'FRAUDULENT') AS fraud_cb
                FROM customer_orders WHERE customer_id = $1""",
             customer_id,
             address_fp,
@@ -141,6 +142,7 @@ class PostgresStore:
             refunds_90d=r["refunds"],
             payment_failures_24h=r["failures"],
             known_address=r["known_address"],
+            fraud_chargebacks=r["fraud_cb"],
         )
 
     async def blocked(self, values: dict[str, str]) -> list[str]:
@@ -319,6 +321,21 @@ class PostgresStore:
             order_id,
         )
         await self.set_status(c, order_id, "REFUNDED")
+
+    async def dispute_closed(
+        self, c: asyncpg.Connection, dispute_id: str, order_id: str, customer_id: str, outcome: str, reason: str
+    ) -> None:
+        """Nhãn từ dispute-service; khách lấy từ event, hoặc từ lịch sử đơn nếu event thiếu."""
+        await c.execute(
+            """INSERT INTO chargebacks (dispute_id, order_id, customer_id, outcome, reason)
+               SELECT $1, $2, COALESCE(NULLIF($3, ''), (SELECT customer_id FROM customer_orders WHERE order_id = $2)), $4, $5
+               ON CONFLICT (dispute_id) DO UPDATE SET outcome = EXCLUDED.outcome""",
+            dispute_id,
+            order_id,
+            customer_id,
+            outcome,
+            reason,
+        )
 
     async def shipment_returned(self, c: asyncpg.Connection, order_id: str) -> None:
         await c.execute(

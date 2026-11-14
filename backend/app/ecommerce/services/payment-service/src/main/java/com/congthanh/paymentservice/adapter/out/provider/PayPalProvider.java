@@ -2,6 +2,7 @@ package com.congthanh.paymentservice.adapter.out.provider;
 
 import com.congthanh.paymentservice.application.port.out.PaymentProvider;
 import com.congthanh.paymentservice.domain.exception.PaymentException;
+import com.congthanh.paymentservice.domain.model.Money;
 import com.congthanh.paymentservice.domain.model.Payment;
 import com.congthanh.paymentservice.domain.model.PaymentMethod;
 import org.springframework.beans.factory.annotation.Value;
@@ -126,6 +127,20 @@ class PayPalProvider implements PaymentProvider {
             throw PaymentException.conflict("PayPal order " + payment.providerRef() + " has no capture");
         }
         post("/v2/payments/captures/" + capture.path("id").asString() + "/refund", Map.of(), "refund-" + payment.orderId());
+    }
+
+    @Override
+    public void refundPartial(Payment payment, String refundId, Money amount) {
+        JsonNode capture = paymentsOf(payment).path("captures").path(0);
+        if (capture.isMissingNode()) {
+            throw PaymentException.conflict("PayPal order " + payment.providerRef() + " has no capture");
+        }
+        int digits = java.util.Currency.getInstance(amount.currency()).getDefaultFractionDigits();
+        Map<String, Object> body = Map.of("amount", Map.of(
+                "value", amount.amount().setScale(digits, java.math.RoundingMode.HALF_UP).toPlainString(),
+                "currency_code", amount.currency()),
+                "invoice_id", refundId);
+        post("/v2/payments/captures/" + capture.path("id").asString() + "/refund", body, "refund-" + refundId);
     }
 
     private String authorizationId(Payment payment) {

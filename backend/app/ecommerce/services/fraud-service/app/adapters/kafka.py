@@ -1,4 +1,4 @@
-"""Driving adapter: tiêu thụ ecommerce.order.events / ecommerce.payment.events / ecommerce.shipping.events (EventEnvelope protobuf
+"""Driving adapter: tiêu thụ ecommerce.order.events / ecommerce.payment.events / ecommerce.shipping.events / ecommerce.dispute.events (EventEnvelope protobuf
 từ Debezium Outbox Router) để dựng lịch sử khách. processed_events chống xử lý trùng; commit offset sau khi ghi DB."""
 
 from __future__ import annotations
@@ -10,6 +10,7 @@ from datetime import UTC
 import asyncpg
 from aiokafka import AIOKafkaConsumer
 from ecommerce.common.v1 import event_envelope_pb2, money_pb2
+from ecommerce.dispute.v1 import dispute_events_pb2
 from ecommerce.order.v1 import order_events_pb2
 from ecommerce.payment.v1 import payment_events_pb2
 from ecommerce.shipping.v1 import shipping_events_pb2
@@ -21,7 +22,7 @@ from .postgres import PostgresStore
 
 log = logging.getLogger(__name__)
 
-TOPICS = ("ecommerce.order.events", "ecommerce.payment.events", "ecommerce.shipping.events")
+TOPICS = ("ecommerce.order.events", "ecommerce.payment.events", "ecommerce.shipping.events", "ecommerce.dispute.events")
 STREAM_TOPIC = "ecommerce.stream.customer-risk"
 
 
@@ -70,6 +71,11 @@ async def handle(store: PostgresStore, c: asyncpg.Connection, env: event_envelop
         ev = payment_events_pb2.PaymentRefunded()
         env.payload.Unpack(ev)
         await store.refunded(c, ev.order_id)
+    elif t == _name(dispute_events_pb2.DisputeClosed):
+        ev = dispute_events_pb2.DisputeClosed()
+        env.payload.Unpack(ev)
+        if ev.order_id:
+            await store.dispute_closed(c, ev.dispute_id, ev.order_id, ev.customer_id, ev.outcome, ev.reason)
     elif t == _name(shipping_events_pb2.ShipmentStatusChanged):
         ev = shipping_events_pb2.ShipmentStatusChanged()
         env.payload.Unpack(ev)

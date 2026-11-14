@@ -1,6 +1,9 @@
 package com.congthanh.paymentservice.domain.exception;
 
-public class PaymentException extends RuntimeException {
+import com.congthanh.commonservice.error.DomainException;
+import com.congthanh.commonservice.error.ErrorKind;
+
+public class PaymentException extends DomainException {
 
     public enum Kind { INVALID, NOT_FOUND, CONFLICT, DECLINED, UNSUPPORTED, UNAVAILABLE }
 
@@ -20,5 +23,22 @@ public class PaymentException extends RuntimeException {
 
     public Kind kind() {
         return kind;
+    }
+
+    @Override
+    public ErrorKind errorKind() {
+        return switch (kind) {
+            case INVALID -> ErrorKind.INVALID;
+            case NOT_FOUND -> ErrorKind.NOT_FOUND;
+            case CONFLICT -> ErrorKind.CONFLICT;
+            case DECLINED -> ErrorKind.PAYMENT_REQUIRED;
+            case UNSUPPORTED -> ErrorKind.REJECTED;
+            case UNAVAILABLE -> ErrorKind.UNAVAILABLE;
+        };
+    }
+
+    @Override
+    public String code() {
+        return kind.name();
     }
 }

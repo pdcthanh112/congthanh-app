@@ -116,6 +116,41 @@ public class PaymentService implements PaymentUseCases {
     }
 
     @Override
+    public RefundResult refundPartial(PartialRefundCommand cmd) {
+        if (cmd.refundId() == null || cmd.refundId().isBlank()) {
+            throw PaymentException.invalid("refundId is required");
+        }
+        var done = payments.findRefund(cmd.refundId());
+        if (done.isPresent()) {
+            var r = done.get();
+            Payment p = load(r.orderId());
+            return new RefundResult(r.refundId(), r.paymentId(), r.amount(), r.currency(),
+                    p.status() == PaymentStatus.REFUNDED);
+        }
+        Money refund = new Money(cmd.amount(), cmd.currency());
+        Payment payment = load(cmd.orderId());
+        payment.checkRefundable(refund);
+        providers.byName(payment.provider()).refundPartial(payment, cmd.refundId(), refund);
+        try {
+            Payment saved = tx.execute(s -> {
+                Payment p = load(cmd.orderId());
+                p.partiallyRefunded(cmd.refundId(), refund, cmd.reason(), clock.instant());
+                payments.saveRefund(p, new PaymentRepository.RecordedRefund(cmd.refundId(), p.id(), p.orderId(),
+                        refund.amount(), refund.currency(), cmd.reason(), clock.instant()));
+                return p;
+            });
+            return new RefundResult(cmd.refundId(), saved.id(), refund.amount(), refund.currency(),
+                    saved.status() == PaymentStatus.REFUNDED);
+        } catch (DataIntegrityViolationException e) {
+            // Lần gọi song song khác đã ghi cùng refundId; cổng đã bỏ qua lần hoàn thứ hai nhờ idempotency key.
+            if (payments.findRefund(cmd.refundId()).isEmpty()) {
+                throw e;
+            }
+            return refundPartial(cmd);
+        }
+    }
+
+    @Override
     public CallbackOutcome handleCallback(PaymentMethod method, Map<String, String> params) {
         PaymentProvider provider = providers.forMethod(method);
         PaymentProvider.CallbackResult raw = provider.verifyCallback(params);

@@ -68,6 +68,9 @@ async def lifespan(app: FastAPI):
     tasks = [asyncio.create_task(_rebuild_loop(svc, settings.rebuild_interval_seconds))]
     if settings.brokers:
         tasks.append(asyncio.create_task(kafka.run(svc, store, settings.brokers, settings.kafka_group)))
+        from .adapters import privacy
+
+        tasks.append(asyncio.create_task(privacy.run(store.pool, settings.brokers, settings.kafka_group)))
     else:
         log.warning("KAFKA_BROKERS not set: recommendations only learn from the events API")
     yield

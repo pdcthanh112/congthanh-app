@@ -22,4 +22,11 @@ public interface PaymentActivities {
     /** Bù trừ: huỷ giữ tiền nếu chưa capture, hoàn tiền nếu đã capture, không làm gì nếu chưa có payment. */
     @ActivityMethod
     void refund(RefundPaymentRequest request);
+
+    /**
+     * Hoàn một phần số đã thu (returns-service). Idempotent theo {@code refundId}. Vượt số còn hoàn được
+     * hoặc payment chưa capture: ApplicationFailure không retry, type {@link PaymentFailures#REFUND_REJECTED}.
+     */
+    @ActivityMethod
+    PartialRefundResult refundPartial(PartialRefundRequest request);
 }

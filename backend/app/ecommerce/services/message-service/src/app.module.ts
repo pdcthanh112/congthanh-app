@@ -5,12 +5,13 @@ import {
   DB,
   graphqlWsConfig,
   JwtVerifier,
+  ModerationClient,
   PlatformAuthModule,
   PlatformDatabaseModule,
   PlatformHealthModule,
   PlatformLoggerModule,
-  subgraphConfig,
   RedisPubSub,
+  subgraphConfig,
 } from '@ecommerce/platform';
 import type { ApolloFederationDriverConfig } from '@nestjs/apollo';
 import { type DynamicModule, Module } from '@nestjs/common';
@@ -18,6 +19,7 @@ import { GraphQLModule } from '@nestjs/graphql';
 import { v7 as uuidv7 } from 'uuid';
 import { ChatResolver } from './adapters/in/graphql/chat.resolver.js';
 import { ProductRef } from './adapters/in/graphql/types.js';
+import { erasureConsumer } from './adapters/in/kafka/privacy-erasure.js';
 import * as schema from './adapters/out/persistence/schema.js';
 import { DrizzleUnitOfWork, readRepositories } from './adapters/out/persistence/unit-of-work.js';
 import { GrpcProductDirectory } from './adapters/out/product-directory.grpc.js';
@@ -25,6 +27,7 @@ import { RedisRateLimiter, RedisRealtime } from './adapters/out/realtime.js';
 import { ChatService } from './application/chat.service.js';
 import {
   CLOCK,
+  CONTENT_MODERATION,
   ID_GENERATOR,
   MEDIA_PREFIX,
   PRODUCT_DIRECTORY,
@@ -35,6 +38,7 @@ import {
 } from './application/ports.js';
 import type { Env } from './config/env.js';
 
+const PRIVACY_CONSUMER = Symbol('PRIVACY_CONSUMER');
 const serviceDir = join(dirname(fileURLToPath(import.meta.url)), '..');
 
 @Module({})
@@ -76,10 +80,21 @@ export class AppModule {
         ChatService,
         ChatResolver,
         { provide: UNIT_OF_WORK, useClass: DrizzleUnitOfWork },
+        {
+          provide: PRIVACY_CONSUMER,
+          inject: [DB],
+          useFactory: (db: Database<typeof schema>) =>
+            erasureConsumer(db, env.KAFKA_BROKERS, env.KAFKA_CLIENT_ID ?? env.SERVICE_NAME),
+        },
         { provide: READ_REPOSITORIES, inject: [DB], useFactory: (db: Database<typeof schema>) => readRepositories(db) },
         { provide: CLOCK, useValue: { now: () => new Date() } },
         { provide: ID_GENERATOR, useValue: { next: () => uuidv7() } },
         { provide: MEDIA_PREFIX, useValue: env.MEDIA_URL_PREFIX },
+        {
+          provide: CONTENT_MODERATION,
+          useFactory: () =>
+            env.MODERATION_URL ? new ModerationClient(env.MODERATION_URL, 1_500) : { check: async () => null },
+        },
         { provide: RedisPubSub, useFactory: () => new RedisPubSub(env.REDIS_URL) },
         { provide: REALTIME, inject: [RedisPubSub], useFactory: (ps: RedisPubSub) => new RedisRealtime(ps) },
         { provide: RATE_LIMITER, useFactory: () => new RedisRateLimiter(env.REDIS_URL) },

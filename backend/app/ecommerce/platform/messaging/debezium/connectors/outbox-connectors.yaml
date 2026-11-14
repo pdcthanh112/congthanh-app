@@ -1,6 +1,9 @@
 # Outbox Event Router: bảng <schema>.outbox → topic ecommerce.<aggregatetype>.events.
 # inventory, cart (Go); order/payment/promotion/product (Java, đợt 2);
 # catalog/customer/review/message (NestJS, đợt 3: schema <svc>_service, cùng cấu trúc bảng outbox).
+# ledger/returns (Java) và privacy (Go, schema privacy): đợt 4, ADR 0024.
+# storedvalue/dispute (Java) và reconciliation (Python, schema reconciliation): ADR 0025.
+# loyalty/subscription (Java) và moderation (Python, schema moderation): ADR 0026.
 # skipped.operations d: janitor của service xoá hàng outbox cũ, lệnh DELETE đó không phải event.
 apiVersion: kafka.strimzi.io/v1beta2
 kind: KafkaConnector
@@ -456,6 +459,330 @@ spec:
     table.include.list: fraud.outbox
     slot.name: debezium_fraud
     publication.name: dbz_fraud_outbox
+    publication.autocreate.mode: filtered
+    tombstones.on.delete: 'false'
+    skipped.operations: d,t
+    transforms: outbox
+    transforms.outbox.type: io.debezium.transforms.outbox.EventRouter
+    transforms.outbox.route.by.field: aggregatetype
+    transforms.outbox.route.topic.replacement: ecommerce.${routedByValue}.events
+    transforms.outbox.table.field.event.key: aggregateid
+    transforms.outbox.table.field.event.payload: payload
+    transforms.outbox.table.fields.additional.placement: type:header:ce_type,traceparent:header:traceparent,id:header:ce_id
+    key.converter: org.apache.kafka.connect.storage.StringConverter
+    value.converter: io.debezium.converters.BinaryDataConverter
+    heartbeat.interval.ms: '10000'
+---
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaConnector
+metadata:
+  name: ledger-outbox
+  namespace: messaging
+  labels:
+    strimzi.io/cluster: debezium
+spec:
+  class: io.debezium.connector.postgresql.PostgresConnector
+  tasksMax: 1
+  config:
+    plugin.name: pgoutput
+    database.hostname: ecommerce-db-rw.data.svc.cluster.local
+    database.port: '5432'
+    database.dbname: ecommerce
+    database.user: ${secrets:messaging/debezium-db:username}
+    database.password: ${secrets:messaging/debezium-db:password}
+    topic.prefix: cdc.ledger
+    schema.include.list: ledger_service
+    table.include.list: ledger_service.outbox
+    slot.name: debezium_ledger
+    publication.name: dbz_ledger_outbox
+    publication.autocreate.mode: filtered
+    tombstones.on.delete: 'false'
+    skipped.operations: d,t
+    transforms: outbox
+    transforms.outbox.type: io.debezium.transforms.outbox.EventRouter
+    transforms.outbox.route.by.field: aggregatetype
+    transforms.outbox.route.topic.replacement: ecommerce.${routedByValue}.events
+    transforms.outbox.table.field.event.key: aggregateid
+    transforms.outbox.table.field.event.payload: payload
+    transforms.outbox.table.fields.additional.placement: type:header:ce_type,traceparent:header:traceparent,id:header:ce_id
+    key.converter: org.apache.kafka.connect.storage.StringConverter
+    value.converter: io.debezium.converters.BinaryDataConverter
+    heartbeat.interval.ms: '10000'
+---
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaConnector
+metadata:
+  name: returns-outbox
+  namespace: messaging
+  labels:
+    strimzi.io/cluster: debezium
+spec:
+  class: io.debezium.connector.postgresql.PostgresConnector
+  tasksMax: 1
+  config:
+    plugin.name: pgoutput
+    database.hostname: ecommerce-db-rw.data.svc.cluster.local
+    database.port: '5432'
+    database.dbname: ecommerce
+    database.user: ${secrets:messaging/debezium-db:username}
+    database.password: ${secrets:messaging/debezium-db:password}
+    topic.prefix: cdc.returns
+    schema.include.list: returns_service
+    table.include.list: returns_service.outbox
+    slot.name: debezium_returns
+    publication.name: dbz_returns_outbox
+    publication.autocreate.mode: filtered
+    tombstones.on.delete: 'false'
+    skipped.operations: d,t
+    transforms: outbox
+    transforms.outbox.type: io.debezium.transforms.outbox.EventRouter
+    transforms.outbox.route.by.field: aggregatetype
+    transforms.outbox.route.topic.replacement: ecommerce.${routedByValue}.events
+    transforms.outbox.table.field.event.key: aggregateid
+    transforms.outbox.table.field.event.payload: payload
+    transforms.outbox.table.fields.additional.placement: type:header:ce_type,traceparent:header:traceparent,id:header:ce_id
+    key.converter: org.apache.kafka.connect.storage.StringConverter
+    value.converter: io.debezium.converters.BinaryDataConverter
+    heartbeat.interval.ms: '10000'
+---
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaConnector
+metadata:
+  name: privacy-outbox
+  namespace: messaging
+  labels:
+    strimzi.io/cluster: debezium
+spec:
+  class: io.debezium.connector.postgresql.PostgresConnector
+  tasksMax: 1
+  config:
+    plugin.name: pgoutput
+    database.hostname: ecommerce-db-rw.data.svc.cluster.local
+    database.port: '5432'
+    database.dbname: ecommerce
+    database.user: ${secrets:messaging/debezium-db:username}
+    database.password: ${secrets:messaging/debezium-db:password}
+    topic.prefix: cdc.privacy
+    schema.include.list: privacy
+    table.include.list: privacy.outbox
+    slot.name: debezium_privacy
+    publication.name: dbz_privacy_outbox
+    publication.autocreate.mode: filtered
+    tombstones.on.delete: 'false'
+    skipped.operations: d,t
+    transforms: outbox
+    transforms.outbox.type: io.debezium.transforms.outbox.EventRouter
+    transforms.outbox.route.by.field: aggregatetype
+    transforms.outbox.route.topic.replacement: ecommerce.${routedByValue}.events
+    transforms.outbox.table.field.event.key: aggregateid
+    transforms.outbox.table.field.event.payload: payload
+    transforms.outbox.table.fields.additional.placement: type:header:ce_type,traceparent:header:traceparent,id:header:ce_id
+    key.converter: org.apache.kafka.connect.storage.StringConverter
+    value.converter: io.debezium.converters.BinaryDataConverter
+    heartbeat.interval.ms: '10000'
+---
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaConnector
+metadata:
+  name: storedvalue-outbox
+  namespace: messaging
+  labels:
+    strimzi.io/cluster: debezium
+spec:
+  class: io.debezium.connector.postgresql.PostgresConnector
+  tasksMax: 1
+  config:
+    plugin.name: pgoutput
+    database.hostname: ecommerce-db-rw.data.svc.cluster.local
+    database.port: '5432'
+    database.dbname: ecommerce
+    database.user: ${secrets:messaging/debezium-db:username}
+    database.password: ${secrets:messaging/debezium-db:password}
+    topic.prefix: cdc.storedvalue
+    schema.include.list: stored_value_service
+    table.include.list: stored_value_service.outbox
+    slot.name: debezium_storedvalue
+    publication.name: dbz_storedvalue_outbox
+    publication.autocreate.mode: filtered
+    tombstones.on.delete: 'false'
+    skipped.operations: d,t
+    transforms: outbox
+    transforms.outbox.type: io.debezium.transforms.outbox.EventRouter
+    transforms.outbox.route.by.field: aggregatetype
+    transforms.outbox.route.topic.replacement: ecommerce.${routedByValue}.events
+    transforms.outbox.table.field.event.key: aggregateid
+    transforms.outbox.table.field.event.payload: payload
+    transforms.outbox.table.fields.additional.placement: type:header:ce_type,traceparent:header:traceparent,id:header:ce_id
+    key.converter: org.apache.kafka.connect.storage.StringConverter
+    value.converter: io.debezium.converters.BinaryDataConverter
+    heartbeat.interval.ms: '10000'
+---
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaConnector
+metadata:
+  name: dispute-outbox
+  namespace: messaging
+  labels:
+    strimzi.io/cluster: debezium
+spec:
+  class: io.debezium.connector.postgresql.PostgresConnector
+  tasksMax: 1
+  config:
+    plugin.name: pgoutput
+    database.hostname: ecommerce-db-rw.data.svc.cluster.local
+    database.port: '5432'
+    database.dbname: ecommerce
+    database.user: ${secrets:messaging/debezium-db:username}
+    database.password: ${secrets:messaging/debezium-db:password}
+    topic.prefix: cdc.dispute
+    schema.include.list: dispute_service
+    table.include.list: dispute_service.outbox
+    slot.name: debezium_dispute
+    publication.name: dbz_dispute_outbox
+    publication.autocreate.mode: filtered
+    tombstones.on.delete: 'false'
+    skipped.operations: d,t
+    transforms: outbox
+    transforms.outbox.type: io.debezium.transforms.outbox.EventRouter
+    transforms.outbox.route.by.field: aggregatetype
+    transforms.outbox.route.topic.replacement: ecommerce.${routedByValue}.events
+    transforms.outbox.table.field.event.key: aggregateid
+    transforms.outbox.table.field.event.payload: payload
+    transforms.outbox.table.fields.additional.placement: type:header:ce_type,traceparent:header:traceparent,id:header:ce_id
+    key.converter: org.apache.kafka.connect.storage.StringConverter
+    value.converter: io.debezium.converters.BinaryDataConverter
+    heartbeat.interval.ms: '10000'
+---
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaConnector
+metadata:
+  name: reconciliation-outbox
+  namespace: messaging
+  labels:
+    strimzi.io/cluster: debezium
+spec:
+  class: io.debezium.connector.postgresql.PostgresConnector
+  tasksMax: 1
+  config:
+    plugin.name: pgoutput
+    database.hostname: ecommerce-db-rw.data.svc.cluster.local
+    database.port: '5432'
+    database.dbname: ecommerce
+    database.user: ${secrets:messaging/debezium-db:username}
+    database.password: ${secrets:messaging/debezium-db:password}
+    topic.prefix: cdc.reconciliation
+    schema.include.list: reconciliation
+    table.include.list: reconciliation.outbox
+    slot.name: debezium_reconciliation
+    publication.name: dbz_reconciliation_outbox
+    publication.autocreate.mode: filtered
+    tombstones.on.delete: 'false'
+    skipped.operations: d,t
+    transforms: outbox
+    transforms.outbox.type: io.debezium.transforms.outbox.EventRouter
+    transforms.outbox.route.by.field: aggregatetype
+    transforms.outbox.route.topic.replacement: ecommerce.${routedByValue}.events
+    transforms.outbox.table.field.event.key: aggregateid
+    transforms.outbox.table.field.event.payload: payload
+    transforms.outbox.table.fields.additional.placement: type:header:ce_type,traceparent:header:traceparent,id:header:ce_id
+    key.converter: org.apache.kafka.connect.storage.StringConverter
+    value.converter: io.debezium.converters.BinaryDataConverter
+    heartbeat.interval.ms: '10000'
+---
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaConnector
+metadata:
+  name: loyalty-outbox
+  namespace: messaging
+  labels:
+    strimzi.io/cluster: debezium
+spec:
+  class: io.debezium.connector.postgresql.PostgresConnector
+  tasksMax: 1
+  config:
+    plugin.name: pgoutput
+    database.hostname: ecommerce-db-rw.data.svc.cluster.local
+    database.port: '5432'
+    database.dbname: ecommerce
+    database.user: ${secrets:messaging/debezium-db:username}
+    database.password: ${secrets:messaging/debezium-db:password}
+    topic.prefix: cdc.loyalty
+    schema.include.list: loyalty_service
+    table.include.list: loyalty_service.outbox
+    slot.name: debezium_loyalty
+    publication.name: dbz_loyalty_outbox
+    publication.autocreate.mode: filtered
+    tombstones.on.delete: 'false'
+    skipped.operations: d,t
+    transforms: outbox
+    transforms.outbox.type: io.debezium.transforms.outbox.EventRouter
+    transforms.outbox.route.by.field: aggregatetype
+    transforms.outbox.route.topic.replacement: ecommerce.${routedByValue}.events
+    transforms.outbox.table.field.event.key: aggregateid
+    transforms.outbox.table.field.event.payload: payload
+    transforms.outbox.table.fields.additional.placement: type:header:ce_type,traceparent:header:traceparent,id:header:ce_id
+    key.converter: org.apache.kafka.connect.storage.StringConverter
+    value.converter: io.debezium.converters.BinaryDataConverter
+    heartbeat.interval.ms: '10000'
+---
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaConnector
+metadata:
+  name: subscription-outbox
+  namespace: messaging
+  labels:
+    strimzi.io/cluster: debezium
+spec:
+  class: io.debezium.connector.postgresql.PostgresConnector
+  tasksMax: 1
+  config:
+    plugin.name: pgoutput
+    database.hostname: ecommerce-db-rw.data.svc.cluster.local
+    database.port: '5432'
+    database.dbname: ecommerce
+    database.user: ${secrets:messaging/debezium-db:username}
+    database.password: ${secrets:messaging/debezium-db:password}
+    topic.prefix: cdc.subscription
+    schema.include.list: subscription_service
+    table.include.list: subscription_service.outbox
+    slot.name: debezium_subscription
+    publication.name: dbz_subscription_outbox
+    publication.autocreate.mode: filtered
+    tombstones.on.delete: 'false'
+    skipped.operations: d,t
+    transforms: outbox
+    transforms.outbox.type: io.debezium.transforms.outbox.EventRouter
+    transforms.outbox.route.by.field: aggregatetype
+    transforms.outbox.route.topic.replacement: ecommerce.${routedByValue}.events
+    transforms.outbox.table.field.event.key: aggregateid
+    transforms.outbox.table.field.event.payload: payload
+    transforms.outbox.table.fields.additional.placement: type:header:ce_type,traceparent:header:traceparent,id:header:ce_id
+    key.converter: org.apache.kafka.connect.storage.StringConverter
+    value.converter: io.debezium.converters.BinaryDataConverter
+    heartbeat.interval.ms: '10000'
+---
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaConnector
+metadata:
+  name: moderation-outbox
+  namespace: messaging
+  labels:
+    strimzi.io/cluster: debezium
+spec:
+  class: io.debezium.connector.postgresql.PostgresConnector
+  tasksMax: 1
+  config:
+    plugin.name: pgoutput
+    database.hostname: ecommerce-db-rw.data.svc.cluster.local
+    database.port: '5432'
+    database.dbname: ecommerce
+    database.user: ${secrets:messaging/debezium-db:username}
+    database.password: ${secrets:messaging/debezium-db:password}
+    topic.prefix: cdc.moderation
+    schema.include.list: moderation
+    table.include.list: moderation.outbox
+    slot.name: debezium_moderation
+    publication.name: dbz_moderation_outbox
     publication.autocreate.mode: filtered
     tombstones.on.delete: 'false'
     skipped.operations: d,t

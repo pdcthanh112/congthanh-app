@@ -23,11 +23,13 @@ const (
 )
 
 type PaymentAuthorized struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	PaymentId     string                 `protobuf:"bytes,1,opt,name=payment_id,json=paymentId,proto3" json:"payment_id,omitempty"`
-	OrderId       string                 `protobuf:"bytes,2,opt,name=order_id,json=orderId,proto3" json:"order_id,omitempty"`
-	Amount        *v1.Money              `protobuf:"bytes,3,opt,name=amount,proto3" json:"amount,omitempty"`
-	Provider      string                 `protobuf:"bytes,4,opt,name=provider,proto3" json:"provider,omitempty"`
+	state     protoimpl.MessageState `protogen:"open.v1"`
+	PaymentId string                 `protobuf:"bytes,1,opt,name=payment_id,json=paymentId,proto3" json:"payment_id,omitempty"`
+	OrderId   string                 `protobuf:"bytes,2,opt,name=order_id,json=orderId,proto3" json:"order_id,omitempty"`
+	Amount    *v1.Money              `protobuf:"bytes,3,opt,name=amount,proto3" json:"amount,omitempty"`
+	Provider  string                 `protobuf:"bytes,4,opt,name=provider,proto3" json:"provider,omitempty"`
+	// CARD, APPLE_PAY, GOOGLE_PAY, PAYPAL, AFFIRM, KLARNA, AFTERPAY (ADR 0016)
+	Method        string `protobuf:"bytes,5,opt,name=method,proto3" json:"method,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -90,6 +92,13 @@ func (x *PaymentAuthorized) GetProvider() string {
 	return ""
 }
 
+func (x *PaymentAuthorized) GetMethod() string {
+	if x != nil {
+		return x.Method
+	}
+	return ""
+}
+
 type PaymentFailed struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	OrderId       string                 `protobuf:"bytes,1,opt,name=order_id,json=orderId,proto3" json:"order_id,omitempty"`
@@ -142,18 +151,122 @@ func (x *PaymentFailed) GetReason() string {
 	return ""
 }
 
+// Tiền đã thật sự được thu (capture) sau khi kho commit. ledger-service ghi nhận tiền vào tài khoản
+// trung gian của cổng (psp_clearing) từ event này, không phải từ PaymentAuthorized.
+type PaymentCaptured struct {
+	state      protoimpl.MessageState `protogen:"open.v1"`
+	PaymentId  string                 `protobuf:"bytes,1,opt,name=payment_id,json=paymentId,proto3" json:"payment_id,omitempty"`
+	OrderId    string                 `protobuf:"bytes,2,opt,name=order_id,json=orderId,proto3" json:"order_id,omitempty"`
+	Amount     *v1.Money              `protobuf:"bytes,3,opt,name=amount,proto3" json:"amount,omitempty"`
+	Provider   string                 `protobuf:"bytes,4,opt,name=provider,proto3" json:"provider,omitempty"`
+	Method     string                 `protobuf:"bytes,5,opt,name=method,proto3" json:"method,omitempty"`
+	CustomerId string                 `protobuf:"bytes,6,opt,name=customer_id,json=customerId,proto3" json:"customer_id,omitempty"`
+	// Mã giao dịch phía cổng (Stripe PaymentIntent pi_..., PayPal order id): reconciliation và dispute ghép theo mã này.
+	ProviderRef   string `protobuf:"bytes,7,opt,name=provider_ref,json=providerRef,proto3" json:"provider_ref,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *PaymentCaptured) Reset() {
+	*x = PaymentCaptured{}
+	mi := &file_ecommerce_payment_v1_payment_events_proto_msgTypes[2]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *PaymentCaptured) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*PaymentCaptured) ProtoMessage() {}
+
+func (x *PaymentCaptured) ProtoReflect() protoreflect.Message {
+	mi := &file_ecommerce_payment_v1_payment_events_proto_msgTypes[2]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use PaymentCaptured.ProtoReflect.Descriptor instead.
+func (*PaymentCaptured) Descriptor() ([]byte, []int) {
+	return file_ecommerce_payment_v1_payment_events_proto_rawDescGZIP(), []int{2}
+}
+
+func (x *PaymentCaptured) GetPaymentId() string {
+	if x != nil {
+		return x.PaymentId
+	}
+	return ""
+}
+
+func (x *PaymentCaptured) GetOrderId() string {
+	if x != nil {
+		return x.OrderId
+	}
+	return ""
+}
+
+func (x *PaymentCaptured) GetAmount() *v1.Money {
+	if x != nil {
+		return x.Amount
+	}
+	return nil
+}
+
+func (x *PaymentCaptured) GetProvider() string {
+	if x != nil {
+		return x.Provider
+	}
+	return ""
+}
+
+func (x *PaymentCaptured) GetMethod() string {
+	if x != nil {
+		return x.Method
+	}
+	return ""
+}
+
+func (x *PaymentCaptured) GetCustomerId() string {
+	if x != nil {
+		return x.CustomerId
+	}
+	return ""
+}
+
+func (x *PaymentCaptured) GetProviderRef() string {
+	if x != nil {
+		return x.ProviderRef
+	}
+	return ""
+}
+
+// Một lần hoàn tiền. Một payment có thể có nhiều lần hoàn một phần (returns-service, mỗi lần một refund_id);
+// amount là số tiền của LẦN hoàn này, không phải tổng.
 type PaymentRefunded struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	PaymentId     string                 `protobuf:"bytes,1,opt,name=payment_id,json=paymentId,proto3" json:"payment_id,omitempty"`
-	OrderId       string                 `protobuf:"bytes,2,opt,name=order_id,json=orderId,proto3" json:"order_id,omitempty"`
-	Amount        *v1.Money              `protobuf:"bytes,3,opt,name=amount,proto3" json:"amount,omitempty"`
+	state     protoimpl.MessageState `protogen:"open.v1"`
+	PaymentId string                 `protobuf:"bytes,1,opt,name=payment_id,json=paymentId,proto3" json:"payment_id,omitempty"`
+	OrderId   string                 `protobuf:"bytes,2,opt,name=order_id,json=orderId,proto3" json:"order_id,omitempty"`
+	Amount    *v1.Money              `protobuf:"bytes,3,opt,name=amount,proto3" json:"amount,omitempty"`
+	// Khoá idempotency của lần hoàn: return id với hoàn hàng, "full-<orderId>" với bù trừ saga.
+	RefundId string `protobuf:"bytes,4,opt,name=refund_id,json=refundId,proto3" json:"refund_id,omitempty"`
+	Reason   string `protobuf:"bytes,5,opt,name=reason,proto3" json:"reason,omitempty"`
+	Provider string `protobuf:"bytes,6,opt,name=provider,proto3" json:"provider,omitempty"`
+	// true khi tổng đã hoàn bằng số tiền đã thu (payment chuyển REFUNDED).
+	FullyRefunded bool   `protobuf:"varint,7,opt,name=fully_refunded,json=fullyRefunded,proto3" json:"fully_refunded,omitempty"`
+	ProviderRef   string `protobuf:"bytes,8,opt,name=provider_ref,json=providerRef,proto3" json:"provider_ref,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
 
 func (x *PaymentRefunded) Reset() {
 	*x = PaymentRefunded{}
-	mi := &file_ecommerce_payment_v1_payment_events_proto_msgTypes[2]
+	mi := &file_ecommerce_payment_v1_payment_events_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -165,7 +278,7 @@ func (x *PaymentRefunded) String() string {
 func (*PaymentRefunded) ProtoMessage() {}
 
 func (x *PaymentRefunded) ProtoReflect() protoreflect.Message {
-	mi := &file_ecommerce_payment_v1_payment_events_proto_msgTypes[2]
+	mi := &file_ecommerce_payment_v1_payment_events_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -178,7 +291,7 @@ func (x *PaymentRefunded) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use PaymentRefunded.ProtoReflect.Descriptor instead.
 func (*PaymentRefunded) Descriptor() ([]byte, []int) {
-	return file_ecommerce_payment_v1_payment_events_proto_rawDescGZIP(), []int{2}
+	return file_ecommerce_payment_v1_payment_events_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *PaymentRefunded) GetPaymentId() string {
@@ -202,26 +315,77 @@ func (x *PaymentRefunded) GetAmount() *v1.Money {
 	return nil
 }
 
+func (x *PaymentRefunded) GetRefundId() string {
+	if x != nil {
+		return x.RefundId
+	}
+	return ""
+}
+
+func (x *PaymentRefunded) GetReason() string {
+	if x != nil {
+		return x.Reason
+	}
+	return ""
+}
+
+func (x *PaymentRefunded) GetProvider() string {
+	if x != nil {
+		return x.Provider
+	}
+	return ""
+}
+
+func (x *PaymentRefunded) GetFullyRefunded() bool {
+	if x != nil {
+		return x.FullyRefunded
+	}
+	return false
+}
+
+func (x *PaymentRefunded) GetProviderRef() string {
+	if x != nil {
+		return x.ProviderRef
+	}
+	return ""
+}
+
 var File_ecommerce_payment_v1_payment_events_proto protoreflect.FileDescriptor
 
 const file_ecommerce_payment_v1_payment_events_proto_rawDesc = "" +
 	"\n" +
-	")ecommerce/payment/v1/payment_events.proto\x12\x14ecommerce.payment.v1\x1a\x1fecommerce/common/v1/money.proto\"\x9d\x01\n" +
+	")ecommerce/payment/v1/payment_events.proto\x12\x14ecommerce.payment.v1\x1a\x1fecommerce/common/v1/money.proto\"\xb5\x01\n" +
 	"\x11PaymentAuthorized\x12\x1d\n" +
 	"\n" +
 	"payment_id\x18\x01 \x01(\tR\tpaymentId\x12\x19\n" +
 	"\border_id\x18\x02 \x01(\tR\aorderId\x122\n" +
 	"\x06amount\x18\x03 \x01(\v2\x1a.ecommerce.common.v1.MoneyR\x06amount\x12\x1a\n" +
-	"\bprovider\x18\x04 \x01(\tR\bprovider\"B\n" +
+	"\bprovider\x18\x04 \x01(\tR\bprovider\x12\x16\n" +
+	"\x06method\x18\x05 \x01(\tR\x06method\"B\n" +
 	"\rPaymentFailed\x12\x19\n" +
 	"\border_id\x18\x01 \x01(\tR\aorderId\x12\x16\n" +
-	"\x06reason\x18\x02 \x01(\tR\x06reason\"\x7f\n" +
+	"\x06reason\x18\x02 \x01(\tR\x06reason\"\xf7\x01\n" +
+	"\x0fPaymentCaptured\x12\x1d\n" +
+	"\n" +
+	"payment_id\x18\x01 \x01(\tR\tpaymentId\x12\x19\n" +
+	"\border_id\x18\x02 \x01(\tR\aorderId\x122\n" +
+	"\x06amount\x18\x03 \x01(\v2\x1a.ecommerce.common.v1.MoneyR\x06amount\x12\x1a\n" +
+	"\bprovider\x18\x04 \x01(\tR\bprovider\x12\x16\n" +
+	"\x06method\x18\x05 \x01(\tR\x06method\x12\x1f\n" +
+	"\vcustomer_id\x18\x06 \x01(\tR\n" +
+	"customerId\x12!\n" +
+	"\fprovider_ref\x18\a \x01(\tR\vproviderRef\"\x9a\x02\n" +
 	"\x0fPaymentRefunded\x12\x1d\n" +
 	"\n" +
 	"payment_id\x18\x01 \x01(\tR\tpaymentId\x12\x19\n" +
 	"\border_id\x18\x02 \x01(\tR\aorderId\x122\n" +
-	"\x06amount\x18\x03 \x01(\v2\x1a.ecommerce.common.v1.MoneyR\x06amountB\x88\x02\n" +
-	"\x18com.ecommerce.payment.v1B\x12PaymentEventsProtoP\x01Zfgithub.com/pdcthanh112/CongThanhApp/backend/app/ecommerce/libs/go/proto/ecommerce/payment/v1;paymentv1\xa2\x02\x03EPX\xaa\x02\x14Ecommerce.Payment.V1\xca\x02\x14Ecommerce\\Payment\\V1\xe2\x02 Ecommerce\\Payment\\V1\\GPBMetadata\xea\x02\x16Ecommerce::Payment::V1b\x06proto3"
+	"\x06amount\x18\x03 \x01(\v2\x1a.ecommerce.common.v1.MoneyR\x06amount\x12\x1b\n" +
+	"\trefund_id\x18\x04 \x01(\tR\brefundId\x12\x16\n" +
+	"\x06reason\x18\x05 \x01(\tR\x06reason\x12\x1a\n" +
+	"\bprovider\x18\x06 \x01(\tR\bprovider\x12%\n" +
+	"\x0efully_refunded\x18\a \x01(\bR\rfullyRefunded\x12!\n" +
+	"\fprovider_ref\x18\b \x01(\tR\vproviderRefB&\n" +
+	"\"com.congthanh.ecommerce.payment.v1P\x01b\x06proto3"
 
 var (
 	file_ecommerce_payment_v1_payment_events_proto_rawDescOnce sync.Once
@@ -235,21 +399,23 @@ func file_ecommerce_payment_v1_payment_events_proto_rawDescGZIP() []byte {
 	return file_ecommerce_payment_v1_payment_events_proto_rawDescData
 }
 
-var file_ecommerce_payment_v1_payment_events_proto_msgTypes = make([]protoimpl.MessageInfo, 3)
+var file_ecommerce_payment_v1_payment_events_proto_msgTypes = make([]protoimpl.MessageInfo, 4)
 var file_ecommerce_payment_v1_payment_events_proto_goTypes = []any{
 	(*PaymentAuthorized)(nil), // 0: ecommerce.payment.v1.PaymentAuthorized
 	(*PaymentFailed)(nil),     // 1: ecommerce.payment.v1.PaymentFailed
-	(*PaymentRefunded)(nil),   // 2: ecommerce.payment.v1.PaymentRefunded
-	(*v1.Money)(nil),          // 3: ecommerce.common.v1.Money
+	(*PaymentCaptured)(nil),   // 2: ecommerce.payment.v1.PaymentCaptured
+	(*PaymentRefunded)(nil),   // 3: ecommerce.payment.v1.PaymentRefunded
+	(*v1.Money)(nil),          // 4: ecommerce.common.v1.Money
 }
 var file_ecommerce_payment_v1_payment_events_proto_depIdxs = []int32{
-	3, // 0: ecommerce.payment.v1.PaymentAuthorized.amount:type_name -> ecommerce.common.v1.Money
-	3, // 1: ecommerce.payment.v1.PaymentRefunded.amount:type_name -> ecommerce.common.v1.Money
-	2, // [2:2] is the sub-list for method output_type
-	2, // [2:2] is the sub-list for method input_type
-	2, // [2:2] is the sub-list for extension type_name
-	2, // [2:2] is the sub-list for extension extendee
-	0, // [0:2] is the sub-list for field type_name
+	4, // 0: ecommerce.payment.v1.PaymentAuthorized.amount:type_name -> ecommerce.common.v1.Money
+	4, // 1: ecommerce.payment.v1.PaymentCaptured.amount:type_name -> ecommerce.common.v1.Money
+	4, // 2: ecommerce.payment.v1.PaymentRefunded.amount:type_name -> ecommerce.common.v1.Money
+	3, // [3:3] is the sub-list for method output_type
+	3, // [3:3] is the sub-list for method input_type
+	3, // [3:3] is the sub-list for extension type_name
+	3, // [3:3] is the sub-list for extension extendee
+	0, // [0:3] is the sub-list for field type_name
 }
 
 func init() { file_ecommerce_payment_v1_payment_events_proto_init() }
@@ -263,7 +429,7 @@ func file_ecommerce_payment_v1_payment_events_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_ecommerce_payment_v1_payment_events_proto_rawDesc), len(file_ecommerce_payment_v1_payment_events_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   3,
+			NumMessages:   4,
 			NumExtensions: 0,
 			NumServices:   0,
 		},

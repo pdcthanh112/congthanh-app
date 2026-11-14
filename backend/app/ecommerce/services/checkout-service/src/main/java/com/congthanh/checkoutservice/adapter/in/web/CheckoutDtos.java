@@ -63,7 +63,11 @@ final class CheckoutDtos {
     record PlaceRequest(@NotBlank @Size(max = 32) String paymentMethod, @Size(max = 255) String paymentToken,
                         @Size(max = 2048) String returnUrl, @Size(max = 128) String deviceId,
                         /** Tổng tiền khách đang thấy; khác tổng mới tính lại → 409 PRICE_CHANGED. */
-                        BigDecimal expectedTotal) {
+                        BigDecimal expectedTotal,
+                        /** Phần trả bằng store credit (tuỳ chọn, không vượt tổng). */
+                        @jakarta.validation.constraints.PositiveOrZero BigDecimal storeCredit,
+                        /** Số điểm thưởng muốn đổi (tuỳ chọn; tối thiểu do loyalty-service quy định). */
+                        @jakarta.validation.constraints.PositiveOrZero Long loyaltyPoints) {
     }
 
     record CancelRequest(@Size(max = 500) String reason) {

@@ -3,6 +3,7 @@ package com.congthanh.paymentservice.domain.model;
 import com.congthanh.paymentservice.domain.event.PaymentEvent;
 import com.congthanh.paymentservice.domain.exception.PaymentException;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
@@ -29,13 +30,15 @@ public final class Payment {
     private String failureReason;
     private Instant authorizationExpiresAt;
     private Instant updatedAt;
+    /** Tổng đã hoàn qua các lần hoàn một phần (0 nếu chưa hoàn). */
+    private BigDecimal refundedAmount;
 
     private final List<PaymentEvent> events = new ArrayList<>();
 
     private Payment(String id, String orderId, String customerId, Money amount, PaymentMethod method,
                     String provider, String providerRef, PaymentStatus status, String redirectUrl,
                     String failureReason, Instant authorizationExpiresAt, Instant createdAt, Instant updatedAt,
-                    long version) {
+                    long version, BigDecimal refundedAmount) {
         this.id = Objects.requireNonNull(id);
         this.orderId = Objects.requireNonNull(orderId);
         this.customerId = customerId;
@@ -50,6 +53,7 @@ public final class Payment {
         this.createdAt = createdAt;
         this.updatedAt = updatedAt;
         this.version = version;
+        this.refundedAmount = refundedAmount == null ? BigDecimal.ZERO : refundedAmount;
     }
 
     public static Payment initiate(String id, String orderId, String customerId, Money amount, PaymentMethod method,
@@ -58,15 +62,23 @@ public final class Payment {
             throw PaymentException.invalid("orderId is required");
         }
         return new Payment(id, orderId, customerId, amount, method, provider, null, PaymentStatus.INITIATED,
-                null, null, null, now, now, 0);
+                null, null, null, now, now, 0, BigDecimal.ZERO);
     }
 
     public static Payment rehydrate(String id, String orderId, String customerId, Money amount, PaymentMethod method,
                                     String provider, String providerRef, PaymentStatus status, String redirectUrl,
                                     String failureReason, Instant authorizationExpiresAt, Instant createdAt,
                                     Instant updatedAt, long version) {
+        return rehydrate(id, orderId, customerId, amount, method, provider, providerRef, status, redirectUrl,
+                failureReason, authorizationExpiresAt, createdAt, updatedAt, version, BigDecimal.ZERO);
+    }
+
+    public static Payment rehydrate(String id, String orderId, String customerId, Money amount, PaymentMethod method,
+                                    String provider, String providerRef, PaymentStatus status, String redirectUrl,
+                                    String failureReason, Instant authorizationExpiresAt, Instant createdAt,
+                                    Instant updatedAt, long version, BigDecimal refundedAmount) {
         return new Payment(id, orderId, customerId, amount, method, provider, providerRef, status, redirectUrl,
-                failureReason, authorizationExpiresAt, createdAt, updatedAt, version);
+                failureReason, authorizationExpiresAt, createdAt, updatedAt, version, refundedAmount);
     }
 
     public void authorized(String providerRef, Instant now) {
@@ -119,6 +131,7 @@ public final class Payment {
         requireOneOf("capture", PaymentStatus.AUTHORIZED);
         this.status = PaymentStatus.CAPTURED;
         this.updatedAt = now;
+        events.add(new PaymentEvent.PaymentCaptured(id, orderId, customerId, amount, provider, method.name(), providerRef));
     }
 
     /** Huỷ khi chưa thu tiền (authorization được giải phóng, hoặc khách chưa trả ở cổng). */
@@ -138,9 +151,39 @@ public final class Payment {
             return;
         }
         requireOneOf("refund", PaymentStatus.CAPTURED, PaymentStatus.VOIDED);
+        BigDecimal remaining = amount.amount().subtract(refundedAmount);
         this.status = PaymentStatus.REFUNDED;
+        this.refundedAmount = amount.amount();
         this.updatedAt = now;
-        events.add(new PaymentEvent.PaymentRefunded(id, orderId, amount));
+        events.add(new PaymentEvent.PaymentRefunded(id, orderId, new Money(remaining, amount.currency()),
+                "full-" + orderId, null, provider, true, providerRef));
+    }
+
+    /**
+     * Kiểm tra trước khi gọi cổng: chỉ hoàn được tiền đã thu, cùng tiền tệ, và tổng không vượt số đã thu.
+     * Tách khỏi {@link #partiallyRefunded} để không gọi cổng với yêu cầu chắc chắn sai.
+     */
+    public void checkRefundable(Money refund) {
+        requireOneOf("refund", PaymentStatus.CAPTURED);
+        if (!refund.currency().equals(amount.currency())) {
+            throw PaymentException.invalid("refund currency " + refund.currency() + " does not match " + amount.currency());
+        }
+        if (refundedAmount.add(refund.amount()).compareTo(amount.amount()) > 0) {
+            throw PaymentException.invalid("refund " + refund.amount() + " exceeds refundable "
+                    + amount.amount().subtract(refundedAmount) + " for payment " + id);
+        }
+    }
+
+    /** Một lần hoàn một phần đã được cổng chấp nhận. Hoàn đủ số đã thu thì chuyển REFUNDED. */
+    public void partiallyRefunded(String refundId, Money refund, String reason, Instant now) {
+        checkRefundable(refund);
+        this.refundedAmount = refundedAmount.add(refund.amount());
+        boolean full = refundedAmount.compareTo(amount.amount()) == 0;
+        if (full) {
+            this.status = PaymentStatus.REFUNDED;
+        }
+        this.updatedAt = now;
+        events.add(new PaymentEvent.PaymentRefunded(id, orderId, refund, refundId, reason, provider, full, providerRef));
     }
 
     public List<PaymentEvent> pullEvents() {
@@ -172,4 +215,5 @@ public final class Payment {
     public Instant createdAt() { return createdAt; }
     public Instant updatedAt() { return updatedAt; }
     public long version() { return version; }
+    public BigDecimal refundedAmount() { return refundedAmount; }
 }

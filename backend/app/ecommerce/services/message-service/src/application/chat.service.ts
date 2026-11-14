@@ -13,6 +13,8 @@ import {
 import {
   CLOCK,
   type Clock,
+  CONTENT_MODERATION,
+  type ContentModeration,
   ID_GENERATOR,
   type IdGenerator,
   MEDIA_PREFIX,
@@ -48,6 +50,7 @@ export class ChatService {
     @Inject(CLOCK) private readonly clock: Clock,
     @Inject(ID_GENERATOR) private readonly ids: IdGenerator,
     @Inject(MEDIA_PREFIX) private readonly mediaPrefix: string,
+    @Inject(CONTENT_MODERATION) private readonly moderation: ContentModeration,
   ) {}
 
   /** Khách hỏi người bán về một sản phẩm: người bán xác định từ product-service, không tin client. */
@@ -140,10 +143,21 @@ export class ChatService {
       throw DomainError.invalid('you are sending messages too fast', 'RATE_LIMITED');
     }
     const content = normalizeBody(input.body, input.attachments, this.mediaPrefix);
+    const messageId = this.ids.next();
+    if (content.body) {
+      // Chat thời gian thực: moderation chỉ che (SĐT, email, link kéo ra ngoài sàn), không chặn tin nhắn.
+      const verdict = await this.moderation.check({
+        contentType: 'MESSAGE',
+        contentId: messageId,
+        authorId: sender.id,
+        text: content.body,
+      });
+      if (verdict?.decision === 'REDACT' && verdict.redactedText) content.body = verdict.redactedText;
+    }
     const now = this.clock.now();
     const seq = await tx.conversations.nextSeq(c.id, now, previewOf(content));
     const message: ChatMessage = {
-      id: this.ids.next(),
+      id: messageId,
       conversationId: c.id,
       seq,
       senderId: sender.id,

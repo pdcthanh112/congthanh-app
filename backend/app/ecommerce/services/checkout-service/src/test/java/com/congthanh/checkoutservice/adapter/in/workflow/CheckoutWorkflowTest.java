@@ -8,10 +8,14 @@ import com.congthanh.ecommerce.workflow.checkout.CheckoutResult;
 import com.congthanh.ecommerce.workflow.checkout.CheckoutState;
 import com.congthanh.ecommerce.workflow.checkout.PaymentCompleted;
 import com.congthanh.ecommerce.workflow.payment.AuthorizePaymentRequest;
+import com.congthanh.ecommerce.workflow.payment.PartialRefundRequest;
+import com.congthanh.ecommerce.workflow.payment.PartialRefundResult;
 import com.congthanh.ecommerce.workflow.payment.PaymentActivities;
 import com.congthanh.ecommerce.workflow.payment.PaymentAuthorization;
 import com.congthanh.ecommerce.workflow.payment.PaymentFailures;
 import com.congthanh.ecommerce.workflow.payment.RefundPaymentRequest;
+import com.congthanh.ecommerce.workflow.loyalty.LoyaltyActivities;
+import com.congthanh.ecommerce.workflow.storedvalue.StoredValueActivities;
 import io.temporal.client.WorkflowClient;
 import io.temporal.client.WorkflowOptions;
 import io.temporal.failure.ApplicationFailure;
@@ -39,6 +43,8 @@ class CheckoutWorkflowTest {
     private final List<String> calls = new CopyOnWriteArrayList<>();
     private final FakePayments payments = new FakePayments();
     private final FakeSteps steps = new FakeSteps();
+    private final FakeCredits credits = new FakeCredits();
+    private final FakePoints points = new FakePoints();
 
     @BeforeEach
     void setUp() {
@@ -47,6 +53,8 @@ class CheckoutWorkflowTest {
         env.newWorker(TaskQueues.CHECKOUT_WORKFLOW).registerWorkflowImplementationTypes(CheckoutWorkflowImpl.class);
         env.newWorker(TaskQueues.CHECKOUT).registerActivitiesImplementations(steps);
         env.newWorker(TaskQueues.PAYMENT).registerActivitiesImplementations(payments);
+        env.newWorker(TaskQueues.STORED_VALUE).registerActivitiesImplementations(credits);
+        env.newWorker(TaskQueues.LOYALTY).registerActivitiesImplementations(points);
         env.start();
         client = env.getWorkflowClient();
     }
@@ -66,6 +74,50 @@ class CheckoutWorkflowTest {
     private static CheckoutInput input(String method, boolean promotion) {
         return new CheckoutInput(ORDER, "c-1", new BigDecimal("225.00"), "USD", method, "tok", "https://shop/return",
                 "1.2.3.4", promotion, 600);
+    }
+
+    private static CheckoutInput withTenders(String storeCredit, long loyaltyPoints) {
+        return new CheckoutInput(ORDER, "c-1", new BigDecimal("225.00"), "USD", "STRIPE", "tok", "https://shop/return",
+                "1.2.3.4", false, 600, storeCredit == null ? null : new BigDecimal(storeCredit), loyaltyPoints);
+    }
+
+    @Test
+    void storeCreditAndPointsAreHeldAndOnlyTheRestIsCharged() {
+        CheckoutResult result = stub().run(withTenders("100.00", 2500)); // 2500 điểm = 25 USD
+
+        assertThat(result.confirmed()).isTrue();
+        assertThat(payments.authorizedAmount).isEqualByComparingTo("100.00");
+        assertThat(calls).containsExactly("reserveInventory", "loyalty.reserve", "credit.hold", "authorize", "capture",
+                "commitInventory", "credit.capture", "loyalty.commit", "confirmOrder:pay-" + ORDER);
+    }
+
+    @Test
+    void fullyCoveredOrderSkipsThePaymentProvider() {
+        CheckoutResult result = stub().run(withTenders("225.00", 0));
+
+        assertThat(result.confirmed()).isTrue();
+        assertThat(calls).containsExactly("reserveInventory", "credit.hold", "commitInventory", "credit.capture",
+                "confirmOrder:null");
+    }
+
+    @Test
+    void tendersAreReleasedWhenPaymentIsDeclined() {
+        payments.decline = true;
+        CheckoutResult result = stub().run(withTenders("50.00", 1000));
+
+        assertThat(result.confirmed()).isFalse();
+        assertThat(calls).containsExactly("reserveInventory", "loyalty.reserve", "credit.hold", "authorize",
+                "refund", "credit.release", "loyalty.release", "releaseInventory", "cancelOrder:card declined");
+    }
+
+    @Test
+    void insufficientStoreCreditCancelsBeforeCharging() {
+        credits.reject = true;
+        CheckoutResult result = stub().run(withTenders("50.00", 0));
+
+        assertThat(result.confirmed()).isFalse();
+        assertThat(calls).doesNotContain("authorize");
+        assertThat(calls).contains("credit.release", "releaseInventory");
     }
 
     @Test
@@ -210,10 +262,12 @@ class CheckoutWorkflowTest {
         volatile boolean decline;
         volatile boolean redirect;
         volatile boolean rejectCapture;
+        volatile BigDecimal authorizedAmount;
 
         @Override
         public PaymentAuthorization authorize(AuthorizePaymentRequest request) {
             calls.add("authorize");
+            authorizedAmount = request.amount();
             if (decline) {
                 throw ApplicationFailure.newNonRetryableFailure("card declined", PaymentFailures.DECLINED);
             }
@@ -230,5 +284,37 @@ class CheckoutWorkflowTest {
             }
         }
         @Override public void refund(RefundPaymentRequest request) { calls.add("refund"); }
+        @Override public PartialRefundResult refundPartial(PartialRefundRequest request) {
+            throw new UnsupportedOperationException("checkout never refunds partially");
+        }
+    }
+
+    private final class FakeCredits implements StoredValueActivities {
+        volatile boolean reject;
+
+        @Override public Result credit(CreditRequest request) { throw new UnsupportedOperationException(); }
+
+        @Override public Result hold(HoldRequest request) {
+            calls.add("credit.hold");
+            if (reject) {
+                throw ApplicationFailure.newNonRetryableFailure("available 10.00 USD is less than 50.00", REJECTED);
+            }
+            return new Result("acc-1", BigDecimal.ZERO);
+        }
+
+        @Override public void capture(String holdId) { calls.add("credit.capture"); }
+
+        @Override public void release(String holdId, String reason) { calls.add("credit.release"); }
+    }
+
+    private final class FakePoints implements LoyaltyActivities {
+        @Override public BigDecimal reserve(String redemptionId, String customerId, String orderId, long pts) {
+            calls.add("loyalty.reserve");
+            return BigDecimal.valueOf(pts).movePointLeft(2);
+        }
+
+        @Override public void commit(String redemptionId) { calls.add("loyalty.commit"); }
+
+        @Override public void release(String redemptionId) { calls.add("loyalty.release"); }
     }
 }

@@ -20,6 +20,7 @@ dependencyResolutionManagement {
 rootProject.name = "congthanhapp-ecommerce"
 
 // Thư viện Java dùng chung (libs/java/*)
+include(":libs:java:common-core")
 include(":libs:java:proto")
 include(":libs:java:platform")
 include(":libs:java:workflow-contracts")
@@ -31,6 +32,12 @@ include(":services:order-service")
 include(":services:payment-service")
 include(":services:promotion-service")
 include(":services:checkout-service")
+include(":services:ledger-service")
+include(":services:returns-service")
+include(":services:stored-value-service")
+include(":services:dispute-service")
+include(":services:loyalty-service")
+include(":services:subscription-service")
 
 // Job Flink (stream processing), không phải Spring
 include(":data:streaming:stream-processor")

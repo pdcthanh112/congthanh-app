@@ -252,6 +252,18 @@
         "commerce:cart",
         "commerce:orders.cancel"
       ]
+    },
+    {
+      "clientId": "privacy-service",
+      "name": "Service account: xoá tài khoản khi khách yêu cầu xoá dữ liệu (CCPA, ADR 0027)",
+      "enabled": true,
+      "publicClient": false,
+      "secret": "${PRIVACY_SERVICE_CLIENT_SECRET}",
+      "standardFlowEnabled": false,
+      "serviceAccountsEnabled": true,
+      "defaultClientScopes": [
+        "roles-claim"
+      ]
     }
   ],
   "users": [
@@ -299,6 +311,17 @@
         "realm-management": [
           "view-users",
           "query-users"
+        ]
+      }
+    },
+    {
+      "username": "service-account-privacy-service",
+      "enabled": true,
+      "serviceAccountClientId": "privacy-service",
+      "clientRoles": {
+        "realm-management": [
+          "view-users",
+          "manage-users"
         ]
       }
     }

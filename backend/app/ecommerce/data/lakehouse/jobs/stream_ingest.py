@@ -32,6 +32,11 @@ def create_tables(spark: SparkSession) -> None:
         CREATE TABLE IF NOT EXISTS {table("bronze", "clickstream_events")} (
             {KAFKA_META}, value string, ingested_at timestamp)
         USING iceberg PARTITIONED BY (days(kafka_ts)) TBLPROPERTIES ({TABLE_PROPS})""")
+    # Đầu ra của Flink stream-processor (topic ecommerce.stream.*): EventEnvelope protobuf như outbox.
+    spark.sql(f"""
+        CREATE TABLE IF NOT EXISTS {table("bronze", "stream_signals")} (
+            {KAFKA_META}, value binary, ingested_at timestamp)
+        USING iceberg PARTITIONED BY (topic, days(kafka_ts)) TBLPROPERTIES ({TABLE_PROPS})""")
     mor = "'write.merge.mode'='merge-on-read', 'write.update.mode'='merge-on-read', 'write.delete.mode'='merge-on-read'"
     for t in ODS_TABLES:
         cols = ", ".join(f"`{c}` {typ}" for c, typ in (*t.columns, *META_COLUMNS))
@@ -162,6 +167,10 @@ def main() -> None:
         *kafka_meta(), F.col("value").cast("string").alias("value"), F.current_timestamp().alias("ingested_at")
     )
     start_append(clicks, table("bronze", "clickstream_events"), "bronze_clickstream_events")
+
+    signals = read_kafka(spark, r"ecommerce\.stream\..+")
+    signals = signals.select(*kafka_meta(), "value", F.current_timestamp().alias("ingested_at"))
+    start_append(signals, table("bronze", "stream_signals"), "bronze_stream_signals")
 
     (
         read_kafka(spark, r"ods\..+")

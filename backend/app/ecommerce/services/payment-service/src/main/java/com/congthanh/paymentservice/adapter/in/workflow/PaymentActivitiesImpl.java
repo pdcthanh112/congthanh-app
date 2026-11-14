@@ -1,6 +1,8 @@
 package com.congthanh.paymentservice.adapter.in.workflow;
 
 import com.congthanh.ecommerce.workflow.payment.AuthorizePaymentRequest;
+import com.congthanh.ecommerce.workflow.payment.PartialRefundRequest;
+import com.congthanh.ecommerce.workflow.payment.PartialRefundResult;
 import com.congthanh.ecommerce.workflow.payment.PaymentActivities;
 import com.congthanh.ecommerce.workflow.payment.PaymentAuthorization;
 import com.congthanh.ecommerce.workflow.payment.PaymentFailures;
@@ -52,6 +54,22 @@ public class PaymentActivitiesImpl implements PaymentActivities {
         try {
             payments.refund(r.orderId(), r.reason());
         } catch (PaymentException e) {
+            throw translate(e);
+        }
+    }
+
+    @Override
+    public PartialRefundResult refundPartial(PartialRefundRequest r) {
+        try {
+            var res = payments.refundPartial(new PaymentUseCases.PartialRefundCommand(r.orderId(), r.refundId(),
+                    r.amount(), r.currency(), r.reason()));
+            return new PartialRefundResult(res.refundId(), res.paymentId(), res.amount(), res.currency(),
+                    res.fullyRefunded());
+        } catch (PaymentException e) {
+            if (e.kind() == PaymentException.Kind.INVALID || e.kind() == PaymentException.Kind.CONFLICT
+                    || e.kind() == PaymentException.Kind.NOT_FOUND) {
+                throw ApplicationFailure.newNonRetryableFailure(e.getMessage(), PaymentFailures.REFUND_REJECTED);
+            }
             throw translate(e);
         }
     }

@@ -2,6 +2,7 @@ package com.congthanh.paymentservice.adapter.out.provider;
 
 import com.congthanh.paymentservice.application.port.out.PaymentProvider;
 import com.congthanh.paymentservice.domain.exception.PaymentException;
+import com.congthanh.paymentservice.domain.model.Money;
 import com.congthanh.paymentservice.domain.model.Payment;
 import com.congthanh.paymentservice.domain.model.PaymentMethod;
 import com.stripe.exception.CardException;
@@ -90,8 +91,13 @@ class StripeProvider implements PaymentProvider {
                 .setConfirm(true)
                 .putMetadata("order_id", payment.orderId())
                 .putMetadata("payment_id", payment.id());
+        boolean offSession = isSavedMethod(paymentToken);
         if (paymentToken.startsWith("ctoken_")) {
             params.setConfirmationToken(paymentToken);
+        } else if (offSession) {
+            // Gia hạn subscription (ADR 0027): phương thức đã lưu qua SetupIntent, khách không có mặt.
+            String[] parts = paymentToken.split(":", 2);
+            params.setCustomer(parts[0]).setPaymentMethod(parts[1]).setOffSession(true);
         } else {
             params.setPaymentMethod(paymentToken);
         }
@@ -102,7 +108,9 @@ class StripeProvider implements PaymentProvider {
             PaymentIntent pi = PaymentIntent.create(params.build(), options("authorize-" + payment.orderId()));
             return switch (pi.getStatus()) {
                 case "requires_capture", "succeeded" -> new ProviderResult.Authorized(pi.getId());
-                case "requires_action" -> new ProviderResult.ActionRequired(pi.getId(),
+                // Off-session không có ai để xác thực 3-D Secure: coi như bị từ chối, subscription sẽ nhắc khách cập nhật thẻ.
+                case "requires_action" -> offSession ? new ProviderResult.Declined("authentication_required")
+                        : new ProviderResult.ActionRequired(pi.getId(),
                         pi.getNextAction() != null && pi.getNextAction().getRedirectToUrl() != null
                                 ? pi.getNextAction().getRedirectToUrl().getUrl() : null);
                 default -> new ProviderResult.Declined("unexpected PaymentIntent status " + pi.getStatus());
@@ -112,6 +120,11 @@ class StripeProvider implements PaymentProvider {
         } catch (StripeException e) {
             throw PaymentException.unavailable("stripe: " + e.getMessage());
         }
+    }
+
+    /** {@code cus_...:pm_...}: PaymentMethod đã gắn với Stripe Customer, dùng charge off-session. */
+    static boolean isSavedMethod(String token) {
+        return token != null && token.matches("cus_[A-Za-z0-9]+:pm_[A-Za-z0-9_]+");
     }
 
     /** null nếu token hợp lệ cho method; Declined nếu thiếu dữ liệu đối tác cần; ném INVALID nếu sai loại. */
@@ -164,6 +177,20 @@ class StripeProvider implements PaymentProvider {
                     options("refund-" + payment.orderId()));
         } catch (StripeException e) {
             throw PaymentException.unavailable("stripe refund: " + e.getMessage());
+        }
+    }
+
+    @Override
+    public void refundPartial(Payment payment, String refundId, Money amount) {
+        try {
+            Refund.create(RefundCreateParams.builder()
+                            .setPaymentIntent(payment.providerRef())
+                            .setAmount(amount.minorUnits())
+                            .putMetadata("refund_id", refundId)
+                            .build(),
+                    options("refund-" + refundId));
+        } catch (StripeException e) {
+            throw PaymentException.unavailable("stripe partial refund: " + e.getMessage());
         }
     }
 

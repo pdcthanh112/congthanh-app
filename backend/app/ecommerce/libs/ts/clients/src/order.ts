@@ -56,6 +56,7 @@ const Accepted = z.object({
   discount: MoneyDto,
   checkoutUrl: z.string(),
 });
+export type CheckoutAccepted = z.infer<typeof Accepted>;
 const Progress = z.object({
   orderCode: z.string(),
   orderStatus: z.string(),

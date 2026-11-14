@@ -1,0 +1,42 @@
+nameOverride: dispute-service
+runtime: java
+image:
+  repository: ghcr.io/pdcthanh112/congthanhapp/dispute-service
+ports:
+  http: 5035
+  grpc: 9103
+env:
+  OIDC_ISSUER_URI: http://keycloak-service.identity.svc.cluster.local:8080/realms/ecommerce
+  JWT_JWKS_URL: http://keycloak-service.identity.svc.cluster.local:8080/realms/ecommerce/protocol/openid-connect/certs
+  OTLP_TRACES_ENDPOINT: http://otel-collector.observability.svc.cluster.local:4318/v1/traces
+  KAFKA_BROKERS: ecommerce-kafka-bootstrap.messaging.svc.cluster.local:9092
+secretEnv:
+  - name: STRIPE_API_KEY
+    key: ecommerce/dispute-service
+    property: stripe_api_key
+  - name: STRIPE_DISPUTE_WEBHOOK_SECRET
+    key: ecommerce/dispute-service
+    property: stripe_dispute_webhook_secret
+  - name: DATABASE_URL
+    key: ecommerce/dispute-service
+    property: database_url
+  - name: DATABASE_USER
+    key: ecommerce/dispute-service
+    property: database_user
+  - name: DATABASE_PASSWORD
+    key: ecommerce/dispute-service
+    property: database_password
+probes:
+  readinessPath: /actuator/health/readiness
+  livenessPath: /actuator/health/liveness
+resources:
+  requests:
+    cpu: 200m
+    memory: 512Mi
+  limits:
+    memory: 1Gi
+serviceMonitor:
+  enabled: true
+  path: /actuator/prometheus
+otel:
+  javaAutoInstrumentation: false

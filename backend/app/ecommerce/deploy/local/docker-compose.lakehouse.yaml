@@ -1,17 +1,7 @@
-# Data lakehouse local: Kafka → Spark → Iceberg (MinIO) ← Trino, điều phối bằng Airflow.
-# File này GHÉP thêm vào docker-compose.yaml (cùng project, cùng network), không chạy riêng:
-#   make lakehouse-up                       # = profile lakehouse (+ minio)
-#   make lakehouse-up LAKEHOUSE_PROFILES="lakehouse airflow"
-# Đường dẫn tương đối tính từ deploy/local (thư mục của file compose đầu tiên).
-# Kiến trúc và lý do chọn: docs/adr/0013-data-lakehouse.md. Code job: data/lakehouse.
-#
-# Tầng dữ liệu (namespace trong catalog Iceberg "lakehouse"):
-#   bronze  event thô từ Kafka, chỉ append (outbox, CDC, clickstream)
-#   ods     bản sao trạng thái hiện tại của bảng OLTP, MERGE gần thời gian thực từ CDC
-#   silver  dữ liệu đã làm sạch, khử trùng lặp, bỏ PII, chuẩn kiểu
-#   gold    bảng tổng hợp cho BI/ML (doanh thu, funnel, RFM)
 x-lake-spark: &lake-spark
-  build: ./lakehouse/spark
+  build:
+    context: ./lakehouse/spark
+    additional_contexts: { protos: ../../api/proto }
   image: congthanhapp/lakehouse-spark:4.0.1-iceberg1.12.0
   environment: &lake-spark-env
     AWS_REGION: us-east-1
@@ -19,19 +9,17 @@ x-lake-spark: &lake-spark
   volumes:
     - ../../data/lakehouse/jobs:/opt/lakehouse/jobs:ro
   depends_on:
-    polaris-init: {condition: service_completed_successfully}
-    kafka: {condition: service_healthy}
+    polaris-init: { condition: service_completed_successfully }
+    kafka: { condition: service_healthy }
 
 services:
-  # MinIO đã có trong profile apps-go; bật thêm cho lakehouse.
   minio:
     profiles: [apps-go, lakehouse]
 
-  # Bucket chứa dữ liệu Iceberg (metadata + file Parquet).
   lakehouse-bucket:
     profiles: [lakehouse]
     image: minio/minio:RELEASE.2025-09-07T16-13-09Z
-    depends_on: {minio: {condition: service_healthy}}
+    depends_on: { minio: { condition: service_healthy } }
     entrypoint: ["sh", "-c"]
     command:
       - |
@@ -39,16 +27,15 @@ services:
         mc mb --ignore-existing local/lakehouse
     restart: "no"
 
-  # Database cho Polaris và Airflow (init.sql chỉ chạy khi volume Postgres mới tạo, nên tạo ở đây).
   lakehouse-db-init:
     profiles: [lakehouse]
     image: postgres:18
-    depends_on: {postgres: {condition: service_healthy}}
-    environment: {PGPASSWORD: postgres}
+    depends_on: { postgres: { condition: service_healthy } }
+    environment: { PGPASSWORD: postgres }
     entrypoint: ["sh", "-c"]
     command:
       - |
-        for db in polaris airflow; do
+        for db in polaris airflow superset marquez openmetadata_db; do
           psql -h postgres -U postgres -tAc "SELECT 1 FROM pg_database WHERE datname='$$db'" | grep -q 1 \
             || psql -h postgres -U postgres -c "CREATE DATABASE $$db"
         done
@@ -56,18 +43,16 @@ services:
         psql -h postgres -U postgres -d polaris -c "CREATE SCHEMA IF NOT EXISTS polaris_schema"
     restart: "no"
 
-  # ---------------- catalog Iceberg: Apache Polaris (REST catalog) ----------------
   polaris-bootstrap:
     profiles: [lakehouse]
     image: apache/polaris-admin-tool:1.8.0
-    depends_on: {lakehouse-db-init: {condition: service_completed_successfully}}
+    depends_on: { lakehouse-db-init: { condition: service_completed_successfully } }
     environment: &polaris-db
       POLARIS_PERSISTENCE_TYPE: relational-jdbc
       QUARKUS_DATASOURCE_JDBC_URL: jdbc:postgresql://postgres:5432/polaris
       QUARKUS_DATASOURCE_USERNAME: postgres
       QUARKUS_DATASOURCE_PASSWORD: postgres
-    # Tạo bảng của Polaris + realm POLARIS + principal root (client_id:secret = root:s3cr3t, CHỈ dùng local).
-    # Idempotent: realm đã bootstrap thì công cụ bỏ qua.
+
     command: ["bootstrap", "-r", "POLARIS", "-c", "POLARIS,root,s3cr3t"]
     restart: "no"
 
@@ -79,71 +64,71 @@ services:
       <<: *polaris-db
       POLARIS_REALM_CONTEXT_REALMS: POLARIS
       QUARKUS_OTEL_SDK_DISABLED: "true"
-      # Polaris tự ghi metadata vào MinIO bằng key này (MinIO local không có STS để cấp quyền tạm).
       AWS_REGION: us-east-1
       AWS_ACCESS_KEY_ID: minioadmin
       AWS_SECRET_ACCESS_KEY: minioadmin
       polaris.features."ALLOW_INSECURE_STORAGE_TYPES": "true"
-      polaris.features."SUPPORTED_CATALOG_STORAGE_TYPES": "[\"S3\",\"FILE\"]"
+      polaris.features."SUPPORTED_CATALOG_STORAGE_TYPES": '["S3","FILE"]'
+      polaris.features."DROP_WITH_PURGE_ENABLED": "true"
       polaris.readiness.ignore-severe-issues: "true"
     depends_on:
-      polaris-bootstrap: {condition: service_completed_successfully}
-      lakehouse-bucket: {condition: service_completed_successfully}
+      polaris-bootstrap: { condition: service_completed_successfully }
+      lakehouse-bucket: { condition: service_completed_successfully }
     healthcheck:
       test: ["CMD", "curl", "-sf", "http://localhost:8182/q/health"]
       interval: 5s
       retries: 30
 
-  # Tạo catalog "lakehouse" trỏ vào s3://lakehouse (idempotent).
   polaris-init:
     profiles: [lakehouse]
     image: curlimages/curl:8.16.0
-    depends_on: {polaris: {condition: service_healthy}}
+    depends_on: { polaris: { condition: service_healthy } }
     volumes: ["./lakehouse/polaris/init.sh:/init.sh:ro"]
     entrypoint: ["sh", "/init.sh"]
     restart: "no"
 
-  # ---------------- Spark ----------------
-  # Spark Connect server: Airflow và notebook gọi vào sc://spark-connect:15002 để chạy job batch.
   spark-connect:
     <<: *lake-spark
     profiles: [lakehouse]
-    ports: ["15002:15002", "4042:4040"]  # 4040 là của Pyroscope
+    ports: ["15002:15002", "4042:4040"]
     environment:
       <<: *lake-spark-env
       SPARK_NO_DAEMONIZE: "true"
-    command: ["/opt/spark/sbin/start-connect-server.sh", "--driver-memory", "1g"]
+    command: ["/opt/spark/sbin/start-connect-server.sh", "--driver-memory", "1g", "--conf", "spark.extraListeners=${LAKE_SPARK_LISTENERS:-}"]
     healthcheck:
       test: ["CMD-SHELL", "bash -c '</dev/tcp/localhost/15002'"]
       interval: 10s
       retries: 30
 
-  # Job streaming chạy liên tục: Kafka → bronze (append) và CDC → ods (MERGE).
   lake-stream:
     <<: *lake-spark
     profiles: [lakehouse]
     ports: ["4041:4040"]
-    command: ["/opt/spark/bin/spark-submit", "--driver-memory", "1g", "/opt/lakehouse/jobs/stream_ingest.py"]
+    command:
+      [
+        "/opt/spark/bin/spark-submit",
+        "--driver-memory",
+        "1g",
+        "--conf",
+        "spark.extraListeners=${LAKE_SPARK_LISTENERS:-}",
+        "/opt/lakehouse/jobs/stream_ingest.py",
+      ]
     volumes:
       - ../../data/lakehouse/jobs:/opt/lakehouse/jobs:ro
       - lake-checkpoints:/checkpoints
     restart: unless-stopped
 
-  # ---------------- Trino: SQL trên Iceberg ----------------
   trino:
     profiles: [lakehouse]
     image: trinodb/trino:478
     ports: ["8088:8080"]
     volumes: ["./lakehouse/trino/catalog:/etc/trino/catalog:ro"]
-    depends_on: {polaris-init: {condition: service_completed_successfully}}
+    depends_on: { polaris-init: { condition: service_completed_successfully } }
 
-  # ---------------- nguồn dữ liệu ----------------
-  # CDC bảng nghiệp vụ (orders, order_lines, payments, products) → topic ods.<schema>.<bảng>.
-  # Cần profile apps-java để có bảng; script tự thử lại tới khi connector chạy được.
   connect-init-lakehouse:
     profiles: [lakehouse]
     image: curlimages/curl:8.16.0
-    depends_on: {connect: {condition: service_healthy}, schema-registry: {condition: service_started}}
+    depends_on: { connect: { condition: service_healthy }, schema-registry: { condition: service_started } }
     volumes:
       - ../../platform/messaging/debezium/local/ods-cdc.json:/connectors/ods-cdc.json:ro
       - ../../api/jsonschema/clickstream/v1/clickstream-event.json:/schemas/clickstream-event.json:ro
@@ -151,10 +136,9 @@ services:
     entrypoint: ["sh", "/connect-init.sh"]
     restart: "no"
 
-  # Thu thập clickstream (view, search, add-to-cart...) từ web/app → topic clickstream.events.
   clickstream-collector:
     profiles: [lakehouse]
-    build: {context: ../.., dockerfile: data/ingestion/clickstream-collector/Dockerfile}
+    build: { context: ../.., dockerfile: data/ingestion/clickstream-collector/Dockerfile }
     ports: ["5029:5029"]
     environment:
       KAFKA_BROKERS: kafka:9092
@@ -162,30 +146,202 @@ services:
       CORS_ALLOWED_ORIGINS: http://localhost:3000
       IP_HASH_SALT: local-dev-salt
       LOG_FORMAT: text
-    depends_on: {kafka: {condition: service_healthy}}
+    depends_on: { kafka: { condition: service_healthy } }
 
-  # ---------------- Airflow (profile airflow, nặng ~1.5 GB RAM) ----------------
   airflow:
     profiles: [airflow]
     build: ./lakehouse/airflow
     image: congthanhapp/lakehouse-airflow:3.1.2
     command: ["standalone"]
-    ports: ["8090:8080"]  # 8089 là của OpenFGA
+    ports: ["8090:8080"]
     environment:
       AIRFLOW__CORE__EXECUTOR: LocalExecutor
       AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://postgres:postgres@postgres:5432/airflow
       AIRFLOW__CORE__LOAD_EXAMPLES: "false"
       AIRFLOW__CORE__DAGS_ARE_PAUSED_AT_CREATION: "false"
-      # Local: ai vào UI cũng là admin, không cần đăng nhập.
       AIRFLOW__CORE__SIMPLE_AUTH_MANAGER_ALL_ADMINS: "true"
       SPARK_REMOTE: sc://spark-connect:15002
       LAKEHOUSE_JOBS_DIR: /opt/lakehouse/jobs
+      LAKEHOUSE_DBT_DIR: /opt/lakehouse/dbt
+      DBT_TRINO_HOST: trino
+      OPENLINEAGE_DISABLED: ${OPENLINEAGE_DISABLED:-true}
+      OPENLINEAGE_URL: http://marquez:5000
+      OPENLINEAGE_NAMESPACE: lakehouse
+      AIRFLOW__OPENLINEAGE__DISABLED: ${OPENLINEAGE_DISABLED:-true}
+      AIRFLOW__OPENLINEAGE__NAMESPACE: lakehouse
+      AIRFLOW__OPENLINEAGE__TRANSPORT: '{"type": "http", "url": "http://marquez:5000"}'
     volumes:
       - ../../data/lakehouse/airflow/dags:/opt/airflow/dags:ro
       - ../../data/lakehouse/jobs:/opt/lakehouse/jobs:ro
+      - ../../data/lakehouse/dbt:/opt/lakehouse/dbt:ro
+      - dbt-target:/opt/lakehouse/dbt-target
     depends_on:
-      lakehouse-db-init: {condition: service_completed_successfully}
-      spark-connect: {condition: service_healthy}
+      lakehouse-db-init: { condition: service_completed_successfully }
+      spark-connect: { condition: service_healthy }
+      trino: { condition: service_started }
+
+  superset-init:
+    profiles: [bi]
+    build: ./lakehouse/superset
+    image: congthanhapp/lakehouse-superset:6.1.0
+    user: superset
+    environment: &superset-env
+      SUPERSET_CONFIG_PATH: /app/pythonpath/superset_config.py
+    volumes: &superset-volumes
+      - ./lakehouse/superset/superset_config.py:/app/pythonpath/superset_config.py:ro
+      - ./lakehouse/superset/bootstrap_dashboards.py:/app/bootstrap/bootstrap_dashboards.py:ro
+    entrypoint: ["sh", "-c"]
+    command:
+      - |
+        set -e
+        superset db upgrade
+        superset fab list-users | grep -q "username:admin" \
+          || superset fab create-admin --username admin --password admin \
+               --firstname Admin --lastname Local --email admin@example.local
+        superset init
+        python /app/bootstrap/bootstrap_dashboards.py
+    depends_on:
+      lakehouse-db-init: { condition: service_completed_successfully }
+      trino: { condition: service_started }
+    restart: "no"
+
+  superset:
+    profiles: [bi]
+    image: congthanhapp/lakehouse-superset:6.1.0
+    ports: ["8092:8088"]
+    environment: *superset-env
+    volumes: *superset-volumes
+    depends_on:
+      superset-init: { condition: service_completed_successfully }
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:8088/health"]
+      interval: 10s
+      retries: 30
+
+  marquez:
+    profiles: [lineage]
+    image: marquezproject/marquez:0.51.1
+    ports: ["5100:5000", "5101:5001"]
+    environment:
+      MARQUEZ_CONFIG: /opt/marquez/marquez.yml
+    volumes: ["./lakehouse/marquez/marquez.yml:/opt/marquez/marquez.yml:ro"]
+    depends_on: { lakehouse-db-init: { condition: service_completed_successfully } }
+    healthcheck:
+      test: ["CMD-SHELL", "bash -c '</dev/tcp/localhost/5001'"]
+      interval: 10s
+      retries: 30
+
+  marquez-web:
+    profiles: [lineage]
+    image: marquezproject/marquez-web:0.51.1
+    ports: ["3100:3000"]
+    environment:
+      MARQUEZ_HOST: marquez
+      MARQUEZ_PORT: "5000"
+      WEB_PORT: "3000"
+    depends_on: { marquez: { condition: service_healthy } }
+
+  feast:
+    profiles: [ml]
+    build: ./lakehouse/feast
+    image: congthanhapp/lakehouse-feast:0.67.0
+    ports: ["6566:6566"]
+    volumes:
+      - ../../data/lakehouse/feast:/feature_repo:ro
+      - feast-data:/data
+    entrypoint: ["sh", "-c"]
+    command:
+      - |
+        set -e
+        feast apply
+        feast materialize-incremental "$$(date -u +%Y-%m-%dT%H:%M:%S)" || echo "Chưa materialize được (gold chưa có dữ liệu?)"
+        exec feast serve --host 0.0.0.0 --port 6566 --no-access-log
+    depends_on:
+      trino: { condition: service_started }
+      redis: { condition: service_healthy }
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:6566/health')"]
+      interval: 10s
+      retries: 30
+
+  dbt:
+    profiles: [dbt]
+    build: ./lakehouse/dbt
+    image: congthanhapp/lakehouse-dbt:1.12.7
+    environment:
+      DBT_TRINO_HOST: trino
+      DBT_TARGET_PATH: /opt/lakehouse/dbt-target
+      DBT_LOG_PATH: /tmp/dbt-logs
+      OPENLINEAGE_DISABLED: ${OPENLINEAGE_DISABLED:-true}
+      OPENLINEAGE_URL: http://marquez:5000
+      OPENLINEAGE_NAMESPACE: lakehouse
+    volumes:
+      - ../../data/lakehouse/dbt:/opt/lakehouse/dbt:ro
+      - dbt-target:/opt/lakehouse/dbt-target
+    depends_on: { trino: { condition: service_started } }
+    restart: "no"
+
+  openmetadata-search:
+    profiles: [catalog]
+    image: elasticsearch:9.3.0
+    environment:
+      discovery.type: single-node
+      xpack.security.enabled: "false"
+      cluster.routing.allocation.disk.threshold_enabled: "false"
+      ES_JAVA_OPTS: -Xms512m -Xmx512m
+    volumes: ["openmetadata-search:/usr/share/elasticsearch/data"]
+    healthcheck:
+      test: ["CMD-SHELL", 'curl -s http://localhost:9200/_cluster/health | grep -qE ''"status":"(green|yellow)"''']
+      interval: 10s
+      retries: 30
+
+  openmetadata-migrate:
+    profiles: [catalog]
+    image: openmetadata/server:2.0.7
+    command: ["./bootstrap/openmetadata-ops.sh", "migrate"]
+    environment: &openmetadata-env
+      OPENMETADATA_CLUSTER_NAME: openmetadata
+      DB_DRIVER_CLASS: org.postgresql.Driver
+      DB_SCHEME: postgresql
+      DB_PARAMS: allowPublicKeyRetrieval=true&useSSL=false&serverTimezone=UTC
+      DB_HOST: postgres
+      DB_PORT: "5432"
+      DB_USER: postgres
+      DB_USER_PASSWORD: postgres
+      OM_DATABASE: openmetadata_db
+      ELASTICSEARCH_HOST: openmetadata-search
+      ELASTICSEARCH_PORT: "9200"
+      SEARCH_TYPE: elasticsearch
+      PIPELINE_SERVICE_CLIENT_ENABLED: "false"
+    depends_on:
+      lakehouse-db-init: { condition: service_completed_successfully }
+      openmetadata-search: { condition: service_healthy }
+    restart: "no"
+
+  openmetadata:
+    profiles: [catalog]
+    image: openmetadata/server:2.0.7
+    ports: ["8585:8585", "8586:8586"]
+    environment: *openmetadata-env
+    depends_on:
+      openmetadata-migrate: { condition: service_completed_successfully }
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://localhost:8586/healthcheck || curl -sf http://localhost:8586/healthcheck"]
+      interval: 15s
+      retries: 40
+
+  openmetadata-ingest:
+    profiles: [catalog]
+    build: ./lakehouse/openmetadata
+    image: congthanhapp/lakehouse-openmetadata-ingest:2.0.7
+    volumes: ["dbt-target:/dbt-target:ro"]
+    depends_on:
+      openmetadata: { condition: service_healthy }
+      trino: { condition: service_started }
+    restart: "no"
 
 volumes:
   lake-checkpoints: {}
+  feast-data: {}
+  dbt-target: {}
+  openmetadata-search: {}

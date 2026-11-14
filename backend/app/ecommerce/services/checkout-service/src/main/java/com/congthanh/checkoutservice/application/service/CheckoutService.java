@@ -37,7 +37,7 @@ import java.util.Optional;
  * Điều phối phiên checkout: báo giá từ pricing/promotion/shipping/tax, kiểm tra gian lận rồi tạo đơn ở
  * order-service. Saga sau khi có đơn (giữ hàng, thanh toán, xác nhận) là workflow Temporal của service này.
  */
-public class CheckoutService implements CheckoutUseCase {
+public class CheckoutService implements CheckoutUseCase, com.congthanh.checkoutservice.application.port.in.SubscriptionOrders {
 
     private static final Logger log = LoggerFactory.getLogger(CheckoutService.class);
 
@@ -53,8 +53,57 @@ public class CheckoutService implements CheckoutUseCase {
     private final Ids ids;
     private final Clock clock;
     private final Settings settings;
+    private com.congthanh.checkoutservice.application.port.out.Customers customers;
 
     public record Settings(String defaultCurrency, Duration sessionTtl) {
+    }
+
+    /** Đặt sau khi khởi tạo để không đổi chữ ký constructor (test hiện có dựng service không có port này). */
+    @org.springframework.beans.factory.annotation.Autowired(required = false)
+    public void setCustomers(com.congthanh.checkoutservice.application.port.out.Customers customers) {
+        this.customers = customers;
+    }
+
+    @Override
+    public Result place(Command cmd) {
+        if (customers == null) {
+            throw CheckoutException.unavailable("customer address book is not configured");
+        }
+        if (cmd.items() == null || cmd.items().isEmpty()) {
+            throw CheckoutException.invalid("a subscription order needs items");
+        }
+        String sessionId = java.util.UUID.nameUUIDFromBytes(("subscription-session:" + cmd.idempotencyKey())
+                .getBytes(java.nio.charset.StandardCharsets.UTF_8)).toString();
+        Optional<CheckoutSession> existing = sessions.findById(sessionId);
+        if (existing.isPresent() && existing.get().status() == SessionStatus.PLACED) {
+            CheckoutSession s = existing.get();
+            return new Result(s.orderId(), s.orderCode(), s.totals().total().amount(), s.currency());
+        }
+        String orderId = java.util.UUID.nameUUIDFromBytes(("subscription-order:" + cmd.idempotencyKey())
+                .getBytes(java.nio.charset.StandardCharsets.UTF_8)).toString();
+        CheckoutSession s = existing.orElseGet(() -> CheckoutSession.open(sessionId, orderId, cmd.customerId(), List.of(),
+                settings.defaultCurrency(), cmd.items(), clock.instant(), settings.sessionTtl()));
+        s.changeAddresses(customers.shippingAddress(cmd.customerId(), cmd.addressId()), null);
+        s.changeNote("subscription " + cmd.subscriptionId());
+        s.changePromotion(cmd.promotionCode() == null || cmd.promotionCode().isBlank() ? null : cmd.promotionCode());
+        requote(s);
+        // Không có ai chọn: lấy cách giao rẻ nhất (cùng giá thì nhanh hơn).
+        s.shippingOptions().stream()
+                .min(java.util.Comparator.comparing((CheckoutSession.ShippingOption o) -> o.fee().amount())
+                        .thenComparingInt(CheckoutSession.ShippingOption::daysMax))
+                .ifPresent(o -> s.selectShipping(o.carrier(), o.serviceCode()));
+        requote(s);
+        s.requireReadyToPlace();
+        if (s.promotionError() != null) {
+            // Mã subscriber hết hạn/hết lượt: vẫn giao, không giảm (khách đã đồng ý giá hiện hành khi đăng ký).
+            log.warn("subscription {} promotion {} not applied: {}", cmd.subscriptionId(), cmd.promotionCode(), s.promotionError());
+            s.changePromotion(null);
+            requote(s);
+        }
+        // Đơn đầu tiên đã qua fraud-service; đơn gia hạn dùng cùng phương thức đã lưu nên không chấm lại.
+        s.recordPayment(new Payment("CARD", cmd.paymentMethodRef(), null, null, null, null, null), null);
+        CheckoutSession placed = placeOrder(s);
+        return new Result(placed.orderId(), placed.orderCode(), placed.totals().total().amount(), placed.currency());
     }
 
     public CheckoutService(SessionRepository sessions, Catalog catalog, Pricing pricing, Promotions promotions,
@@ -151,8 +200,15 @@ public class CheckoutService implements CheckoutUseCase {
             throw CheckoutException.conflict("PRICE_CHANGED", "the total changed to " + s.totals().total().amount()
                     + " " + s.currency() + "; review the checkout and place again");
         }
+        if (cmd.storeCredit() != null && (cmd.storeCredit().signum() < 0
+                || cmd.storeCredit().compareTo(s.totals().total().amount()) > 0)) {
+            throw CheckoutException.invalid("storeCredit must be between 0 and the order total");
+        }
+        if (cmd.loyaltyPoints() != null && cmd.loyaltyPoints() < 0) {
+            throw CheckoutException.invalid("loyaltyPoints must not be negative");
+        }
         Payment payment = new Payment(cmd.paymentMethod().trim().toUpperCase(Locale.ROOT), cmd.paymentToken(),
-                cmd.returnUrl(), cmd.clientIp(), cmd.deviceId());
+                cmd.returnUrl(), cmd.clientIp(), cmd.deviceId(), cmd.storeCredit(), cmd.loyaltyPoints());
         FraudVerdict verdict = fraud.assess(s, new FraudCheck.Context(customer.email(), s.shippingAddress().phone(),
                 cmd.clientIp(), cmd.deviceId(), payment.method(), customer.accountCreatedAt()));
         switch (verdict.decision()) {

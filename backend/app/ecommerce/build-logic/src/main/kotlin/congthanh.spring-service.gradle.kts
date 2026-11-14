@@ -1,10 +1,5 @@
 import org.gradle.accessors.dm.LibrariesForLibs
 
-// Convention cho mọi service Spring Boot (hexagonal):
-//   web + validation + OAuth2 resource server (Keycloak) + actuator/Prometheus
-//   gRPC server/client (Spring gRPC), OpenTelemetry (traces, metrics, logs qua OTLP)
-//   Liquibase, Resilience4j, libs/java/platform (outbox, Idempotency-Key, consumer chống trùng)
-//   ArchUnit + Testcontainers cho test, Jib để đóng image không cần Dockerfile.
 plugins {
     id("congthanh.java-conventions")
     id("org.springframework.boot")
@@ -14,6 +9,7 @@ plugins {
 val libs = the<LibrariesForLibs>()
 
 dependencies {
+    implementation(project(":libs:java:common-core"))
     implementation(project(":libs:java:platform"))
     implementation(project(":libs:java:proto"))
 
@@ -51,7 +47,6 @@ tasks.named<Jar>("jar") {
     enabled = false
 }
 
-// Test cần Docker (Testcontainers) gắn tag "integration"; chạy riêng bằng ./gradlew integrationTest.
 tasks.named<Test>("test") {
     useJUnitPlatform { excludeTags("integration") }
 }
@@ -64,8 +59,6 @@ tasks.register<Test>("integrationTest") {
     shouldRunAfter("test")
 }
 
-// Image OCI không cần Dockerfile: ./gradlew :services:<svc>:jib (push) hoặc jibDockerBuild (local).
-// Tag và registry lấy từ biến môi trường để CI quyết định (xem .github/workflows/ci-java.yml).
 jib {
     from {
         image = "eclipse-temurin:${libs.versions.jdk.get()}-jre"
@@ -79,7 +72,7 @@ jib {
         tags = setOf(System.getenv("IMAGE_TAG") ?: "dev")
     }
     container {
-        user = "65532:65532" // trùng runAsUser trong Helm chart
+        user = "65532:65532" 
         jvmFlags = listOf(
             "-XX:MaxRAMPercentage=75",
             "-XX:+UseZGC",

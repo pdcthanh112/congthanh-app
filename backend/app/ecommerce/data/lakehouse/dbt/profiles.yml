@@ -1,0 +1,15 @@
+lakehouse:
+  target: local
+  outputs:
+    local:
+      type: trino
+      method: none
+      user: "{{ env_var('DBT_TRINO_USER', 'dbt') }}"
+      host: "{{ env_var('DBT_TRINO_HOST', 'trino') }}"
+      port: "{{ env_var('DBT_TRINO_PORT', '8080') | int }}"
+      http_scheme: http
+      database: lakehouse
+      schema: silver
+      threads: 4
+      session_properties:
+        query_max_run_time: 30m

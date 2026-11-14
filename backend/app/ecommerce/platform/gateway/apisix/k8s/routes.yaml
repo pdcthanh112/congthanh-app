@@ -579,6 +579,368 @@ spec:
 apiVersion: apisix.apache.org/v2
 kind: ApisixRoute
 metadata:
+  name: returns
+  namespace: gateway
+spec:
+  ingressClassName: apisix
+  http:
+  - name: returns
+    match:
+      paths:
+      - /api/ecommerce/returns*
+    backends:
+    - serviceName: returns-service
+      servicePort: 80
+      resolveGranularity: service
+    plugins:
+    - name: limit-count
+      enable: true
+      config:
+        count: 300
+        time_window: 60
+        key: remote_addr
+        rejected_code: 429
+        policy: redis
+        redis_host: redis.data.svc.cluster.local
+        allow_degradation: true
+    - name: openid-connect
+      enable: true
+      config:
+        discovery: http://keycloak.identity.svc.cluster.local/realms/ecommerce/.well-known/openid-configuration
+        client_id: apisix-gateway
+        client_secret: $secret://vault/apisix/keycloak-client-secret
+        bearer_only: true
+        use_jwks: true
+        set_userinfo_header: false
+---
+apiVersion: apisix.apache.org/v2
+kind: ApisixRoute
+metadata:
+  name: ledger
+  namespace: gateway
+spec:
+  ingressClassName: apisix
+  http:
+  - name: ledger
+    match:
+      paths:
+      - /api/ecommerce/ledger*
+    backends:
+    - serviceName: ledger-service
+      servicePort: 80
+      resolveGranularity: service
+    plugins:
+    - name: limit-count
+      enable: true
+      config:
+        count: 300
+        time_window: 60
+        key: remote_addr
+        rejected_code: 429
+        policy: redis
+        redis_host: redis.data.svc.cluster.local
+        allow_degradation: true
+    - name: openid-connect
+      enable: true
+      config:
+        discovery: http://keycloak.identity.svc.cluster.local/realms/ecommerce/.well-known/openid-configuration
+        client_id: apisix-gateway
+        client_secret: $secret://vault/apisix/keycloak-client-secret
+        bearer_only: true
+        use_jwks: true
+        set_userinfo_header: false
+---
+apiVersion: apisix.apache.org/v2
+kind: ApisixRoute
+metadata:
+  name: privacy
+  namespace: gateway
+spec:
+  ingressClassName: apisix
+  http:
+  - name: privacy
+    match:
+      paths:
+      - /api/ecommerce/privacy*
+    backends:
+    - serviceName: privacy-service
+      servicePort: 80
+      resolveGranularity: service
+    plugins:
+    - name: limit-count
+      enable: true
+      config:
+        count: 30
+        time_window: 60
+        key: consumer_name
+        rejected_code: 429
+        policy: redis
+        redis_host: redis.data.svc.cluster.local
+        allow_degradation: true
+    - name: openid-connect
+      enable: true
+      config:
+        discovery: http://keycloak.identity.svc.cluster.local/realms/ecommerce/.well-known/openid-configuration
+        client_id: apisix-gateway
+        client_secret: $secret://vault/apisix/keycloak-client-secret
+        bearer_only: true
+        use_jwks: true
+        set_userinfo_header: false
+---
+apiVersion: apisix.apache.org/v2
+kind: ApisixRoute
+metadata:
+  name: stored-value
+  namespace: gateway
+spec:
+  ingressClassName: apisix
+  http:
+  - name: stored-value
+    match:
+      paths:
+      - /api/ecommerce/stored-value*
+    backends:
+    - serviceName: stored-value-service
+      servicePort: 80
+      resolveGranularity: service
+    plugins:
+    - name: limit-count
+      enable: true
+      config:
+        count: 300
+        time_window: 60
+        key: remote_addr
+        rejected_code: 429
+        policy: redis
+        redis_host: redis.data.svc.cluster.local
+        allow_degradation: true
+    - name: openid-connect
+      enable: true
+      config:
+        discovery: http://keycloak.identity.svc.cluster.local/realms/ecommerce/.well-known/openid-configuration
+        client_id: apisix-gateway
+        client_secret: $secret://vault/apisix/keycloak-client-secret
+        bearer_only: true
+        use_jwks: true
+        set_userinfo_header: false
+---
+apiVersion: apisix.apache.org/v2
+kind: ApisixRoute
+metadata:
+  name: disputes
+  namespace: gateway
+spec:
+  ingressClassName: apisix
+  http:
+  - name: disputes
+    match:
+      paths:
+      - /api/ecommerce/disputes*
+    backends:
+    - serviceName: dispute-service
+      servicePort: 80
+      resolveGranularity: service
+    plugins:
+    - name: limit-count
+      enable: true
+      config:
+        count: 300
+        time_window: 60
+        key: remote_addr
+        rejected_code: 429
+        policy: redis
+        redis_host: redis.data.svc.cluster.local
+        allow_degradation: true
+    - name: openid-connect
+      enable: true
+      config:
+        discovery: http://keycloak.identity.svc.cluster.local/realms/ecommerce/.well-known/openid-configuration
+        client_id: apisix-gateway
+        client_secret: $secret://vault/apisix/keycloak-client-secret
+        bearer_only: true
+        use_jwks: true
+        set_userinfo_header: false
+---
+apiVersion: apisix.apache.org/v2
+kind: ApisixRoute
+metadata:
+  name: disputes-webhook
+  namespace: gateway
+spec:
+  ingressClassName: apisix
+  http:
+  - name: disputes-webhook
+    priority: 10
+    match:
+      paths:
+      - /api/ecommerce/disputes/webhooks/stripe
+    backends:
+    - serviceName: dispute-service
+      servicePort: 80
+      resolveGranularity: service
+    plugins:
+    - name: limit-count
+      enable: true
+      config:
+        count: 300
+        time_window: 60
+        key: remote_addr
+        rejected_code: 429
+        policy: redis
+        redis_host: redis.data.svc.cluster.local
+        allow_degradation: true
+---
+apiVersion: apisix.apache.org/v2
+kind: ApisixRoute
+metadata:
+  name: reconciliation
+  namespace: gateway
+spec:
+  ingressClassName: apisix
+  http:
+  - name: reconciliation
+    match:
+      paths:
+      - /api/ecommerce/reconciliation*
+    backends:
+    - serviceName: reconciliation-service
+      servicePort: 80
+      resolveGranularity: service
+    plugins:
+    - name: limit-count
+      enable: true
+      config:
+        count: 300
+        time_window: 60
+        key: remote_addr
+        rejected_code: 429
+        policy: redis
+        redis_host: redis.data.svc.cluster.local
+        allow_degradation: true
+    - name: openid-connect
+      enable: true
+      config:
+        discovery: http://keycloak.identity.svc.cluster.local/realms/ecommerce/.well-known/openid-configuration
+        client_id: apisix-gateway
+        client_secret: $secret://vault/apisix/keycloak-client-secret
+        bearer_only: true
+        use_jwks: true
+        set_userinfo_header: false
+---
+apiVersion: apisix.apache.org/v2
+kind: ApisixRoute
+metadata:
+  name: loyalty
+  namespace: gateway
+spec:
+  ingressClassName: apisix
+  http:
+  - name: loyalty
+    match:
+      paths:
+      - /api/ecommerce/loyalty*
+    backends:
+    - serviceName: loyalty-service
+      servicePort: 80
+      resolveGranularity: service
+    plugins:
+    - name: limit-count
+      enable: true
+      config:
+        count: 300
+        time_window: 60
+        key: remote_addr
+        rejected_code: 429
+        policy: redis
+        redis_host: redis.data.svc.cluster.local
+        allow_degradation: true
+    - name: openid-connect
+      enable: true
+      config:
+        discovery: http://keycloak.identity.svc.cluster.local/realms/ecommerce/.well-known/openid-configuration
+        client_id: apisix-gateway
+        client_secret: $secret://vault/apisix/keycloak-client-secret
+        bearer_only: true
+        use_jwks: true
+        set_userinfo_header: false
+---
+apiVersion: apisix.apache.org/v2
+kind: ApisixRoute
+metadata:
+  name: subscriptions
+  namespace: gateway
+spec:
+  ingressClassName: apisix
+  http:
+  - name: subscriptions
+    match:
+      paths:
+      - /api/ecommerce/subscriptions*
+    backends:
+    - serviceName: subscription-service
+      servicePort: 80
+      resolveGranularity: service
+    plugins:
+    - name: limit-count
+      enable: true
+      config:
+        count: 300
+        time_window: 60
+        key: remote_addr
+        rejected_code: 429
+        policy: redis
+        redis_host: redis.data.svc.cluster.local
+        allow_degradation: true
+    - name: openid-connect
+      enable: true
+      config:
+        discovery: http://keycloak.identity.svc.cluster.local/realms/ecommerce/.well-known/openid-configuration
+        client_id: apisix-gateway
+        client_secret: $secret://vault/apisix/keycloak-client-secret
+        bearer_only: true
+        use_jwks: true
+        set_userinfo_header: false
+---
+apiVersion: apisix.apache.org/v2
+kind: ApisixRoute
+metadata:
+  name: moderation
+  namespace: gateway
+spec:
+  ingressClassName: apisix
+  http:
+  - name: moderation
+    match:
+      paths:
+      - /api/ecommerce/moderation*
+    backends:
+    - serviceName: moderation-service
+      servicePort: 80
+      resolveGranularity: service
+    plugins:
+    - name: limit-count
+      enable: true
+      config:
+        count: 300
+        time_window: 60
+        key: remote_addr
+        rejected_code: 429
+        policy: redis
+        redis_host: redis.data.svc.cluster.local
+        allow_degradation: true
+    - name: openid-connect
+      enable: true
+      config:
+        discovery: http://keycloak.identity.svc.cluster.local/realms/ecommerce/.well-known/openid-configuration
+        client_id: apisix-gateway
+        client_secret: $secret://vault/apisix/keycloak-client-secret
+        bearer_only: true
+        use_jwks: true
+        set_userinfo_header: false
+---
+apiVersion: apisix.apache.org/v2
+kind: ApisixRoute
+metadata:
   name: chatbot
   namespace: gateway
 spec:

@@ -1,7 +1,10 @@
 package com.congthanh.orderservice.domain.exception;
 
+import com.congthanh.commonservice.error.DomainException;
+import com.congthanh.commonservice.error.ErrorKind;
+
 /** Lỗi nghiệp vụ có phân loại, để adapter đổi sang HTTP/gRPC status hoặc Temporal failure. */
-public class OrderException extends RuntimeException {
+public class OrderException extends DomainException {
 
     public enum Kind { INVALID, NOT_FOUND, CONFLICT, FORBIDDEN, UNAVAILABLE, REJECTED }
 
@@ -43,7 +46,20 @@ public class OrderException extends RuntimeException {
         return kind;
     }
 
+    @Override
     public String code() {
         return code;
+    }
+
+    @Override
+    public ErrorKind errorKind() {
+        return switch (kind) {
+            case INVALID -> ErrorKind.INVALID;
+            case NOT_FOUND -> ErrorKind.NOT_FOUND;
+            case CONFLICT -> ErrorKind.CONFLICT;
+            case FORBIDDEN -> ErrorKind.FORBIDDEN;
+            case UNAVAILABLE -> ErrorKind.UNAVAILABLE;
+            case REJECTED -> ErrorKind.REJECTED;
+        };
     }
 }

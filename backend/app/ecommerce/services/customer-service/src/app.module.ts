@@ -16,12 +16,14 @@ import { v7 as uuidv7 } from 'uuid';
 import { CustomerResolver, ProductWishlistResolver } from './adapters/in/graphql/customer.resolver.js';
 import { ProductRef } from './adapters/in/graphql/types.js';
 import { customerGrpcRoutes } from './adapters/in/grpc/customer.grpc.js';
+import { erasureConsumer } from './adapters/in/kafka/privacy-erasure.js';
 import * as schema from './adapters/out/persistence/schema.js';
 import { DrizzleUnitOfWork, readRepositories } from './adapters/out/persistence/unit-of-work.js';
 import { CustomerService } from './application/customer.service.js';
 import { CLOCK, ID_GENERATOR, READ_REPOSITORIES, UNIT_OF_WORK } from './application/ports.js';
 import type { Env } from './config/env.js';
 
+const PRIVACY_CONSUMER = Symbol('PRIVACY_CONSUMER');
 const serviceDir = join(dirname(fileURLToPath(import.meta.url)), '..');
 
 @Module({})
@@ -59,6 +61,12 @@ export class AppModule {
         CustomerResolver,
         ProductWishlistResolver,
         { provide: UNIT_OF_WORK, useClass: DrizzleUnitOfWork },
+        {
+          provide: PRIVACY_CONSUMER,
+          inject: [DB],
+          useFactory: (db: Database<typeof schema>) =>
+            erasureConsumer(db, env.KAFKA_BROKERS, env.KAFKA_CLIENT_ID ?? env.SERVICE_NAME),
+        },
         { provide: READ_REPOSITORIES, inject: [DB], useFactory: (db: Database<typeof schema>) => readRepositories(db) },
         { provide: CLOCK, useValue: { now: () => new Date() } },
         { provide: ID_GENERATOR, useValue: { next: () => uuidv7() } },

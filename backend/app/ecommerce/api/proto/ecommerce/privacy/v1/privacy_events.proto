@@ -1,0 +1,67 @@
+syntax = "proto3";
+
+package ecommerce.privacy.v1;
+
+option java_multiple_files = true;
+option java_package = "com.congthanh.ecommerce.privacy.v1";
+
+// Topic: ecommerce.privacy.events, key = subject_id (customer id).
+// Mọi service giữ dữ liệu cá nhân phải nghe ErasureRequested/AccessExportRequested và trả lời bằng
+// ErasureCompleted/AccessExportReady (ghi vào outbox của chính nó, aggregatetype "privacy").
+
+// CCPA/CPRA: SALE_SHARING (Do Not Sell or Share), TARGETED_ADS, MARKETING_EMAIL, MARKETING_SMS, ANALYTICS
+message ConsentChanged {
+  string subject_id = 1;
+  string purpose = 2;
+  bool granted = 3;
+  // BANNER, SETTINGS, GPC (Global Privacy Control), SUPPORT
+  string source = 4;
+  string policy_version = 5;
+}
+
+message DataSubjectRequestOpened {
+  string request_id = 1;
+  string subject_id = 2;
+  // ACCESS, DELETE, CORRECT, OPT_OUT
+  string type = 3;
+  // RFC 3339, hạn chót theo luật (45 ngày, gia hạn được một lần)
+  string due_at = 4;
+}
+
+message ErasureRequested {
+  string request_id = 1;
+  string subject_id = 2;
+  // SHA-256 hex của email đã chuẩn hoá (chữ thường, bỏ khoảng trắng), để service tìm theo email mà không lộ email
+  string email_sha256 = 3;
+}
+
+message ErasureCompleted {
+  string request_id = 1;
+  string subject_id = 2;
+  // tên service xử lý, phải khớp registry của privacy-service
+  string processor = 3;
+  // true khi một phần dữ liệu được giữ lại theo luật (chứng từ thuế, chống gian lận, tranh chấp đang mở)
+  bool partially_retained = 4;
+  string retention_reason = 5;
+}
+
+message AccessExportRequested {
+  string request_id = 1;
+  string subject_id = 2;
+}
+
+message AccessExportReady {
+  string request_id = 1;
+  string subject_id = 2;
+  string processor = 3;
+  // key object trên S3/R2 (bucket privacy-exports), privacy-service gộp và ký URL cho khách
+  string object_key = 4;
+}
+
+message DataSubjectRequestCompleted {
+  string request_id = 1;
+  string subject_id = 2;
+  string type = 3;
+  // COMPLETED, PARTIALLY_COMPLETED, REJECTED
+  string outcome = 4;
+}

@@ -1,5 +1,6 @@
 package com.congthanh.paymentservice.application.port.out;
 
+import com.congthanh.paymentservice.domain.model.Money;
 import com.congthanh.paymentservice.domain.model.Payment;
 import com.congthanh.paymentservice.domain.model.PaymentMethod;
 
@@ -24,6 +25,11 @@ public interface PaymentProvider {
     void voidAuthorization(Payment payment);
 
     void refund(Payment payment);
+
+    /**
+     * Hoàn một phần số đã thu. Idempotency key theo {@code refundId} nên Temporal gọi lại không hoàn hai lần.
+     */
+    void refundPartial(Payment payment, String refundId, Money amount);
 
     /** Kiểm tra chữ ký callback và rút ra kết quả; chữ ký sai ném PaymentException INVALID. */
     default CallbackResult verifyCallback(Map<String, String> params) {

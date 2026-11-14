@@ -85,6 +85,8 @@ class OrderPersistenceAdapter implements OrderRepository {
         e.paymentToken = o.checkout().paymentToken();
         e.returnUrl = o.checkout().returnUrl();
         e.clientIp = o.checkout().clientIp();
+        e.storeCredit = o.checkout().storeCredit();
+        e.loyaltyPoints = o.checkout().loyaltyPoints();
         e.reservationId = o.reservationId();
         e.paymentId = o.paymentId();
         e.cancelReason = o.cancelReason();
@@ -120,7 +122,8 @@ class OrderPersistenceAdapter implements OrderRepository {
                 .tax(new Money(e.tax, e.currency))
                 .total(new Money(e.total, e.currency))
                 .promotionCode(e.promotionCode)
-                .checkout(new CheckoutDetails(PaymentMethod.valueOf(e.paymentMethod), e.paymentToken, e.returnUrl, e.clientIp))
+                .checkout(new CheckoutDetails(PaymentMethod.valueOf(e.paymentMethod), e.paymentToken, e.returnUrl, e.clientIp,
+                        e.storeCredit, e.loyaltyPoints))
                 .shippingAddress(e.shipping == null ? null : e.shipping.toDomain())
                 .billingAddress(e.billing == null ? null : e.billing.toDomain())
                 .note(e.note).reservationId(e.reservationId).paymentId(e.paymentId).cancelReason(e.cancelReason)

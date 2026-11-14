@@ -1,8 +1,8 @@
 package com.congthanh.productservice.adapter.in.web;
 
-import com.congthanh.productservice.application.dto.constant.ResponseStatus;
+import com.congthanh.commonservice.constants.ResponseStatus;
 import com.congthanh.productservice.application.dto.ProductImageDTO;
-import com.congthanh.productservice.application.dto.response.Response;
+import com.congthanh.commonservice.model.response.Response;
 import com.congthanh.productservice.application.port.in.ProductImageService;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;

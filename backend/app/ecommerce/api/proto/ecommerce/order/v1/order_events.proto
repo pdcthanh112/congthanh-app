@@ -37,6 +37,9 @@ message ShippingAddress {
 message OrderConfirmed {
   string order_id = 1;
   string payment_id = 2;
+  // Thêm để consumer (returns, loyalty, ledger) không phải gọi lại order-service chỉ để biết khách và tổng tiền.
+  string customer_id = 3;
+  ecommerce.common.v1.Money total = 4;
 }
 
 message OrderCancelled {

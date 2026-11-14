@@ -45,7 +45,12 @@ public interface CheckoutUseCase {
     }
 
     record PlaceCommand(String paymentMethod, String paymentToken, String returnUrl, String clientIp, String deviceId,
-                        Money expectedTotal) {
+                        Money expectedTotal, java.math.BigDecimal storeCredit, Long loyaltyPoints) {
+
+        public PlaceCommand(String paymentMethod, String paymentToken, String returnUrl, String clientIp, String deviceId,
+                            Money expectedTotal) {
+            this(paymentMethod, paymentToken, returnUrl, clientIp, deviceId, expectedTotal, null, null);
+        }
     }
 
     record View(CheckoutSession session, Progress progress) {

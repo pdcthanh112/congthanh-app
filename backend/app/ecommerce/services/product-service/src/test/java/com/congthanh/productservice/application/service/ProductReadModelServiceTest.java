@@ -5,7 +5,7 @@ import com.congthanh.productservice.application.port.out.ProductReadModelStore;
 import com.congthanh.productservice.application.port.out.product.ProductRepository;
 import com.congthanh.productservice.application.port.out.variantOptionCombination.VariantOptionCombinationRepository;
 import com.congthanh.productservice.application.readmodel.ProductDocument;
-import com.congthanh.productservice.domain.exception.NotFoundException;
+import com.congthanh.commonservice.exception.NotFoundException;
 import com.congthanh.productservice.domain.model.Product;
 import com.congthanh.productservice.domain.model.ProductCategory;
 import com.congthanh.productservice.domain.model.ProductImage;

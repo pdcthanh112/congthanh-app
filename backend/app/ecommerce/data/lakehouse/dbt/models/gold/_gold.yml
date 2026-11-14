@@ -1,0 +1,70 @@
+version: 2
+models:
+- name: daily_sales
+  description: Doanh thu theo ngày và tiền tệ.
+  columns:
+  - name: order_date
+    data_tests: [not_null]
+  - name: net_revenue
+    data_tests: [not_negative]
+  data_tests:
+  - expression_is_true:
+      arguments:
+        expression: "orders_confirmed + orders_cancelled <= orders_placed"
+  - expression_is_true:
+      arguments:
+        expression: "net_revenue <= gross_revenue"
+- name: product_daily_sales
+  columns:
+  - name: product_id
+    data_tests: [not_null]
+  - name: units_sold
+    data_tests: [not_negative]
+- name: funnel_daily
+  description: Phễu theo phiên mỗi ngày.
+  columns:
+  - name: event_date
+    data_tests: [not_null, unique]
+  - name: conversion_rate
+    data_tests:
+    - expression_is_true:
+        arguments: {expression: conversion_rate BETWEEN 0 AND 1}
+  data_tests:
+  - expression_is_true:
+      arguments:
+        expression: "sessions_purchase <= sessions AND sessions_add_to_cart <= sessions"
+- name: customer_features
+  description: Đặc trưng khách hàng (RFM, hành vi 30 ngày, rủi ro realtime) cho Feast và ML.
+  columns:
+  - name: customer_id
+    data_tests: [not_null]
+  - name: segment
+    data_tests:
+    - accepted_values:
+        arguments:
+          values: [champion, loyal, at_risk, new, hibernating, regular]
+  data_tests:
+  - expression_is_true:
+      arguments: {expression: r_score BETWEEN 1 AND 5 AND f_score BETWEEN 1 AND 5 AND m_score BETWEEN 1 AND 5}
+- name: product_trending_current
+  description: Điểm trending mới nhất mỗi sản phẩm (Flink stream-processor).
+  columns:
+  - name: product_id
+    data_tests: [not_null, unique]
+  - name: window_end
+    data_tests:
+    - recent_rows:
+        arguments: {hours: 24}
+        config: {severity: warn}
+- name: stock_cover_current
+  columns:
+  - name: product_id
+    data_tests: [not_null, unique]
+- name: customer_risk_current
+  columns:
+  - name: customer_id
+    data_tests: [not_null, unique]
+- name: order_status_daily
+  columns:
+  - name: event_date
+    data_tests: [not_null, unique]

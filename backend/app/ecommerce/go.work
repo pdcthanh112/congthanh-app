@@ -8,6 +8,7 @@ use (
 	./services/inventory-service
 	./services/media-service
 	./services/pricing-service
+	./services/privacy-service
 	./services/search-service
 	./services/shipping-service
 	./services/tax-service

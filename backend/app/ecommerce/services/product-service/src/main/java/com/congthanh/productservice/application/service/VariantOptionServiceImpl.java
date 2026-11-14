@@ -1,6 +1,6 @@
 package com.congthanh.productservice.application.service;
 
-import com.congthanh.productservice.domain.exception.NotFoundException;
+import com.congthanh.commonservice.exception.NotFoundException;
 import com.congthanh.productservice.domain.model.Product;
 import com.congthanh.productservice.application.dto.viewmodel.ProductOptionCombinationGetVm;
 import com.congthanh.productservice.application.dto.viewmodel.ProductOptionValueGetVm;

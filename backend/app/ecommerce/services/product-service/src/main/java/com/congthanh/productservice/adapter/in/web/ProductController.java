@@ -1,10 +1,10 @@
 package com.congthanh.productservice.adapter.in.web;
 
-import com.congthanh.productservice.application.dto.constant.ResponseStatus;
+import com.congthanh.commonservice.constants.ResponseStatus;
 import com.congthanh.productservice.application.dto.ProductDTO;
 import com.congthanh.productservice.application.dto.request.CreateProductRequest;
 import com.congthanh.productservice.application.dto.response.OptionValue;
-import com.congthanh.productservice.application.dto.response.Response;
+import com.congthanh.commonservice.model.response.Response;
 import com.congthanh.productservice.application.dto.response.ResponseWithPagination;
 import com.congthanh.productservice.domain.model.Product;
 import com.congthanh.productservice.application.dto.response.VariantValueResponse;

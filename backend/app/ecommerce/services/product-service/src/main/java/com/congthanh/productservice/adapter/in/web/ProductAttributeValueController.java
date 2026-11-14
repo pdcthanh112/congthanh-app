@@ -1,9 +1,9 @@
 package com.congthanh.productservice.adapter.in.web;
 
-import com.congthanh.productservice.application.dto.constant.ResponseStatus;
+import com.congthanh.commonservice.constants.ResponseStatus;
 import com.congthanh.productservice.application.dto.ProductAttributeValueDTO;
 import com.congthanh.productservice.application.dto.request.ProductAttributeValueRequest;
-import com.congthanh.productservice.application.dto.response.Response;
+import com.congthanh.commonservice.model.response.Response;
 import com.congthanh.productservice.application.port.in.ProductAttributeValueService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;

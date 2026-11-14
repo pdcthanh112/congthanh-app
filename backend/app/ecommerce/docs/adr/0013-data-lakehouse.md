@@ -1,6 +1,7 @@
 # 0013. Data lakehouse: Kafka → Spark → Iceberg (Polaris, MinIO/S3) ← Trino, Airflow; tầng Bronze/ODS/Silver/Gold
 
 - Trạng thái: Accepted
+- Mở rộng bởi: ADR 0023 (dbt, data quality, BI, lineage, feature store, catalog, RBAC Polaris)
 
 ## Bối cảnh
 - Dữ liệu giao dịch nằm rải rác trong schema của từng service; ClickHouse chỉ phục vụ dashboard, không giữ lịch sử

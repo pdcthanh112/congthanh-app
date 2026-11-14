@@ -81,6 +81,13 @@ spec:
       allowTagsRegexes:
       - ^[0-9a-f]{12}$
       discoveryLimit: 5
+  - name: dispute-service
+    image:
+      repoURL: ghcr.io/pdcthanh112/congthanhapp/dispute-service
+      imageSelectionStrategy: NewestBuild
+      allowTagsRegexes:
+      - ^[0-9a-f]{12}$
+      discoveryLimit: 5
   - name: fraud-service
     image:
       repoURL: ghcr.io/pdcthanh112/congthanhapp/fraud-service
@@ -109,6 +116,20 @@ spec:
       allowTagsRegexes:
       - ^[0-9a-f]{12}$
       discoveryLimit: 5
+  - name: ledger-service
+    image:
+      repoURL: ghcr.io/pdcthanh112/congthanhapp/ledger-service
+      imageSelectionStrategy: NewestBuild
+      allowTagsRegexes:
+      - ^[0-9a-f]{12}$
+      discoveryLimit: 5
+  - name: loyalty-service
+    image:
+      repoURL: ghcr.io/pdcthanh112/congthanhapp/loyalty-service
+      imageSelectionStrategy: NewestBuild
+      allowTagsRegexes:
+      - ^[0-9a-f]{12}$
+      discoveryLimit: 5
   - name: media-service
     image:
       repoURL: ghcr.io/pdcthanh112/congthanhapp/media-service
@@ -119,6 +140,13 @@ spec:
   - name: message-service
     image:
       repoURL: ghcr.io/pdcthanh112/congthanhapp/message-service
+      imageSelectionStrategy: NewestBuild
+      allowTagsRegexes:
+      - ^[0-9a-f]{12}$
+      discoveryLimit: 5
+  - name: moderation-service
+    image:
+      repoURL: ghcr.io/pdcthanh112/congthanhapp/moderation-service
       imageSelectionStrategy: NewestBuild
       allowTagsRegexes:
       - ^[0-9a-f]{12}$
@@ -151,6 +179,13 @@ spec:
       allowTagsRegexes:
       - ^[0-9a-f]{12}$
       discoveryLimit: 5
+  - name: privacy-service
+    image:
+      repoURL: ghcr.io/pdcthanh112/congthanhapp/privacy-service
+      imageSelectionStrategy: NewestBuild
+      allowTagsRegexes:
+      - ^[0-9a-f]{12}$
+      discoveryLimit: 5
   - name: product-service
     image:
       repoURL: ghcr.io/pdcthanh112/congthanhapp/product-service
@@ -168,6 +203,20 @@ spec:
   - name: recommendation-service
     image:
       repoURL: ghcr.io/pdcthanh112/congthanhapp/recommendation-service
+      imageSelectionStrategy: NewestBuild
+      allowTagsRegexes:
+      - ^[0-9a-f]{12}$
+      discoveryLimit: 5
+  - name: reconciliation-service
+    image:
+      repoURL: ghcr.io/pdcthanh112/congthanhapp/reconciliation-service
+      imageSelectionStrategy: NewestBuild
+      allowTagsRegexes:
+      - ^[0-9a-f]{12}$
+      discoveryLimit: 5
+  - name: returns-service
+    image:
+      repoURL: ghcr.io/pdcthanh112/congthanhapp/returns-service
       imageSelectionStrategy: NewestBuild
       allowTagsRegexes:
       - ^[0-9a-f]{12}$
@@ -193,9 +242,23 @@ spec:
       allowTagsRegexes:
       - ^[0-9a-f]{12}$
       discoveryLimit: 5
+  - name: stored-value-service
+    image:
+      repoURL: ghcr.io/pdcthanh112/congthanhapp/stored-value-service
+      imageSelectionStrategy: NewestBuild
+      allowTagsRegexes:
+      - ^[0-9a-f]{12}$
+      discoveryLimit: 5
   - name: storefront-bff
     image:
       repoURL: ghcr.io/pdcthanh112/congthanhapp/storefront-bff
+      imageSelectionStrategy: NewestBuild
+      allowTagsRegexes:
+      - ^[0-9a-f]{12}$
+      discoveryLimit: 5
+  - name: subscription-service
+    image:
+      repoURL: ghcr.io/pdcthanh112/congthanhapp/subscription-service
       imageSelectionStrategy: NewestBuild
       allowTagsRegexes:
       - ^[0-9a-f]{12}$
@@ -318,6 +381,15 @@ spec:
       - key: image.digest
         value: ${{ imageFrom('ghcr.io/pdcthanh112/congthanhapp/customer-service').Digest }}
   - uses: yaml-update
+    as: update-dispute-service
+    config:
+      path: ./src/backend/app/ecommerce/deploy/helm/values/dispute-service/values-${{ vars.env }}.yaml
+      updates:
+      - key: image.tag
+        value: ${{ imageFrom('ghcr.io/pdcthanh112/congthanhapp/dispute-service').Tag }}
+      - key: image.digest
+        value: ${{ imageFrom('ghcr.io/pdcthanh112/congthanhapp/dispute-service').Digest }}
+  - uses: yaml-update
     as: update-fraud-service
     config:
       path: ./src/backend/app/ecommerce/deploy/helm/values/fraud-service/values-${{ vars.env }}.yaml
@@ -354,6 +426,24 @@ spec:
       - key: image.digest
         value: ${{ imageFrom('ghcr.io/pdcthanh112/congthanhapp/inventory-service').Digest }}
   - uses: yaml-update
+    as: update-ledger-service
+    config:
+      path: ./src/backend/app/ecommerce/deploy/helm/values/ledger-service/values-${{ vars.env }}.yaml
+      updates:
+      - key: image.tag
+        value: ${{ imageFrom('ghcr.io/pdcthanh112/congthanhapp/ledger-service').Tag }}
+      - key: image.digest
+        value: ${{ imageFrom('ghcr.io/pdcthanh112/congthanhapp/ledger-service').Digest }}
+  - uses: yaml-update
+    as: update-loyalty-service
+    config:
+      path: ./src/backend/app/ecommerce/deploy/helm/values/loyalty-service/values-${{ vars.env }}.yaml
+      updates:
+      - key: image.tag
+        value: ${{ imageFrom('ghcr.io/pdcthanh112/congthanhapp/loyalty-service').Tag }}
+      - key: image.digest
+        value: ${{ imageFrom('ghcr.io/pdcthanh112/congthanhapp/loyalty-service').Digest }}
+  - uses: yaml-update
     as: update-media-service
     config:
       path: ./src/backend/app/ecommerce/deploy/helm/values/media-service/values-${{ vars.env }}.yaml
@@ -371,6 +461,15 @@ spec:
         value: ${{ imageFrom('ghcr.io/pdcthanh112/congthanhapp/message-service').Tag }}
       - key: image.digest
         value: ${{ imageFrom('ghcr.io/pdcthanh112/congthanhapp/message-service').Digest }}
+  - uses: yaml-update
+    as: update-moderation-service
+    config:
+      path: ./src/backend/app/ecommerce/deploy/helm/values/moderation-service/values-${{ vars.env }}.yaml
+      updates:
+      - key: image.tag
+        value: ${{ imageFrom('ghcr.io/pdcthanh112/congthanhapp/moderation-service').Tag }}
+      - key: image.digest
+        value: ${{ imageFrom('ghcr.io/pdcthanh112/congthanhapp/moderation-service').Digest }}
   - uses: yaml-update
     as: update-notification-service
     config:
@@ -408,6 +507,15 @@ spec:
       - key: image.digest
         value: ${{ imageFrom('ghcr.io/pdcthanh112/congthanhapp/pricing-service').Digest }}
   - uses: yaml-update
+    as: update-privacy-service
+    config:
+      path: ./src/backend/app/ecommerce/deploy/helm/values/privacy-service/values-${{ vars.env }}.yaml
+      updates:
+      - key: image.tag
+        value: ${{ imageFrom('ghcr.io/pdcthanh112/congthanhapp/privacy-service').Tag }}
+      - key: image.digest
+        value: ${{ imageFrom('ghcr.io/pdcthanh112/congthanhapp/privacy-service').Digest }}
+  - uses: yaml-update
     as: update-product-service
     config:
       path: ./src/backend/app/ecommerce/deploy/helm/values/product-service/values-${{ vars.env }}.yaml
@@ -434,6 +542,24 @@ spec:
         value: ${{ imageFrom('ghcr.io/pdcthanh112/congthanhapp/recommendation-service').Tag }}
       - key: image.digest
         value: ${{ imageFrom('ghcr.io/pdcthanh112/congthanhapp/recommendation-service').Digest }}
+  - uses: yaml-update
+    as: update-reconciliation-service
+    config:
+      path: ./src/backend/app/ecommerce/deploy/helm/values/reconciliation-service/values-${{ vars.env }}.yaml
+      updates:
+      - key: image.tag
+        value: ${{ imageFrom('ghcr.io/pdcthanh112/congthanhapp/reconciliation-service').Tag }}
+      - key: image.digest
+        value: ${{ imageFrom('ghcr.io/pdcthanh112/congthanhapp/reconciliation-service').Digest }}
+  - uses: yaml-update
+    as: update-returns-service
+    config:
+      path: ./src/backend/app/ecommerce/deploy/helm/values/returns-service/values-${{ vars.env }}.yaml
+      updates:
+      - key: image.tag
+        value: ${{ imageFrom('ghcr.io/pdcthanh112/congthanhapp/returns-service').Tag }}
+      - key: image.digest
+        value: ${{ imageFrom('ghcr.io/pdcthanh112/congthanhapp/returns-service').Digest }}
   - uses: yaml-update
     as: update-review-service
     config:
@@ -462,6 +588,15 @@ spec:
       - key: image.digest
         value: ${{ imageFrom('ghcr.io/pdcthanh112/congthanhapp/shipping-service').Digest }}
   - uses: yaml-update
+    as: update-stored-value-service
+    config:
+      path: ./src/backend/app/ecommerce/deploy/helm/values/stored-value-service/values-${{ vars.env }}.yaml
+      updates:
+      - key: image.tag
+        value: ${{ imageFrom('ghcr.io/pdcthanh112/congthanhapp/stored-value-service').Tag }}
+      - key: image.digest
+        value: ${{ imageFrom('ghcr.io/pdcthanh112/congthanhapp/stored-value-service').Digest }}
+  - uses: yaml-update
     as: update-storefront-bff
     config:
       path: ./src/backend/app/ecommerce/deploy/helm/values/storefront-bff/values-${{ vars.env }}.yaml
@@ -470,6 +605,15 @@ spec:
         value: ${{ imageFrom('ghcr.io/pdcthanh112/congthanhapp/storefront-bff').Tag }}
       - key: image.digest
         value: ${{ imageFrom('ghcr.io/pdcthanh112/congthanhapp/storefront-bff').Digest }}
+  - uses: yaml-update
+    as: update-subscription-service
+    config:
+      path: ./src/backend/app/ecommerce/deploy/helm/values/subscription-service/values-${{ vars.env }}.yaml
+      updates:
+      - key: image.tag
+        value: ${{ imageFrom('ghcr.io/pdcthanh112/congthanhapp/subscription-service').Tag }}
+      - key: image.digest
+        value: ${{ imageFrom('ghcr.io/pdcthanh112/congthanhapp/subscription-service').Digest }}
   - uses: yaml-update
     as: update-supplier-service
     config:

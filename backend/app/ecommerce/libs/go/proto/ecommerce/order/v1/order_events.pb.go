@@ -89,10 +89,9 @@ type OrderPlaced struct {
 	Lines              []*OrderLine           `protobuf:"bytes,3,rep,name=lines,proto3" json:"lines,omitempty"`
 	Total              *v1.Money              `protobuf:"bytes,4,opt,name=total,proto3" json:"total,omitempty"`
 	CheckoutWorkflowId string                 `protobuf:"bytes,5,opt,name=checkout_workflow_id,json=checkoutWorkflowId,proto3" json:"checkout_workflow_id,omitempty"`
-	// Địa chỉ giao hàng chụp lại lúc đặt (shipping-service tạo vận đơn từ đây). Trống ở event cũ.
-	ShippingAddress *ShippingAddress `protobuf:"bytes,6,opt,name=shipping_address,json=shippingAddress,proto3" json:"shipping_address,omitempty"`
-	unknownFields   protoimpl.UnknownFields
-	sizeCache       protoimpl.SizeCache
+	ShippingAddress    *ShippingAddress       `protobuf:"bytes,6,opt,name=shipping_address,json=shippingAddress,proto3" json:"shipping_address,omitempty"`
+	unknownFields      protoimpl.UnknownFields
+	sizeCache          protoimpl.SizeCache
 }
 
 func (x *OrderPlaced) Reset() {
@@ -175,11 +174,9 @@ type ShippingAddress struct {
 	Line2         string                 `protobuf:"bytes,4,opt,name=line2,proto3" json:"line2,omitempty"`
 	Ward          string                 `protobuf:"bytes,5,opt,name=ward,proto3" json:"ward,omitempty"`
 	District      string                 `protobuf:"bytes,6,opt,name=district,proto3" json:"district,omitempty"`
-	// Mã tỉnh/thành, cùng mã với customer-service.
-	RegionCode string `protobuf:"bytes,7,opt,name=region_code,json=regionCode,proto3" json:"region_code,omitempty"`
-	PostalCode string `protobuf:"bytes,8,opt,name=postal_code,json=postalCode,proto3" json:"postal_code,omitempty"`
-	// ISO 3166-1 alpha-2.
-	CountryCode   string `protobuf:"bytes,9,opt,name=country_code,json=countryCode,proto3" json:"country_code,omitempty"`
+	RegionCode    string                 `protobuf:"bytes,7,opt,name=region_code,json=regionCode,proto3" json:"region_code,omitempty"`
+	PostalCode    string                 `protobuf:"bytes,8,opt,name=postal_code,json=postalCode,proto3" json:"postal_code,omitempty"`
+	CountryCode   string                 `protobuf:"bytes,9,opt,name=country_code,json=countryCode,proto3" json:"country_code,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -278,9 +275,12 @@ func (x *ShippingAddress) GetCountryCode() string {
 }
 
 type OrderConfirmed struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	OrderId       string                 `protobuf:"bytes,1,opt,name=order_id,json=orderId,proto3" json:"order_id,omitempty"`
-	PaymentId     string                 `protobuf:"bytes,2,opt,name=payment_id,json=paymentId,proto3" json:"payment_id,omitempty"`
+	state     protoimpl.MessageState `protogen:"open.v1"`
+	OrderId   string                 `protobuf:"bytes,1,opt,name=order_id,json=orderId,proto3" json:"order_id,omitempty"`
+	PaymentId string                 `protobuf:"bytes,2,opt,name=payment_id,json=paymentId,proto3" json:"payment_id,omitempty"`
+	// Thêm để consumer (returns, loyalty, ledger) không phải gọi lại order-service chỉ để biết khách và tổng tiền.
+	CustomerId    string    `protobuf:"bytes,3,opt,name=customer_id,json=customerId,proto3" json:"customer_id,omitempty"`
+	Total         *v1.Money `protobuf:"bytes,4,opt,name=total,proto3" json:"total,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -329,12 +329,25 @@ func (x *OrderConfirmed) GetPaymentId() string {
 	return ""
 }
 
+func (x *OrderConfirmed) GetCustomerId() string {
+	if x != nil {
+		return x.CustomerId
+	}
+	return ""
+}
+
+func (x *OrderConfirmed) GetTotal() *v1.Money {
+	if x != nil {
+		return x.Total
+	}
+	return nil
+}
+
 type OrderCancelled struct {
-	state   protoimpl.MessageState `protogen:"open.v1"`
-	OrderId string                 `protobuf:"bytes,1,opt,name=order_id,json=orderId,proto3" json:"order_id,omitempty"`
-	Reason  string                 `protobuf:"bytes,2,opt,name=reason,proto3" json:"reason,omitempty"`
-	// Reservation tồn kho của saga (inventory-service tự trả hàng khi nhận event này).
-	ReservationId string `protobuf:"bytes,3,opt,name=reservation_id,json=reservationId,proto3" json:"reservation_id,omitempty"`
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	OrderId       string                 `protobuf:"bytes,1,opt,name=order_id,json=orderId,proto3" json:"order_id,omitempty"`
+	Reason        string                 `protobuf:"bytes,2,opt,name=reason,proto3" json:"reason,omitempty"`
+	ReservationId string                 `protobuf:"bytes,3,opt,name=reservation_id,json=reservationId,proto3" json:"reservation_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -420,16 +433,19 @@ const file_ecommerce_order_v1_order_events_proto_rawDesc = "" +
 	"regionCode\x12\x1f\n" +
 	"\vpostal_code\x18\b \x01(\tR\n" +
 	"postalCode\x12!\n" +
-	"\fcountry_code\x18\t \x01(\tR\vcountryCode\"J\n" +
+	"\fcountry_code\x18\t \x01(\tR\vcountryCode\"\x9d\x01\n" +
 	"\x0eOrderConfirmed\x12\x19\n" +
 	"\border_id\x18\x01 \x01(\tR\aorderId\x12\x1d\n" +
 	"\n" +
-	"payment_id\x18\x02 \x01(\tR\tpaymentId\"j\n" +
+	"payment_id\x18\x02 \x01(\tR\tpaymentId\x12\x1f\n" +
+	"\vcustomer_id\x18\x03 \x01(\tR\n" +
+	"customerId\x120\n" +
+	"\x05total\x18\x04 \x01(\v2\x1a.ecommerce.common.v1.MoneyR\x05total\"j\n" +
 	"\x0eOrderCancelled\x12\x19\n" +
 	"\border_id\x18\x01 \x01(\tR\aorderId\x12\x16\n" +
 	"\x06reason\x18\x02 \x01(\tR\x06reason\x12%\n" +
-	"\x0ereservation_id\x18\x03 \x01(\tR\rreservationIdB\xf8\x01\n" +
-	"\x16com.ecommerce.order.v1B\x10OrderEventsProtoP\x01Zbgithub.com/pdcthanh112/CongThanhApp/backend/app/ecommerce/libs/go/proto/ecommerce/order/v1;orderv1\xa2\x02\x03EOX\xaa\x02\x12Ecommerce.Order.V1\xca\x02\x12Ecommerce\\Order\\V1\xe2\x02\x1eEcommerce\\Order\\V1\\GPBMetadata\xea\x02\x14Ecommerce::Order::V1b\x06proto3"
+	"\x0ereservation_id\x18\x03 \x01(\tR\rreservationIdB$\n" +
+	" com.congthanh.ecommerce.order.v1P\x01b\x06proto3"
 
 var (
 	file_ecommerce_order_v1_order_events_proto_rawDescOnce sync.Once
@@ -457,11 +473,12 @@ var file_ecommerce_order_v1_order_events_proto_depIdxs = []int32{
 	0, // 1: ecommerce.order.v1.OrderPlaced.lines:type_name -> ecommerce.order.v1.OrderLine
 	5, // 2: ecommerce.order.v1.OrderPlaced.total:type_name -> ecommerce.common.v1.Money
 	2, // 3: ecommerce.order.v1.OrderPlaced.shipping_address:type_name -> ecommerce.order.v1.ShippingAddress
-	4, // [4:4] is the sub-list for method output_type
-	4, // [4:4] is the sub-list for method input_type
-	4, // [4:4] is the sub-list for extension type_name
-	4, // [4:4] is the sub-list for extension extendee
-	0, // [0:4] is the sub-list for field type_name
+	5, // 4: ecommerce.order.v1.OrderConfirmed.total:type_name -> ecommerce.common.v1.Money
+	5, // [5:5] is the sub-list for method output_type
+	5, // [5:5] is the sub-list for method input_type
+	5, // [5:5] is the sub-list for extension type_name
+	5, // [5:5] is the sub-list for extension extendee
+	0, // [0:5] is the sub-list for field type_name
 }
 
 func init() { file_ecommerce_order_v1_order_events_proto_init() }

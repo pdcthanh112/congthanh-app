@@ -57,3 +57,37 @@ describe('RatingSummary', () => {
     expect(averageOf(s)).toBe(4.5);
   });
 });
+
+describe('Review.applyModeration', () => {
+  const now = new Date('2026-11-14T00:00:00Z');
+  const make = (title: string | null, content: string) =>
+    Review.submit(
+      { id: 'r1', productId: 'p1', customerId: 'c1', authorName: 'Jane', orderId: 'o1' },
+      { rating: 1, title, content },
+      'https://cdn/',
+      now,
+    );
+
+  it('redacts content and keeps a negative review published', () => {
+    const r = make('Awful', 'Broke in a day, call me at 212-555-0199');
+    r.applyModeration('REDACT', 'Awful\nBroke in a day, call me at [phone removed]', now);
+    const s = r.snapshot();
+    expect(s.status).toBe('PUBLISHED');
+    expect(s.title).toBe('Awful');
+    expect(s.content).toBe('Broke in a day, call me at [phone removed]');
+  });
+
+  it('hides rejected and escalated reviews with a reason, and approval restores them', () => {
+    const r = make(null, 'spam spam a.com b.com c.com');
+    r.applyModeration('ESCALATE', '', now);
+    expect(r.snapshot()).toMatchObject({ status: 'HIDDEN', moderationReason: 'pending moderation review' });
+    r.applyModeration('APPROVE', '', now);
+    expect(r.snapshot()).toMatchObject({ status: 'PUBLISHED', moderationReason: null });
+    r.applyModeration('REJECT', '', now);
+    expect(r.status).toBe('HIDDEN');
+  });
+
+  it('sends title and content for moderation', () => {
+    expect(make('Title', 'Body').moderationText()).toBe('Title\nBody');
+  });
+});

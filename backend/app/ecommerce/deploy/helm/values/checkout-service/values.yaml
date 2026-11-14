@@ -19,6 +19,7 @@ env:
   SHIPPING_GRPC_ADDR: shipping-service:9097
   TAX_GRPC_ADDR: tax-service:9096
   ORDER_GRPC_ADDR: order-service:19090
+  CUSTOMER_GRPC_ADDR: customer-service:19094
   FRAUD_URL: http://fraud-service
   # fraud-service sập thì vẫn cho đặt đơn (ghi log cảnh báo); đặt false nếu muốn chặn.
   FRAUD_FAIL_OPEN: "true"

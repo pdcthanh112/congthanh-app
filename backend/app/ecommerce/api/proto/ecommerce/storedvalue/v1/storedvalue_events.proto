@@ -1,0 +1,53 @@
+syntax = "proto3";
+
+package ecommerce.storedvalue.v1;
+
+import "ecommerce/common/v1/money.proto";
+
+option java_multiple_files = true;
+option java_package = "com.congthanh.ecommerce.storedvalue.v1";
+
+// Topic: ecommerce.storedvalue.events, key = account id.
+// Số dư store credit/gift card là nợ phải trả của công ty: ledger ghi liability:stored_value:<kind> từ các event này.
+
+// Cộng tiền vào tài khoản (hoàn hàng bằng credit, CSKH bồi thường, thưởng).
+message StoredValueCredited {
+  string account_id = 1;
+  string customer_id = 2;
+  // STORE_CREDIT, GIFT_CARD
+  string kind = 3;
+  ecommerce.common.v1.Money amount = 4;
+  // RETURN_REFUND, GOODWILL, ADJUSTMENT
+  string reason = 5;
+  // id nghiệp vụ gây ra (return id, ticket id); cũng là khoá idempotency
+  string reference = 6;
+  ecommerce.common.v1.Money balance_after = 7;
+}
+
+// Giữ chỗ khi checkout (chưa trừ hẳn).
+message StoredValueHeld {
+  string account_id = 1;
+  string hold_id = 2;
+  string order_id = 3;
+  ecommerce.common.v1.Money amount = 4;
+}
+
+// Giữ chỗ đã được trừ hẳn (đơn xác nhận).
+message StoredValueDebited {
+  string account_id = 1;
+  string customer_id = 2;
+  string kind = 3;
+  string hold_id = 4;
+  string order_id = 5;
+  ecommerce.common.v1.Money amount = 6;
+  ecommerce.common.v1.Money balance_after = 7;
+}
+
+// Giữ chỗ được trả lại (saga bù trừ hoặc hết hạn).
+message StoredValueReleased {
+  string account_id = 1;
+  string hold_id = 2;
+  string order_id = 3;
+  ecommerce.common.v1.Money amount = 4;
+  string reason = 5;
+}

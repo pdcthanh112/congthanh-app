@@ -56,12 +56,16 @@ class ShippingAddress(_message.Message):
     def __init__(self, recipient_name: _Optional[str] = ..., phone: _Optional[str] = ..., line1: _Optional[str] = ..., line2: _Optional[str] = ..., ward: _Optional[str] = ..., district: _Optional[str] = ..., region_code: _Optional[str] = ..., postal_code: _Optional[str] = ..., country_code: _Optional[str] = ...) -> None: ...
 
 class OrderConfirmed(_message.Message):
-    __slots__ = ("order_id", "payment_id")
+    __slots__ = ("order_id", "payment_id", "customer_id", "total")
     ORDER_ID_FIELD_NUMBER: _ClassVar[int]
     PAYMENT_ID_FIELD_NUMBER: _ClassVar[int]
+    CUSTOMER_ID_FIELD_NUMBER: _ClassVar[int]
+    TOTAL_FIELD_NUMBER: _ClassVar[int]
     order_id: str
     payment_id: str
-    def __init__(self, order_id: _Optional[str] = ..., payment_id: _Optional[str] = ...) -> None: ...
+    customer_id: str
+    total: _money_pb2.Money
+    def __init__(self, order_id: _Optional[str] = ..., payment_id: _Optional[str] = ..., customer_id: _Optional[str] = ..., total: _Optional[_Union[_money_pb2.Money, _Mapping]] = ...) -> None: ...
 
 class OrderCancelled(_message.Message):
     __slots__ = ("order_id", "reason", "reservation_id")

@@ -1,0 +1,37 @@
+syntax = "proto3";
+
+package ecommerce.ledger.v1;
+
+import "ecommerce/common/v1/money.proto";
+
+option java_multiple_files = true;
+option java_package = "com.congthanh.ecommerce.ledger.v1";
+
+// Topic: ecommerce.ledger.events, key = journal entry id.
+
+message Posting {
+  string account = 1;
+  // DEBIT hoặc CREDIT
+  string side = 2;
+  ecommerce.common.v1.Money amount = 3;
+}
+
+message JournalEntryPosted {
+  string entry_id = 1;
+  // Loại và id nghiệp vụ gây ra bút toán, ví dụ payment / pay-123
+  string source_type = 2;
+  string source_id = 3;
+  // event_id của event nguồn (idempotency), trống với bút toán tay
+  string source_event_id = 4;
+  string description = 5;
+  repeated Posting postings = 6;
+  // YYYY-MM-DD theo America/New_York (ADR 0015)
+  string booking_date = 7;
+}
+
+// Event nguồn không ánh xạ được thành bút toán (thiếu luật, thiếu trường); cần người xử lý.
+message PostingFailed {
+  string source_event_id = 1;
+  string event_type = 2;
+  string reason = 3;
+}

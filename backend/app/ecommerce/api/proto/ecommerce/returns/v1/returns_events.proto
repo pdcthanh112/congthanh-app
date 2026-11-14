@@ -1,0 +1,74 @@
+syntax = "proto3";
+
+package ecommerce.returns.v1;
+
+import "ecommerce/common/v1/money.proto";
+
+option java_multiple_files = true;
+option java_package = "com.congthanh.ecommerce.returns.v1";
+
+// Topic: ecommerce.returns.events, key = return_id.
+
+message ReturnLine {
+  string product_id = 1;
+  int32 quantity = 2;
+  // DAMAGED, WRONG_ITEM, NOT_AS_DESCRIBED, NO_LONGER_NEEDED, OTHER
+  string reason = 3;
+}
+
+message ReturnRequested {
+  string return_id = 1;
+  string order_id = 2;
+  string customer_id = 3;
+  repeated ReturnLine lines = 4;
+  string rma_code = 5;
+}
+
+message ReturnApproved {
+  string return_id = 1;
+  string order_id = 2;
+  string customer_id = 3;
+  string rma_code = 4;
+  string approved_by = 5;
+}
+
+message ReturnRejected {
+  string return_id = 1;
+  string order_id = 2;
+  string customer_id = 3;
+  string reason = 4;
+}
+
+// Kho đã nhận hàng trả. inventory-service nhập lại các dòng restock = true.
+message ReturnReceived {
+  string return_id = 1;
+  string order_id = 2;
+  repeated ReceivedLine lines = 3;
+}
+
+message ReceivedLine {
+  string product_id = 1;
+  int32 quantity = 2;
+  // PASSED: bán lại được; DAMAGED/MISSING/NOT_OURS: không nhập lại
+  string condition = 3;
+  bool restock = 4;
+}
+
+// Đã hoàn tiền cho khách (payment-service xác nhận). loyalty đảo điểm, ledger ghi bút toán hoàn.
+message RefundIssued {
+  string return_id = 1;
+  string order_id = 2;
+  string customer_id = 3;
+  ecommerce.common.v1.Money amount = 4;
+  ecommerce.common.v1.Money restocking_fee = 5;
+  // ORIGINAL_PAYMENT, STORE_CREDIT
+  string method = 6;
+  string payment_id = 7;
+}
+
+message ReturnClosed {
+  string return_id = 1;
+  string order_id = 2;
+  // REFUNDED, REJECTED, CANCELLED, EXPIRED
+  string outcome = 3;
+}

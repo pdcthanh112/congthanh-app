@@ -1,0 +1,39 @@
+# loyalty-service: điểm thưởng, activity Temporal queue loyalty (ADR 0026). Giá trị chung mọi môi trường. Ghi đè theo môi trường ở values-<env>.yaml.
+nameOverride: loyalty-service
+runtime: java
+image:
+  repository: ghcr.io/pdcthanh112/congthanhapp/loyalty-service
+ports:
+  http: 5037
+  grpc: 9104
+env:
+  OIDC_ISSUER_URI: http://keycloak-service.identity.svc.cluster.local:8080/realms/ecommerce
+  JWT_JWKS_URL: http://keycloak-service.identity.svc.cluster.local:8080/realms/ecommerce/protocol/openid-connect/certs
+  OTLP_TRACES_ENDPOINT: http://otel-collector.observability.svc.cluster.local:4318/v1/traces
+  KAFKA_BROKERS: ecommerce-kafka-bootstrap.messaging.svc.cluster.local:9092
+  TEMPORAL_ADDRESS: temporal-frontend.workflow.svc.cluster.local:7233
+  TEMPORAL_NAMESPACE: ecommerce
+secretEnv:
+- name: DATABASE_URL
+  key: ecommerce/loyalty-service
+  property: database_url
+- name: DATABASE_USER
+  key: ecommerce/loyalty-service
+  property: database_user
+- name: DATABASE_PASSWORD
+  key: ecommerce/loyalty-service
+  property: database_password
+probes:
+  readinessPath: /actuator/health/readiness
+  livenessPath: /actuator/health/liveness
+resources:
+  requests:
+    cpu: 200m
+    memory: 512Mi
+  limits:
+    memory: 1Gi
+serviceMonitor:
+  enabled: true
+  path: /actuator/prometheus
+otel:
+  javaAutoInstrumentation: false

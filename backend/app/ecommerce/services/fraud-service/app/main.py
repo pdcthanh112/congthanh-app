@@ -50,6 +50,9 @@ async def lifespan(app: FastAPI):
         tasks.append(
             asyncio.create_task(kafka.run_stream_features(stream, settings.brokers, settings.kafka_group + "-stream"))
         )
+        from .adapters import privacy
+
+        tasks.append(asyncio.create_task(privacy.run(pool, settings.brokers, settings.kafka_group)))
     else:
         log.warning("KAFKA_BROKERS not set: customer history and stream features will stay empty")
     yield

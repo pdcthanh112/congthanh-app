@@ -12,4 +12,14 @@ public interface PaymentRepository {
 
     /** Lưu và ghi event vào outbox cùng transaction. Ném ConflictOnCreate nếu đơn đã có payment. */
     void save(Payment payment);
+
+    /** Lần hoàn đã ghi nhận theo refundId (idempotency của hoàn một phần). */
+    Optional<RecordedRefund> findRefund(String refundId);
+
+    /** Lưu payment + bản ghi lần hoàn + event trong một transaction. Trùng refundId ném DataIntegrityViolation. */
+    void saveRefund(Payment payment, RecordedRefund refund);
+
+    record RecordedRefund(String refundId, String paymentId, String orderId, java.math.BigDecimal amount,
+                          String currency, String reason, java.time.Instant createdAt) {
+    }
 }

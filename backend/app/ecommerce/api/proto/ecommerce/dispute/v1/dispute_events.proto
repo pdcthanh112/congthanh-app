@@ -1,0 +1,45 @@
+syntax = "proto3";
+
+package ecommerce.dispute.v1;
+
+import "ecommerce/common/v1/money.proto";
+
+option java_multiple_files = true;
+option java_package = "com.congthanh.ecommerce.dispute.v1";
+
+// Topic: ecommerce.dispute.events, key = dispute id.
+
+// Ngân hàng của khách mở tranh chấp; cổng đã rút amount (và thu phí) khỏi số dư của mình.
+message DisputeOpened {
+  string dispute_id = 1;
+  string provider = 2;
+  string provider_dispute_id = 3;
+  string payment_id = 4;
+  string order_id = 5;
+  string customer_id = 6;
+  ecommerce.common.v1.Money amount = 7;
+  ecommerce.common.v1.Money fee = 8;
+  // FRAUDULENT, PRODUCT_NOT_RECEIVED, PRODUCT_UNACCEPTABLE, DUPLICATE, SUBSCRIPTION_CANCELED, CREDIT_NOT_PROCESSED, GENERAL
+  string reason = 9;
+  // RFC 3339, hạn nộp bằng chứng
+  string evidence_due_by = 10;
+}
+
+message DisputeEvidenceSubmitted {
+  string dispute_id = 1;
+  string order_id = 2;
+  string submitted_by = 3;
+}
+
+// Kết quả cuối: WON (tiền về lại), LOST (mất hẳn), ACCEPTED (mình không chống).
+// fraud-service dùng LOST + reason FRAUDULENT làm nhãn huấn luyện.
+message DisputeClosed {
+  string dispute_id = 1;
+  string provider = 2;
+  string order_id = 3;
+  string customer_id = 4;
+  string outcome = 5;
+  string reason = 6;
+  ecommerce.common.v1.Money amount = 7;
+  ecommerce.common.v1.Money fee = 8;
+}

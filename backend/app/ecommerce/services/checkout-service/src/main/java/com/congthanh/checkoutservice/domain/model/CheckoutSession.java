@@ -41,7 +41,20 @@ public final class CheckoutSession {
         }
     }
 
-    public record Payment(String method, String token, String returnUrl, String clientIp, String deviceId) {
+    /**
+     * @param storeCredit   phần trả bằng store credit (null = không dùng)
+     * @param loyaltyPoints số điểm thưởng muốn đổi (null/0 = không dùng); giá trị quy đổi do loyalty-service quyết
+     */
+    public record Payment(String method, String token, String returnUrl, String clientIp, String deviceId,
+                          java.math.BigDecimal storeCredit, Long loyaltyPoints) {
+
+        public Payment(String method, String token, String returnUrl, String clientIp, String deviceId) {
+            this(method, token, returnUrl, clientIp, deviceId, null, null);
+        }
+
+        public long points() {
+            return loyaltyPoints == null ? 0 : loyaltyPoints;
+        }
     }
 
     public record FraudVerdict(String assessmentId, String decision, int score, List<String> reasons) {

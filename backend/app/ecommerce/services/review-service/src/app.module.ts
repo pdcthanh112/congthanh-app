@@ -4,6 +4,7 @@ import {
   type Database,
   DB,
   KafkaEventConsumer,
+  ModerationClient,
   PlatformAuthModule,
   PlatformDatabaseModule,
   PlatformHealthModule,
@@ -15,13 +16,16 @@ import { GraphQLModule } from '@nestjs/graphql';
 import { v7 as uuidv7 } from 'uuid';
 import { ProductReviewsResolver, ReviewResolver } from './adapters/in/graphql/review.resolver.js';
 import { ProductRef } from './adapters/in/graphql/types.js';
+import { moderationEventsConsumer } from './adapters/in/kafka/moderation-events.consumer.js';
 import { orderEventsConsumer } from './adapters/in/kafka/order-events.consumer.js';
+import { erasureConsumer } from './adapters/in/kafka/privacy-erasure.js';
 import * as schema from './adapters/out/persistence/schema.js';
 import { DrizzleUnitOfWork, readRepositories } from './adapters/out/persistence/unit-of-work.js';
 import { GrpcProductDirectory } from './adapters/out/product-directory.grpc.js';
 import { OrderEventsHandler } from './application/order-events.handler.js';
 import {
   CLOCK,
+  CONTENT_MODERATION,
   ID_GENERATOR,
   PRODUCT_DIRECTORY,
   READ_REPOSITORIES,
@@ -31,6 +35,8 @@ import {
 import { ReviewService } from './application/review.service.js';
 import type { Env } from './config/env.js';
 
+const MODERATION_CONSUMER = Symbol('MODERATION_CONSUMER');
+const PRIVACY_CONSUMER = Symbol('PRIVACY_CONSUMER');
 const serviceDir = join(dirname(fileURLToPath(import.meta.url)), '..');
 
 @Module({})
@@ -69,16 +75,33 @@ export class AppModule {
         ReviewResolver,
         ProductReviewsResolver,
         { provide: UNIT_OF_WORK, useClass: DrizzleUnitOfWork },
+        {
+          provide: PRIVACY_CONSUMER,
+          inject: [DB],
+          useFactory: (db: Database<typeof schema>) =>
+            erasureConsumer(db, env.KAFKA_BROKERS, env.KAFKA_CLIENT_ID ?? env.SERVICE_NAME),
+        },
         { provide: READ_REPOSITORIES, inject: [DB], useFactory: (db: Database<typeof schema>) => readRepositories(db) },
         { provide: CLOCK, useValue: { now: () => new Date() } },
         { provide: ID_GENERATOR, useValue: { next: () => uuidv7() } },
         { provide: REVIEW_SETTINGS, useValue: { mediaUrlPrefix: env.MEDIA_URL_PREFIX } },
         { provide: PRODUCT_DIRECTORY, useFactory: () => new GrpcProductDirectory(env.PRODUCT_GRPC_ADDR) },
         {
+          provide: CONTENT_MODERATION,
+          useFactory: () =>
+            env.MODERATION_URL ? new ModerationClient(env.MODERATION_URL) : { check: async () => null },
+        },
+        {
           provide: KafkaEventConsumer,
           inject: [OrderEventsHandler],
           useFactory: (h: OrderEventsHandler) =>
             orderEventsConsumer(h, env.KAFKA_BROKERS, env.KAFKA_CLIENT_ID ?? env.SERVICE_NAME),
+        },
+        {
+          provide: MODERATION_CONSUMER,
+          inject: [ReviewService],
+          useFactory: (r: ReviewService) =>
+            moderationEventsConsumer(r, env.KAFKA_BROKERS, env.KAFKA_CLIENT_ID ?? env.SERVICE_NAME),
         },
       ],
     };

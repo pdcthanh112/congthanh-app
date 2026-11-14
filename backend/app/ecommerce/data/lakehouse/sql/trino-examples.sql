@@ -36,3 +36,16 @@ FROM lakehouse.ods."orders$snapshots" ORDER BY committed_at DESC LIMIT 5;
 
 -- File nhỏ do streaming (job maintenance sẽ gộp lại)
 SELECT count(*) AS files, round(avg(file_size_in_bytes) / 1024) AS avg_kb FROM lakehouse.bronze."clickstream_events$files";
+
+-- Event nghiệp vụ đã giải mã từ protobuf (payload JSON, đọc trường bằng json_extract_scalar)
+SELECT event_type, count(*) FROM lakehouse.silver.domain_events GROUP BY 1 ORDER BY 2 DESC;
+SELECT event_name, order_id, amount, currency, occurred_at
+FROM lakehouse.silver.order_events ORDER BY occurred_at DESC LIMIT 20;
+
+-- Tín hiệu realtime từ Flink stream-processor
+SELECT * FROM lakehouse.gold.product_trending_current WHERE is_hot ORDER BY score DESC LIMIT 10;
+SELECT * FROM lakehouse.gold.stock_cover_current WHERE at_risk ORDER BY hours_of_cover;
+
+-- Catalog chỉ đọc (principal analyst, Superset/Feast dùng): đọc được silver/gold, bronze/ods bị Polaris chặn
+SELECT count(*) FROM lakehouse_ro.gold.daily_sales;
+-- SELECT count(*) FROM lakehouse_ro.bronze.cdc_changes;   -- lỗi: Failed to load table

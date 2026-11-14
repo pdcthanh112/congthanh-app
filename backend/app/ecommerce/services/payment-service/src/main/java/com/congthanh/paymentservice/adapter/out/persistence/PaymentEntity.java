@@ -42,6 +42,9 @@ public class PaymentEntity {
     String failureReason;
     Instant authorizationExpiresAt;
 
+    @Column(nullable = false, precision = 19, scale = 4)
+    BigDecimal refundedAmount = BigDecimal.ZERO;
+
     @Column(nullable = false)
     Instant createdAt;
 

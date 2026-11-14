@@ -4,7 +4,7 @@ import com.congthanh.productservice.application.port.in.ProductReadModelUseCase;
 import com.congthanh.productservice.application.port.out.ProductReadModelStore;
 import com.congthanh.productservice.application.port.out.product.ProductRepository;
 import com.congthanh.productservice.application.readmodel.ProductDocument;
-import com.congthanh.productservice.domain.exception.NotFoundException;
+import com.congthanh.commonservice.exception.NotFoundException;
 import com.congthanh.productservice.domain.model.Product;
 import com.congthanh.productservice.domain.model.enums.ProductStatus;
 import lombok.extern.slf4j.Slf4j;

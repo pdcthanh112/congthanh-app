@@ -1,0 +1,32 @@
+name: lakehouse
+version: "1.0.0"
+config-version: 2
+profile: lakehouse
+
+model-paths: [models]
+macro-paths: [macros]
+test-paths: [tests]
+target-path: target
+clean-targets: [target, dbt_packages, logs]
+
+vars:
+  lookback_hours: 48
+
+models:
+  lakehouse:
+    +on_table_exists: replace
+    +properties:
+      format_version: "2"
+    silver:
+      +schema: silver
+      +materialized: table
+    gold:
+      +schema: gold
+      +materialized: table
+
+tests:
+  lakehouse:
+    +severity: error
+
+flags:
+  send_anonymous_usage_stats: false

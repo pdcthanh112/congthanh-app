@@ -1,0 +1,19 @@
+project: lakehouse
+provider: local
+registry:
+  path: ${FEAST_REGISTRY_PATH}
+  cache_ttl_seconds: 60
+offline_store:
+  type: feast.infra.offline_stores.contrib.trino_offline_store.trino.TrinoOfflineStore
+  host: ${FEAST_TRINO_HOST}
+  port: ${FEAST_TRINO_PORT}
+  catalog: lakehouse_ro
+  dataset: gold
+  user: feast
+  connector:
+    type: iceberg
+    file_format: parquet
+online_store:
+  type: redis
+  connection_string: ${FEAST_REDIS}
+entity_key_serialization_version: 3

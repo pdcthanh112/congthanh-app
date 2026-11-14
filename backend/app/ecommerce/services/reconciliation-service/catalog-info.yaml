@@ -1,0 +1,23 @@
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: reconciliation-service
+  description: Đối soát giao dịch Stripe/PayPal với payment-service, hàng chờ chênh lệch
+  tags:
+  - python
+  annotations:
+    github.com/project-slug: pdcthanh112/CongThanhApp
+    backstage.io/source-location: url:https://github.com/pdcthanh112/CongThanhApp/tree/main/backend/app/ecommerce/services/reconciliation-service
+    argocd/app-selector: app.kubernetes.io/name=reconciliation-service
+    grafana/dashboard-selector: tags @> 'reconciliation-service'
+    backstage.io/techdocs-ref: dir:../../docs
+spec:
+  type: service
+  lifecycle: experimental
+  owner: team-ecommerce
+  system: ecommerce
+  providesApis: []
+  consumesApis: []
+  dependsOn:
+  - resource:ecommerce-postgres
+  - resource:ecommerce-kafka

@@ -137,7 +137,7 @@ public final class Order {
         this.paymentId = paymentId;
         this.status = OrderStatus.CONFIRMED;
         this.updatedAt = now;
-        events.add(new OrderEvent.OrderConfirmed(id, paymentId));
+        events.add(new OrderEvent.OrderConfirmed(id, paymentId, customerId, total));
     }
 
     public void cancel(String reason, Instant now) {

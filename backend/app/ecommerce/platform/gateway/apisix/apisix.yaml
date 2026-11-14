@@ -291,6 +291,200 @@ routes:
       bearer_only: true
       use_jwks: true
       set_userinfo_header: false
+- id: returns
+  uris:
+  - /api/ecommerce/returns*
+  upstream_id: returns
+  plugins:
+    limit-count:
+      count: 300
+      time_window: 60
+      key: remote_addr
+      rejected_code: 429
+      policy: redis
+      redis_host: redis
+      allow_degradation: true
+    openid-connect:
+      discovery: http://keycloak:8080/realms/ecommerce/.well-known/openid-configuration
+      client_id: apisix-gateway
+      client_secret: $ENV://KEYCLOAK_GATEWAY_SECRET
+      bearer_only: true
+      use_jwks: true
+      set_userinfo_header: false
+- id: ledger
+  uris:
+  - /api/ecommerce/ledger*
+  upstream_id: ledger
+  plugins:
+    limit-count:
+      count: 300
+      time_window: 60
+      key: remote_addr
+      rejected_code: 429
+      policy: redis
+      redis_host: redis
+      allow_degradation: true
+    openid-connect:
+      discovery: http://keycloak:8080/realms/ecommerce/.well-known/openid-configuration
+      client_id: apisix-gateway
+      client_secret: $ENV://KEYCLOAK_GATEWAY_SECRET
+      bearer_only: true
+      use_jwks: true
+      set_userinfo_header: false
+- id: privacy
+  uris:
+  - /api/ecommerce/privacy*
+  upstream_id: privacy
+  plugins:
+    limit-count:
+      count: 30
+      time_window: 60
+      key: consumer_name
+      rejected_code: 429
+      policy: redis
+      redis_host: redis
+      allow_degradation: true
+    openid-connect:
+      discovery: http://keycloak:8080/realms/ecommerce/.well-known/openid-configuration
+      client_id: apisix-gateway
+      client_secret: $ENV://KEYCLOAK_GATEWAY_SECRET
+      bearer_only: true
+      use_jwks: true
+      set_userinfo_header: false
+- id: stored-value
+  uris:
+  - /api/ecommerce/stored-value*
+  upstream_id: stored-value
+  plugins:
+    limit-count:
+      count: 300
+      time_window: 60
+      key: remote_addr
+      rejected_code: 429
+      policy: redis
+      redis_host: redis
+      allow_degradation: true
+    openid-connect:
+      discovery: http://keycloak:8080/realms/ecommerce/.well-known/openid-configuration
+      client_id: apisix-gateway
+      client_secret: $ENV://KEYCLOAK_GATEWAY_SECRET
+      bearer_only: true
+      use_jwks: true
+      set_userinfo_header: false
+- id: disputes
+  uris:
+  - /api/ecommerce/disputes*
+  upstream_id: disputes
+  plugins:
+    limit-count:
+      count: 300
+      time_window: 60
+      key: remote_addr
+      rejected_code: 429
+      policy: redis
+      redis_host: redis
+      allow_degradation: true
+    openid-connect:
+      discovery: http://keycloak:8080/realms/ecommerce/.well-known/openid-configuration
+      client_id: apisix-gateway
+      client_secret: $ENV://KEYCLOAK_GATEWAY_SECRET
+      bearer_only: true
+      use_jwks: true
+      set_userinfo_header: false
+- id: disputes-webhook
+  uris:
+  - /api/ecommerce/disputes/webhooks/stripe
+  upstream_id: disputes-webhook
+  plugins:
+    limit-count:
+      count: 300
+      time_window: 60
+      key: remote_addr
+      rejected_code: 429
+      policy: redis
+      redis_host: redis
+      allow_degradation: true
+  priority: 10
+- id: reconciliation
+  uris:
+  - /api/ecommerce/reconciliation*
+  upstream_id: reconciliation
+  plugins:
+    limit-count:
+      count: 300
+      time_window: 60
+      key: remote_addr
+      rejected_code: 429
+      policy: redis
+      redis_host: redis
+      allow_degradation: true
+    openid-connect:
+      discovery: http://keycloak:8080/realms/ecommerce/.well-known/openid-configuration
+      client_id: apisix-gateway
+      client_secret: $ENV://KEYCLOAK_GATEWAY_SECRET
+      bearer_only: true
+      use_jwks: true
+      set_userinfo_header: false
+- id: loyalty
+  uris:
+  - /api/ecommerce/loyalty*
+  upstream_id: loyalty
+  plugins:
+    limit-count:
+      count: 300
+      time_window: 60
+      key: remote_addr
+      rejected_code: 429
+      policy: redis
+      redis_host: redis
+      allow_degradation: true
+    openid-connect:
+      discovery: http://keycloak:8080/realms/ecommerce/.well-known/openid-configuration
+      client_id: apisix-gateway
+      client_secret: $ENV://KEYCLOAK_GATEWAY_SECRET
+      bearer_only: true
+      use_jwks: true
+      set_userinfo_header: false
+- id: subscriptions
+  uris:
+  - /api/ecommerce/subscriptions*
+  upstream_id: subscriptions
+  plugins:
+    limit-count:
+      count: 300
+      time_window: 60
+      key: remote_addr
+      rejected_code: 429
+      policy: redis
+      redis_host: redis
+      allow_degradation: true
+    openid-connect:
+      discovery: http://keycloak:8080/realms/ecommerce/.well-known/openid-configuration
+      client_id: apisix-gateway
+      client_secret: $ENV://KEYCLOAK_GATEWAY_SECRET
+      bearer_only: true
+      use_jwks: true
+      set_userinfo_header: false
+- id: moderation
+  uris:
+  - /api/ecommerce/moderation*
+  upstream_id: moderation
+  plugins:
+    limit-count:
+      count: 300
+      time_window: 60
+      key: remote_addr
+      rejected_code: 429
+      policy: redis
+      redis_host: redis
+      allow_degradation: true
+    openid-connect:
+      discovery: http://keycloak:8080/realms/ecommerce/.well-known/openid-configuration
+      client_id: apisix-gateway
+      client_secret: $ENV://KEYCLOAK_GATEWAY_SECRET
+      bearer_only: true
+      use_jwks: true
+      set_userinfo_header: false
 - id: chatbot
   uris:
   - /api/ecommerce/chatbot*
@@ -507,6 +701,96 @@ upstreams:
   scheme: http
   nodes:
     webhook-service:5023: 1
+  timeout:
+    connect: 3
+    send: 30
+    read: 30
+- id: returns
+  type: roundrobin
+  scheme: http
+  nodes:
+    returns-service:5032: 1
+  timeout:
+    connect: 3
+    send: 30
+    read: 30
+- id: ledger
+  type: roundrobin
+  scheme: http
+  nodes:
+    ledger-service:5031: 1
+  timeout:
+    connect: 3
+    send: 30
+    read: 30
+- id: privacy
+  type: roundrobin
+  scheme: http
+  nodes:
+    privacy-service:5033: 1
+  timeout:
+    connect: 3
+    send: 30
+    read: 30
+- id: stored-value
+  type: roundrobin
+  scheme: http
+  nodes:
+    stored-value-service:5034: 1
+  timeout:
+    connect: 3
+    send: 30
+    read: 30
+- id: disputes
+  type: roundrobin
+  scheme: http
+  nodes:
+    dispute-service:5035: 1
+  timeout:
+    connect: 3
+    send: 30
+    read: 30
+- id: disputes-webhook
+  type: roundrobin
+  scheme: http
+  nodes:
+    dispute-service:5035: 1
+  timeout:
+    connect: 3
+    send: 30
+    read: 30
+- id: reconciliation
+  type: roundrobin
+  scheme: http
+  nodes:
+    reconciliation-service:5036: 1
+  timeout:
+    connect: 3
+    send: 30
+    read: 30
+- id: loyalty
+  type: roundrobin
+  scheme: http
+  nodes:
+    loyalty-service:5037: 1
+  timeout:
+    connect: 3
+    send: 30
+    read: 30
+- id: subscriptions
+  type: roundrobin
+  scheme: http
+  nodes:
+    subscription-service:5038: 1
+  timeout:
+    connect: 3
+    send: 30
+    read: 30
+- id: moderation
+  type: roundrobin
+  scheme: http
+  nodes:
+    moderation-service:5039: 1
   timeout:
     connect: 3
     send: 30
