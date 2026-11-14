@@ -31,5 +31,6 @@ for (const [, name, body] of docs) {
     console.error(`✗ ${name}: ${errs.join('; ')}`);
   }
 }
+// eslint-disable-next-line no-console -- script CLI
 console.log(`${docs.length - bad}/${docs.length} operations valid`);
 process.exit(bad || docs.length === 0 ? 1 : 0);

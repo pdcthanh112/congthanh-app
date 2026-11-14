@@ -1,19 +1,30 @@
-import React from 'react';
+import { cache } from 'react';
+import { Metadata } from 'next';
+import { notFound } from 'next/navigation';
+import { setRequestLocale } from 'next-intl/server';
 import { getSupplierBySlug } from '@/api/supplierApi';
 import SupplierInfo from '@/components/Supplier/SupplierInfo';
+import type { Locale } from '@/lib/locales';
 
-async function getSupplierInfo(slug: string) {
-  return await getSupplierBySlug(slug);
+type Props = { params: Promise<{ slug: string; locale: Locale }> };
+
+const fetchSupplier = cache(async (slug: string) => {
+  try {
+    return (await getSupplierBySlug(slug)).data;
+  } catch {
+    return null;
+  }
+});
+
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const supplier = await fetchSupplier((await params).slug);
+  return supplier ? { title: supplier.name } : {};
 }
 
-export default async function SupplierPage({ params }: { params: { slug: string; locale: string; path: string[] } }) {
-  const { slug, locale, path } = params;
-
-  const supplier = await getSupplierInfo(slug).then((response) => response.data);
-
-  return (
-    <React.Fragment>
-      <SupplierInfo supplier={supplier} />
-    </React.Fragment>
-  );
+export default async function SupplierPage({ params }: Props) {
+  const { slug, locale } = await params;
+  setRequestLocale(locale);
+  const supplier = await fetchSupplier(slug);
+  if (!supplier) notFound();
+  return <SupplierInfo supplier={supplier} />;
 }

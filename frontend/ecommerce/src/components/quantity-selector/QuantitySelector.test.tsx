@@ -1,4 +1,4 @@
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import QuantitySelector from './QuantitySelector';
 
@@ -7,11 +7,11 @@ describe('QuantitySelector', () => {
     initialValue: 5,
     min: 1,
     max: 10,
-    onChange: jest.fn(),
+    onChange: vi.fn(),
   };
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   test('renders with correct initial value', () => {
@@ -78,6 +78,7 @@ describe('QuantitySelector', () => {
     const input = screen.getByLabelText('Số lượng');
     await userEvent.clear(input);
     await userEvent.type(input, '0');
+    await userEvent.tab();
     expect(defaultProps.onChange).toHaveBeenCalledWith(1);
     expect(input).toHaveValue(1);
   });
@@ -122,6 +123,7 @@ describe('QuantitySelector', () => {
     const input = screen.getByLabelText('Số lượng');
     await userEvent.clear(input);
     await userEvent.type(input, 'abc');
+    await userEvent.tab();
     expect(defaultProps.onChange).toHaveBeenCalledWith(1);
     expect(input).toHaveValue(1);
   });

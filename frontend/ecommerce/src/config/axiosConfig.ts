@@ -1,16 +1,18 @@
 import axios from 'axios';
-import { accessToken, GATEWAY_URL } from '@/graphql/client';
+import { GATEWAY_URL, serverToken } from '@/graphql/client';
 
-// REST qua gateway cho các API không nằm trong supergraph (search, supplier, media, translate, chatbot).
-// Dữ liệu chính (sản phẩm, giỏ, đơn, khách hàng...) gọi GraphQL qua @/graphql.
+/**
+ * REST cho các API không nằm trong supergraph (search, supplier, media, payment...).
+ * Trình duyệt gọi qua BFF /api/gateway (token gắn phía server); server gọi thẳng gateway kèm token từ cookie.
+ */
 const axiosInstance = axios.create({
-  baseURL: `${GATEWAY_URL}/api/ecommerce/`,
+  baseURL: typeof window === 'undefined' ? `${GATEWAY_URL}/api/ecommerce/` : '/api/gateway/',
   headers: { 'Content-Type': 'application/json' },
 });
 
 axiosInstance.interceptors.request.use(async (config) => {
-  if (!config.headers.Authorization) {
-    const token = await accessToken();
+  if (typeof window === 'undefined' && !config.headers.Authorization) {
+    const token = await serverToken();
     if (token) config.headers.Authorization = `Bearer ${token}`;
   }
   return config;

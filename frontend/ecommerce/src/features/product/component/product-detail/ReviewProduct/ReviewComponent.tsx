@@ -1,41 +1,37 @@
-import React from 'react';
-import { Review } from '@/models/types/Review';
-import { Avatar, AvatarFallback, AvatarImage, Separator } from '@/components/ui';
-import { Rating } from '@mui/material';
-import moment from 'moment';
 import Image from 'next/image';
+import { useLocale, useTranslations } from 'next-intl';
+import StarRating from '@/components/common/StarRating';
+import { Avatar, AvatarFallback, Separator } from '@/components/ui';
+import { Review } from '@/models/types/Review';
+import { formatDateTime } from '@/utils/date';
 
-type PropsType = {
-  review: Review;
-};
-
-export default function ReviewComponent({ review }: PropsType) {
+export default function ReviewComponent({ review }: { review: Review }) {
+  const t = useTranslations();
+  const locale = useLocale();
 
   return (
-    <div className='mb-5'>
-      <div className="flex items-center">
+    <article className="mb-5 border-b pb-4">
+      <div className="flex items-center gap-2">
         <Avatar>
-          <AvatarImage src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTvTZzRBQJr3hGRmgOafgRHzNAvWYXA3RY3_g&s" />
-          <AvatarFallback>CN</AvatarFallback>
-        </Avatar>{' '}
-        <span>Customer name</span>
+          <AvatarFallback>{t('product.customer').charAt(0)}</AvatarFallback>
+        </Avatar>
+        <span>{t('product.customer')}</span>
       </div>
-      <div className="flex text-sm">
-        <Rating value={4} readOnly size="small" /> <Separator orientation="vertical" className="mx-2" />
-        <span className="">{moment(review.createdAt).format('YYYY-MMM-DD hh:mm')}</span>
-        <Separator orientation="vertical" className="mx-2" />
-        <span>Phân loại: Iphone 16 pro max màu xám</span>
+      <div className="my-1 flex flex-wrap items-center text-sm text-muted-foreground">
+        <StarRating value={review.rating} size={14} />
+        <Separator orientation="vertical" className="mx-2 h-4" />
+        <time dateTime={String(review.createdAt)}>{formatDateTime(review.createdAt, locale)}</time>
       </div>
-      <div>{review.content}</div>
-      {review.reviewMedia && (
-        <div className='flex'>
+      <p className="whitespace-pre-line">{review.content}</p>
+      {review.reviewMedia?.length > 0 && (
+        <div className="mt-2 flex flex-wrap gap-3">
           {review.reviewMedia.map((item) => (
-            <span key={item.id} className="w-20 h-20 relative mr-3">
-              <Image src={item.url} alt={''} objectFit='cover' fill/>
+            <span key={item.id} className="relative h-20 w-20 overflow-hidden rounded">
+              <Image src={item.url} alt="" fill sizes="80px" className="object-cover" />
             </span>
           ))}
         </div>
       )}
-    </div>
+    </article>
   );
 }

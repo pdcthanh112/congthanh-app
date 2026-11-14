@@ -1,10 +1,10 @@
 {
-  "metadata":  {
+  "metadata": {
     "title": "CongThanhApp - Ecommerce",
     "description": "CongThanhApp - Ecommerce"
   },
   "common": {
-    "home": "Trang chủ",
+    "home": "Home",
     "title": "CongThanh Ecommerce",
     "hello": "Hello",
     "welcome": "Welcome to",
@@ -45,12 +45,47 @@
     "dob": "Date of birth",
     "edit": "Edit",
     "save": "Save",
-    "product": "Sản phẩm"
+    "product": "Product",
+    "loading": "Loading...",
+    "load_more": "Load more",
+    "loading_more": "Loading more...",
+    "list_empty": "No items",
+    "show_more": "Show more",
+    "show_less": "Show less",
+    "close": "Close",
+    "menu": "Menu",
+    "open_menu": "Open menu",
+    "close_menu": "Close menu",
+    "search": "Search",
+    "apply": "Apply",
+    "change": "Change",
+    "total": "Total",
+    "tax": "Tax",
+    "previous": "Previous",
+    "next": "Next",
+    "page": "Page",
+    "pagination": "Pagination",
+    "previous_page": "Previous page",
+    "next_page": "Next page",
+    "banner": "Promotions",
+    "go_to_slide": "Go to slide {index}",
+    "wishlist": "Wishlist"
   },
   "manage": {
-    "profile": "Profile"
-  }, 
-
+    "profile": "Profile",
+    "change_password": "Change password",
+    "banking": "Banking account",
+    "address": "Address",
+    "cart": "Cart",
+    "order": "Orders",
+    "wishlist": "Wishlist",
+    "account_menu": "Account menu",
+    "profile_title": "My profile",
+    "profile_subtitle": "Manage your profile information to keep your account secure",
+    "name": "Name",
+    "phone": "Phone",
+    "dob": "Date of birth"
+  },
   "header": {
     "your_shopping": "Your shopping",
     "view_your_cart": "View your cart",
@@ -62,7 +97,11 @@
     "recommendations": "Recommendations",
     "browsing_history": "Browsing History",
     "watchlist": "Watchlist",
-    "account_and_info": "Account & Info"
+    "account_and_info": "Account & Info",
+    "categories": "Categories",
+    "login_or_register": "{login} or {register}",
+    "account_menu": "Account menu",
+    "main_navigation": "Main navigation"
   },
   "navbar": {
     "today_deals": "Today Deals",
@@ -111,8 +150,18 @@
     "change_password": {
       "current_password": "Current password",
       "new_password": "New password",
-      "confirm_password": "Confirm password"
-    }
+      "confirm_password": "Confirm password",
+      "title": "Change password"
+    },
+    "login_intro": "Sign in with your CongThanhApp account. Your account is managed securely by our identity service.",
+    "register_intro": "Create a CongThanhApp account in a few steps. You can also sign up with Google, Facebook or Apple.",
+    "continue_with_account": "Continue with CongThanhApp account",
+    "create_account": "Create account",
+    "forgot_password_intro": "Use the \"Forgot password\" link on the sign-in page to receive a reset email.",
+    "go_to_login": "Go to sign in",
+    "change_password_intro": "You will be asked for your current password, then you can set a new one.",
+    "close": "Close",
+    "or": "or"
   },
   "product": {
     "rating": "rating",
@@ -126,7 +175,38 @@
     "product_description": "product description",
     "price": "Price",
     "product_name": "Product name",
-    "product_review": "Review product"
+    "product_review": "Review product",
+    "out_of_5": "{value}/5 stars",
+    "ratings_count": "{count} ratings",
+    "stars": "{count} stars",
+    "rating_breakdown": "Rating breakdown",
+    "previous_images": "Previous images",
+    "next_images": "Next images",
+    "view_image": "View image {index}",
+    "select_option": "Select {name} {value}",
+    "no_products": "No products found",
+    "filter": "Filters",
+    "price_from": "From",
+    "price_to": "To",
+    "clear_filter": "Clear filters",
+    "brand": "Brand",
+    "category": "Category",
+    "stars_filter": "{count} stars & up",
+    "empty": "No products found",
+    "all": "All",
+    "star_count": "{count} stars",
+    "with_media": "With photos",
+    "variant": "Variant",
+    "no_review": "No reviews yet",
+    "customer": "Customer",
+    "search": "Search",
+    "search_placeholder": "Search products...",
+    "show_more": "Show more",
+    "show_less": "Show less",
+    "rating_filter": "Rating",
+    "star_up": "{count} stars & up",
+    "load_more": "Load more",
+    "loading_more": "Loading..."
   },
   "cart": {
     "your_cart": "Your cart",
@@ -141,14 +221,26 @@
     "add_item_to_cart_successfully": "Add item to cart successfully",
     "add_item_to_cart_failed": "Add item to cart failed",
     "remove_item_from_cart_successfully": "Remove item from cart successfully",
-    "remove_item_from_cart_failed": "Remove item from cart failed"
+    "remove_item_from_cart_failed": "Remove item from cart failed",
+    "items_count": "{count, plural, =0 {No items} one {# item} other {# items}}",
+    "remove_item_confirm": "Remove this item from your cart?",
+    "line_issue": "This item cannot be purchased right now",
+    "not_ready": "Some items need your attention before checkout.",
+    "clear_cart": "Clear cart",
+    "clear_cart_confirm": "Remove all items from your cart?",
+    "view_detail_of": "View details for {name}",
+    "login_to_view": "Sign in now",
+    "quantity_of": "Quantity of {name}",
+    "add_item_successfully": "Added to cart"
   },
   "wishlist": {
     "add_item_to_wishlist_successfully": "Add item successfully",
     "add_item_to_wishlist_failed": "Add item failed",
     "remove_item_from_wishlist_successfully": "Remove item successfully",
     "remove_item_from_wishlist_failed": "Remove item failed",
-    "item_already_exists_in_wishlist": "Item already exists in wishlist"
+    "item_already_exists_in_wishlist": "Item already exists in wishlist",
+    "confirm_remove": "Remove this item from your wishlist?",
+    "empty": "Your wishlist is empty"
   },
   "store": {
     "view_store": "View store"
@@ -160,5 +252,158 @@
     "add_card": {
       "cvv": "CVV"
     }
+  },
+  "error": {
+    "generic": "Something went wrong. Please try again.",
+    "unauthenticated": "Please sign in to continue.",
+    "forbidden": "You do not have permission to do this.",
+    "not_found": "The requested item was not found.",
+    "bad_input": "Some information is invalid. Please check and try again.",
+    "unavailable": "The service is temporarily unavailable. Please try again later.",
+    "network": "Cannot connect to the server. Check your connection."
+  },
+  "address": {
+    "title": "Your addresses",
+    "add": "Add new address",
+    "edit": "Edit address",
+    "choose": "Choose shipping address",
+    "default": "Default",
+    "set_default": "Set as default",
+    "delete_confirm": "Delete this address?",
+    "empty": "You have no saved address yet.",
+    "full_name": "Full name",
+    "phone": "Phone number",
+    "address_line": "Street address",
+    "province": "Province / City",
+    "district": "District",
+    "ward": "Ward",
+    "postal_code": "Postal code",
+    "country": "Country code",
+    "label": "Label",
+    "label_home": "Home",
+    "label_office": "Office",
+    "label_other": "Other",
+    "saved": "Address saved",
+    "deleted": "Address deleted",
+    "required": "Please choose a shipping address",
+    "confirm": "Confirm",
+    "cancel": "Cancel",
+    "validation": {
+      "required": "This field is required",
+      "phone": "Invalid phone number",
+      "country": "Use a 2-letter country code, e.g. VN"
+    }
+  },
+  "checkout": {
+    "title": "Checkout information",
+    "shipping_address": "Shipping address",
+    "payment_method": "Payment method",
+    "cod": "Cash on delivery",
+    "credit_card": "Credit card",
+    "paypal": "PayPal",
+    "note": "Note for the seller",
+    "order_detail": "Order details",
+    "voucher": "Voucher code",
+    "voucher_placeholder": "Enter voucher code",
+    "voucher_applied": "Voucher applied",
+    "voucher_invalid": "Voucher code is not valid",
+    "discount": "Discount",
+    "order_total": "Order total",
+    "place_order": "Place order",
+    "placing": "Placing order...",
+    "success": "Your order has been placed",
+    "thank_you_title": "Your order has been placed successfully",
+    "thank_you_track": "You can track your order",
+    "here": "here",
+    "order_code": "Order code: {code}",
+    "gateway_redirect_notice": "You will be redirected to the payment provider’s secure page to enter your card details. This site never sees your card number.",
+    "payment_failed": "Payment failed",
+    "payment_pending": "Your payment is not complete yet.",
+    "continue_payment": "Continue payment",
+    "processing": "Processing your order..."
+  },
+  "search": {
+    "placeholder": "Search products...",
+    "label": "Search products",
+    "all_categories": "All categories",
+    "category": "Search category",
+    "trending": "Trending searches",
+    "recent": "Recent searches",
+    "no_suggestion": "No suggestions found for \"{term}\"",
+    "keyboard_hint": "Use ↑↓ to navigate, Tab/→ to complete, Enter to select, Esc to close",
+    "complete_hint": "Press Tab or → to complete",
+    "clear": "Clear search",
+    "remove": "Remove \"{term}\" from history",
+    "submit": "Search"
+  },
+  "theme": {
+    "toggle": "Toggle theme",
+    "light": "Light",
+    "dark": "Dark",
+    "system": "System"
+  },
+  "language": {
+    "choose": "Choose language",
+    "description": "Please choose your language.",
+    "current": "Language: {name}"
+  },
+  "notification": {
+    "title": "Notifications",
+    "empty": "You have no notifications.",
+    "mark_read": "Mark as read",
+    "mark_all_read": "Mark all as read",
+    "unread_count": "{count} unread",
+    "need_signin": "Sign in to see your notifications.",
+    "actions": "Notification actions"
+  },
+  "home": {
+    "recent_products": "Products for you"
+  },
+  "order": {
+    "my_orders": "My orders",
+    "all": "All",
+    "empty": "No orders yet",
+    "item_count": "{count, plural, one {# item} other {# items}}",
+    "back_to_orders": "Back to orders",
+    "order_code": "Order",
+    "placed_at": "Placed at",
+    "payment_method": "Payment",
+    "cancel_reason": "Cancellation reason",
+    "shipping_address": "Shipping address",
+    "subtotal": "Subtotal",
+    "discount": "Discount",
+    "total": "Total",
+    "status": {
+      "PLACED": "Placed",
+      "PENDING": "Pending",
+      "PREPARING": "Preparing",
+      "SHIPPING": "Shipping",
+      "DELIVERED": "Delivered",
+      "COMPLETED": "Completed",
+      "CANCELLED": "Cancelled",
+      "RETURNED": "Returned",
+      "FAILED": "Failed"
+    },
+    "cancel": {
+      "button": "Cancel order",
+      "title": "Cancel this order?",
+      "description": "This cannot be undone.",
+      "reason": "Reason",
+      "note": "Additional information",
+      "keep": "Keep order",
+      "confirm": "Cancel order",
+      "success": "Order cancelled",
+      "reasons": {
+        "changed_mind": "Changed my mind",
+        "better_price": "Found a better price",
+        "wrong_info": "Entered wrong information",
+        "delivery_too_long": "Delivery takes too long",
+        "other": "Other"
+      }
+    }
+  },
+  "supplier": {
+    "products": "Products",
+    "products_coming_soon": "This store’s product list is not available yet."
   }
 }

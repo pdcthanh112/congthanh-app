@@ -13,7 +13,7 @@ type TableCustomPropsType = {
 };
 
 const TableCustom = ({ data, columns }: TableCustomPropsType) => {
-  const table = useReactTable({
+  const _table = useReactTable({
     data,
     columns,
     getCoreRowModel: getCoreRowModel(),

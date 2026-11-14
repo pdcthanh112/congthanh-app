@@ -8,7 +8,7 @@ const NOTIFICATION_BASE_URL = '/notification';
 const SUPPLIER_BASE_URL = '/supplier';
 
 export const PATH = {
-  HOME: '/',
+  HOME: '/home',
   AUTH_PATH_URL: {
     LOGIN: '/auth/login',
     REGISTER: '/auth/register',

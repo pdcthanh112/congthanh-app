@@ -1,38 +1,27 @@
 'use client';
 
-import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { Rating, Icon, Avatar, TableContainer, Table, TableBody, TableRow, TableCell, Popover } from '@mui/material';
-import { Storefront, ForumOutlined, KeyboardArrowDown } from '@mui/icons-material';
+import React, { useRef, useState } from 'react';
 import Image from 'next/image';
-import DefaultImage from '@/assets/images/default-image.jpg';
-import { formatCurrency, formatNumber } from '@/utils/helper';
-import { useTranslations } from 'next-intl';
-import { useAddProductToWishlist, useRemoveProductFromWishlist } from '@/hooks/wishlist/wishlistHook';
-import { AddToCartIcon, HeartEmpty, HeartFull } from '@/assets/icons';
-import { toast } from 'react-toastify';
-import { useAddProductToCart } from '@/features/cart/hooks';
-import {
-  Product,
-  ProductAttribute,
-  ProductImage,
-  ProductOptions,
-  ProductOptionValueDisplay,
-  ProductVariant,
-} from '@/models/types';
-import QuantitySelector from '@/components/quantity-selector/QuantitySelector';
-import { PRODUCT_KEY, WISHLIST_KEY } from '@/utils/constants/queryKey';
-import ProductDetailSkeleton from '../ProductDetailSkeleton';
-import { ReviewStatistic } from '@/models/types/Review';
-import { BarChart, Bar, XAxis, ResponsiveContainer } from 'recharts';
-import { Button } from '@/components/ui/button';
-import { PATH } from '@/utils/constants/path';
 import { useSession } from 'next-auth/react';
+import { useTranslations } from 'next-intl';
+import { ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react';
+import { toast } from 'react-toastify';
+import DefaultImage from '@/assets/images/default-image.jpg';
+import { AddToCartIcon, HeartEmpty, HeartFull } from '@/assets/icons';
+import StarRating from '@/components/common/StarRating';
+import QuantitySelector from '@/components/quantity-selector/QuantitySelector';
+import { Button, Popover, PopoverContent, PopoverTrigger } from '@/components/ui';
+import { useAddProductToCart } from '@/features/cart/hooks';
+import { useAddProductToWishlist, useRemoveProductFromWishlist, useWishlistIds } from '@/features/wishlist/hooks';
+import { useErrorMessage } from '@/hooks/useErrorMessage';
+import { cn } from '@/lib/utils';
+import type { Product, ProductOptionValueDisplay, ProductOptions, ProductVariant } from '@/models/types';
+import type { ReviewStatistic } from '@/models/types/Review';
 import useAppModalStore from '@/store/useAppModal';
-import { useWishlistStore } from '@/store/wishlistStore';
-import BreadcrumbComponent from '@/components/breadcrumb/Breadcrumb';
+import { formatCurrency, formatNumber } from '@/utils/helper';
 
 type ProductDetailProps = {
+  /** product.description đã được sanitize phía server (xem app/[locale]/product/[slug]/page.tsx). */
   product: Product;
   pvid: string | null;
   reviewStatistic: ReviewStatistic;
@@ -41,580 +30,283 @@ type ProductDetailProps = {
   productOptionValueGet?: ProductOptionValueDisplay[];
 };
 
-type CurrentSelectedOption = {
-  [key: string]: string;
-};
+const THUMBS_PER_VIEW = 5;
 
 export default function ProductDetail({
   product,
   pvid,
   reviewStatistic,
-  productOption,
-  productVariant,
-  productOptionValueGet,
+  productOption = [],
+  productVariant = [],
+  productOptionValueGet = [],
 }: ProductDetailProps) {
-  const { data: user } = useSession();
-  const router = useRouter();
-  console.log('VVVVVVVVVVVVVVVVVVVVVVVVVv', productVariant);
+  const { status } = useSession();
   const t = useTranslations();
+  const errorMessage = useErrorMessage();
+  const openModalAuth = useAppModalStore((state) => state.openModalAuth);
+  const isAuthenticated = status === 'authenticated';
 
+  const images = [product.thumbnail, ...product.image].filter((img) => img?.imagePath);
+  const [currentImage, setCurrentImage] = useState(images[0]);
+  const [thumbStart, setThumbStart] = useState(0);
   const [quantity, setQuantity] = useState(1);
-  const [sold, setSold] = useState<number>(0);
-
-  // const [showReviewStatistic, setShowReviewStatistic] = useState<boolean>(false);
-  const [currentImage, setCurrentImage] = useState<ProductImage>();
-  const [listImages, setListImages] = useState<string[]>([]);
-  const [currentIndexImages, setCurrentIndexImages] = useState([0, 5]);
-  const [anchorEl, setAnchorEl] = React.useState<HTMLDivElement | null>(null);
-
-  const { openModalAuth } = useAppModalStore((state) => state);
-
   const imageRef = useRef<HTMLImageElement>(null);
 
-  const { mutate: addProductToCart } = useAddProductToCart();
+  // Biến thể: chọn sẵn theo ?pvid= hoặc biến thể đầu tiên (supergraph hiện chưa trả biến thể nên thường rỗng).
+  const initialVariant = (pvid && productVariant.find((v) => v.id.toString() === pvid)) || productVariant[0];
+  const [selectedOptions, setSelectedOptions] = useState<Record<number, string>>(
+    () => (initialVariant?.options as Record<number, string> | undefined) ?? {}
+  );
 
-  const { mutate: addProductToWishlist } = useAddProductToWishlist();
-  const { mutate: removeProductFromWishlist } = useRemoveProductFromWishlist();
+  const { mutate: addProductToCart, isPending: adding } = useAddProductToCart();
+  const { mutate: addToWishlist } = useAddProductToWishlist();
+  const { mutate: removeFromWishlist } = useRemoveProductFromWishlist();
+  const inWishlist = useWishlistIds().has(product.id);
 
-  const initCurrentSelectedOption = useMemo(() => {
-    if (!productOption?.length || !productVariant?.length) {
-      setListImages([
-        ...(product.thumbnail.imagePath ? [product.thumbnail.imagePath] : []),
-        // ...product.thumbnail.imagePath,
-        ...(Array.isArray(product.thumbnail.imagePath) ? product.thumbnail.imagePath : []),
-      ]);
-      return {};
-    }
+  const requireLogin = (action: () => void) => (isAuthenticated ? action() : openModalAuth());
 
-    const productVariation = pvid && productVariant.find((item) => item.id.toString() === pvid);
-    if (productVariation) {
-      return productVariation.options;
-    }
+  const handleAddProductToCart = () =>
+    requireLogin(() =>
+      addProductToCart(
+        { productId: product.id, quantity },
+        {
+          onSuccess: () => toast.success(t('cart.add_item_to_cart_successfully')),
+          onError: (e) => toast.error(errorMessage(e)),
+        }
+      )
+    );
 
-    setListImages([
-      ...(product.thumbnail.imagePath ? [product.thumbnail.imagePath] : []),
-      // ...product.thumbnail.imagePath,
-      ...(Array.isArray(product.thumbnail.imagePath) ? product.thumbnail.imagePath : []),
-    ]);
-    return productVariant[0].options;
-  }, [productOption, productVariant, pvid]);
+  const toggleWishlist = () =>
+    requireLogin(() =>
+      inWishlist
+        ? removeFromWishlist(product.id, {
+            onSuccess: () => toast.success(t('wishlist.remove_item_from_wishlist_successfully')),
+            onError: (e) => toast.error(errorMessage(e)),
+          })
+        : addToWishlist(product.id, {
+            onSuccess: () => toast.success(t('wishlist.add_item_to_wishlist_successfully')),
+            onError: (e) => toast.error(errorMessage(e)),
+          })
+    );
 
-  const [currentSelectedOption, setCurrentSelectedOption] = useState<CurrentSelectedOption>(initCurrentSelectedOption);
-  console.log('YYYYYYYYYYYYYYYYYYYYYYYYYYY', currentSelectedOption);
-  const [optionSelected, setOptionSelected] = useState<CurrentSelectedOption>({});
-  const [isUnchecking, setIsUnchecking] = useState<boolean>(false);
-  const [currentProduct, setCurrentProduct] = useState<Product | ProductVariant>(product);
-
-  // useEffect(() => {
-  //   if (productOption && productOption.length > 0 && productVariant && productVariant.length > 0) {
-  //     // router.query.pvid = currentProduct.id.toString();
-  //     // router.push(router, undefined, { shallow: true });
-  //     const url = new URL(window.location.href);
-  //     url.searchParams.set('pvid', currentProduct.id.toString());
-  //     router.replace(url.toString());
-  //   }
-
-  // }, [productOption, productVariant, pvid, currentProduct.id]);
-
-  useEffect(() => {
-    const isOptionSelected = (key: string, currentSelectedOption: CurrentSelectedOption, item: ProductVariant) => {
-      return currentSelectedOption[+key] === item.options[+key];
-    };
-
-    const areAllOptionsSelected = (
-      optionKeys: string[],
-      currentSelectedOption: CurrentSelectedOption,
-      item: ProductVariant
-    ) => {
-      return optionKeys.every((key: string) => isOptionSelected(key, currentSelectedOption, item));
-    };
-
-    const findProductVariationMatchAllOptions = () => {
-      return productVariant?.find((item) => {
-        const optionKeys = Object.keys(item.options);
-        console.log('KKKKKKKKKKKKKKKKKKKK', optionKeys);
-        return (
-          optionKeys.length === Object.keys(currentSelectedOption).length &&
-          areAllOptionsSelected(optionKeys, currentSelectedOption, item)
-        );
-      });
-    };
-
-    const updateListImagesByProductVariationMatchAllOptions = (variation: ProductVariant) => {
-      const urls = [
-        ...(variation.thumbnail?.imagePath ? [variation.thumbnail.imagePath] : []),
-        ...variation.image.map((image) => image.imagePath),
-      ];
-      setListImages(urls);
-      setCurrentProduct(variation);
-      setCurrentSelectedOption(variation.options);
-    };
-
-    const updateListImagesBySelectedOption = (productVariations: ProductVariant[]) => {
-      const productSelected = productVariations.find((item) => {
-        return item.options[+Object.keys(optionSelected)[0]] == Object.values(optionSelected)[0];
-      });
-
-      if (productSelected) {
-        const urlList = productSelected.image.map((image) => image.imagePath);
-        setListImages([
-          ...(productSelected.thumbnail?.imagePath ? [productSelected.thumbnail.imagePath] : []),
-          ...urlList,
-        ]);
-        setCurrentSelectedOption(productSelected.options);
-        setCurrentProduct(productSelected);
-      }
-    };
-
-    if (productOption?.length && productVariant?.length) {
-      const productVariationMatchAllOptions = findProductVariationMatchAllOptions();
-      console.log('FFFFFFFFFFFFFFFFFFFFFFFFF', productVariationMatchAllOptions);
-      if (productVariationMatchAllOptions) {
-        updateListImagesByProductVariationMatchAllOptions(productVariationMatchAllOptions);
-      } else if (!isUnchecking) {
-        updateListImagesBySelectedOption(productVariant);
-      }
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    // }, [JSON.stringify(currentSelectedOption)]);
-  }, [currentSelectedOption]);
-
-  //   const { data: product, isLoading } = useQuery({
-  //     queryKey: [PRODUCT_KEY, productSlug],
-  //     queryFn: async () => await getProductBySlug(productSlug as string).then(async(result) => {
-  //           await getRatingStarofProduct(result.id).then((response) => {
-  //             if (response && response.data) {
-  //               setRatingStar(response.data);
-  //             }
-  //           });
-  //           await getStoreById(result.store).then((response) => {
-  //             if (response && response.data) {
-  //               setStore(response.data);
-  //             }
-  //           });
-  //           await getAttributeByProductId(result.id).then((response) => {
-  //             if (response && response.data) {
-  //               setProductAttribute(response.data);
-  //             }
-  //           });
-  //           await getImageByProductId(result.id).then((response) => {
-  //             if (response && response.data) {
-  //               setProductImage(response.data);
-  //               setCurrentImage(response.data.find((image: ProductImage) => image.isDefault === true));
-  //             }
-  //           });
-  //           await getSoldByProduct(result.id).then((response) => {
-  //             if (response && response.data) {
-  //               setSold(response.data);
-  //             }
-  //           });
-  //           return result.data
-  //         },
-  //    )
-  // });
-
-  const { checkExistItemInWishlist, addToWishlist, removeFromWishlist } = useWishlistStore();
-
-  const handleAddProductToCart = () => {
-    if (user) {
-      try {
-        addProductToCart(
-          { productId: product.id, quantity: quantity, cartId: '36c98af9-bee7-4e11-bd19-36426261d727' },
-          {
-            onSuccess() {
-              toast.success(t('cart.add_item_to_cart_successfully'));
-            },
-            onError(error) {
-              toast.error(t('cart.add_item_to_cart_failed') + error);
-            },
-          }
-        );
-      } catch (error) {
-        toast.error(t('cart.add_item_to_cart_failed') + error);
-      }
-    } else {
-      openModalAuth();
-    }
-  };
-
-  const handleAddToWishlist = (productId: string) => {
-    if (user) {
-      try {
-        addToWishlist(productId);
-        addProductToWishlist(
-          { customerId: user.user.accountId, productId: productId },
-          {
-            onSuccess() {
-              toast.success(t('wishlist.add_item_to_wishlist_successfully'));
-            },
-            onError() {
-              toast.error(t('wishlist.add_item_to_wishlist_failed'));
-            },
-          }
-        );
-      } catch (error) {
-        toast.error(t('wishlist.add_item_to_wishlist_failed') + error);
-      }
-    } else {
-      openModalAuth();
-    }
-  };
-
-  const handleRemoveFromWishlist = (productId: string) => {
-    if (user) {
-      try {
-        removeFromWishlist(productId);
-        removeProductFromWishlist(
-          { customerId: user.user.accountId, productId: productId },
-          {
-            onSuccess() {
-              toast.success(t('wishlist.remove_item_from_wishlist_successfully'));
-            },
-            onError(error) {
-              toast.error(t('wishlist.remove_item_from_wishlist_failed'));
-              console.log(error);
-            },
-          }
-        );
-      } catch (error) {
-        toast.error(t('wishlist.remove_item_from_wishlist_failed') + error);
-      }
-    } else {
-      openModalAuth();
-    }
-  };
-
-  const handleZoom = (event: React.MouseEvent<HTMLDivElement, MouseEvent>) => {
+  const handleZoom = (event: React.MouseEvent<HTMLDivElement>) => {
+    const image = imageRef.current;
+    if (!image) return;
     const rect = event.currentTarget.getBoundingClientRect();
-
-    const image = imageRef.current as HTMLImageElement;
     const { naturalHeight, naturalWidth } = image;
     const { offsetX, offsetY } = event.nativeEvent;
-    const top = offsetY * (1 - naturalHeight / rect.height);
-    const left = offsetX * (1 - naturalWidth / rect.width);
-    image.style.width = naturalWidth + 'px';
-    image.style.height = naturalHeight + 'px';
+    image.style.width = `${naturalWidth}px`;
+    image.style.height = `${naturalHeight}px`;
     image.style.maxWidth = 'unset';
-    image.style.top = top + 'px';
-    image.style.left = left + 'px';
+    image.style.top = `${offsetY * (1 - naturalHeight / rect.height)}px`;
+    image.style.left = `${offsetX * (1 - naturalWidth / rect.width)}px`;
   };
 
-  const handleRemoveZoom = () => {
-    imageRef.current?.removeAttribute('style');
-  };
+  const ratingRows = [5, 4, 3, 2, 1].map((star) => {
+    const count = reviewStatistic[`reviewRating${star}Star` as keyof ReviewStatistic] as number;
+    return { star, percent: reviewStatistic.totalReview ? Math.round((count / reviewStatistic.totalReview) * 100) : 0 };
+  });
 
-  const next = () => {
-    if (currentIndexImages[1] < 10) {
-      setCurrentIndexImages([currentIndexImages[0] + 1, currentIndexImages[1] + 1]);
-    }
-  };
-
-  const prev = () => {
-    if (currentIndexImages[0] > 0) {
-      setCurrentIndexImages([currentIndexImages[0] - 1, currentIndexImages[1] - 1]);
-    }
-  };
-
-  const data = [
-    {
-      name: '5 stars',
-      uv: Math.round((reviewStatistic.reviewRating5Star / reviewStatistic.totalReview) * 100),
-    },
-    {
-      name: '4 stars',
-      uv: Math.round((reviewStatistic.reviewRating4Star / reviewStatistic.totalReview) * 100),
-    },
-    {
-      name: '3 stars',
-      uv: Math.round((reviewStatistic.reviewRating3Star / reviewStatistic.totalReview) * 100),
-    },
-    {
-      name: '2 stars',
-      uv: Math.round((reviewStatistic.reviewRating2Star / reviewStatistic.totalReview) * 100),
-    },
-    {
-      name: '1 stars',
-      uv: Math.round((reviewStatistic.reviewRating1Star / reviewStatistic.totalReview) * 100),
-    },
-  ];
-
-  const handleSelectOption = (optionId: number, optionValue: string) => {
-    if (productOption && productOption.length > 0 && productVariant && productVariant.length > 0) {
-      if (currentSelectedOption[+optionId] === optionValue) {
-        if (Object.keys(currentSelectedOption).length > 1) {
-          setCurrentSelectedOption((prev) => {
-            const newOption = { ...prev };
-            delete newOption[+optionId];
-            return newOption;
-          });
-          setIsUnchecking(true);
-        }
-      } else {
-        setCurrentSelectedOption({ ...currentSelectedOption, [optionId]: optionValue });
-        setOptionSelected({ [optionId]: optionValue });
-        setIsUnchecking(false);
+  const toggleOption = (optionId: number, value: string) =>
+    setSelectedOptions((prev) => {
+      if (prev[optionId] === value) {
+        const next = { ...prev };
+        delete next[optionId];
+        return next;
       }
-    }
-  };
+      return { ...prev, [optionId]: value };
+    });
+
+  const visibleThumbs = images.slice(thumbStart, thumbStart + THUMBS_PER_VIEW);
 
   return (
-    <div className="w-[80%] mx-auto my-3">
-      <div className="bg-white flex px-3 py-2">
-        <div className="w-[40%] py-3">
+    <div className="w-full max-w-6xl mx-auto px-4 my-3">
+      <div className="bg-white flex flex-col md:flex-row gap-5 px-3 py-2">
+        <div className="w-full md:w-2/5 py-3">
           <div
             className="relative w-full pt-[100%] shadow-sm cursor-zoom-in overflow-hidden"
-            onMouseLeave={handleRemoveZoom}
+            onMouseLeave={() => imageRef.current?.removeAttribute('style')}
             onMouseMove={handleZoom}
           >
             <Image
               src={currentImage?.imagePath || DefaultImage}
               alt={product.name}
-              width={300}
-              height={300}
+              width={600}
+              height={600}
+              priority
               ref={imageRef}
               className="absolute pointer-events-none top-0 left-0 h-full w-full bg-white object-cover"
             />
           </div>
-          <div className="relative mt-4 grid grid-cols-5 gap-0 overflow-hidden">
-            <button
-              onClick={prev}
-              className="absolute left-0 top-1/2 z-10 h-9 w-5 -translate-y-1/2 bg-black/20 text-white"
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                fill="none"
-                viewBox="0 0 24 24"
-                strokeWidth={1.5}
-                stroke="currentColor"
-                className="w-5 h-5"
+          {images.length > 1 && (
+            <div className="relative mt-4 grid grid-cols-5 gap-1">
+              <button
+                type="button"
+                onClick={() => setThumbStart((s) => Math.max(0, s - 1))}
+                disabled={thumbStart === 0}
+                className="absolute left-0 top-1/2 z-10 h-9 w-5 -translate-y-1/2 bg-black/20 text-white disabled:opacity-30"
+                aria-label={t('product.previous_images')}
               >
-                <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
-              </svg>
-            </button>
-            <button
-              onClick={next}
-              className="absolute right-0 top-1/2 z-10 h-9 w-5 -translate-y-1/2 bg-black/20 text-white"
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                fill="none"
-                viewBox="0 0 24 24"
-                strokeWidth={1.5}
-                stroke="currentColor"
-                className="w-5 h-5"
+                <ChevronLeft className="w-5 h-5" aria-hidden />
+              </button>
+              <button
+                type="button"
+                onClick={() => setThumbStart((s) => Math.min(Math.max(0, images.length - THUMBS_PER_VIEW), s + 1))}
+                disabled={thumbStart + THUMBS_PER_VIEW >= images.length}
+                className="absolute right-0 top-1/2 z-10 h-9 w-5 -translate-y-1/2 bg-black/20 text-white disabled:opacity-30"
+                aria-label={t('product.next_images')}
               >
-                <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
-              </svg>
-            </button>
-            {product.image?.slice(...currentIndexImages).map((img: ProductImage) => {
-              const isActive = img === currentImage;
-              return (
-                <div key={img.id} className="relative w-[5rem] h-[5rem]" onClick={() => setCurrentImage(img)}>
-                  <Image
-                    src={img.imagePath}
-                    alt={product.name}
-                    fill
-                    objectFit="fill"
-                    className={`cursor-pointer ${isActive && 'border-2 border-red-400'}`}
-                  />
-                </div>
-              );
-            })}
-          </div>
-        </div>
-        <div className="w-[60%] ml-5 p-3">
-          <h1 className="font-medium text-2xl bg-gray-200 px-3 py-2 mb-3">{product.name}</h1>
-          <div className="flex justify-between my-3">
-            <React.Fragment>
-              <div className="flex items-center">
-                <div
-                  className="flex items-center"
-                  onClick={(event) => {
-                    setAnchorEl(event.currentTarget);
-                  }}
+                <ChevronRight className="w-5 h-5" aria-hidden />
+              </button>
+              {visibleThumbs.map((img, i) => (
+                <button
+                  type="button"
+                  key={`${img.id}-${img.imagePath}`}
+                  className={cn('relative aspect-square', img === currentImage && 'ring-2 ring-red-400')}
+                  onClick={() => setCurrentImage(img)}
+                  aria-label={t('product.view_image', { index: thumbStart + i + 1 })}
+                  aria-pressed={img === currentImage}
                 >
-                  <span className="mr-1">{reviewStatistic?.averageRating}</span>
-                  <Rating value={reviewStatistic.averageRating} precision={0.1} size="small" readOnly />
-                  <Icon component={KeyboardArrowDown} />
-                </div>
-                <span className="opacity-80 mx-2">|</span>
-                <span>
-                  {formatNumber(reviewStatistic.totalReview)} {t('product.rating')}
-                </span>
-                <span className="opacity-80 mx-2">|</span>
-                <span>
-                  {t('product.sold')}: {sold}
-                </span>
-              </div>
-              <Popover
-                open={Boolean(anchorEl)}
-                anchorEl={anchorEl}
-                onClose={() => {
-                  setAnchorEl(null);
-                }}
-                anchorOrigin={{
-                  vertical: 'bottom',
-                  horizontal: 'center',
-                }}
-                transformOrigin={{
-                  vertical: 'top',
-                  horizontal: 'center',
-                }}
-              >
-                <div className="px-3 py-2 w-96 h-80">
-                  <div className="flex items-center">
-                    <Rating value={reviewStatistic.averageRating} precision={0.1} size="small" readOnly />
-                    <span className="mr-1">{reviewStatistic?.averageRating} out of 5</span>
-                  </div>
-                  <div>{reviewStatistic.totalReview} ratings</div>
-                  <div>
-                    {/* <ResponsiveContainer width="100%" height="100%"> */}
-                    <BarChart width={300} height={400} data={data} layout="vertical">
-                      <Bar dataKey="uv" barSize={20} fill="#8884d8" label />
-                      <XAxis hide />
-                      {/* <YAxis type="category" dataKey="name" /> */}
-                    </BarChart>
-                    {/* </ResponsiveContainer> */}
-                  </div>
-                </div>
-              </Popover>
-            </React.Fragment>
-
-            {/* <ProductImageGallery listImages={listImages} /> */}
-
-            <div>
-              {checkExistItemInWishlist(product.id) ? (
-                <span
-                  className="hover:cursor-pointer"
-                  title={t('common.add_to_wishlist')}
-                  onClick={() => handleAddToWishlist(product.id)}
-                >
-                  <Icon component={HeartEmpty} sx={{ color: 'red' }} />
-                </span>
-              ) : (
-                <span
-                  className="hover:cursor-pointer"
-                  title={t('common.remove_from_wishlist')}
-                  onClick={() => handleRemoveFromWishlist(product.id)}
-                >
-                  <Icon component={HeartFull} sx={{ color: 'red' }} />
-                </span>
-              )}
+                  <Image src={img.imagePath} alt="" fill sizes="80px" className="object-cover" />
+                </button>
+              ))}
             </div>
-          </div>
-          <div className="font-semibold text-3xl text-yellow-400">{formatCurrency(10000000000000, 'vi', 'VND')}</div>
-          ============
-          {/* product options */}
-          {(productOption || []).map((productOption) => {
-            const optionValues =
-              productOptionValueGet?.filter((post) => post.productOptionId === productOption.id) || [];
+          )}
+        </div>
 
-            return (
-              <div className="mb-3" key={productOption.name}>
-                <h5 className="mb-2 fs-6">{productOption.name}:</h5>
-                {optionValues.length > 0 ? (
-                  <div className="d-flex gap-2">
-                    {optionValues.map((post) => (
-                      <Button
-                        key={post.productOptionValue}
-                        className={`${
-                          currentSelectedOption[productOption.id] === post.productOptionValue
-                            ? 'btn btn-primary bg-amber-200'
-                            : 'text-dark btn-outline-primary'
-                        }`}
-                        onClick={() => handleSelectOption(productOption.id, post.productOptionValue)}
-                        aria-label={`Select ${productOption.name} ${post.productOptionValue}`}
-                        variant="outline"
-                      >
-                        {post.productOptionValue}
-                      </Button>
-                    ))}
+        <div className="w-full md:w-3/5 p-3">
+          <h1 className="font-medium text-2xl bg-gray-200 px-3 py-2 mb-3">{product.name}</h1>
+          <div className="flex flex-wrap items-center justify-between gap-2 my-3">
+            <div className="flex flex-wrap items-center gap-2">
+              <Popover>
+                <PopoverTrigger asChild>
+                  <button type="button" className="flex items-center gap-1" aria-label={t('product.rating_breakdown')}>
+                    <span>{reviewStatistic.averageRating}</span>
+                    <StarRating value={reviewStatistic.averageRating} />
+                    <ChevronDown size={16} aria-hidden />
+                  </button>
+                </PopoverTrigger>
+                <PopoverContent className="w-80">
+                  <div className="flex items-center gap-2">
+                    <StarRating value={reviewStatistic.averageRating} />
+                    <span>{t('product.out_of_5', { rating: reviewStatistic.averageRating })}</span>
                   </div>
-                ) : (
-                  <div>{productOption.name}</div>
-                )}
-              </div>
+                  <p className="text-sm mb-2">{t('product.ratings_count', { count: reviewStatistic.totalReview })}</p>
+                  <ul className="space-y-1">
+                    {ratingRows.map(({ star, percent }) => (
+                      <li key={star} className="flex items-center gap-2 text-sm">
+                        <span className="w-14 shrink-0">{t('product.stars', { count: star })}</span>
+                        <span className="flex-1 h-3 bg-gray-200 rounded" aria-hidden>
+                          <span className="block h-full bg-yellow-400 rounded" style={{ width: `${percent}%` }} />
+                        </span>
+                        <span className="w-10 text-right">{percent}%</span>
+                      </li>
+                    ))}
+                  </ul>
+                </PopoverContent>
+              </Popover>
+              <span className="opacity-80" aria-hidden>
+                |
+              </span>
+              <span>
+                {formatNumber(reviewStatistic.totalReview)} {t('product.rating')}
+              </span>
+            </div>
+
+            <button
+              type="button"
+              onClick={toggleWishlist}
+              aria-pressed={inWishlist}
+              aria-label={inWishlist ? t('common.remove_from_wishlist') : t('common.add_to_wishlist')}
+              title={inWishlist ? t('common.remove_from_wishlist') : t('common.add_to_wishlist')}
+              className="text-red-600"
+            >
+              {inWishlist ? <HeartFull width={24} height={24} aria-hidden /> : <HeartEmpty width={24} height={24} aria-hidden />}
+            </button>
+          </div>
+
+          <div className="font-semibold text-3xl text-yellow-500">{formatCurrency(10000000000000, 'vi', 'VND')}</div>
+
+          {productOption.map((option) => {
+            const values = productOptionValueGet.filter((v) => v.productOptionId === option.id);
+            return (
+              <fieldset className="my-3" key={option.name}>
+                <legend className="mb-2">{option.name}:</legend>
+                <div className="flex flex-wrap gap-2">
+                  {(values.length > 0 ? values.map((v) => v.productOptionValue) : option.value).map((value) => (
+                    <Button
+                      key={value}
+                      type="button"
+                      variant="outline"
+                      aria-pressed={selectedOptions[option.id] === value}
+                      className={cn(selectedOptions[option.id] === value && 'bg-amber-200')}
+                      onClick={() => toggleOption(option.id, value)}
+                      aria-label={t('product.select_option', { name: option.name, value })}
+                    >
+                      {value}
+                    </Button>
+                  ))}
+                </div>
+              </fieldset>
             );
           })}
-          ===================================
-          <div className="flex mt-10">
-            <span className="flex items-center mr-10">{t('product.Quantity')}</span>
-            <QuantitySelector
-              value={quantity}
-              max={123456}
-              onDecrease={setQuantity}
-              onIncrease={setQuantity}
-              onType={setQuantity}
-            />
-            <span className="flex items-center ml-10">
-              {product ? <p>12345 {t('common.available')}</p> : <p>{t('common.sold_out')}</p>}
-            </span>
+
+          <div className="flex flex-wrap items-center gap-4 sm:gap-10 mt-8">
+            <span>{t('product.Quantity')}</span>
+            <QuantitySelector initialValue={quantity} max={99} onChange={setQuantity} />
+            <span>{t('common.available')}</span>
           </div>
-          <div className="flex mt-10">
+          <div className="flex flex-wrap gap-3 mt-8">
             <Button
-              className="bg-yellow-50 border-yellow-300 border-2 text-yellow-400"
-              onClick={() => handleAddProductToCart()}
+              className="bg-yellow-50 border-yellow-300 border-2 text-yellow-600 hover:bg-yellow-100"
+              onClick={handleAddProductToCart}
+              disabled={adding}
             >
-              <AddToCartIcon width={28} height={28} />
-              <span className="ml-1">{t('common.add_to_cart')}</span>
+              <AddToCartIcon width={28} height={28} aria-hidden />
+              {t('common.add_to_cart')}
             </Button>
-            <Button className="bg-yellow-400 text-[#fff] ml-3" disabled={12345 <= 0}>
-              <span className="mx-3">{t('product.buy_now')}</span>
-            </Button>
+            <Button className="bg-yellow-400 text-white hover:bg-yellow-500">{t('product.buy_now')}</Button>
           </div>
         </div>
       </div>
-      {/* <div className="bg-white mt-10 p-5 flex">
-        <div className="w-[35%] flex">
-          <Avatar src={supplier.avatar} alt="Store Avatar" style={{ width: '6rem', height: '6rem' }} />
-          <div className="w-full ml-3">
-            <h3 className="mb-2">{supplier.name}</h3>
-            <div className="flex">
-              <Button className="bg-yellow-50 text-yellow-300 border-solid border-2 border-yellow-300 mr-3">
-                <Icon component={ForumOutlined} />
-                <span>{t('common.contact')}</span>
-              </Button>
-              <Link
-                href={PATH.SUPPLIER_PATH_URL.SUPPLIER_DATAIL + supplier.slug}
-                className=" border-solid border-2 border-gray-300 flex items-center px-2"
-              >
-                <Icon component={Storefront} />
-                <span>{t('store.view_store')}</span>
-              </Link>
-            </div>
-          </div>
-        </div>
-        <div className="bg-red-400 w-[65%]">asdfasjl</div>
-      </div> */}
-      <div className="bg-white mt-10 p-5">
-        <h2 className="bg-yellow-100 px-2 py-1 rounded-sm">{t('product.product_detail').toUpperCase()}</h2>
-        <div className="grid grid-cols-4">
-          <div className="col-span-1">{t('common.Category')}</div>
-          <div className="col-span-3">{product.category.map((item) => item.name)}</div>
-          <div className="col-span-1">{t('common.in_stock')}</div>
-          {/* <div className="col-span-3">{product.quantity > 0 ? <p>{product.quantity}</p> : <p>0</p>}</div> */}
-        </div>
-      </div>
-      <div className="bg-white mt-10 p-5">
-        <h2 className="bg-yellow-100 px-2 py-1 rounded-sm">{t('product.product_attribute').toUpperCase()}</h2>
-        <TableContainer>
-          <Table>
-            <TableBody>
-              {product.attribute?.map((item: ProductAttribute) => (
-                <TableRow key={item.id}>
-                  <TableCell>{item.attribute}</TableCell>
-                  <TableCell>{item.value}</TableCell>
-                </TableRow>
+
+      <section className="bg-white mt-6 p-5">
+        <h2 className="bg-yellow-100 px-2 py-1 rounded-sm uppercase">{t('product.product_detail')}</h2>
+        <dl className="grid grid-cols-4 gap-y-2 mt-3">
+          <dt className="col-span-1">{t('common.Category')}</dt>
+          <dd className="col-span-3">{product.category.map((item) => item.name).join(', ')}</dd>
+          {product.brand && (
+            <>
+              <dt className="col-span-1">{t('product.brand')}</dt>
+              <dd className="col-span-3">{product.brand}</dd>
+            </>
+          )}
+        </dl>
+      </section>
+
+      {product.attribute.length > 0 && (
+        <section className="bg-white mt-6 p-5">
+          <h2 className="bg-yellow-100 px-2 py-1 rounded-sm uppercase">{t('product.product_attribute')}</h2>
+          <table className="w-full mt-3 text-sm">
+            <tbody className="divide-y">
+              {product.attribute.map((item) => (
+                <tr key={item.id}>
+                  <th scope="row" className="text-left font-normal py-2 pr-4 w-1/3">
+                    {item.attribute}
+                  </th>
+                  <td className="py-2">{item.value}</td>
+                </tr>
               ))}
-            </TableBody>
-          </Table>
-        </TableContainer>
-      </div>
-      <div className="bg-white mt-10 p-5">
-        <h2 className="bg-yellow-100 px-2 py-1 rounded-sm">{t('product.product_description').toUpperCase()}</h2>
-        {/* <div className="">{product.description}</div> */}
-        <div dangerouslySetInnerHTML={{ __html: product.description }} className="prose" />
-      </div>
+            </tbody>
+          </table>
+        </section>
+      )}
+
+      <section className="bg-white mt-6 p-5">
+        <h2 className="bg-yellow-100 px-2 py-1 rounded-sm uppercase">{t('product.product_description')}</h2>
+        {/* Đã sanitize phía server bằng sanitize-html (chặn script, on*, javascript: URL...). */}
+        <div dangerouslySetInnerHTML={{ __html: product.description }} className="prose max-w-none mt-3" />
+      </section>
     </div>
   );
 }

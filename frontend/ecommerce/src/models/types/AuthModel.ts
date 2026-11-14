@@ -4,6 +4,6 @@ export type LoginResponse = {
   user: Customer;
   accessToken: string;
   refreshToken: string;
-  accessTokenMaxAge: any
-  refreshTokenMaxAge: any
+  accessTokenMaxAge: number;
+  refreshTokenMaxAge: number;
 };

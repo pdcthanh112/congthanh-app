@@ -1,18 +1,26 @@
-export const locales = ["en", "es", "vi"] as const;
-export type Locale = (typeof locales)[number];
+import { defaultLocale, locales, type Locale } from '@/i18n/routing';
 
-export const defaultLocale: Locale = 'en';
+export { defaultLocale, locales, type Locale };
+
+/** Tên hiển thị của từng ngôn ngữ trong bộ chọn ngôn ngữ. */
+export const localeNames: Record<Locale, string> = {
+  en: 'English',
+  vi: 'Tiếng Việt',
+  es: 'Español',
+  de: 'Deutsch',
+  fr: 'Français',
+  it: 'Italiano',
+  ko: '한국어',
+  ru: 'Русский',
+  zh: '中文',
+};
 
 export function isValidLocale(locale: string): locale is Locale {
-  return locales.includes(locale as Locale);
+  return (locales as readonly string[]).includes(locale);
 }
 
-// Format số, tiền tệ theo locale
-export const formatters = {
-  number: new Intl.NumberFormat('vi-VN'),
-  currency: new Intl.NumberFormat('vi-VN', {
-    style: 'currency',
-    currency: 'VND'
-  }),
-  // Thêm các formatter khác nếu cần
-};
+/** Bỏ prefix locale khỏi pathname: /vi/manage/profile → /manage/profile. */
+export function stripLocale(pathname: string): string {
+  const [, first, ...rest] = pathname.split('/');
+  return isValidLocale(first ?? '') ? `/${rest.join('/')}` : pathname;
+}

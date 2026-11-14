@@ -1,42 +1,24 @@
-import React from 'react';
+import React, { cache } from 'react';
 import { Metadata } from 'next';
-import { notFound, redirect } from 'next/navigation';
+import { notFound } from 'next/navigation';
+import { getTranslations, setRequestLocale } from 'next-intl/server';
 import {
   getProductDetailBySlug,
   getProductOptionValueByProductId,
   getProductOptionValues,
   getProductVariationsByParentId,
 } from '@/api/productApi';
+import BreadcrumbComponent from '@/components/Breadcrumb';
 import ProductDetail from '@/features/product/component/product-detail';
-import { getStatisticFromProduct } from '@/api/reviewApi';
-import { getSupplierById } from '@/api/supplierApi';
+import RelatedProduct from '@/features/product/component/RelatedProduct';
+import { redirect } from '@/i18n/routing';
+import type { Locale } from '@/lib/locales';
+import { sanitizeRichText } from '@/lib/sanitize';
 import { Breadcrumb, ProductOptions, ProductVariant } from '@/models/types';
 import { ReviewStatistic } from '@/models/types/Review';
-import RelatedProduct from '@/features/product/component/RelatedProduct';
-import ReviewProduct from '@/features/product/component/product-detail/ReviewProduct';
-import { getTranslations } from 'next-intl/server';
-import BreadcrumbComponent from '@/components/breadcrumb/Breadcrumb';
 
-const fetchProduct = async (slug: string) => {
-  const product = await getProductDetailBySlug(slug).then((response) => response.data);
-  if (product.parent) redirect(`/product/${product.parent}?pvid=${product.id}`);
-  return product;
-};
-
-// type PropsType = Promise<{
-//   slug: string;
-//   pvid?: string;
-// }>;
-type Params = Promise<{ slug: string }>;
+type Params = Promise<{ slug: string; locale: Locale }>;
 type SearchParams = Promise<{ [key: string]: string | string[] | undefined }>;
-
-// async function getReviewStatisticByProduct(productId: string) {
-//   return await getStatisticFromProduct(productId);
-// }
-
-// async function getSupplierInfo(supplierId: string) {
-//   return await getSupplierById(supplierId);
-// }
 
 const MOCK_REVIEW_STATISTIC: ReviewStatistic = {
   totalReview: 4646,
@@ -49,38 +31,40 @@ const MOCK_REVIEW_STATISTIC: ReviewStatistic = {
   reviewWithMedia: 1684,
 };
 
+/**
+ * Dùng chung cho generateMetadata và page trong cùng một request (React.cache) để không gọi API hai lần.
+ * Mô tả được sanitize ngay ở server trước khi đưa xuống client component.
+ */
+const fetchProduct = cache(async (slug: string) => {
+  try {
+    const product = (await getProductDetailBySlug(slug)).data;
+    return { ...product, description: sanitizeRichText(product.description) };
+  } catch {
+    return null;
+  }
+});
+
 const fetchAndSortProductVariations = async (productId: string): Promise<ProductVariant[]> => {
   try {
-    let productVariations = await getProductVariationsByParentId(productId);
-    if (productVariations && productVariations.length > 0) {
-      productVariations = productVariations.sort((a, b) => {
-        return Object.keys(a.options).length - Object.keys(b.options).length;
-      });
-    }
-    return productVariations;
-  } catch (error) {
-    console.error(error);
+    const variations = await getProductVariationsByParentId(productId);
+    return [...variations].sort((a, b) => Object.keys(a.options).length - Object.keys(b.options).length);
+  } catch {
     return [];
   }
 };
 
-export async function generateMetadata({ params }: { params: Params; searchParams: SearchParams }): Promise<Metadata> {
+export async function generateMetadata({ params }: { params: Params }): Promise<Metadata> {
   const { slug } = await params;
-  const product = await fetchProduct(slug)
-    .then((response) => response)
-    .catch(() => notFound());
+  const product = await fetchProduct(slug);
+  if (!product) notFound();
 
   return {
     title: product.name,
-    description: product.description,
+    description: product.metadata.description,
     openGraph: {
       title: product.name,
-      description: product.description,
-      images: [
-        {
-          url: product.thumbnail.imagePath,
-        },
-      ],
+      description: product.metadata.description,
+      images: product.thumbnail.imagePath ? [{ url: product.thumbnail.imagePath }] : [],
     },
     alternates: {
       canonical: process.env.NEXT_PUBLIC_API_URL + '/product/' + slug,
@@ -88,66 +72,35 @@ export async function generateMetadata({ params }: { params: Params; searchParam
   };
 }
 
-export default async function ProductDetailPage({
-  params,
-  searchParams,
-}: {
-  params: Params;
-  searchParams: SearchParams;
-}) {
-  const { slug } = await params;
+export default async function ProductDetailPage({ params, searchParams }: { params: Params; searchParams: SearchParams }) {
+  const { slug, locale } = await params;
+  setRequestLocale(locale);
   const { pvid } = await searchParams;
-
   const t = await getTranslations();
+
+  const product = await fetchProduct(slug);
+  if (!product) notFound();
+  if (product.parent) redirect({ href: { pathname: `/product/${product.parent}`, query: { pvid: product.id } }, locale });
 
   const productOptions: ProductOptions[] = [];
   let productVariant: ProductVariant[] = [];
 
-  const product = await fetchProduct(slug)
-    .then((response) => response)
-    .catch(() => notFound());
-
   if (product.hasVariant) {
-    try {
-      const productOptionValues = await getProductOptionValues(product.id);
-  
-      for (const optionValue of productOptionValues) {
-        const index = productOptions.findIndex((productOption) => productOption.name === optionValue.productOptionName);
-        if (index > -1) {
-          productOptions.at(index)?.value.push(optionValue.productOptionValue);
-        } else {
-          const newProductOption: ProductOptions = {
-            id: optionValue.productOptionId,
-            name: optionValue.productOptionName,
-            value: [optionValue.productOptionValue],
-          };
-
-          productOptions.push(newProductOption);
-        }
-      }
-    } catch (error) {
-      console.error(error);
+    const optionValues = await getProductOptionValues(product.id).catch(() => []);
+    for (const v of optionValues) {
+      const existing = productOptions.find((o) => o.name === v.productOptionName);
+      if (existing) existing.value.push(v.productOptionValue);
+      else productOptions.push({ id: v.productOptionId, name: v.productOptionName, value: [v.productOptionValue] });
     }
-
     productVariant = await fetchAndSortProductVariations(product.id);
   }
-  const reviewStatistic = MOCK_REVIEW_STATISTIC;
 
   const productOptionValue = await getProductOptionValueByProductId(product.id);
 
   const crumb: Breadcrumb[] = [
-    {
-      pageName: t('common.home'),
-      url: '/',
-    },
-    {
-      pageName: t('common.product'),
-      url: '/product',
-    },
-    {
-      pageName: product.name,
-      url: '',
-    },
+    { pageName: t('common.home'), url: '/home' },
+    { pageName: t('common.product'), url: '/product' },
+    { pageName: product.name, url: '' },
   ];
 
   return (
@@ -155,18 +108,12 @@ export default async function ProductDetailPage({
       <BreadcrumbComponent items={crumb} />
       <ProductDetail
         product={product}
-        pvid={pvid !== undefined ? pvid as string : null}
-        reviewStatistic={reviewStatistic}
+        pvid={typeof pvid === 'string' ? pvid : null}
+        reviewStatistic={MOCK_REVIEW_STATISTIC}
         productOption={productOptions}
         productVariant={productVariant}
         productOptionValueGet={productOptionValue}
       />
-
-      {/* <div className="bg-white mt-10 p-5">
-        <h2 className="bg-yellow-100 px-2 py-1 rounded-sm">{t('product.product_review').toUpperCase()}</h2>
-        <ReviewProduct productId={product.id} reviewStatictis={reviewStatistic} />
-      </div> */}
-
       <RelatedProduct />
     </React.Fragment>
   );

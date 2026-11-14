@@ -1,11 +1,10 @@
 'use client';
 
-import React, { useState } from 'react';
-import { useAppSelector } from '@/redux/store';
-import { useForm, SubmitHandler } from 'react-hook-form';
-import { Card, FormControl, FormControlLabel, FormLabel, Radio, RadioGroup } from '@mui/material';
-import { PatternFormat } from 'react-number-format';
-import Image from 'next/image';
+import React, { useEffect, useState } from 'react';
+import Image, { type StaticImageData } from 'next/image';
+import { useLocale, useTranslations } from 'next-intl';
+import { useMutation } from '@tanstack/react-query';
+import { toast } from 'react-toastify';
 import PaymentCOD from '@/assets/icons/payment-cod.png';
 import PaymentVISA from '@/assets/icons/payment-visa.png';
 import PaymentMasterCard from '@/assets/icons/payment-mastercard.png';
@@ -13,356 +12,253 @@ import PaymentAmex from '@/assets/icons/payment-amex.png';
 import PaymentDiscover from '@/assets/icons/payment-discover.png';
 import PaymentJCB from '@/assets/icons/payment-jcb.png';
 import PaymentPaypal from '@/assets/icons/payment-paypal.png';
-import { getDefaultAddressOfCustomer } from '@/api/addressApi';
-import { getVoucherByCode } from '@/api/voucherApi';
-import SelectAddress from '@/components/Address/SelectAddress';
 import { checkout } from '@/api/checkoutApi';
-import { useRouter } from 'next/navigation';
-import { toast } from 'react-toastify';
-import { Address, Cart, CheckoutForm, Voucher } from '@/models/types';
-import useSelectedCheckout from '@/store/useSelectedCheckout';
-import { Button, Form, FormField, FormItem, Input } from '@/components/ui';
+import { quotePromotion } from '@/api/voucherApi';
+import { formatAddress } from '@/api/addressApi';
+import { Button, Input, Label, Separator, Skeleton } from '@/components/ui';
+import type { PaymentMethod, PromotionQuote, ShippingAddress } from '@/graphql/types';
+import { useRouter } from '@/i18n/routing';
+import { useMyAddresses } from '@/features/address/hooks';
+import AddressPicker from '@/features/address/AddressPicker';
+import { useMyCart } from '@/features/cart/hooks';
+import { useErrorMessage } from '@/hooks/useErrorMessage';
 import { IMAGE } from '@/utils/constants/path';
-import { formatCurrency } from '@/utils/helper';
-import { useQuery } from '@tanstack/react-query';
+
+type MethodOption = { value: PaymentMethod; label: string; icons: { src: StaticImageData; width: number }[] };
+
+const newKey = () => crypto.randomUUID();
 
 export default function CheckoutPage() {
-  const carts = useAppSelector((state) => state.cart);
-
-  const { getAllSelectedItems: checkoutItem } = useSelectedCheckout();
-
-  const filteredCarts = carts.data
-    .map((cart) => {
-      const selectedCart = checkoutItem().find((sc) => sc.cartId === cart.id);
-      if (!selectedCart) return null;
-
-      const filteredItems = cart.cartItems.filter((item) => selectedCart.items.includes(item.id));
-      if (filteredItems.length === 0) return null;
-
-      return {
-        ...cart,
-        cartItems: filteredItems,
-      };
-    })
-    .filter(Boolean);
-  console.log('FFFFFFFFFFFFFFFFFFFF', filteredCarts);
+  const t = useTranslations('checkout');
+  const tc = useTranslations('common');
+  const tAddressRequired = useTranslations('address')('required');
+  const locale = useLocale();
   const router = useRouter();
+  const errorMessage = useErrorMessage();
+  const { data: cart, isLoading: cartLoading } = useMyCart();
+  const { data: addressData } = useMyAddresses();
 
-  const [pickPaymentMethod, setPickPaymentMethod] = useState('COD');
-  const [openModalAddress, setOpenModalAddress] = useState(false);
-  const [voucher, setVoucher] = useState<Voucher>();
-  const [total, setTotal] = useState<number>(0);
+  const [address, setAddress] = useState<ShippingAddress | null>(null);
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [method, setMethod] = useState<PaymentMethod>('CASH_ON_DELIVERY');
+  const [note, setNote] = useState('');
+  const [voucherCode, setVoucherCode] = useState('');
+  const [voucherError, setVoucherError] = useState<string | null>(null);
+  const [quote, setQuote] = useState<(PromotionQuote & { code: string }) | null>(null);
+  // Một khoá cho một lần đặt hàng: bấm lại/retry dùng cùng khoá nên backend không tạo đơn trùng.
+  const [idempotencyKey, setIdempotencyKey] = useState(newKey);
 
-  // useEffect(() => {
-  //   if (!isLoading) {
-  //     const total = cart.cartItems
-  //       .reduce((accumulator: number, item: any) => {
-  //         return accumulator + item.product.price * item.quantity;
-  //       }, 0)
-  //       .toFixed(2);
-  //     setTotal(total);
-  //   }
-  // }, [isLoading]);
+  // Mặc định chọn địa chỉ mặc định của khách.
+  useEffect(() => {
+    if (!address && addressData?.defaultAddress) setAddress(addressData.defaultAddress);
+  }, [address, addressData?.defaultAddress]);
 
-  const checkoutForm = useForm<CheckoutForm>();
-  const onSubmit: SubmitHandler<CheckoutForm> = async (data) => {
-    data.customer = currentUser.userInfo.accountId;
-    data.cart = cartId?.toString() ?? '';
-    if (!defaultAddress) {
-      setError('address', { message: 'choose address' });
-    } else {
-      data.address = defaultAddress.id;
-    }
-    data.phone = currentUser.userInfo.phone;
-    data.total = total;
-    data.voucher = voucher?.id;
-    data.payment = pickPaymentMethod;
-    try {
-      await checkout(data).then((response) => {
-        router.push(`/checkout/${cartId}/thank-you`);
-      });
-    } catch (error) {
-      toast.error('error');
-    }
-  };
+  const methods: MethodOption[] = [
+    { value: 'CASH_ON_DELIVERY', label: t('cod'), icons: [{ src: PaymentCOD, width: 25 }] },
+    {
+      value: 'CREDIT_CARD',
+      label: t('credit_card'),
+      icons: [PaymentVISA, PaymentMasterCard, PaymentAmex, PaymentDiscover, PaymentJCB].map((src) => ({ src, width: 25 })),
+    },
+    { value: 'PAYPAL', label: t('paypal'), icons: [{ src: PaymentPaypal, width: 40 }] },
+  ];
 
-  const formApplyVoucher = useForm<{ voucherCode: string }>();
-  const onApplyVoucher: SubmitHandler<{ voucherCode: string }> = async (data) => {
-    try {
-      await getVoucherByCode(data.voucherCode).then((response) => {
-        if (response && response.data) {
-          setVoucher(response.data);
-          setTotal((total * (100 - 30)) / 100);
-        }
-      });
-    } catch (error) {
-      formApplyVoucher.setError('voucherCode', { message: 'Code not found' + error });
-    }
-  };
-
-  const { data: defaultAddress } = useQuery<Address | null>({
-    queryKey: ['address'],
-    queryFn: async () =>
-      await getDefaultAddressOfCustomer('e6169aa0-d4a5-4740-b510-9285bbb73a0e').then((response) => response.data),
+  const applyVoucher = useMutation({
+    mutationFn: (code: string) => quotePromotion(code),
+    onSuccess: (q, code) => {
+      setQuote({ ...q, code });
+      setVoucherError(null);
+      toast.success(t('voucher_applied'));
+    },
+    onError: () => {
+      setQuote(null);
+      setVoucherError(t('voucher_invalid'));
+    },
   });
 
-  // console.log('wwwwwwwww', defaultAddress);
-  // const total = cart.cartItems
-  //   .reduce((accumulator: number, item: any) => {
-  //     return accumulator + item.product.price * item.quantity;
-  //   }, 0)
-  //   .toFixed(2);
+  const placeOrder = useMutation({
+    mutationFn: () =>
+      checkout({
+        idempotencyKey,
+        paymentMethod: method,
+        shippingAddressId: address?.id ?? null,
+        promotionCode: quote?.code ?? null,
+        note: note.trim() || null,
+        returnUrl: `${window.location.origin}/${locale}/checkout/thank-you`,
+      }),
+    onSuccess: (result) => {
+      setIdempotencyKey(newKey());
+      if (result.checkoutUrl) {
+        // Thanh toán online: chuyển sang cổng thanh toán, cổng sẽ quay về returnUrl.
+        window.location.assign(result.checkoutUrl);
+        return;
+      }
+      toast.success(t('success'));
+      router.push({ pathname: '/checkout/thank-you', query: { order: result.orderCode } });
+    },
+    onError: (e) => toast.error(errorMessage(e)),
+  });
 
-  // if (isLoading) return <div>Loading</div>;
+  const submit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!address) {
+      toast.error(tAddressRequired);
+      return;
+    }
+    placeOrder.mutate();
+  };
+
+  const total = quote?.total.formatted ?? cart?.subtotal.formatted;
 
   return (
     <div className="bg-white py-3">
-      <div className="w-[80%] mx-auto flex justify-between">
-        <div className="border border-gray-400 rounded-md w-[70%] px-4 py-5">
-          <h4 className="font-medium text-xl my-3">Checkout information</h4>
+      <div className="w-full max-w-6xl mx-auto px-4 flex flex-col lg:flex-row gap-4 items-start">
+        <form onSubmit={submit} className="border border-gray-300 rounded-md w-full lg:flex-1 px-4 py-5 space-y-5" noValidate>
+          <h1 className="font-medium text-xl">{t('title')}</h1>
 
-          {/* {filteredCarts &&
-            filteredCarts.map((cart) => (
-              <div key={cart?.id}>
-                <div>{cart?.name}</div>
-                {cart?.cartItems.map((item) => (
-                  <div key={item.id}>
-                    <span className="w-24 h-24 relative col-span-2">
-                      <Image
-                        src={
-                          'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcT-Zqj3z-Kbm0gGW_mxc5vTu8IZ9X5WAv4q0w&s'
-                        }
-                        alt={item.product.name}
-                        objectFit="fit"
-                        fill
-                        className="border border-gray-300"
-                      />
-                    </span>
-                    <span>Product này nè</span>
-                    <span>Quantity: {item.quantity}</span>
-                    <span className="col-span-2">{formatCurrency(120000)}</span>
-                  </div>
-                ))}
-              </div>
-            ))} */}
-          <Form {...checkoutForm}>
-            <form onSubmit={checkoutForm.handleSubmit(onSubmit)}>
-              <FormField
-                control={checkoutForm.control}
-                name="address"
-                render={({ field }) => (
-                  <FormItem>
-                    <div className="flex justify-between">
-                      {defaultAddress && (
-                        <p className="truncate">
-                          {defaultAddress.street}, {defaultAddress.addressLine3}, {defaultAddress.addressLine2},{' '}
-                          {defaultAddress.addressLine1}, {defaultAddress.country}
-                        </p>
-                      )}
-                      {/* <input type="hidden" value={currentUser.userInfo.accountId} {...register('customer')} />
-                  <input type="hidden" value={cartId} {...register('cart')} />
-                  <input type="hidden" value={address?.id} disabled {...register('address')} /> */}
-                      <Button className="text-yellow-400" onClick={() => setOpenModalAddress(true)}>
-                        Change
-                      </Button>
-                    </div>
-                  </FormItem>
+          <section aria-labelledby="checkout-address">
+            <h2 id="checkout-address" className="font-medium mb-2">
+              {t('shipping_address')}
+            </h2>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <p className="break-words">
+                {address ? (
+                  <>
+                    <span className="font-medium">{address.fullName}</span> · {address.phoneNumber}
+                    <br />
+                    {formatAddress(address)}
+                  </>
+                ) : (
+                  <span className="text-red-600">{tAddressRequired}</span>
                 )}
-              />
-
-              <SelectAddress isOpen={openModalAddress} handleOpen={setOpenModalAddress} changeAddress={setAddress} />
-
-              <div className="grid grid-cols-12 gap-4">
-                <FormControl className="col-span-5">
-                  <FormLabel id="demo-radio-buttons-group-label">Payment method</FormLabel>
-                  <RadioGroup
-                    aria-labelledby="demo-radio-buttons-group-label"
-                    defaultValue="COD"
-                    name="radio-buttons-group"
-                  >
-                    <FormControlLabel
-                      value="COD"
-                      control={<Radio />}
-                      label={
-                        <div className="flex items-center">
-                          <span>COD&nbsp;</span>
-                          <span className="hidden md:flex">
-                            <Image src={PaymentCOD} alt={''} width={25} />
-                          </span>
-                        </div>
-                      }
-                      onClick={() => setPickPaymentMethod('COD')}
-                    />
-                    <FormControlLabel
-                      value="Credit card"
-                      control={<Radio />}
-                      label={
-                        <div className="flex items-center">
-                          <span>Credit card&nbsp;</span>
-                          <span className="hidden md:flex gap-2">
-                            <Image src={PaymentVISA} alt={''} width={25} />
-                            <Image src={PaymentMasterCard} alt={''} width={25} />
-                            <Image src={PaymentAmex} alt={''} width={25} />
-                            <Image src={PaymentDiscover} alt={''} width={25} />
-                            <Image src={PaymentJCB} alt={''} width={25} />
-                          </span>
-                        </div>
-                      }
-                      onClick={() => setPickPaymentMethod('Credit card')}
-                    />
-                    <FormControlLabel
-                      value="Paypal"
-                      control={<Radio />}
-                      label={
-                        <div className="flex items-center">
-                          <span>PayPal&nbsp;</span>
-                          <span className="hidden md:flex">
-                            <Image src={PaymentPaypal} alt={''} width={40} />
-                          </span>
-                        </div>
-                      }
-                      onClick={() => setPickPaymentMethod('Paypal')}
-                    />
-                  </RadioGroup>
-                </FormControl>
-
-                {pickPaymentMethod !== 'COD' && (
-                  <div className="col-span-7">
-                    <div className="flex justify-between">
-                      <FormField
-                        control={checkoutForm.control}
-                        name="card_number"
-                        render={({}) => (
-                          <FormItem>
-                            <FormLabel>Card Number</FormLabel>
-                            <FormControl>
-                              <PatternFormat
-                                format="#### #### #### ####"
-                                allowEmptyFormatting
-                                mask="_"
-                                className="focus:outline-hidden"
-                              />
-                            </FormControl>
-                          </FormItem>
-                        )}
-                      />
-
-                      <FormField
-                        control={checkoutForm.control}
-                        name="card_number"
-                        render={({}) => (
-                          <FormItem>
-                            <FormLabel>Expired Date</FormLabel>
-                            <FormControl>
-                              <PatternFormat
-                                format="##/##"
-                                allowEmptyFormatting
-                                mask="_"
-                                className="focus:outline-hidden"
-                                style={{ width: 80 }}
-                              />
-                            </FormControl>
-                          </FormItem>
-                        )}
-                      />
-                    </div>
-                    {/* <InputComponent title="Name on card" error={formState.errors.address?.message} className="">
-                        <InputField>
-                          <input 
-                          {...register('name', {
-                            required: 'Name is require',
-                          })}
-                            placeholder="Enter name on card"
-                            className={`focus:outline-hidden ml-3 w-[100%] ${formState.errors.name && 'bg-red-100'}`}
-                          />
-                        </InputField>
-                      </InputComponent> */}
-
-                    <FormField
-                      control={checkoutForm.control}
-                      name="cvv"
-                      render={({}) => (
-                        <FormItem>
-                          <FormLabel>CVV</FormLabel>
-                          <FormControl>
-                            <PatternFormat
-                              format="###"
-                              allowEmptyFormatting
-                              mask="X"
-                              className="focus:outline-hidden"
-                              style={{ width: 80, opacity: 0.6 }}
-                            />
-                          </FormControl>
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-                )}
-              </div>
-              <div className="flex justify-center">
-                <Button type="submit" className="bg-yellow-300 rounded-xl w-[40%]">
-                  Checkout
-                </Button>
-              </div>
-            </form>
-          </Form>
-        </div>
-
-        <Card className="border border-gray-400 rounded-md w-[28%] h-fit px-3 pt-2 pb-5">
-          <div className="border-b-2 border-b-gray-300 mb-3 pb-2">
-            <h4 className="font-medium text-lg">Order detail</h4>
-            <div className="flex justify-between">
-              {/* <span>Items ({cart.cartItems.length}):</span>
-              <span>
-                $
-                {cart.cartItems
-                  .reduce((accumulator: number, item: any) => {
-                    return accumulator + item.product.price * item.quantity;
-                  }, 0)
-                  .toFixed(2)}
-              </span> */}
+              </p>
+              <Button type="button" variant="outline" onClick={() => setPickerOpen(true)}>
+                {tc('change')}
+              </Button>
             </div>
-            <div className="flex justify-between">
-              <span>Shipping:</span>
-              <span>Free</span>
+          </section>
+
+          <AddressPicker open={pickerOpen} onOpenChange={setPickerOpen} selectedId={address?.id} onSelect={setAddress} />
+
+          <fieldset className="grid grid-cols-1 md:grid-cols-12 gap-4">
+            <legend className="font-medium mb-2">{t('payment_method')}</legend>
+            <div className="md:col-span-5 flex flex-col gap-2">
+              {methods.map((m) => (
+                <label key={m.value} className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="payment-method"
+                    value={m.value}
+                    checked={method === m.value}
+                    onChange={() => setMethod(m.value)}
+                  />
+                  <span>{m.label}</span>
+                  <span className="hidden md:flex gap-2">
+                    {m.icons.map((icon, i) => (
+                      <Image key={i} src={icon.src} alt="" width={icon.width} />
+                    ))}
+                  </span>
+                </label>
+              ))}
             </div>
-            <div className="flex justify-between">
-              <span>Tax:</span>
-              <span>0.0</span>
-            </div>
-            <form onSubmit={formApplyVoucher.handleSubmit(onApplyVoucher)}>
-              <div className="flex">
-                <FormField
-                  control={checkoutForm.control}
-                  name="card_number"
-                  render={({}) => (
-                    <FormItem>
-                      <FormLabel>Card Number</FormLabel>
-                      <FormControl>
-                        <Input
-                          type="text"
-                          placeholder="Enter voucher code"
-                          {...formApplyVoucher.register('voucherCode')}
-                          className={`focus:outline-hidden ml-3 w-[100%] ${
-                            formApplyVoucher.formState.errors.voucherCode ? 'bg-red-100' : ''
-                          }`}
-                        />
-                      </FormControl>
-                    </FormItem>
-                  )}
+
+            {method !== 'CASH_ON_DELIVERY' && (
+              <p className="md:col-span-7 text-sm text-muted-foreground">{t('gateway_redirect_notice')}</p>
+            )}
+          </fieldset>
+
+          <div>
+            <Label htmlFor="checkout-note">{t('note')}</Label>
+            <textarea
+              id="checkout-note"
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
+              maxLength={500}
+              rows={3}
+              className="mt-1 w-full rounded-md border border-input px-3 py-2 text-sm"
+            />
+          </div>
+
+          <div className="flex justify-center">
+            <Button
+              type="submit"
+              className="bg-yellow-300 text-black hover:bg-yellow-400 rounded-xl w-full sm:w-2/5"
+              disabled={placeOrder.isPending || !cart?.checkoutReady}
+            >
+              {placeOrder.isPending ? t('placing') : t('place_order')}
+            </Button>
+          </div>
+        </form>
+
+        <aside className="border border-gray-300 rounded-md w-full lg:w-80 px-3 pt-2 pb-5">
+          <h2 className="font-medium text-lg mb-2">{t('order_detail')}</h2>
+          {cartLoading && <Skeleton className="h-24 w-full" />}
+          <ul className="divide-y mb-3">
+            {cart?.lines.map((line) => (
+              <li key={line.id} className="flex items-center gap-2 py-2">
+                <Image
+                  src={line.product?.thumbnail || IMAGE.defaultImage}
+                  alt=""
+                  width={48}
+                  height={48}
+                  className="border border-gray-200 object-cover"
                 />
-                <Button className="bg-yellow-300 rounded-xl ml-3 h-fit">Apply</Button>
-              </div>
-            </form>
-          </div>
-          <div className="border-b-2 border-b-gray-300 mb-3">
-            <h4 className="font-medium text-lg text-yellow-500">Order total:</h4>
+                <span className="flex-1 min-w-0 text-sm line-clamp-2">{line.product?.name}</span>
+                <span className="text-sm shrink-0">
+                  {line.quantity} × {line.unitPrice?.formatted}
+                </span>
+              </li>
+            ))}
+          </ul>
+          <dl className="space-y-1">
             <div className="flex justify-between">
-              <span>Total:</span>
-              <span>${total}</span>
+              <dt>{tc('shipping')}</dt>
+              <dd>{tc('free')}</dd>
             </div>
+            <div className="flex justify-between">
+              <dt>{tc('tax')}</dt>
+              <dd>0</dd>
+            </div>
+            {quote?.discount && (
+              <div className="flex justify-between text-green-700">
+                <dt>{t('discount')}</dt>
+                <dd>-{quote.discount.formatted}</dd>
+              </div>
+            )}
+          </dl>
+          <form
+            className="flex gap-2 mt-3"
+            onSubmit={(e) => {
+              e.preventDefault();
+              if (voucherCode.trim()) applyVoucher.mutate(voucherCode.trim());
+            }}
+          >
+            <Label htmlFor="voucher" className="sr-only">
+              {t('voucher')}
+            </Label>
+            <Input
+              id="voucher"
+              value={voucherCode}
+              onChange={(e) => setVoucherCode(e.target.value)}
+              placeholder={t('voucher_placeholder')}
+              aria-invalid={voucherError ? true : undefined}
+              aria-describedby={voucherError ? 'voucher-error' : undefined}
+            />
+            <Button type="submit" variant="outline" disabled={applyVoucher.isPending}>
+              {tc('apply')}
+            </Button>
+          </form>
+          {voucherError && (
+            <p id="voucher-error" role="alert" className="text-sm text-red-600 mt-1">
+              {voucherError}
+            </p>
+          )}
+          <Separator className="my-3" />
+          <div className="flex justify-between font-medium text-lg">
+            <span className="text-yellow-600">{t('order_total')}</span>
+            <span>{total}</span>
           </div>
-        </Card>
+        </aside>
       </div>
     </div>
   );

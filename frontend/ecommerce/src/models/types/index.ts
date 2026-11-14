@@ -1,7 +1,6 @@
 export * from './AddressModel';
 export * from './CartModel';
 export * from './CategoryModel';
-export * from './CheckoutModel';
 export * from './CustomerModel';
 export * from './NotificationModel';
 export * from './OrderModel';

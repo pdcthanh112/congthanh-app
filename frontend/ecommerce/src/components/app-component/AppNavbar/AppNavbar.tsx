@@ -1,44 +1,43 @@
-'use client'
+'use client';
 import React, { useState } from 'react';
-import Link from 'next/link';
-import AppSidebar from '@/components/app-component/AppSidebar';
-import { Icon } from '@mui/material';
-import { Menu as MenuIcon, Close as CloseIcon } from '@mui/icons-material';
 import { useTranslations } from 'next-intl';
+import { Menu } from 'lucide-react';
+import { Dialog, DialogContent, DialogTitle, DialogTrigger } from '@/components/ui';
+import AppSidebar from '@/components/app-component/AppSidebar';
+import { Link } from '@/i18n/routing';
 
 const AppNavbar = () => {
-  const t  = useTranslations();
-  const [showSidebar, setShowSidebar] = useState(false);
+  const t = useTranslations();
+  const [open, setOpen] = useState(false);
 
   const navbarItems = [
-    { name: t('navbar.today_deals'), path: '/' },
-    { name: t('navbar.flash_sale'), path: '/' },
-    { name: t('navbar.gift_card'), path: '/' },
-    { name: t('navbar.sale'), path: '/' },
+    { name: t('navbar.today_deals'), path: '/home' },
+    { name: t('navbar.flash_sale'), path: '/home' },
+    { name: t('navbar.gift_card'), path: '/home' },
+    { name: t('navbar.sale'), path: '/home' },
   ];
 
   return (
-    <React.Fragment>
-      <div className="flex items-center bg-blue-300 text-white space-x-6 p-2 pl-6">
-        <p className="hover:cursor-pointer" onClick={() => setShowSidebar(!showSidebar)}>
-          <MenuIcon className="h-6 mr-1" />
-          {t('common.all')}
-        </p>
-        {navbarItems.map((item, id) => (
-          <Link key={id} href={item.path}>
-            <p className="hover:cursor-pointer focus:underline">{item.name}</p>
-          </Link>
-        ))}
-      </div>
-      {showSidebar && (
-        <div className="w-full h-screen text-black fixed top-0 left-0 bg-slate-500 bg-opacity-50 z-50">
-          <div className="w-full h-full relative flex">
-            <AppSidebar />
-            <Icon component={CloseIcon} fontSize="large" className="hover:cursor-pointer" onClick={() => setShowSidebar(false)} />
-          </div>
-        </div>
-      )}
-    </React.Fragment>
+    <nav aria-label={t('header.main_navigation')} className="flex items-center bg-blue-300 text-white gap-4 sm:gap-6 p-2 pl-4 overflow-x-auto whitespace-nowrap">
+      <Dialog open={open} onOpenChange={setOpen}>
+        <DialogTrigger asChild>
+          <button type="button" className="flex items-center gap-1 font-medium" aria-label={t('common.open_menu')}>
+            <Menu className="h-5 w-5" aria-hidden />
+            {t('common.all')}
+          </button>
+        </DialogTrigger>
+        {/* Drawer trượt từ trái: dùng Dialog của Radix để có focus trap, Esc để đóng. */}
+        <DialogContent className="left-0 top-0 translate-x-0 translate-y-0 h-full max-w-none w-auto p-0 rounded-none border-0 sm:max-w-none data-[state=open]:slide-in-from-left">
+          <DialogTitle className="sr-only">{t('common.menu')}</DialogTitle>
+          <AppSidebar onNavigate={() => setOpen(false)} />
+        </DialogContent>
+      </Dialog>
+      {navbarItems.map((item, id) => (
+        <Link key={id} href={item.path} className="hover:underline focus:underline">
+          {item.name}
+        </Link>
+      ))}
+    </nav>
   );
 };
 

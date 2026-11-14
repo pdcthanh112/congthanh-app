@@ -1,61 +1,59 @@
-'use client'
+'use client';
 
-import React from "react";
-import Image from "next/image";
-import { useRouter } from "next/navigation";
-import LanguageData from "../../../public/data/languages.json";
-import USFlag from "@/assets/icons/us-flag.png";
+import React, { useTransition } from 'react';
+import { useLocale, useTranslations } from 'next-intl';
+import { Globe } from 'lucide-react';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { usePathname, useRouter } from '@/i18n/routing';
+import { cn } from '@/lib/utils';
+import { localeNames, locales, type Locale } from '@/lib/locales';
 
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "../ui/dialog";
-import { useLocale } from "next-intl";
-import { Locale } from "@/lib/locales";
-
-export default function ChangeLanguage() {
-  const router = useRouter();
+/** Đổi ngôn ngữ bằng cách chuyển sang cùng trang với prefix locale mới (giữ query string). */
+export default function LanguageSwitcher() {
+  const t = useTranslations('language');
   const locale = useLocale() as Locale;
+  const router = useRouter();
+  const pathname = usePathname();
+  const [pending, startTransition] = useTransition();
+  const [open, setOpen] = React.useState(false);
 
-  function handleLocaleChange(newLocale: string): void {
-    document.cookie = `NEXT_LOCALE=${newLocale}; path=/; max-age=31536000; SameSite=Lax`;
-    router.refresh();
-  }
+  const change = (next: Locale) => {
+    setOpen(false);
+    // Đọc query lúc bấm thay vì useSearchParams(): component nằm trong header của mọi trang,
+    // dùng useSearchParams sẽ buộc các trang tĩnh phải render phía client.
+    const query = Object.fromEntries(new URLSearchParams(window.location.search).entries());
+    startTransition(() => router.replace({ pathname, query }, { locale: next }));
+  };
 
   return (
-    <React.Fragment>
-      <Dialog>
-        <DialogTrigger asChild>
-          <div className="hover:cursor-pointer flex">
-            <Image src={USFlag} alt="" width={25} />
-            <span className="ml-1 font-semibold flex justify-center items-center">En</span>
-          </div>
-        </DialogTrigger>
-        <DialogContent className="w-[1250px] max-w-[1500px] h-2/3">
-          <DialogHeader>
-            <DialogTitle>Choose language</DialogTitle>
-            <DialogDescription>Please choose your language.</DialogDescription>
-          </DialogHeader>
-          <div className="overflow-y-scroll">
-            <div className="grid grid-cols-12 gap-4 py-4">
-              {LanguageData.map((item) => (
-                <div
-                  key={item.code}
-                  className={`col-span-2 hover:bg-gray-200 rounded-sm truncate px-3 py-4 hover:cursor-pointer ${locale === item.code && 'bg-red-300'}`}
-                  onClick={() => handleLocaleChange(item.code)}
-                >
-                  <div>{item.language.name}</div>
-                  <div className="font-light text-sm">{item.language.nativeName}</div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
-    </React.Fragment>
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <button type="button" className="flex items-center gap-1 font-semibold" aria-label={t('current', { name: localeNames[locale] })} disabled={pending}>
+          <Globe size={18} aria-hidden />
+          <span className="uppercase">{locale}</span>
+        </button>
+      </DialogTrigger>
+      <DialogContent className="w-[calc(100%-2rem)] max-w-2xl">
+        <DialogHeader>
+          <DialogTitle>{t('choose')}</DialogTitle>
+          <DialogDescription>{t('description')}</DialogDescription>
+        </DialogHeader>
+        <ul className="grid grid-cols-2 sm:grid-cols-3 gap-2 py-2">
+          {locales.map((code) => (
+            <li key={code}>
+              <button
+                type="button"
+                lang={code}
+                aria-current={code === locale ? 'true' : undefined}
+                onClick={() => change(code)}
+                className={cn('w-full text-left rounded px-3 py-3 hover:bg-gray-200', code === locale && 'bg-red-200')}
+              >
+                {localeNames[code]}
+              </button>
+            </li>
+          ))}
+        </ul>
+      </DialogContent>
+    </Dialog>
   );
 }

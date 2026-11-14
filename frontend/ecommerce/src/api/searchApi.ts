@@ -9,12 +9,11 @@ export const getSearchHistory = async () => {
   return ok(me.recentSearches);
 };
 
-export const addSearchHistoryItem = async (_customerId: string, value: string) =>
-  ok((await gql(RecordSearchMutation, { keyword: value })).recordSearch);
+export const addSearchHistoryItem = async (keyword: string) => ok((await gql(RecordSearchMutation, { keyword })).recordSearch);
 
-/** Lịch sử giờ định danh theo từ khoá thay vì id. */
-export const removeSearchHistoryItem = async (keyword: string | number) =>
-  ok((await gql(RemoveSearchMutation, { keyword: String(keyword) })).removeSearch);
+/** Lịch sử định danh theo từ khoá. */
+export const removeSearchHistoryItem = async (keyword: string) =>
+  ok((await gql(RemoveSearchMutation, { keyword })).removeSearch);
 
 export const getSearchRecommend = async (keyword: string): Promise<string[]> => {
   if (!keyword.trim()) return [];

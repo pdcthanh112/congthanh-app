@@ -1,11 +1,13 @@
-import { QueryKey } from "@tanstack/react-query";
-
-export const USER_KEY: QueryKey = ["user"];
-export const CATEGORY_KEY: QueryKey = ["category"];
-export const SUBCATEGORY_KEY: QueryKey = ["sub-category"];
-export const CART_KEY: QueryKey = ["cart"];
-export const SUPPLIER_KEY: QueryKey = ["supplier"];
-export const PRODUCT_KEY: QueryKey = ["product"];
-export const WISHLIST_KEY: QueryKey = ["wishlist"];
-export const NOTIFICATION_KEY: QueryKey = ["notification"];
-export const ADDRESS_KEY: QueryKey = ["address"];
+/** Tiền tố query key của React Query; dùng dạng [KEY, ...tham số] để invalidate theo tiền tố. */
+export const USER_KEY = 'user';
+export const CATEGORY_KEY = 'category';
+export const SUBCATEGORY_KEY = 'sub-category';
+export const CART_KEY = 'cart';
+export const SUPPLIER_KEY = 'supplier';
+export const PRODUCT_KEY = 'product';
+export const WISHLIST_KEY = 'wishlist';
+export const NOTIFICATION_KEY = 'notification';
+export const ADDRESS_KEY = 'address';
+export const ORDER_KEY = 'order';
+export const REVIEW_KEY = 'review';
+export const SEARCH_KEY = 'search';

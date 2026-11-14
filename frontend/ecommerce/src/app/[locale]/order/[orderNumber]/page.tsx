@@ -1,144 +1,126 @@
 import React from 'react';
-import { getOrderDetail } from '@/api/orderApi';
-import { Steps } from 'antd';
-import Link from 'next/link';
-import { PackageCheck, PackageOpen, Truck, CheckCircle, XCircle, RotateCcw, AlertCircle, Clock } from 'lucide-react';
-import { OrderStatus } from '@/utils/constants/enum';
-import { useSession } from 'next-auth/react';
-import { getServerSession } from 'next-auth';
+import Image from 'next/image';
+import { notFound } from 'next/navigation';
+import { getTranslations, setRequestLocale } from 'next-intl/server';
+import { CANCELLABLE_STATUSES, getOrder } from '@/api/orderApi';
+import { Card, Separator } from '@/components/ui';
+import CancelOrderDialog from '@/features/order/CancelOrderDialog';
+import OrderStatusBadge from '@/features/order/OrderStatusBadge';
+import { Link } from '@/i18n/routing';
+import type { Locale } from '@/lib/locales';
+import { IMAGE } from '@/utils/constants/path';
+import { formatDateTime } from '@/utils/date';
 
-const orderStatusIconMap: Record<OrderStatus, React.ReactElement> = {
-  [OrderStatus.PLACED]: <PackageOpen className="text-blue-500" />,
-  [OrderStatus.PREPARING]: <PackageCheck className="text-yellow-500" />,
-  [OrderStatus.SHIPPING]: <Truck className="text-orange-500" />,
-  [OrderStatus.DELIVERED]: <CheckCircle className="text-green-500" />,
-  [OrderStatus.CANCELLED]: <XCircle className="text-red-500" />,
-  [OrderStatus.RETURNED]: <RotateCcw className="text-purple-500" />,
-  [OrderStatus.FAILED]: <AlertCircle className="text-gray-500" />,
-  [OrderStatus.COMPLETED]: <CheckCircle className="text-green-500" />,
-};
+type Props = { params: Promise<{ locale: Locale; orderNumber: string }> };
 
-export default async function OrderDetailPage({ params }: { params: { orderCode: string } }) {
-  const { orderCode } = params;
+export default async function OrderDetailPage({ params }: Props) {
+  const { locale, orderNumber } = await params;
+  setRequestLocale(locale);
+  const t = await getTranslations('order');
 
-  const session = await getServerSession()
-console.log("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAa",session)
-  // const orderDetail =  await getOrderDetail(orderCode).then((result) => result);
-  const orderDetail = {
-    id: 1,
-    customer: 'John Doe',
-    total: 1000000,
-    note: 'Please deliver fast',
-    orderDate: 1633072800000,
-    status: 'SHIPPED',
-    orderCode: 'ORD12345',
-    orderItems: [
-      {
-        id: 1,
-        quantity: 2,
-        product: { id: 1, name: 'Product A', price: 50 },
-        status: 'SHIPPED',
-      },
-    ],
-    shippingAddress: '123 Main St, City, Country',
-    statusTracking: [
-      {
-        id: 1,
-        status: OrderStatus.COMPLETED,
-        description: 'Order has been shipped',
-        changedAt: new Date(),
-      },
-      {
-        id: 1,
-        status: OrderStatus.SHIPPING,
-        description: 'Order has been shipped',
-        changedAt: new Date(),
-      },
-      {
-        id: 1,
-        status: OrderStatus.SHIPPING,
-        description:
-          'Đơn hàng đã đến trạm giao hàng tại khu vực của bạn Phường 13, Quận Bình Thạnh, TP. Hồ Chí Minh và sẽ được giao trong vòng 24 giờ tiếp theo',
-        changedAt: new Date(),
-      },
-      {
-        id: 1,
-        status: OrderStatus.SHIPPING,
-        description: 'Đơn hàng đã rời kho phân loại tới 50-HCM Binh Thanh Hub',
-        changedAt: new Date(),
-      },
-      {
-        id: 1,
-        status: OrderStatus.SHIPPING,
-        description: 'Đơn hàng đã đến kho phân loại Xã Tân Phú Trung, Huyện Củ Chi, TP. Hồ Chí Minh',
-        changedAt: new Date(),
-      },
-      {
-        id: 1,
-        status: OrderStatus.SHIPPING,
-        description: 'Đơn hàng đã rời bưu cục',
-        changedAt: new Date(),
-      },
-      {
-        id: 1,
-        status: OrderStatus.SHIPPING,
-        description: 'Đơn hàng đã đến bưu cục Phường Đông Hưng Thuận, Quận 12, TP. Hồ Chí Minh',
-        changedAt: new Date(),
-      },
-      {
-        id: 1,
-        status: OrderStatus.PREPARING,
-        description: 'Order has been shipped',
-        changedAt: new Date(),
-      },
-      {
-        id: 1,
-        status: OrderStatus.PLACED,
-        description: 'Order has been shipped',
-        changedAt: new Date(),
-      },
-    ],
-  };
+  // Gọi ở server bằng token của phiên (đọc từ cookie httpOnly), không lộ token xuống trình duyệt.
+  const order = await getOrder(decodeURIComponent(orderNumber)).catch(() => null);
+  if (!order) notFound();
 
-  const orderStep: {
-    title: string;
-    description: string;
-    status: 'finish' | 'process' | 'wait' | 'error' | undefined;
-  }[] = [
-    { title: 'Đơn hàng được tạo thành công', description: new Date().toDateString(), status: 'finish' },
-    { title: 'Đơn hàng được xác nhận', description: new Date().toDateString(), status: 'finish' },
-    { title: 'Đơn hàng đang được chuẩn bị', description: new Date().toDateString(), status: 'finish' },
-    { title: 'Đơn hàng đã đưa cho đơn vị vận chuyển', description: new Date().toDateString(), status: 'finish' },
-    { title: 'Hàng hoá đang được vận chuyển', description: new Date().toDateString(), status: 'process' },
-    { title: 'Hàng hoá đang được vận chuyển', description: new Date().toDateString(), status: 'process' },
-    { title: 'Đơn hàng được giao thành công', description: new Date().toDateString(), status: 'wait' },
-  ];
-
-  const trackingItems = orderDetail.statusTracking.map((item) => ({
-    title: item.status,
-    description: item.description,
-    subTitle: item.changedAt.toLocaleDateString(),
-    icon: orderStatusIconMap[item.status as OrderStatus],
-    // status: item.status === "SHIPPED" ? "process" : "wait",
-  }));
+  const address = order.shippingAddress;
 
   return (
-    <React.Fragment>
-      <div className="bg-white w-4/5 mx-auto p-2">
-        <div className="flex justify-between my-3">
-          <Link href="/order" className="hover:underline">
-            Back to Orders
-          </Link>
-          <h3>
-            Order Code: <span className="opacity-80">{orderDetail.orderCode}</span>
-          </h3>
-        </div>
-
-        <Steps items={orderStep} labelPlacement="vertical" className='font-semibold'/>
-        <div className="min-h-[30rem]">
-          <Steps items={trackingItems} direction="vertical" size="small" className='font-medium'/>
+    <Card className="mx-auto my-6 w-full max-w-5xl space-y-5 p-4 sm:p-6">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <Link href="/order" className="text-sm hover:underline">
+          ← {t('back_to_orders')}
+        </Link>
+        <div className="flex items-center gap-3">
+          <h1 className="font-semibold">
+            {t('order_code')}: <span className="opacity-80">{order.orderCode}</span>
+          </h1>
+          <OrderStatusBadge status={order.status} />
         </div>
       </div>
-    </React.Fragment>
+
+      <div className="text-sm text-muted-foreground">
+        {t('placed_at')}: {formatDateTime(order.placedAt, locale)}
+        {order.paymentMethod && (
+          <>
+            {' · '}
+            {t('payment_method')}: {order.paymentMethod}
+          </>
+        )}
+      </div>
+
+      {order.cancelReason && (
+        <p className="rounded bg-red-50 p-3 text-sm text-red-700">
+          {t('cancel_reason')}: {order.cancelReason}
+        </p>
+      )}
+
+      <ul className="divide-y">
+        {order.lines.map((line, i) => (
+          <li key={`${line.sku ?? line.name}-${i}`} className="flex items-center gap-3 py-3">
+            <span className="relative h-16 w-16 shrink-0 overflow-hidden rounded">
+              <Image
+                src={line.product?.thumbnail || IMAGE.defaultImage}
+                alt={line.name}
+                fill
+                sizes="64px"
+                className="object-cover"
+              />
+            </span>
+            <div className="min-w-0 flex-1">
+              {line.product?.slug ? (
+                <Link href={`/product/${line.product.slug}`} className="line-clamp-2 hover:underline">
+                  {line.name}
+                </Link>
+              ) : (
+                <span className="line-clamp-2">{line.name}</span>
+              )}
+              <div className="text-sm text-muted-foreground">
+                {line.unitPrice.formatted} × {line.quantity}
+              </div>
+            </div>
+            <span className="font-medium">{line.total.formatted}</span>
+          </li>
+        ))}
+      </ul>
+
+      <Separator />
+
+      <div className="grid gap-6 md:grid-cols-2">
+        {address && (
+          <section>
+            <h2 className="mb-2 font-semibold">{t('shipping_address')}</h2>
+            <p>
+              {address.fullName} · {address.phone}
+            </p>
+            <p className="text-sm text-muted-foreground">
+              {[address.line1, address.line2, address.ward, address.district, address.city, address.country]
+                .filter(Boolean)
+                .join(', ')}
+            </p>
+            {order.note && <p className="mt-2 text-sm italic">{order.note}</p>}
+          </section>
+        )}
+        <section className="space-y-1 md:text-right">
+          <div>
+            {t('subtotal')}: {order.subtotal.formatted}
+          </div>
+          {order.discount.amount > 0 && (
+            <div>
+              {t('discount')}
+              {order.promotionCode && ` (${order.promotionCode})`}: -{order.discount.formatted}
+            </div>
+          )}
+          <div className="text-lg font-semibold">
+            {t('total')}: {order.total.formatted}
+          </div>
+        </section>
+      </div>
+
+      {CANCELLABLE_STATUSES.includes(order.status) && (
+        <div className="flex justify-end">
+          <CancelOrderDialog orderCode={order.orderCode} />
+        </div>
+      )}
+    </Card>
   );
 }

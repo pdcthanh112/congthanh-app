@@ -1,6 +1,5 @@
 import { z } from 'zod';
 import { useTranslations } from 'next-intl';
-import { GENDER } from '@/utils/constants/enum';
 
 export const updateProfileSchema = (t: ReturnType<typeof useTranslations>) => {
   return z

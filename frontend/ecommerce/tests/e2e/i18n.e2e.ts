@@ -1,26 +1,20 @@
 import { expect, test } from '@playwright/test';
 
 test.describe('i18n', () => {
-  test.describe('Language Switching', () => {
-    test('should switch language from English to French using dropdown and verify text on the homepage', async ({ page }) => {
-      await page.goto('/');
+  test('/ chuyển tới trang chủ có tiền tố ngôn ngữ mặc định', async ({ page }) => {
+    await page.goto('/');
+    await expect(page).toHaveURL(/\/en\/home$/);
+  });
 
-      await expect(page.getByText('The perfect SaaS template to build')).toBeVisible();
+  test('đổi ngôn ngữ qua URL', async ({ page }) => {
+    await page.goto('/vi/home');
+    await expect(page.locator('html')).toHaveAttribute('lang', 'vi');
+  });
+});
 
-      await page.getByRole('button', { name: 'lang-switcher' }).click();
-      await page.getByText('Français').click();
-
-      await expect(page.getByText('Le parfait SaaS template pour construire')).toBeVisible();
-    });
-
-    test('should switch language from English to French using URL and verify text on the sign-in page', async ({ page }) => {
-      await page.goto('/sign-in');
-
-      await expect(page.getByText('Email address')).toBeVisible();
-
-      await page.goto('/fr/sign-in');
-
-      await expect(page.getByText('Adresse e-mail')).toBeVisible();
-    });
+test.describe('Bảo vệ route', () => {
+  test('khách chưa đăng nhập vào giỏ hàng bị chuyển tới đăng nhập kèm callbackUrl', async ({ page }) => {
+    await page.goto('/en/cart');
+    await expect(page).toHaveURL(/\/en\/auth\/login\?callbackUrl=%2Fen%2Fcart/);
   });
 });

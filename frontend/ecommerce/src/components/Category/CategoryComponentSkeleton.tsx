@@ -19,8 +19,8 @@ export default function CategoryComponentSkeleton() {
         {Array.from({length: 7}).map((_, id) => (
           <div key={id} className="flex flex-col">
             <Skeleton className="h-6 w-40 rounded-full  mb-2" />
-            {Array.from({length: 5}).map((_) => (
-              <Skeleton className="h-6 w-40 rounded-full" />
+            {Array.from({length: 5}).map((_, i) => (
+              <Skeleton key={i} className="h-6 w-40 rounded-full" />
             ))}
           </div>
         ))}

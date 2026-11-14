@@ -1,30 +1,34 @@
+import { useTranslations } from 'next-intl';
 import { Product } from '@/models/types';
 import ProductItemCard from './ProductItemCard';
 import ProductItemCardSkeleton from './ProductItemCard/ProductItemCardSkeleton';
 
 type ShowListProductProps = {
-  listProduct: Product[];
-  loading: boolean;
+  listProduct?: Product[];
+  loading?: boolean;
+  skeletonCount?: number;
 };
 
-export default function ShowListProduct({ listProduct, loading = true }: ShowListProductProps) {
+const GRID = 'grid gap-4 grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5';
+
+export default function ShowListProduct({ listProduct, loading = false, skeletonCount = 10 }: ShowListProductProps) {
+  const t = useTranslations();
+
   if (loading)
     return (
-      <div className="w-[90%] mx-auto grid gap-4 grid-flow-row-dense grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
-        {Array.from(Array(10)).map((_, id) => (
+      <div className={GRID} aria-busy>
+        {Array.from({ length: skeletonCount }, (_, id) => (
           <ProductItemCardSkeleton key={id} />
         ))}
       </div>
     );
 
-  if (!listProduct) {
-    return <div className='flex justify-center'>List empty</div>;
-  }
+  if (!listProduct?.length) return <div className="flex justify-center py-10">{t('product.empty')}</div>;
 
   return (
-    <div className="grid gap-4 grid-flow-row-dense grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
-      {listProduct.map((product: Product) => (
-        <ProductItemCard key={product.id} product={product} />
+    <div className={GRID}>
+      {listProduct.map((product, index) => (
+        <ProductItemCard key={product.id} product={product} priority={index < 4} />
       ))}
     </div>
   );

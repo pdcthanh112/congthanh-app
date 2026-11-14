@@ -1,11 +1,7 @@
-import React from 'react';
+import type { Locale } from '@/lib/locales';
+import { redirectToCategory } from './redirect';
 
-export default async function Page({
-  params,
-  searchParams,
-}: {
-  params: Promise<{ slug: string }>;
-  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
-}) {
-  return <div>{searchParams.then()}</div>;
+export default async function CategoryPage({ params }: { params: Promise<{ locale: Locale; category: string }> }) {
+  const { locale, category } = await params;
+  redirectToCategory(locale, category);
 }

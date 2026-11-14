@@ -11,60 +11,46 @@ type PropsType = {
 };
 
 const QuantitySelector = ({ initialValue, min = 1, max = 99, onChange }: PropsType) => {
-  const [quantity, setQuantity] = useState<number>(Number(initialValue || 1));
+  const clamp = (v: number) => Math.min(max, Math.max(min, v));
+  const [quantity, setQuantity] = useState<number>(clamp(Number(initialValue) || min));
+  // Chuỗi đang gõ: cho phép xoá trắng/gõ dở, chỉ chốt giá trị hợp lệ; giá trị dưới min hoặc rỗng được sửa khi blur.
+  const [draft, setDraft] = useState<string>(String(quantity));
 
   useEffect(() => {
     setQuantity(initialValue);
+    setDraft(String(initialValue));
   }, [initialValue]);
 
-  const handleDecrease = () => {
-    if (quantity > min) {
-      const newQuantity = quantity - 1;
-      setQuantity(newQuantity);
-      onChange(newQuantity);
-    }
+  const commit = (value: number) => {
+    setQuantity(value);
+    setDraft(String(value));
+    if (value !== quantity) onChange(value);
   };
 
-  const handleIncrease = () => {
-    let newQuantity = quantity + 1;
-    if (max && quantity >= max) {
-      newQuantity = max;
-    }
-
-    setQuantity(newQuantity);
-    onChange(newQuantity);
-  };
+  const handleDecrease = () => quantity > min && commit(quantity - 1);
+  const handleIncrease = () => quantity < max && commit(quantity + 1);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = parseInt(e.target.value);
-    if (value >= min && value <= max) {
-      setQuantity(value);
-      onChange(value);
-    } else if (value > max) {
-      setQuantity(max);
-      onChange(max);
-    } else {
-      setQuantity(min);
-      onChange(min);
-    }
+    const raw = e.target.value;
+    const value = Number(raw);
+    if (raw === '' || !Number.isInteger(value)) return setDraft(raw);
+    if (value > max) return commit(max);
+    if (value < min) return setDraft(raw);
+    commit(value);
   };
 
   const handleInputBlur = () => {
-    if (quantity < min) {
-      setQuantity(min);
-      onChange(min);
-    } else if (quantity > max) {
-      setQuantity(max);
-      onChange(max);
-    }
+    const value = Number(draft);
+    commit(draft === '' || !Number.isFinite(value) ? min : clamp(Math.trunc(value)));
   };
 
   return (
     <div className={'flex items-center'}>
       <button
+        type="button"
         className="p-2 bg-[#f3f3f3] flex h-8 w-8 items-center justify-center rounded-l-sm border border-gray-300 text-gray-600 cursor-pointer"
         onClick={handleDecrease}
-        disabled={initialValue <= min}
+        disabled={quantity <= min}
         aria-label="Decrease quantity"
         aria-controls="quantity-input"
       >
@@ -72,7 +58,9 @@ const QuantitySelector = ({ initialValue, min = 1, max = 99, onChange }: PropsTy
       </button>
       <input
         type="number"
-        value={quantity}
+        id="quantity-input"
+        inputMode="numeric"
+        value={draft}
         onChange={handleInputChange}
         onBlur={handleInputBlur}
         min={min}
@@ -81,9 +69,10 @@ const QuantitySelector = ({ initialValue, min = 1, max = 99, onChange }: PropsTy
         aria-label="Số lượng"
       />
       <button
+        type="button"
         className="p-2 bg-[#f3f3f3] flex h-8 w-8 items-center justify-center rounded-r-sm border border-gray-300 text-gray-600 cursor-pointer"
         onClick={handleIncrease}
-        disabled={initialValue >= max!}
+        disabled={quantity >= max}
         aria-label="Increase quantity"
         aria-controls="quantity-input"
       >

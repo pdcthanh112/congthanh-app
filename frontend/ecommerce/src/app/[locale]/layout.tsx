@@ -1,28 +1,33 @@
 import '../globals.css';
+import '@/lib/auth/register-server-token';
 import { Inter } from 'next/font/google';
+import { Metadata } from 'next';
+import { notFound } from 'next/navigation';
+import { NextIntlClientProvider } from 'next-intl';
+import { getMessages, getTranslations, setRequestLocale } from 'next-intl/server';
 import AppHeader from '@/components/app-component/AppHeader';
 import AppFooter from '@/components/app-component/AppFooter';
 import AppNavbar from '@/components/app-component/AppNavbar';
+import AppContent from '@/components/app-component/AppContent';
 import Providers from '../providers';
 import { RootLayout } from '@/layout';
-import { type Locale } from '@/lib/locales';
-import { getTranslations } from 'next-intl/server';
-import { Metadata } from 'next';
-import { routing } from '@/i18n/routing';
-import { notFound } from 'next/navigation';
-import { getMessages } from 'next-intl/server';
-import { NextIntlClientProvider } from 'next-intl';
-import AppContent from '@/components/app-component/AppContent';
+import { isValidLocale, locales, type Locale } from '@/lib/locales';
 
 const inter = Inter({ subsets: ['latin'] });
 
-export const baseOpenGraph = {
+const baseOpenGraph = {
   locale: 'en_US',
   type: 'website',
   siteName: 'CongThanhApp - Ecommerce',
 };
 
-export async function generateMetadata({ params }: { params: Promise<{ locale: Locale }> }): Promise<Metadata> {
+type Params = Promise<{ locale: Locale }>;
+
+export function generateStaticParams() {
+  return locales.map((locale) => ({ locale }));
+}
+
+export async function generateMetadata({ params }: { params: Params }): Promise<Metadata> {
   const { locale } = await params;
   const t = await getTranslations({ locale });
 
@@ -46,36 +51,27 @@ export async function generateMetadata({ params }: { params: Promise<{ locale: L
   };
 }
 
-type LayoutPropsType = {
-  children: React.ReactNode;
-  params: {
-    locale: Locale;
-  };
-};
-
-export default async function Layout({ children, params: { locale } }: Readonly<LayoutPropsType>) {
-  if (!routing.locales.includes(locale)) {
-    notFound();
-  }
+export default async function Layout({ children, params }: { children: React.ReactNode; params: Params }) {
+  const { locale } = await params;
+  if (!isValidLocale(locale)) notFound();
+  // Cho phép render tĩnh các trang không phụ thuộc request.
+  setRequestLocale(locale);
 
   const messages = await getMessages();
 
   return (
     <html lang={locale} suppressHydrationWarning>
-      <head>
-        <meta name="viewport" content="width=device-width, initial-scale=1" />
-      </head>
       <body className={inter.className}>
-        <Providers>
-          <NextIntlClientProvider messages={messages}>
+        <NextIntlClientProvider locale={locale} messages={messages}>
+          <Providers>
             <AppHeader />
             <AppNavbar />
             <AppContent>
               <RootLayout>{children}</RootLayout>
             </AppContent>
             <AppFooter />
-          </NextIntlClientProvider>
-        </Providers>
+          </Providers>
+        </NextIntlClientProvider>
       </body>
     </html>
   );

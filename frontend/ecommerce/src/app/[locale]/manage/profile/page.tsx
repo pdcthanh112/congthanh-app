@@ -1,33 +1,25 @@
 import React from 'react';
 import Image from 'next/image';
-import DefaultImage from '@/assets/images/default-image.jpg';
-import EditProfile from './EditProfile';
+import { BadgeCheck, CalendarDays, Mail, MapPin, Phone, type LucideIcon } from 'lucide-react';
 import { getServerSession } from 'next-auth';
-import { Icon } from '@mui/material';
-import { BadgeRounded, EmailRounded, CallRounded } from '@mui/icons-material';
+import { getTranslations, setRequestLocale } from 'next-intl/server';
+import DefaultImage from '@/assets/images/default-image.jpg';
+import { redirect } from '@/i18n/routing';
+import { authOptions } from '@/lib/auth/options';
+import type { Locale } from '@/lib/locales';
+import EditProfileButton from './EditProfileButton';
 
-type InformationFieldProps = {
-  icon: any;
-  title: string;
-  children: React.ReactNode;
-  className?: string;
-};
-
-const InformationField: React.FC<InformationFieldProps> = (element) => {
+function InformationField({ icon: Icon, label, children }: { icon: LucideIcon; label: string; children: React.ReactNode }) {
   return (
-    <div className={`mb-3 flex items-center ${element.className}`}>
-      <span className="font-medium">
-        <Icon component={element.icon} size={20} className="mr-2" />
-      </span>
-      <span className="">{element.children}</span>
+    <div className="mb-3 flex items-start gap-2">
+      <Icon className="mt-0.5 h-5 w-5 shrink-0" aria-hidden />
+      <span className="sr-only">{label}</span>
+      <span className="break-words">{children}</span>
     </div>
   );
-};
-
-async function getUserInfo(email: string) {
-  return await getUserInfo(email);
 }
 
+// Dữ liệu mẫu, giữ nguyên cho tới khi có API hồ sơ khách hàng.
 const userInfo = {
   email: 'pdcthanh112.dev@gmail.com',
   name: 'Cristiano Ronaldo',
@@ -38,44 +30,50 @@ const userInfo = {
   gender: 'MALE',
 };
 
-export default async function ProfilePage() {
-  const session = await getServerSession();
-  console.log('SSSSSSSSSSSSSSSSSSSSSS', session);
-  const user = session?.user;
+export default async function ProfilePage({ params }: { params: Promise<{ locale: Locale }> }) {
+  const { locale } = await params;
+  setRequestLocale(locale);
+  const t = await getTranslations('manage');
 
-  if (!user) return <div>Login</div>;
-  // const userInfo = await getUserInfo(user.email as string);
+  // Middleware đã chặn khách chưa đăng nhập; kiểm tra lại ở server cho chắc.
+  const session = await getServerSession(authOptions);
+  if (!session?.user) redirect({ href: { pathname: '/auth/login', query: { callbackUrl: `/${locale}/manage/profile` } }, locale });
 
   return (
-    <div className="relative">
-      <div className="px-3 py-2">
-        <div className="border-b-2 border-gray-200 pb-2 flex justify-between">
-          <div>
-            <h3 className="font-medium text-lg">Manage your profile</h3>
-            <span className="opacity-90">Quản lý thông tin hồ sơ để bảo mật tài khoản</span>
-          </div>
+    <section>
+      <div className="flex flex-wrap items-start justify-between gap-3 border-b pb-2">
+        <div>
+          <h1 className="text-lg font-medium">{t('profile_title')}</h1>
+          <p className="opacity-90">{t('profile_subtitle')}</p>
         </div>
-        <div className="w-5/6 mx-auto my-4 flex justify-between">
-          <div className="">
-            <InformationField icon={EmailRounded} title={'Email'} className="w-80" children={userInfo.email} />
-            <InformationField icon={BadgeRounded} title={'Name'} className="w-96" children={userInfo.name} />
-            <InformationField icon={CallRounded} title={'Phone'} className="w-56" children={userInfo.phone} />
-            <InformationField icon={BadgeRounded} title={'Date of birth'} className="w-48 ml-10">
-              <input type="date" defaultValue={userInfo.dob.toString()} disabled />
-            </InformationField>
-            <InformationField icon={BadgeRounded} title={'Address'} className="max-w-[80%]" children={userInfo.address} />
-          </div>
-
-          <div className="flex">
-            {/* <InformationField icon={UserRoundCheck} title={''}> */}
-            <Image src={userInfo.image || DefaultImage} alt={'User image'} width={150} height={150} />
-            {/* </InformationField> */}
-          </div>
+        <EditProfileButton />
+      </div>
+      <div className="my-4 flex flex-col-reverse gap-6 md:flex-row md:justify-between">
+        <div className="min-w-0">
+          <InformationField icon={Mail} label="Email">
+            {userInfo.email}
+          </InformationField>
+          <InformationField icon={BadgeCheck} label={t('name')}>
+            {userInfo.name}
+          </InformationField>
+          <InformationField icon={Phone} label={t('phone')}>
+            {userInfo.phone}
+          </InformationField>
+          <InformationField icon={CalendarDays} label={t('dob')}>
+            {userInfo.dob}
+          </InformationField>
+          <InformationField icon={MapPin} label={t('address')}>
+            {userInfo.address}
+          </InformationField>
         </div>
+        <Image
+          src={userInfo.image || DefaultImage}
+          alt=""
+          width={150}
+          height={150}
+          className="h-[150px] w-[150px] rounded-full object-cover"
+        />
       </div>
-      <div className="absolute top-2 right-2">
-        <EditProfile userInfo={user} />
-      </div>
-    </div>
+    </section>
   );
 }

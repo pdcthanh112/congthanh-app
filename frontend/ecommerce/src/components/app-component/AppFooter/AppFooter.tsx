@@ -1,4 +1,4 @@
-import Image from 'next/image';
+import Image, { type StaticImageData } from 'next/image';
 import AppLogo from '@/assets/images/app-logo.png';
 import FacebookIcon from '@/assets/icons/facebook-icon.svg';
 import TwitterIcon from '@/assets/icons/twitter-icon.svg';
@@ -10,20 +10,19 @@ import LocationIcon from '@/assets/icons/location-icon.svg';
 import PhoneIcon from '@/assets/icons/phone-icon.svg';
 import WebsiteIcon from '@/assets/icons/website-icon.svg';
 import EmailIcon from '@/assets/icons/email-icon.svg';
-import Link from 'next/link';
 
 const AppFooter = (): React.ReactElement => {
   const currentYear = new Date().getFullYear();
 
-  const FieldSocialNetwork = ({ url, image, alt }: { url: string; image: any; alt: string }) => (
-    <Link href={url}>
-      <Image src={image} alt={alt} style={{ width: '2rem', height: 'auto' }} className="mx-2" />
-    </Link>
+  const FieldSocialNetwork = ({ url, image, alt }: { url: string; image: StaticImageData; alt: string }) => (
+    <a href={url} target="_blank" rel="noopener noreferrer" aria-label={alt}>
+      <Image src={image} alt="" style={{ width: '2rem', height: 'auto' }} className="mx-2" />
+    </a>
   );
 
-  const FieldInfomation = ({ image, title }: { image: any; title: string }) => (
+  const FieldInfomation = ({ image, title }: { image: StaticImageData; title: string }) => (
     <div className="flex items-center py-2">
-      <Image src={image} alt="Location icon" style={{ width: '1.2rem', height: '1.2rem' }} />
+      <Image src={image} alt="" style={{ width: '1.2rem', height: '1.2rem' }} />
       <span className="ml-2">{title}</span>
     </div>
   );
@@ -34,9 +33,9 @@ const AppFooter = (): React.ReactElement => {
         <div className="px-2 md:px-8 lg:px-16">
           DreamHigh is a Cong Thanh&apos;s personal project, including an e-commerce site, official website, employee
           management page and administrator&apos;s site. Specific description at &nbsp;
-          <Link href="https://github.com/pdcthanh112/CongThanhApp.git" className="underline">
+          <a href="https://github.com/pdcthanh112/CongThanhApp.git" target="_blank" rel="noopener noreferrer" className="underline">
             GitHub
-          </Link>
+          </a>
         </div>
         <div className="flex justify-center">
           <Image

@@ -8,3 +8,5 @@ const useCounter = () => {
 
   return [count, onIncrease, onDecrease];
 };
+
+export default useCounter;

@@ -4,7 +4,7 @@ import { Button } from '../button'
 
 describe('Button Component', () => {
   it('renders button with correct text', async () => {
-    const mockClick = jest.fn()
+    const mockClick = vi.fn()
     render(<Button onClick={mockClick}>Click me</Button>)
     
     const user = userEvent.setup()
@@ -13,7 +13,7 @@ describe('Button Component', () => {
   })
 
   it('calls onClick when clicked', async () => {
-    const mockClick = jest.fn()
+    const mockClick = vi.fn()
     render(<Button onClick={mockClick}>Click me</Button>)
 
     const user = userEvent.setup()
@@ -23,7 +23,7 @@ describe('Button Component', () => {
   })
 
   it('is disabled when disabled prop is true', () => {
-    const mockClick = jest.fn()
+    const mockClick = vi.fn()
     render(<Button onClick={mockClick} disabled>Click me</Button>)
     
     expect(screen.getByText('Click me')).toBeDisabled()

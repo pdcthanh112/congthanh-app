@@ -1,61 +1,36 @@
-import { AddToCartForm, CreateCartForm, UpdateCartItemForm } from '@/models/form';
+'use client';
+
+import { addProductToCart, clearCart, deleteCartItem, getMyCart, updateCartItem } from '@/api/cartApi';
+import type { Cart } from '@/graphql/types';
 import { CART_KEY } from '@/utils/constants/queryKey';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { addProductToCart, createNewCart, deleteCart, deleteCartItem, updateCartItem } from '@/api/cartApi';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useSession } from 'next-auth/react';
 
-export const useCreateNewCart = () => {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationKey: [CART_KEY],
-    mutationFn: async (data: CreateCartForm) => await createNewCart(data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [CART_KEY] });
-    },
+export const useMyCart = () => {
+  const { status } = useSession();
+  return useQuery({
+    queryKey: [CART_KEY],
+    queryFn: getMyCart,
+    enabled: status === 'authenticated',
+    staleTime: 30_000,
   });
 };
 
-export const useDeleteCart = () => {
+const useCartMutation = <TVars>(fn: (vars: TVars) => Promise<Cart>) => {
   const queryClient = useQueryClient();
   return useMutation({
     mutationKey: [CART_KEY],
-    mutationFn: async (cartId: number) => await deleteCart(cartId),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [CART_KEY] });
-    },
+    mutationFn: fn,
+    onSuccess: (cart) => queryClient.setQueryData([CART_KEY], cart),
   });
 };
 
-export const useAddProductToCart = () => {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationKey: [CART_KEY],
-    mutationFn: async (data: AddToCartForm) =>
-      await addProductToCart({ productId: data.productId, quantity: data.quantity, cartId: data.cartId }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [CART_KEY] });
-    },
-  });
-};
+export const useAddProductToCart = () =>
+  useCartMutation((data: { productId: string; quantity: number }) => addProductToCart(data));
 
-export const useUpdateCartItem = () => {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationKey: [CART_KEY],
-    mutationFn: async (data: UpdateCartItemForm) =>
-      await updateCartItem({ cartItemId: data.itemId, quantity: data.quantity }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [CART_KEY] });
-    },
-  });
-};
+export const useUpdateCartItem = () =>
+  useCartMutation((data: { itemId: string; quantity: number }) => updateCartItem(data));
 
-export const useDeleteCartItem = () => {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationKey: [CART_KEY],
-    mutationFn: async (itemId: number) => await deleteCartItem(itemId),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [CART_KEY] });
-    },
-  });
-};
+export const useDeleteCartItem = () => useCartMutation((itemId: string) => deleteCartItem(itemId));
+
+export const useClearCart = () => useCartMutation((_: void) => clearCart());

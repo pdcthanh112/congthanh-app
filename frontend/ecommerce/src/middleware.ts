@@ -1,38 +1,32 @@
 import createMiddleware from 'next-intl/middleware';
 import { NextRequest, NextResponse } from 'next/server';
-import { type Locale, locales } from '@/lib/locales';
 import { getToken } from 'next-auth/jwt';
-import { PUBLIC_ROUTES, LOGIN, ROOT, PROTECTED_SUB_ROUTES } from '@/lib/routes';
+import { routing } from '@/i18n/routing';
+import { defaultLocale, isValidLocale, stripLocale } from '@/lib/locales';
+import { isProtectedPath, LOGIN } from '@/lib/routes';
+
+const i18nMiddleware = createMiddleware(routing);
 
 export default async function middleware(request: NextRequest): Promise<NextResponse> {
-  const response = i18nMiddleware(request);
+  const { pathname, search } = request.nextUrl;
+  const path = stripLocale(pathname);
 
-  const token = await getToken({ req: request });
-  const isAuthenticated = !!token;
-  const { pathname } = request.nextUrl;
-
-  const isPublicRoute =
-    PUBLIC_ROUTES.some((route) => pathname.startsWith(route)) ||
-    pathname === ROOT ||
-    !PROTECTED_SUB_ROUTES.some((route) => pathname.includes(route));
-
-  if (!isAuthenticated && !isPublicRoute) {
-    return NextResponse.redirect(new URL(LOGIN, request.url));
-    // const url = new URL(LOGIN, request.url);
-    // const locale = request.nextUrl.locale || 'en';
-    // url.pathname = `/${locale}${url.pathname}`;
-    // return NextResponse.redirect(url);
+  if (isProtectedPath(path)) {
+    const token = await getToken({ req: request });
+    // Token làm mới thất bại cũng coi như chưa đăng nhập.
+    if (!token || token.error) {
+      const first = pathname.split('/')[1] ?? '';
+      const locale = isValidLocale(first) ? first : defaultLocale;
+      const login = new URL(`/${locale}${LOGIN}`, request.url);
+      login.searchParams.set('callbackUrl', `${pathname}${search}`);
+      return NextResponse.redirect(login);
+    }
   }
 
-  return response;
+  return i18nMiddleware(request);
 }
 
-const i18nMiddleware = createMiddleware({
-  locales,
-  defaultLocale: 'en' satisfies Locale,
-  localePrefix: 'always',
-});
-
 export const config = {
-  matcher: ['/((?!api|_next|_vercel|.*\\..*).*)'],
+  // Bỏ qua API, file tĩnh, nội bộ Next và tunnel Sentry (/monitoring).
+  matcher: ['/((?!api|_next|_vercel|monitoring|.*\\..*).*)'],
 };

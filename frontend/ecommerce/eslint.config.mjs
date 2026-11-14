@@ -1,16 +1,21 @@
-import { dirname } from "path";
-import { fileURLToPath } from "url";
-import { FlatCompat } from "@eslint/eslintrc";
+import { dirname } from 'path';
+import { fileURLToPath } from 'url';
+import { FlatCompat } from '@eslint/eslintrc';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const compat = new FlatCompat({ baseDirectory: __dirname });
 
-const compat = new FlatCompat({
-  baseDirectory: __dirname,
-});
-
+/** Cấu hình ESLint duy nhất (flat config). `next build` chạy lint, lỗi lint làm fail build. */
 const eslintConfig = [
-  ...compat.extends("next/core-web-vitals", "next/typescript"),
+  { ignores: ['.next/**', 'node_modules/**', 'playwright-report/**', 'test-results/**', 'storybook-static/**'] },
+  ...compat.extends('next/core-web-vitals', 'next/typescript', 'plugin:storybook/recommended'),
+  {
+    rules: {
+      // Dùng Sentry / thông báo UI thay cho console; console.warn/error vẫn được phép cho lỗi thật.
+      'no-console': ['error', { allow: ['warn', 'error'] }],
+      '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_', varsIgnorePattern: '^_' }],
+    },
+  },
 ];
 
 export default eslintConfig;

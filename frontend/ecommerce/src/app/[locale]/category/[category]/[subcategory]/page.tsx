@@ -1,8 +1,11 @@
-import React from 'react';
-import { useSearchParams } from 'next/navigation';
+import type { Locale } from '@/lib/locales';
+import { redirectToCategory } from '../redirect';
 
-export default async function Page({params}: any) {
-
-    const { subcategory } = params;
-  return <div>aaaaaaaaaaaaaaaaaaa{subcategory}</div>;
+export default async function SubcategoryPage({
+  params,
+}: {
+  params: Promise<{ locale: Locale; subcategory: string }>;
+}) {
+  const { locale, subcategory } = await params;
+  redirectToCategory(locale, subcategory);
 }

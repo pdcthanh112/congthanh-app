@@ -1,24 +1,10 @@
-import { NextComponentType, NextPage, NextPageContext } from "next";
-import { AppProps } from "next/app";
-import { ReactElement, ReactNode } from "react";
-import Layout from "./layout";
+import { setRequestLocale } from 'next-intl/server';
+import { redirect } from '@/i18n/routing';
+import type { Locale } from '@/lib/locales';
 
-export type LayoutProps = {
-  children: React.ReactNode;
-};
-
-export type NextPageWithLayout<P = {}, IP = P> = NextPage<P, IP> & {
-  getLayout?: (page: ReactElement) => ReactNode;
-};
-
-export type AppPropsWithLayout = AppProps & {
-  Component: NextComponentType<NextPageContext, any, any> & NextPageWithLayout;
-};
-
-export default function App({ Component, pageProps, router }: AppPropsWithLayout) {
-  return (
-    <Layout>
-      <></>
-    </Layout>
-  );
+/** /{locale} → /{locale}/home (redirect tạm thời, không cache vĩnh viễn như 301). */
+export default async function LocaleIndex({ params }: { params: Promise<{ locale: Locale }> }) {
+  const { locale } = await params;
+  setRequestLocale(locale);
+  redirect({ href: '/home', locale });
 }

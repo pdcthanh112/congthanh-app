@@ -1,6 +1,10 @@
 import { useEffect, useRef } from 'react';
 
-export default function useEventListener(eventType: any, callback: any, element = window) {
+export default function useEventListener<K extends keyof DocumentEventMap>(
+  eventType: K,
+  callback: (e: DocumentEventMap[K]) => void,
+  element: Window | Document | HTMLElement | null = typeof window !== 'undefined' ? window : null
+) {
   const callbackRef = useRef(callback);
 
   useEffect(() => {
@@ -9,7 +13,7 @@ export default function useEventListener(eventType: any, callback: any, element 
 
   useEffect(() => {
     if (element == null) return;
-    const handler = (e: any) => callbackRef.current(e);
+    const handler = (e: Event) => callbackRef.current(e as DocumentEventMap[K]);
     element.addEventListener(eventType, handler);
 
     return () => element.removeEventListener(eventType, handler);

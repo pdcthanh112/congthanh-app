@@ -1,14 +1,8 @@
-import React from 'react';
-import ResetPasswordForm from './ResetPasswordForm';
-import { Card } from '@mui/material';
+import { redirect } from '@/i18n/routing';
+import type { Locale } from '@/lib/locales';
 
-export default function ResetPasswordPage() {
-  return (
-    <div>
-      <Card className="w-full sm:w-4/5 md:w-3/5 lg:w-2/5 mx-auto px-4 py-3">
-        <h3 className="flex justify-center text-2xl font-semibold mb-[44px]">Reset your password</h3>
-        <ResetPasswordForm />
-      </Card>
-    </div>
-  );
+/** Đặt lại mật khẩu thực hiện qua liên kết trong email Keycloak; trang cũ chuyển về hướng dẫn quên mật khẩu. */
+export default async function ResetPasswordPage({ params }: { params: Promise<{ locale: Locale }> }) {
+  const { locale } = await params;
+  redirect({ href: '/auth/forget-password', locale });
 }

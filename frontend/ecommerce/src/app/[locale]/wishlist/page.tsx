@@ -1,9 +1,8 @@
-"use client"
+import { setRequestLocale } from 'next-intl/server';
+import WishlistView from '@/features/wishlist/WishlistView';
+import type { Locale } from '@/lib/locales';
 
-export default  function WishlistPage() {
-
-  // return <ShowWishlistItem />;
-  return <div>a</div>
- 
+export default async function WishlistPage({ params }: { params: Promise<{ locale: Locale }> }) {
+  setRequestLocale((await params).locale);
+  return <WishlistView />;
 }
-

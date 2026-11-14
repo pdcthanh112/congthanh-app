@@ -1,10 +1,13 @@
 'use client';
-import { getReviewByProduct } from '@/api/reviewApi';
-import { PaginationParams } from '@/models/types';
-import { Review, ReviewStatistic } from '@/models/types/Review';
-import { Pagination } from '@mui/material';
-import { useQuery } from '@tanstack/react-query';
+
 import React, { useState } from 'react';
+import { keepPreviousData, useQuery } from '@tanstack/react-query';
+import { useTranslations } from 'next-intl';
+import { getReviewByProduct } from '@/api/reviewApi';
+import PaginationComponent from '@/components/common/PaginationComponent';
+import { Skeleton } from '@/components/ui';
+import { ReviewStatistic } from '@/models/types/Review';
+import { REVIEW_KEY } from '@/utils/constants/queryKey';
 import ReviewComponent from './ReviewComponent';
 
 type PropsType = {
@@ -12,62 +15,81 @@ type PropsType = {
   reviewStatictis: ReviewStatistic;
 };
 
-export default function ReviewProduct({ productId, reviewStatictis }: PropsType) {
-  const [filter, setFilter] = useState({ rating: 0, hasMedia: false });
-  const [pagination, setPagination] = useState<PaginationParams>({ page: 1, limit: 10, totalPage: 0 });
+const PAGE_SIZE = 10;
 
-  const { data: reviews } = useQuery<Review[]>({
-    queryKey: ['review', filter, pagination],
-    queryFn: async () =>
-      await getReviewByProduct(productId, filter, pagination).then((response) => {
-        setPagination({ ...pagination, totalPage: response.data.paginationInfo.totalPage });
-        return response.data.responseList;
-      }),
+export default function ReviewProduct({ productId, reviewStatictis }: PropsType) {
+  const t = useTranslations();
+  const [filter, setFilter] = useState({ rating: 0, hasMedia: false });
+  const [page, setPage] = useState(1);
+
+  const { data, isPending } = useQuery({
+    queryKey: [REVIEW_KEY, productId, filter, page],
+    queryFn: async () => (await getReviewByProduct(productId, filter, { page, limit: PAGE_SIZE })).data,
+    placeholderData: keepPreviousData,
   });
 
-  if (!reviews) return <div>Loading</div>;
+  const starCount: Record<number, number> = {
+    5: reviewStatictis.reviewRating5Star,
+    4: reviewStatictis.reviewRating4Star,
+    3: reviewStatictis.reviewRating3Star,
+    2: reviewStatictis.reviewRating2Star,
+    1: reviewStatictis.reviewRating1Star,
+  };
 
-  const filterValue = [
-    { name: 'All', value: 0 },
-    { name: '5 sao', value: 5 },
-    { name: '4 sao', value: 4 },
-    { name: '3 sao', value: 3 },
-    { name: '2 sao', value: 2 },
-    { name: '1 sao', value: 1 },
-  ];
+  const changeFilter = (next: Partial<typeof filter>) => {
+    setFilter((f) => ({ ...f, ...next }));
+    setPage(1);
+  };
+
+  const chip = (active: boolean) =>
+    `rounded border-2 px-3 py-1.5 ${active ? 'border-green-500' : 'border-gray-300 hover:border-gray-400'}`;
 
   return (
     <React.Fragment>
-      <div className="flex my-10">
-        <div className="w-1/5">{reviewStatictis.averageRating}/5 sao</div>
-        <div className="space-x-2">
-          {filterValue.map((item) => (
-            <span
-              key={item.value}
-              className={`border-2 rounded hover:cursor-pointer px-4 py-2 ${item.value === filter.rating ? 'border-green-400' : 'border-gray-400'}`}
-              onClick={() => setFilter({ ...filter, rating: item.value })}
+      <div className="my-8 flex flex-col gap-4 md:flex-row">
+        <div className="md:w-1/5 text-lg font-medium">
+          {t('product.out_of_5', { value: reviewStatictis.averageRating })}
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <button type="button" className={chip(filter.rating === 0)} onClick={() => changeFilter({ rating: 0 })}>
+            {t('product.all')} ({reviewStatictis.totalReview})
+          </button>
+          {[5, 4, 3, 2, 1].map((star) => (
+            <button
+              key={star}
+              type="button"
+              aria-pressed={filter.rating === star}
+              className={chip(filter.rating === star)}
+              onClick={() => changeFilter({ rating: filter.rating === star ? 0 : star })}
             >
-              {item.name} ({reviewStatictis.reviewRating5Star})
-            </span>
+              {t('product.star_count', { count: star })} ({starCount[star]})
+            </button>
           ))}
-          <span
-            className={`border-2 rounded hover:cursor-pointer px-4 py-2 ${filter.hasMedia ? 'border-green-400' : 'border-gray-400'}`}
-            onClick={() => setFilter({ ...filter, hasMedia: !filter.hasMedia })}
+          <button
+            type="button"
+            aria-pressed={filter.hasMedia}
+            className={chip(filter.hasMedia)}
+            onClick={() => changeFilter({ hasMedia: !filter.hasMedia })}
           >
-            Có hình ảnh ({reviewStatictis.reviewWithMedia})
-          </span>
+            {t('product.with_media')} ({reviewStatictis.reviewWithMedia})
+          </button>
         </div>
       </div>
-      {reviews.map((review) => (
-        <ReviewComponent key={review.id} review={review} />
-      ))}
-      {pagination.totalPage && pagination.totalPage > 1 && (
-        <Pagination
-          shape="rounded"
-          page={pagination.page}
-          count={pagination.totalPage}
-          onChange={(_, page) => setPagination({ ...pagination, page: page })}
-        />
+
+      {isPending ? (
+        <div className="space-y-4">
+          {Array.from({ length: 3 }, (_, i) => (
+            <Skeleton key={i} className="h-20 w-full" />
+          ))}
+        </div>
+      ) : !data?.responseList.length ? (
+        <p className="py-6 text-center text-muted-foreground">{t('product.no_review')}</p>
+      ) : (
+        data.responseList.map((review) => <ReviewComponent key={review.id} review={review} />)
+      )}
+
+      {data && data.paginationInfo.totalPage > 1 && (
+        <PaginationComponent page={page} totalPage={data.paginationInfo.totalPage} onChange={setPage} />
       )}
     </React.Fragment>
   );
