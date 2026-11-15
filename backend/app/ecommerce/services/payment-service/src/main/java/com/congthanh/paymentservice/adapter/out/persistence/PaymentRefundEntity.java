@@ -1,5 +1,7 @@
 package com.congthanh.paymentservice.adapter.out.persistence;
 
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
@@ -8,7 +10,6 @@ import jakarta.persistence.Table;
 import java.math.BigDecimal;
 import java.time.Instant;
 
-/** Một lần hoàn một phần; khoá chính refund_id chặn hoàn trùng khi activity bị gọi lại. */
 @Entity
 @Table(name = "payment_refunds")
 public class PaymentRefundEntity {
@@ -16,6 +17,7 @@ public class PaymentRefundEntity {
     @Id
     String refundId;
 
+    @JdbcTypeCode(SqlTypes.BIGINT) 
     @Column(nullable = false)
     String paymentId;
 

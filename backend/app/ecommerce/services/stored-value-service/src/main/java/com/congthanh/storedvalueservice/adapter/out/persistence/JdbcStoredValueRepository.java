@@ -44,7 +44,7 @@ class JdbcStoredValueRepository implements StoredValueRepository {
 
     @Override
     public Optional<Account> lockAccountById(String accountId) {
-        return jdbc.sql("SELECT " + ACCOUNT_COLUMNS + " FROM accounts WHERE id = :id::uuid FOR UPDATE")
+        return jdbc.sql("SELECT " + ACCOUNT_COLUMNS + " FROM accounts WHERE id = :id::bigint FOR UPDATE")
                 .param("id", accountId).query((rs, i) -> account(rs)).optional();
     }
 
@@ -60,7 +60,7 @@ class JdbcStoredValueRepository implements StoredValueRepository {
         if (a.version() == 0) {
             n = jdbc.sql("""
                             INSERT INTO accounts (id, customer_id, kind, currency, balance, held, status, created_at, version)
-                            VALUES (:id::uuid, :c, :k, :cur, :balance, :held, :status, :createdAt, 1)
+                            VALUES (:id::bigint, :c, :k, :cur, :balance, :held, :status, :createdAt, 1)
                             ON CONFLICT (id) DO NOTHING""")
                     .param("id", a.id()).param("c", a.customerId()).param("k", a.kind().name())
                     .param("cur", a.currency()).param("balance", a.balance()).param("held", a.held())
@@ -69,7 +69,7 @@ class JdbcStoredValueRepository implements StoredValueRepository {
         } else {
             n = jdbc.sql("""
                             UPDATE accounts SET balance = :balance, held = :held, status = :status, version = version + 1
-                            WHERE id = :id::uuid AND version = :version""")
+                            WHERE id = :id::bigint AND version = :version""")
                     .param("id", a.id()).param("balance", a.balance()).param("held", a.held())
                     .param("status", a.status().name()).param("version", a.version())
                     .update();
@@ -80,7 +80,7 @@ class JdbcStoredValueRepository implements StoredValueRepository {
         for (Movement m : a.pullMovements()) {
             jdbc.sql("""
                             INSERT INTO movements (account_id, type, amount, currency, reason, reference, order_id, balance_after, at)
-                            VALUES (:a::uuid, :type, :amount, :cur, :reason, :ref, :orderId, :after, :at)""")
+                            VALUES (:a::bigint, :type, :amount, :cur, :reason, :ref, :orderId, :after, :at)""")
                     .param("a", m.accountId()).param("type", m.type().name()).param("amount", m.amount())
                     .param("cur", m.currency()).param("reason", m.reason()).param("ref", m.reference())
                     .param("orderId", m.orderId()).param("after", m.balanceAfter()).param("at", Timestamp.from(m.at()))
@@ -105,7 +105,7 @@ class JdbcStoredValueRepository implements StoredValueRepository {
                         SELECT m.account_id, a.customer_id, a.kind, m.type, m.amount, m.currency, m.reason, m.reference,
                                m.order_id, m.balance_after, m.at
                         FROM movements m JOIN accounts a ON a.id = m.account_id
-                        WHERE m.account_id = :id::uuid ORDER BY m.id DESC LIMIT :limit""")
+                        WHERE m.account_id = :id::bigint ORDER BY m.id DESC LIMIT :limit""")
                 .param("id", accountId).param("limit", limit).query((rs, i) -> movement(rs)).list();
     }
 
@@ -119,7 +119,7 @@ class JdbcStoredValueRepository implements StoredValueRepository {
     public void saveHold(Hold h) {
         jdbc.sql("""
                         INSERT INTO holds (id, account_id, order_id, amount, status, expires_at)
-                        VALUES (:id, :a::uuid, :orderId, :amount, :status, :expires)
+                        VALUES (:id, :a::bigint, :orderId, :amount, :status, :expires)
                         ON CONFLICT (id) DO UPDATE SET status = EXCLUDED.status""")
                 .param("id", h.id()).param("a", h.accountId()).param("orderId", h.orderId()).param("amount", h.amount())
                 .param("status", h.status().name()).param("expires", Timestamp.from(h.expiresAt()))

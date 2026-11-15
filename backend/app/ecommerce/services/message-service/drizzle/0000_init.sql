@@ -2,14 +2,14 @@ CREATE SCHEMA IF NOT EXISTS "message_service";
 --> statement-breakpoint
 CREATE TYPE "message_service"."conversation_kind" AS ENUM('SELLER', 'SUPPORT');--> statement-breakpoint
 CREATE TABLE "message_service"."conversation_reads" (
-	"conversation_id" text NOT NULL,
+	"conversation_id" bigint NOT NULL,
 	"user_id" text NOT NULL,
 	"last_read_seq" bigint DEFAULT 0 NOT NULL,
 	CONSTRAINT "conversation_reads_conversation_id_user_id_pk" PRIMARY KEY("conversation_id","user_id")
 );
 --> statement-breakpoint
 CREATE TABLE "message_service"."conversations" (
-	"id" text PRIMARY KEY NOT NULL,
+	"id" bigint PRIMARY KEY NOT NULL,
 	"kind" "message_service"."conversation_kind" NOT NULL,
 	"customer_id" text NOT NULL,
 	"counterpart_id" text NOT NULL,
@@ -22,8 +22,8 @@ CREATE TABLE "message_service"."conversations" (
 );
 --> statement-breakpoint
 CREATE TABLE "message_service"."messages" (
-	"id" text PRIMARY KEY NOT NULL,
-	"conversation_id" text NOT NULL,
+	"id" bigint PRIMARY KEY NOT NULL,
+	"conversation_id" bigint NOT NULL,
 	"seq" bigint NOT NULL,
 	"sender_id" text NOT NULL,
 	"body" text NOT NULL,

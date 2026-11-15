@@ -1,4 +1,3 @@
-// Package postgres là driven adapter Repository của pricing-service; PriceChanged ghi outbox cùng transaction.
 package postgres
 
 import (
@@ -6,7 +5,6 @@ import (
 	"errors"
 	"time"
 
-	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -14,6 +12,7 @@ import (
 
 	"github.com/pdcthanh112/CongThanhApp/backend/app/ecommerce/libs/go/platform/apperr"
 	"github.com/pdcthanh112/CongThanhApp/backend/app/ecommerce/libs/go/platform/db"
+	"github.com/pdcthanh112/CongThanhApp/backend/app/ecommerce/libs/go/platform/idgen"
 	"github.com/pdcthanh112/CongThanhApp/backend/app/ecommerce/libs/go/platform/money"
 	"github.com/pdcthanh112/CongThanhApp/backend/app/ecommerce/libs/go/platform/outbox"
 	pricingv1 "github.com/pdcthanh112/CongThanhApp/backend/app/ecommerce/libs/go/proto/ecommerce/pricing/v1"
@@ -23,7 +22,7 @@ import (
 
 const (
 	Source        = "pricing-service"
-	AggregateType = "pricing" // Debezium Outbox Router → topic ecommerce.pricing.events
+	AggregateType = "pricing"
 
 	ReasonManual          = "MANUAL"
 	ReasonScheduleStarted = "SCHEDULE_STARTED"
@@ -38,13 +37,7 @@ func New(pool *pgxpool.Pool) *Repository { return &Repository{pool: pool} }
 
 func (r *Repository) Ping(ctx context.Context) error { return r.pool.Ping(ctx) }
 
-type UUIDv7 struct{}
-
-func (UUIDv7) NewID() string { return uuid.Must(uuid.NewV7()).String() }
-
 var _ app.Repository = (*Repository)(nil)
-
-// ---------- bảng giá ----------
 
 const listCols = `id, code, name, currency, customer_group, priority, active, starts_at, ends_at`
 
@@ -90,8 +83,6 @@ func (r *Repository) UpdatePriceList(ctx context.Context, l domain.PriceList) er
 		l.ID, l.Name, l.Currency, l.CustomerGroup, l.Priority, l.Active, l.StartsAt, l.EndsAt)
 	return err
 }
-
-// ---------- tra giá ----------
 
 func (r *Repository) Candidates(ctx context.Context, lists []domain.PriceList, productIDs []string, at time.Time) (map[string][]domain.Candidate, error) {
 	ids := make([]int64, len(lists))
@@ -171,8 +162,6 @@ func (r *Repository) Lowest30d(ctx context.Context, productIDs []string, since t
 	}
 	return out, rows.Err()
 }
-
-// ---------- giá thường ----------
 
 func priceChanged(l domain.PriceList, productID string, old *int64, now int64, reason string, at time.Time) outbox.Message {
 	ev := &pricingv1.PriceChanged{ProductId: productID, PriceList: l.Code, NewPrice: money.FromMinor(now, l.Currency),
@@ -302,7 +291,7 @@ func (r *Repository) one(ctx context.Context, q pgx.Tx, id string, lock bool) (d
 	if lock {
 		sql += ` FOR UPDATE OF s`
 	}
-	rows, _ := q.Query(ctx, sql, id)
+	rows, _ := q.Query(ctx, sql, idgen.Arg(id))
 	s, err := pgx.CollectExactlyOneRow(rows, scanSchedule)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return s, apperr.NotFound("schedule %s not found", id)
@@ -312,7 +301,7 @@ func (r *Repository) one(ctx context.Context, q pgx.Tx, id string, lock bool) (d
 
 // CancelSchedule: huỷ đợt sale; nếu đang chạy thì phát PriceChanged trả về giá thường.
 func (r *Repository) CancelSchedule(ctx context.Context, id string) (domain.Schedule, error) {
-	if _, err := uuid.Parse(id); err != nil {
+	if !idgen.Valid(id) {
 		return domain.Schedule{}, apperr.NotFound("schedule %s not found", id)
 	}
 	var out domain.Schedule

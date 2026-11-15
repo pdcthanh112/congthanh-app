@@ -10,7 +10,7 @@ CREATE TABLE accounts (
 );
 
 CREATE TABLE journal_entries (
-    id              UUID         PRIMARY KEY,
+    id              BIGINT       PRIMARY KEY,
     source_type     VARCHAR(32)  NOT NULL,
     source_id       VARCHAR(128) NOT NULL,
     source_event_id VARCHAR(64)  UNIQUE,
@@ -23,7 +23,7 @@ CREATE INDEX journal_entries_source ON journal_entries (source_type, source_id);
 CREATE INDEX journal_entries_booking_date ON journal_entries (booking_date);
 
 CREATE TABLE postings (
-    entry_id     UUID           NOT NULL REFERENCES journal_entries (id),
+    entry_id     BIGINT         NOT NULL REFERENCES journal_entries (id),
     line_no      INT            NOT NULL,
     account_code VARCHAR(128)   NOT NULL REFERENCES accounts (code),
     side         VARCHAR(6)     NOT NULL CHECK (side IN ('DEBIT', 'CREDIT')),
@@ -52,15 +52,15 @@ CREATE TABLE unposted_events (
 
 -- Bút toán tay chờ duyệt (maker/checker).
 CREATE TABLE manual_entries (
-    id                UUID         PRIMARY KEY,
+    id                BIGINT       PRIMARY KEY,
     description       TEXT         NOT NULL,
     booking_date      DATE         NOT NULL,
     postings          JSONB        NOT NULL,
     maker             VARCHAR(160) NOT NULL,
     status            VARCHAR(16)  NOT NULL CHECK (status IN ('PENDING', 'APPROVED', 'REJECTED')),
-    reverses_entry_id UUID REFERENCES journal_entries (id),
+    reverses_entry_id BIGINT REFERENCES journal_entries (id),
     checker           VARCHAR(160),
-    posted_entry_id   UUID REFERENCES journal_entries (id),
+    posted_entry_id   BIGINT REFERENCES journal_entries (id),
     note              TEXT,
     created_at        TIMESTAMPTZ  NOT NULL DEFAULT now(),
     decided_at        TIMESTAMPTZ,

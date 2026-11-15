@@ -3,7 +3,7 @@
 --changeset dispute-service:0001-disputes
 -- dispute-service (schema dispute_service), ADR 0025. Bằng chứng có dữ liệu cá nhân: chỉ nhóm FINANCE/SUPPORT đọc.
 CREATE TABLE disputes (
-    id                  UUID           PRIMARY KEY,
+    id                  BIGINT         PRIMARY KEY,
     provider            VARCHAR(16)    NOT NULL,
     provider_dispute_id VARCHAR(64)    NOT NULL,
     payment_id          VARCHAR(36),

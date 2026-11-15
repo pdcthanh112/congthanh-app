@@ -8,6 +8,7 @@ import (
 
 	"github.com/pdcthanh112/CongThanhApp/backend/app/ecommerce/libs/go/platform/auth"
 	"github.com/pdcthanh112/CongThanhApp/backend/app/ecommerce/libs/go/platform/db"
+	"github.com/pdcthanh112/CongThanhApp/backend/app/ecommerce/libs/go/platform/idgen"
 	"github.com/pdcthanh112/CongThanhApp/backend/app/ecommerce/libs/go/platform/kafka"
 	"github.com/pdcthanh112/CongThanhApp/backend/app/ecommerce/libs/go/platform/logging"
 	"github.com/pdcthanh112/CongThanhApp/backend/app/ecommerce/libs/go/platform/otel"
@@ -59,7 +60,11 @@ func run() error {
 	}
 
 	repo := postgres.New(pool)
-	svc := app.NewService(repo, delivery.New(cfg.SendTimeout, cfg.AllowInsecure), postgres.UUIDv7{}, cfg.AllowInsecure)
+	ids, err := idgen.FromEnv()
+	if err != nil {
+		return err
+	}
+	svc := app.NewService(repo, delivery.New(cfg.SendTimeout, cfg.AllowInsecure), idgen.IDs{Gen: ids}, cfg.AllowInsecure)
 
 	worker := func(ctx context.Context) error {
 		t := time.NewTicker(cfg.PollInterval)

@@ -4,7 +4,7 @@ import pytest
 
 from app.adapters.kafka import internal_txn
 from app.domain.matching import InternalTxn, Kind
-from app.service import Invalid, NotFound, ReconciliationService, uuid7
+from app.service import Invalid, NotFound, ReconciliationService
 
 
 class FakeStore:
@@ -52,10 +52,11 @@ async def test_provider_without_api_and_bad_input_are_rejected():
         await svc.resolve(1, "u", "fixed in ledger")
 
 
-def test_uuid7_is_time_ordered_and_versioned():
-    a, b = uuid7(), uuid7()
-    assert a[14] == "7" and len(a) == 36
-    assert a[:8] <= b[:8]
+def test_run_ids_are_increasing_snowflakes():
+    from ecommerce_platform.ids import snowflake
+
+    a, b = snowflake(), snowflake()
+    assert a.isdigit() and int(a) < int(b) < 2**63
 
 
 def test_payment_events_become_internal_transactions():

@@ -101,7 +101,10 @@ async def test_migrate_is_idempotent():
     pool = await postgres.connect(DB, schema)
     try:
         await postgres.migrate(pool, schema)
-        assert await pool.fetchval("SELECT count(*) FROM schema_migrations") == 2
+        from importlib import resources
+
+        files = [f for f in resources.files("app.migrations").iterdir() if f.name.endswith(".sql")]
+        assert await pool.fetchval("SELECT count(*) FROM schema_migrations") == len(files)
     finally:
         c: asyncpg.Connection
         async with pool.acquire() as c:

@@ -13,7 +13,7 @@ const DefaultProcessors = "customer-service,order-service,cart-service,review-se
 	"lakehouse,keycloak"
 
 type Config struct {
-	AuthDisabled                    bool // AUTH_DISABLED=true: tắt xác thực, chỉ cho dev/test
+	AuthDisabled                    bool 
 	HTTPAddr, DatabaseURL, DBSchema string
 	KafkaBrokers                    []string
 	KafkaGroup                      string

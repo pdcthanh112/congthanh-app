@@ -9,6 +9,8 @@ import com.congthanh.platform.temporal.TemporalWorkerRegistration;
 import org.apache.kafka.common.TopicPartition;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import com.congthanh.commonservice.id.Snowflake;
+import com.congthanh.loyaltyservice.application.port.out.Ids;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -25,6 +27,12 @@ import org.springframework.util.backoff.ExponentialBackOff;
 @Configuration
 @EnableScheduling
 class LoyaltyConfig {
+
+    /** Snowflake dùng chung trong common-core (BIGINT, node theo NODE_ID). */
+    @Bean
+    Ids ids() {
+        return Snowflake::nextString;
+    }
 
     private static final Logger log = LoggerFactory.getLogger(LoyaltyConfig.class);
     private static final String BASE = "/api/ecommerce/loyalty";

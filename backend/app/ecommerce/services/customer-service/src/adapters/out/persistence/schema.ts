@@ -1,4 +1,4 @@
-import { platformTables } from '@ecommerce/platform';
+import { platformTables, snowflakeId } from '@ecommerce/platform';
 import { sql } from 'drizzle-orm';
 import {
   boolean,
@@ -19,7 +19,7 @@ export const addressLabel = customerSchema.enum('address_label', ['HOME', 'OFFIC
 export const shippingAddresses = customerSchema.table(
   'shipping_addresses',
   {
-    id: text().primaryKey(),
+    id: snowflakeId().primaryKey(),
     customerId: text().notNull(),
     fullName: varchar({ length: 120 }).notNull(),
     phoneNumber: varchar({ length: 20 }).notNull(),

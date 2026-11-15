@@ -3,9 +3,6 @@
 from __future__ import annotations
 
 import hashlib
-import os
-import time
-import uuid
 from typing import Any
 
 from .domain.policy import ContentType, Decision, Item, Verdict, evaluate, merge_llm
@@ -25,13 +22,6 @@ class Forbidden(Exception):
 
 
 MAX_TEXT = 20_000
-
-
-def uuid7() -> str:
-    ms = int(time.time() * 1000)
-    rand = int.from_bytes(os.urandom(10), "big")
-    value = (ms << 80) | (0x7 << 76) | (((rand >> 68) & 0xFFF) << 64) | (0b10 << 62) | (rand & ((1 << 62) - 1))
-    return str(uuid.UUID(int=value))
 
 
 def content_hash(content_type: ContentType, text: str) -> str:

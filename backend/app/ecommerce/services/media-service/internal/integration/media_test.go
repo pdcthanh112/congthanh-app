@@ -3,6 +3,7 @@ package integration_test
 
 import (
 	"context"
+	"github.com/pdcthanh112/CongThanhApp/backend/app/ecommerce/libs/go/platform/idgen"
 	"testing"
 	"time"
 
@@ -27,7 +28,7 @@ func (s store) PublicURL(k string) string                { return "https://cdn/"
 
 func TestMediaRepository(t *testing.T) {
 	st := store{}
-	svc := app.NewService(postgres.New(dbtest.New(t, "media", migrations.FS)), st, postgres.UUIDv7{}, app.Options{})
+	svc := app.NewService(postgres.New(dbtest.New(t, "media", migrations.FS)), st, snowflakeIDs(t), app.Options{})
 	ctx := context.Background()
 	up, err := svc.RequestUpload(ctx, domain.UploadRequest{OwnerID: "u1", Purpose: domain.PurposeReview, FileName: "a.jpg", ContentType: "image/jpeg", SizeBytes: 50})
 	if err != nil {
@@ -47,4 +48,13 @@ func TestMediaRepository(t *testing.T) {
 	if err := svc.Delete(ctx, up.Media.ID, "u1", false); err != nil {
 		t.Fatal(err)
 	}
+}
+
+func snowflakeIDs(t *testing.T) idgen.IDs {
+	t.Helper()
+	g, err := idgen.New(1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return idgen.IDs{Gen: g}
 }

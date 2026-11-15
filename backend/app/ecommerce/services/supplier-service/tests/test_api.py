@@ -20,13 +20,13 @@ def test_seller_creates_and_admin_activates():
     r = seller.post(URL, {"name": "Brooklyn Home Goods", "email": "a@b.com"}, format="json")
     assert r.status_code == 201, r.content
     body = r.json()
-    assert body["status"] == "Success" and body["data"]["slug"] == "do-gia-dung-ha-noi"
+    assert body["status"] == "Success" and body["data"]["slug"] == "brooklyn-home-goods"
     assert body["data"]["status"] == "PENDING"
     sid = body["data"]["id"]
+    assert isinstance(sid, str) and sid.isdigit() 
 
-    # Chưa duyệt: khách không thấy, chủ gian hàng thấy.
     assert client().get(f"{URL}/{sid}").status_code == 404
-    assert seller.get(f"{URL}/do-gia-dung-ha-noi").json()["data"]["email"] == "a@b.vn"
+    assert seller.get(f"{URL}/brooklyn-home-goods").json()["data"]["email"] == "a@b.com"
     assert seller.get(f"{URL}/me").json()["data"]["id"] == sid
     assert client().get(URL).json()["data"]["totalItems"] == 0
 
@@ -36,7 +36,7 @@ def test_seller_creates_and_admin_activates():
 
     pub = client().get(f"{URL}/{sid}").json()["data"]
     assert pub["name"] == "Brooklyn Home Goods" and "email" not in pub and "ownerId" not in pub
-    page = client().get(URL, {"q": "gia dụng"}).json()["data"]
+    page = client().get(URL, {"q": "home"}).json()["data"]
     assert page["totalItems"] == 1 and page["items"][0]["id"] == sid
 
 
@@ -48,7 +48,7 @@ def test_rules():
     r = seller.post(URL, {"name": "Shop B"}, format="json")
     assert r.status_code == 409 and r.json()["errorCode"] == 409
     r = seller.post(URL, {}, format="json")
-    assert r.status_code == 400  # đã có gian hàng hoặc thiếu name đều bị chặn
+    assert r.status_code == 400  
     assert client("s3", "SELLER").post(URL, {"name": ""}, format="json").json()["message"].startswith("Invalid request")
 
 
@@ -60,7 +60,7 @@ def test_update_optimistic_lock_and_ownership():
     assert seller.patch(f"{URL}/{s['id']}", {"description": "cũ", "version": 0}, format="json").status_code == 409
     assert client("other", "SELLER").patch(f"{URL}/{s['id']}", {"name": "hack"}, format="json").status_code == 403
     assert client().patch(f"{URL}/{s['id']}", {"name": "hack"}, format="json").status_code == 401
-    # Không tự đổi trạng thái qua PATCH.
+
     seller.patch(f"{URL}/{s['id']}", {"status": "ACTIVE"}, format="json")
     assert Supplier.objects.get(id=s["id"]).status == "PENDING"
 

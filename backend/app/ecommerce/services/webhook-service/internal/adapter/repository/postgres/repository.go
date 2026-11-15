@@ -1,4 +1,3 @@
-// Package postgres là driven adapter Repository của webhook-service.
 package postgres
 
 import (
@@ -6,11 +5,11 @@ import (
 	"errors"
 	"time"
 
-	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/pdcthanh112/CongThanhApp/backend/app/ecommerce/libs/go/platform/apperr"
+	"github.com/pdcthanh112/CongThanhApp/backend/app/ecommerce/libs/go/platform/idgen"
 	"github.com/pdcthanh112/CongThanhApp/backend/app/ecommerce/services/webhook-service/internal/domain"
 )
 
@@ -19,10 +18,6 @@ type Repository struct{ pool *pgxpool.Pool }
 func New(pool *pgxpool.Pool) *Repository { return &Repository{pool: pool} }
 
 func (r *Repository) Ping(ctx context.Context) error { return r.pool.Ping(ctx) }
-
-type UUIDv7 struct{}
-
-func (UUIDv7) NewID() string { return uuid.Must(uuid.NewV7()).String() }
 
 const hookCols = `id, name, url, secret, events, active, created_at`
 
@@ -39,7 +34,7 @@ func (r *Repository) Create(ctx context.Context, w domain.Webhook) error {
 }
 
 func (r *Repository) Get(ctx context.Context, id string) (domain.Webhook, error) {
-	rows, _ := r.pool.Query(ctx, `SELECT `+hookCols+` FROM webhooks WHERE id = $1`, id)
+	rows, _ := r.pool.Query(ctx, `SELECT `+hookCols+` FROM webhooks WHERE id = $1`, idgen.Arg(id))
 	w, err := pgx.CollectExactlyOneRow(rows, scanHook)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return w, apperr.NotFound("webhook %s not found", id)
@@ -62,7 +57,7 @@ func (r *Repository) Update(ctx context.Context, w domain.Webhook) error {
 }
 
 func (r *Repository) Delete(ctx context.Context, id string) error {
-	tag, err := r.pool.Exec(ctx, `DELETE FROM webhooks WHERE id = $1`, id)
+	tag, err := r.pool.Exec(ctx, `DELETE FROM webhooks WHERE id = $1`, idgen.Arg(id))
 	if err == nil && tag.RowsAffected() == 0 {
 		return apperr.NotFound("webhook %s not found", id)
 	}
@@ -111,12 +106,12 @@ func (r *Repository) SaveAttempt(ctx context.Context, d domain.Delivery) error {
 }
 
 func (r *Repository) Deliveries(ctx context.Context, webhookID string, limit int) ([]domain.Delivery, error) {
-	rows, _ := r.pool.Query(ctx, `SELECT `+delCols+` FROM deliveries WHERE webhook_id = $1 ORDER BY created_at DESC LIMIT $2`, webhookID, limit)
+	rows, _ := r.pool.Query(ctx, `SELECT `+delCols+` FROM deliveries WHERE webhook_id = $1 ORDER BY created_at DESC LIMIT $2`, idgen.Arg(webhookID), limit)
 	return pgx.CollectRows(rows, scanDelivery)
 }
 
 func (r *Repository) GetDelivery(ctx context.Context, id string) (domain.Delivery, error) {
-	rows, _ := r.pool.Query(ctx, `SELECT `+delCols+` FROM deliveries WHERE id = $1`, id)
+	rows, _ := r.pool.Query(ctx, `SELECT `+delCols+` FROM deliveries WHERE id = $1`, idgen.Arg(id))
 	d, err := pgx.CollectExactlyOneRow(rows, scanDelivery)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return d, apperr.NotFound("delivery %s not found", id)
@@ -124,8 +119,7 @@ func (r *Repository) GetDelivery(ctx context.Context, id string) (domain.Deliver
 	return d, err
 }
 
-// Retry đưa lượt giao (kể cả DEAD) về PENDING, gửi ngay, đặt lại số lần thử.
 func (r *Repository) Retry(ctx context.Context, id string) error {
-	_, err := r.pool.Exec(ctx, `UPDATE deliveries SET status='PENDING', attempts=0, next_attempt_at=now() WHERE id=$1`, id)
+	_, err := r.pool.Exec(ctx, `UPDATE deliveries SET status='PENDING', attempts=0, next_attempt_at=now() WHERE id=$1`, idgen.Arg(id))
 	return err
 }

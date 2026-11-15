@@ -1,5 +1,6 @@
 package com.congthanh.paymentservice.application.service;
 
+import com.congthanh.commonservice.id.Snowflake;
 import com.congthanh.paymentservice.application.port.in.PaymentUseCases;
 import com.congthanh.paymentservice.application.port.out.CheckoutNotifier;
 import com.congthanh.paymentservice.application.port.out.PaymentProvider;
@@ -25,7 +26,6 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -207,7 +207,7 @@ public class PaymentService implements PaymentUseCases {
     }
 
     private Payment create(AuthorizeCommand cmd, PaymentProvider provider) {
-        Payment p = Payment.initiate(UUID.randomUUID().toString(), cmd.orderId(), cmd.customerId(),
+        Payment p = Payment.initiate(Snowflake.nextString(), cmd.orderId(), cmd.customerId(),
                 new Money(cmd.amount(), cmd.currency()), cmd.method(), provider.name(), clock.instant());
         try {
             tx.executeWithoutResult(s -> payments.save(p));

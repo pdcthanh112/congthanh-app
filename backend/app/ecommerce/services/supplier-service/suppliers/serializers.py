@@ -4,6 +4,7 @@ from .models import Supplier
 
 
 class SupplierSerializer(serializers.ModelSerializer):
+    id = serializers.CharField(read_only=True) 
     ownerId = serializers.CharField(source="owner_id", read_only=True)
     avatarUrl = serializers.URLField(source="avatar_url", required=False, allow_blank=True, max_length=1500)
     backgroundUrl = serializers.URLField(source="background_url", required=False, allow_blank=True, max_length=1500)
@@ -33,14 +34,11 @@ class SupplierSerializer(serializers.ModelSerializer):
 
 
 class PublicSupplierSerializer(SupplierSerializer):
-    """Khách xem gian hàng: ẩn chủ sở hữu và liên hệ riêng."""
-
     class Meta(SupplierSerializer.Meta):
         fields = ["id", "name", "slug", "description", "avatarUrl", "backgroundUrl", "status", "createdAt"]
 
 
 class UpdateSerializer(SupplierSerializer):
-    # Optimistic lock: client gửi version đã đọc; lệch thì 409 thay vì ghi đè thay đổi của người khác.
     version = serializers.IntegerField(required=False, min_value=0)
 
     class Meta(SupplierSerializer.Meta):

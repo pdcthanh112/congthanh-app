@@ -10,7 +10,7 @@
       "columns": {
         "conversation_id": {
           "name": "conversation_id",
-          "type": "text",
+          "type": "bigint",
           "primaryKey": false,
           "notNull": true
         },
@@ -65,7 +65,7 @@
       "columns": {
         "id": {
           "name": "id",
-          "type": "text",
+          "type": "bigint",
           "primaryKey": true,
           "notNull": true
         },
@@ -211,13 +211,13 @@
       "columns": {
         "id": {
           "name": "id",
-          "type": "text",
+          "type": "bigint",
           "primaryKey": true,
           "notNull": true
         },
         "conversation_id": {
           "name": "conversation_id",
-          "type": "text",
+          "type": "bigint",
           "primaryKey": false,
           "notNull": true
         },

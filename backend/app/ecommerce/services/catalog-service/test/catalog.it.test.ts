@@ -1,6 +1,6 @@
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { createPool, runMigrations } from '@ecommerce/platform';
+import { createPool, nextSnowflakeId, runMigrations } from '@ecommerce/platform';
 import { sql } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/node-postgres';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
@@ -19,12 +19,11 @@ const migrations = join(dirname(fileURLToPath(import.meta.url)), '..', 'drizzle'
 describe.skipIf(!url)('catalog-service + Postgres', () => {
   const pool = createPool({ url: url ?? '', schema: SCHEMA, poolMax: 4, applicationName: 'catalog-it' });
   const db = drizzle(pool, { schema, casing: 'snake_case' });
-  let seq = 0;
   const service = new CatalogService(
     new DrizzleUnitOfWork(db),
     readRepositories(db),
     { now: () => new Date() },
-    { next: () => `it-${Date.now()}-${++seq}` },
+    { next: () => nextSnowflakeId() },
   );
 
   beforeAll(async () => {

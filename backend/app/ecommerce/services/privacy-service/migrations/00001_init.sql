@@ -1,7 +1,3 @@
--- +goose Up
--- privacy-service (schema privacy). Giữ ít dữ liệu cá nhân nhất có thể: subject id (Keycloak sub) và email đã băm.
-
--- Lựa chọn đồng ý, chỉ ghi thêm: lịch sử là bằng chứng cho cơ quan quản lý.
 CREATE TABLE consents (
     id             BIGSERIAL PRIMARY KEY,
     subject_id     TEXT        NOT NULL,
@@ -14,7 +10,7 @@ CREATE TABLE consents (
 CREATE INDEX consents_subject_purpose ON consents (subject_id, purpose, recorded_at DESC);
 
 CREATE TABLE dsr_requests (
-    id               UUID PRIMARY KEY,
+    id               BIGINT PRIMARY KEY, 
     subject_id       TEXT        NOT NULL,
     type             TEXT        NOT NULL CHECK (type IN ('ACCESS', 'DELETE', 'OPT_OUT')),
     status           TEXT        NOT NULL CHECK (status IN ('IN_PROGRESS', 'COMPLETED', 'PARTIALLY_COMPLETED', 'REJECTED')),
@@ -27,12 +23,12 @@ CREATE TABLE dsr_requests (
     last_reminded_at TIMESTAMPTZ,
     version          BIGINT      NOT NULL DEFAULT 1
 );
--- Mỗi khách chỉ có một yêu cầu đang mở cho mỗi loại.
+
 CREATE UNIQUE INDEX dsr_requests_one_open ON dsr_requests (subject_id, type) WHERE status = 'IN_PROGRESS';
 CREATE INDEX dsr_requests_status ON dsr_requests (status, created_at);
 
 CREATE TABLE dsr_tasks (
-    request_id       UUID        NOT NULL REFERENCES dsr_requests (id),
+    request_id       BIGINT      NOT NULL REFERENCES dsr_requests (id),
     processor        TEXT        NOT NULL,
     status           TEXT        NOT NULL CHECK (status IN ('PENDING', 'COMPLETED', 'RETAINED')),
     retention_reason TEXT        NOT NULL DEFAULT '',
@@ -57,5 +53,4 @@ CREATE TABLE processed_events (
     processed_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
--- +goose Down
 DROP TABLE processed_events, outbox, dsr_tasks, dsr_requests, consents;

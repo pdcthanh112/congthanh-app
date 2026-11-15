@@ -1,5 +1,7 @@
 package com.congthanh.orderservice.adapter.out.persistence;
 
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 import jakarta.persistence.AttributeOverride;
 import jakarta.persistence.AttributeOverrides;
 import jakarta.persistence.CascadeType;
@@ -22,6 +24,7 @@ import java.util.List;
 @Table(name = "orders")
 public class OrderEntity {
 
+    @JdbcTypeCode(SqlTypes.BIGINT) // Snowflake: cột BIGINT, code giữ String
     @Id
     String id;
 

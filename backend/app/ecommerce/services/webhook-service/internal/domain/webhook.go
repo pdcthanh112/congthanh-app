@@ -1,4 +1,3 @@
-// Package domain: đăng ký webhook, loại sự kiện, chữ ký HMAC và lịch gửi lại.
 package domain
 
 import (
@@ -16,19 +15,19 @@ import (
 )
 
 const (
-	EventOrderCreated          = "order.created"
-	EventOrderConfirmed        = "order.confirmed"
-	EventOrderCancelled        = "order.cancelled"
-	EventProductUpdated        = "product.updated"
-	EventProductDeleted        = "product.deleted"
-	EventShipmentCreated       = "shipment.created"
-	EventShipmentStatusChanged = "shipment.status_changed"
-	EventPaymentAuthorized     = "payment.authorized"
-	EventPaymentFailed         = "payment.failed"
-	EventPaymentRefunded       = "payment.refunded"
-	EventPriceChanged          = "price.changed"
-	EventStockLow              = "inventory.low_stock"
-	EventStockoutRisk = "inventory.stockout_risk"
+	EventOrderCreated            = "order.created"
+	EventOrderConfirmed          = "order.confirmed"
+	EventOrderCancelled          = "order.cancelled"
+	EventProductUpdated          = "product.updated"
+	EventProductDeleted          = "product.deleted"
+	EventShipmentCreated         = "shipment.created"
+	EventShipmentStatusChanged   = "shipment.status_changed"
+	EventPaymentAuthorized       = "payment.authorized"
+	EventPaymentFailed           = "payment.failed"
+	EventPaymentRefunded         = "payment.refunded"
+	EventPriceChanged            = "price.changed"
+	EventStockLow                = "inventory.low_stock"
+	EventStockoutRisk            = "inventory.stockout_risk"
 	EventCheckoutReviewRequested = "checkout.review_requested"
 	EventCheckoutReviewDecided   = "checkout.review_decided"
 	EventPing                    = "ping"

@@ -8,8 +8,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/google/uuid"
-
+	"github.com/pdcthanh112/CongThanhApp/backend/app/ecommerce/libs/go/platform/idgen"
 	"github.com/pdcthanh112/CongThanhApp/backend/app/ecommerce/services/inventory-service/internal/domain"
 )
 
@@ -174,13 +173,11 @@ func (s *Service) ClaimFlashSale(ctx context.Context, saleID, productID, custome
 	if customerID == "" || qty <= 0 {
 		return Claim{}, domain.Invalid("customerId and quantity > 0 are required")
 	}
-	id, err := uuid.NewV7()
-	if err != nil {
-		return Claim{}, err
-	}
+	id := s.opt.NewID()
+	var err error
 	now := s.now()
 	c := Claim{
-		ClaimID: id.String(), CheckoutSessionID: id.String(), SaleID: saleID, ProductID: productID,
+		ClaimID: id, CheckoutSessionID: id, SaleID: saleID, ProductID: productID,
 		Quantity: qty, ExpiresAt: now.Add(s.opt.FlashClaimTTL).Truncate(time.Second),
 	}
 	c.Remaining, err = s.flash.Claim(ctx, ClaimRequest{
@@ -244,7 +241,7 @@ func (s *Service) flashClaimOf(ctx context.Context, reservationID string) (flash
 		return flashClaimRef{}, false, nil
 	}
 	claimID, ok := strings.CutPrefix(reservationID, reservationPrefix)
-	if !ok || uuid.Validate(claimID) != nil {
+	if !ok || !idgen.Valid(claimID) {
 		return flashClaimRef{}, false, nil
 	}
 	sale, product, found, err := s.flash.FindClaim(ctx, claimID)

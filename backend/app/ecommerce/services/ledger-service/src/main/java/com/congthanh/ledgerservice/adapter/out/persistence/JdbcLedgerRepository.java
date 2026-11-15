@@ -51,7 +51,7 @@ class JdbcLedgerRepository implements LedgerRepository {
         jdbc.sql("""
                         INSERT INTO journal_entries (id, source_type, source_id, source_event_id, description, booking_date,
                                                      created_by, created_at)
-                        VALUES (:id::uuid, :sourceType, :sourceId, :sourceEventId, :description, :bookingDate, :createdBy, :createdAt)""")
+                        VALUES (:id::bigint, :sourceType, :sourceId, :sourceEventId, :description, :bookingDate, :createdBy, :createdAt)""")
                 .param("id", e.id()).param("sourceType", e.sourceType()).param("sourceId", e.sourceId())
                 .param("sourceEventId", e.sourceEventId()).param("description", e.description())
                 .param("bookingDate", Date.valueOf(e.bookingDate())).param("createdBy", e.createdBy())
@@ -64,7 +64,7 @@ class JdbcLedgerRepository implements LedgerRepository {
                     .param("code", p.account().value()).param("type", p.account().type().name()).update();
             jdbc.sql("""
                             INSERT INTO postings (entry_id, line_no, account_code, side, amount, currency)
-                            VALUES (:entryId::uuid, :line, :account, :side, :amount, :currency)""")
+                            VALUES (:entryId::bigint, :line, :account, :side, :amount, :currency)""")
                     .param("entryId", e.id()).param("line", ++line).param("account", p.account().value())
                     .param("side", p.side().name()).param("amount", p.amount()).param("currency", p.currency())
                     .update();
@@ -84,7 +84,7 @@ class JdbcLedgerRepository implements LedgerRepository {
 
     @Override
     public Optional<JournalEntry> findEntry(String id) {
-        return loadEntries("WHERE e.id = :p1::uuid", Map.of("p1", id), 1).stream().findFirst();
+        return loadEntries("WHERE e.id = :p1::bigint", Map.of("p1", id), 1).stream().findFirst();
     }
 
     @Override
@@ -145,7 +145,7 @@ class JdbcLedgerRepository implements LedgerRepository {
     public void saveManual(ManualEntry m) {
         jdbc.sql("""
                         INSERT INTO manual_entries (id, description, booking_date, postings, maker, status, reverses_entry_id)
-                        VALUES (:id::uuid, :description, :date, :postings::jsonb, :maker, :status, :reverses::uuid)""")
+                        VALUES (:id::bigint, :description, :date, :postings::jsonb, :maker, :status, :reverses::bigint)""")
                 .param("id", m.id()).param("description", m.description()).param("date", Date.valueOf(m.bookingDate()))
                 .param("postings", json.writeValueAsString(m.postings().stream().map(PostingJson::of).toList()))
                 .param("maker", m.maker()).param("status", m.status()).param("reverses", m.reversesEntryId())
@@ -156,16 +156,16 @@ class JdbcLedgerRepository implements LedgerRepository {
     public Optional<ManualEntry> lockManual(String id) {
         return jdbc.sql("""
                         SELECT id, description, booking_date, postings, maker, status, reverses_entry_id
-                        FROM manual_entries WHERE id = :id::uuid FOR UPDATE""")
+                        FROM manual_entries WHERE id = :id::bigint FOR UPDATE""")
                 .param("id", id).query((rs, i) -> manual(rs)).optional();
     }
 
     @Override
     public void updateManualStatus(String id, String status, String checker, String postedEntryId, String note) {
         jdbc.sql("""
-                        UPDATE manual_entries SET status = :status, checker = :checker, posted_entry_id = :posted::uuid,
+                        UPDATE manual_entries SET status = :status, checker = :checker, posted_entry_id = :posted::bigint,
                                note = :note, decided_at = now()
-                        WHERE id = :id::uuid""")
+                        WHERE id = :id::bigint""")
                 .param("id", id).param("status", status).param("checker", checker).param("posted", postedEntryId)
                 .param("note", note).update();
     }
@@ -200,7 +200,7 @@ class JdbcLedgerRepository implements LedgerRepository {
         List<JournalEntry> out = new ArrayList<>(heads.size());
         for (Object[] h : heads) {
             List<Posting> postings = jdbc.sql("""
-                            SELECT account_code, side, amount, currency FROM postings WHERE entry_id = :id::uuid ORDER BY line_no""")
+                            SELECT account_code, side, amount, currency FROM postings WHERE entry_id = :id::bigint ORDER BY line_no""")
                     .param("id", h[0])
                     .query((rs, i) -> new Posting(AccountCode.of(rs.getString(1)), Side.valueOf(rs.getString(2)),
                             rs.getBigDecimal(3), rs.getString(4)))

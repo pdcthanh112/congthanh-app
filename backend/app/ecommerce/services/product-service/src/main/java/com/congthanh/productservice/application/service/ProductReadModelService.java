@@ -117,7 +117,7 @@ public class ProductReadModelService implements ProductReadModelUseCase {
     public RebuildResult rebuildAll() {
         int ok = 0;
         int failed = 0;
-        String after = "";
+        String after = "0"; // id Snowflake luôn > 0
         while (true) {
             List<String> ids = products.findIdsAfter(after, Limit.of(REBUILD_BATCH));
             if (ids.isEmpty()) {

@@ -86,7 +86,7 @@ func (m *memStore) Emit(_ context.Context, e ...domain.Event) error {
 
 type seqIDs struct{ n int }
 
-func (s *seqIDs) New() string { s.n++; return fmt.Sprintf("00000000-0000-7000-8000-%012d", s.n) }
+func (s *seqIDs) New() string { s.n++; return fmt.Sprintf("%d", 700000000000000000+s.n) }
 
 func eventNames(es []domain.Event) []string {
 	var out []string
@@ -227,7 +227,6 @@ func TestKeycloakAccountIsDeletedLastAndClosesTheRequest(t *testing.T) {
 	}
 }
 
-// statusStore trả danh sách theo trạng thái (memStore gốc trả rỗng).
 type statusStore struct{ *memStore }
 
 func (s *statusStore) RequestsByStatus(_ context.Context, st domain.RequestStatus, _ int) ([]domain.Request, error) {

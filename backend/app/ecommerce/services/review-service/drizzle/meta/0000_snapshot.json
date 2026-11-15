@@ -10,7 +10,7 @@
       "columns": {
         "review_id": {
           "name": "review_id",
-          "type": "text",
+          "type": "bigint",
           "primaryKey": false,
           "notNull": true
         },
@@ -304,7 +304,7 @@
       "columns": {
         "id": {
           "name": "id",
-          "type": "text",
+          "type": "bigint",
           "primaryKey": true,
           "notNull": true
         },

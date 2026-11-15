@@ -16,8 +16,8 @@ class Migration(migrations.Migration):
             fields=[
                 (
                     "id",
-                    models.UUIDField(
-                        default=suppliers.models.uuid7,
+                    models.BigIntegerField(
+                        default=suppliers.models.snowflake_id,
                         editable=False,
                         primary_key=True,
                         serialize=False,

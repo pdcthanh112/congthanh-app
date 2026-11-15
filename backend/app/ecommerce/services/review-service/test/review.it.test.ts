@@ -1,6 +1,6 @@
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { createPool, runMigrations } from '@ecommerce/platform';
+import { createPool, nextSnowflakeId, runMigrations } from '@ecommerce/platform';
 import { sql } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/node-postgres';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
@@ -17,7 +17,6 @@ const PREFIX = 'https://cdn.example/media/';
 describe.skipIf(!url)('review-service + Postgres', () => {
   const pool = createPool({ url: url ?? '', schema: SCHEMA, poolMax: 8, applicationName: 'review-it' });
   const db = drizzle(pool, { schema, casing: 'snake_case' });
-  let seq = 0;
   const clock = { now: () => new Date() };
   const uow = new DrizzleUnitOfWork(db);
   const sellers = new Map([['p1', 'seller-1']]);
@@ -26,7 +25,7 @@ describe.skipIf(!url)('review-service + Postgres', () => {
     readRepositories(db),
     { sellerOf: async (id) => sellers.get(id) },
     clock,
-    { next: () => `r-${++seq}` },
+    { next: () => nextSnowflakeId() },
     { mediaUrlPrefix: PREFIX },
     {
       check: async ({ text }) =>

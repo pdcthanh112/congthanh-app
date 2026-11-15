@@ -1,10 +1,5 @@
---liquibase formatted sql
-
---changeset payment-service:0001-payments
--- payment-service (schema payment_service). Một đơn có đúng một payment: order_id UNIQUE là
--- hàng rào idempotency cuối cùng nếu activity authorize chạy song song hai lần.
 CREATE TABLE payments (
-    id             VARCHAR(36)    PRIMARY KEY,
+    id             BIGINT         PRIMARY KEY, -- Snowflake
     order_id       VARCHAR(36)    NOT NULL UNIQUE,
     customer_id    VARCHAR(64),
     amount         NUMERIC(19, 4) NOT NULL CHECK (amount > 0),

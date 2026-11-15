@@ -102,7 +102,12 @@ services:
     profiles: [apps-go]
     image: curlimages/curl:8.16.0
     depends_on:
-      { connect: { condition: service_healthy }, shipping-service: { condition: service_started }, pricing-service: { condition: service_started }, privacy-service: { condition: service_started } }
+      {
+        connect: { condition: service_healthy },
+        shipping-service: { condition: service_started },
+        pricing-service: { condition: service_started },
+        privacy-service: { condition: service_started },
+      }
     volumes: ["../../platform/messaging/debezium/local:/connectors:ro"]
     entrypoint: ["sh", "-c"]
     command:
@@ -118,7 +123,14 @@ services:
   connect-init-python:
     profiles: [apps-python]
     image: curlimages/curl:8.16.0
-    depends_on: { connect: { condition: service_healthy }, fraud-service: { condition: service_started }, recommendation-service: { condition: service_started }, reconciliation-service: { condition: service_started }, moderation-service: { condition: service_started } }
+    depends_on:
+      {
+        connect: { condition: service_healthy },
+        fraud-service: { condition: service_started },
+        recommendation-service: { condition: service_started },
+        reconciliation-service: { condition: service_started },
+        moderation-service: { condition: service_started },
+      }
     volumes: ["../../platform/messaging/debezium/local:/connectors:ro"]
     entrypoint: ["sh", "-c"]
     command:
@@ -216,14 +228,14 @@ services:
     profiles: [apps-go]
     build: { context: ../.., dockerfile: services/shipping-service/Dockerfile }
     ports: ["5016:5016", "9097:9097"]
-    environment: { <<: *go-env, DB_SCHEMA: shipping }
+    environment: { <<: *go-env, DB_SCHEMA: shipping, NODE_ID: "57" }
     depends_on: { postgres: { condition: service_healthy }, kafka: { condition: service_healthy } }
 
   webhook-service:
     profiles: [apps-go]
     build: { context: ../.., dockerfile: services/webhook-service/Dockerfile }
     ports: ["5023:5023"]
-    environment: { <<: *go-env, DB_SCHEMA: webhook, WEBHOOK_ALLOW_INSECURE: "true" }
+    environment: { <<: *go-env, DB_SCHEMA: webhook, WEBHOOK_ALLOW_INSECURE: "true", NODE_ID: "58" }
     depends_on: { postgres: { condition: service_healthy }, kafka: { condition: service_healthy } }
 
   privacy-service:
@@ -232,6 +244,7 @@ services:
     ports: ["5033:5033"]
     environment:
       <<: *go-env
+      NODE_ID: "33"
       DB_SCHEMA: privacy
       KEYCLOAK_URL: http://keycloak:8080
       KEYCLOAK_CLIENT_SECRET: local-privacy-secret
@@ -241,7 +254,7 @@ services:
     profiles: [apps-go]
     build: { context: ../.., dockerfile: services/pricing-service/Dockerfile }
     ports: ["5025:5025", "9099:9099"]
-    environment: { <<: *go-env, DB_SCHEMA: pricing, REDIS_URL: "redis://redis:6379/7" }
+    environment: { <<: *go-env, DB_SCHEMA: pricing, REDIS_URL: "redis://redis:6379/7", NODE_ID: "56" }
     depends_on: { postgres: { condition: service_healthy }, kafka: { condition: service_healthy }, redis: { condition: service_healthy } }
 
   search-service:
@@ -267,6 +280,7 @@ services:
     ports: ["5007:5007"]
     environment:
       <<: *go-env
+      NODE_ID: "55"
       DB_SCHEMA: media
       S3_ENDPOINT: http://minio:9000
       S3_PRESIGN_ENDPOINT: http://localhost:9000
@@ -319,6 +333,7 @@ services:
         TEMPORAL_NAMESPACE: ecommerce
         LOG_FORMAT: ""
       DATABASE_URL: jdbc:postgresql://postgres:5432/ecommerce?currentSchema=product_service
+      LIQUIBASE_CONTEXTS: seed
       MONGODB_URI: mongodb://mongo:27017/ecommerce_product
       REDIS_URL: redis://redis:6379/1
       CATALOG_GRPC_ADDR: catalog-service:19092
@@ -367,6 +382,7 @@ services:
     ports: ["5031:5031"]
     environment:
       <<: *java-env
+      NODE_ID: "41"
       DATABASE_URL: jdbc:postgresql://postgres:5432/ecommerce?currentSchema=ledger_service
     depends_on: { postgres: { condition: service_healthy }, kafka: { condition: service_healthy } }
 
@@ -376,6 +392,7 @@ services:
     ports: ["5032:5032"]
     environment:
       <<: *java-env
+      NODE_ID: "42"
       DATABASE_URL: jdbc:postgresql://postgres:5432/ecommerce?currentSchema=returns_service
       RETURNS_WINDOW: P30D
       RETURNS_RESTOCKING_FEE_PERCENT: "0"
@@ -387,6 +404,7 @@ services:
     ports: ["5034:5034"]
     environment:
       <<: *java-env
+      NODE_ID: "43"
       DATABASE_URL: jdbc:postgresql://postgres:5432/ecommerce?currentSchema=stored_value_service
     depends_on: { postgres: { condition: service_healthy } }
 
@@ -396,6 +414,7 @@ services:
     ports: ["5035:5035"]
     environment:
       <<: *java-env
+      NODE_ID: "44"
       DATABASE_URL: jdbc:postgresql://postgres:5432/ecommerce?currentSchema=dispute_service
       # Trống = sandbox: nộp/chấp nhận chỉ ghi log; nhập tranh chấp thử bằng POST /api/ecommerce/disputes
       STRIPE_API_KEY: ${STRIPE_API_KEY:-}
@@ -408,6 +427,7 @@ services:
     ports: ["5037:5037"]
     environment:
       <<: *java-env
+      NODE_ID: "45"
       DATABASE_URL: jdbc:postgresql://postgres:5432/ecommerce?currentSchema=loyalty_service
     depends_on: { postgres: { condition: service_healthy }, kafka: { condition: service_healthy } }
 
@@ -417,6 +437,7 @@ services:
     ports: ["5038:5038"]
     environment:
       <<: *java-env
+      NODE_ID: "46"
       DATABASE_URL: jdbc:postgresql://postgres:5432/ecommerce?currentSchema=subscription_service
       CHECKOUT_URL: http://checkout-service:5027
       SUBSCRIPTIONS_RENEWALS_ENABLED: "true"
@@ -426,7 +447,19 @@ services:
     profiles: [apps-java]
     image: curlimages/curl:8.16.0
     depends_on:
-      { connect: { condition: service_healthy }, order-service: { condition: service_started }, product-service: { condition: service_started }, payment-service: { condition: service_started }, promotion-service: { condition: service_started }, ledger-service: { condition: service_started }, returns-service: { condition: service_started }, stored-value-service: { condition: service_started }, dispute-service: { condition: service_started }, loyalty-service: { condition: service_started }, subscription-service: { condition: service_started } }
+      {
+        connect: { condition: service_healthy },
+        order-service: { condition: service_started },
+        product-service: { condition: service_started },
+        payment-service: { condition: service_started },
+        promotion-service: { condition: service_started },
+        ledger-service: { condition: service_started },
+        returns-service: { condition: service_started },
+        stored-value-service: { condition: service_started },
+        dispute-service: { condition: service_started },
+        loyalty-service: { condition: service_started },
+        subscription-service: { condition: service_started },
+      }
     volumes: ["../../platform/messaging/debezium/local:/connectors:ro"]
     entrypoint: ["sh", "-c"]
     command:
@@ -459,6 +492,7 @@ services:
     ports: ["5027:5027", "19095:19095"]
     environment:
       <<: *java-env
+      NODE_ID: "47"
       DATABASE_URL: jdbc:postgresql://postgres:5432/ecommerce?currentSchema=checkout_service
       PRODUCT_GRPC_ADDR: product-service:29090
       PRICING_GRPC_ADDR: pricing-service:9099
@@ -499,21 +533,28 @@ services:
     profiles: [apps-node]
     build: { <<: *node-build, args: { SERVICE: catalog-service } }
     ports: ["5003:5003", "19092:19092"]
-    environment: { <<: *node-env, PRODUCT_GRPC_ADDR: "product-service:29090" }
+    environment: { <<: *node-env, PRODUCT_GRPC_ADDR: "product-service:29090", NODE_ID: "50" }
     depends_on: { postgres: { condition: service_healthy } }
 
   customer-service:
     profiles: [apps-node]
     build: { <<: *node-build, args: { SERVICE: customer-service } }
     ports: ["5004:5004", "19094:19094"]
-    environment: { <<: *node-env, KAFKA_BROKERS: "kafka:9092" }
+    environment: { <<: *node-env, KAFKA_BROKERS: "kafka:9092", NODE_ID: "51" }
     depends_on: { postgres: { condition: service_healthy } }
 
   review-service:
     profiles: [apps-node]
     build: { <<: *node-build, args: { SERVICE: review-service } }
     ports: ["5010:5010"]
-    environment: { <<: *node-env, PRODUCT_GRPC_ADDR: "product-service:29090", KAFKA_BROKERS: "kafka:9092", MODERATION_URL: "http://moderation-service:5039" }
+    environment:
+      {
+        <<: *node-env,
+        PRODUCT_GRPC_ADDR: "product-service:29090",
+        KAFKA_BROKERS: "kafka:9092",
+        MODERATION_URL: "http://moderation-service:5039",
+        NODE_ID: "53",
+      }
     depends_on: { postgres: { condition: service_healthy }, kafka: { condition: service_healthy } }
 
   notification-service:
@@ -522,6 +563,7 @@ services:
     ports: ["5011:5011"]
     environment:
       <<: *node-env
+      NODE_ID: "54"
       KAFKA_BROKERS: kafka:9092
       REDIS_URL: redis://redis:6379/2
       KEYCLOAK_URL: http://keycloak:8080
@@ -534,7 +576,15 @@ services:
     profiles: [apps-node]
     build: { <<: *node-build, args: { SERVICE: message-service } }
     ports: ["5012:5012"]
-    environment: { <<: *node-env, PRODUCT_GRPC_ADDR: "product-service:29090", REDIS_URL: "redis://redis:6379/3", MODERATION_URL: "http://moderation-service:5039", KAFKA_BROKERS: "kafka:9092" }
+    environment:
+      {
+        <<: *node-env,
+        PRODUCT_GRPC_ADDR: "product-service:29090",
+        REDIS_URL: "redis://redis:6379/3",
+        MODERATION_URL: "http://moderation-service:5039",
+        KAFKA_BROKERS: "kafka:9092",
+        NODE_ID: "52",
+      }
     depends_on: { postgres: { condition: service_healthy }, redis: { condition: service_healthy } }
 
   storefront-bff:
@@ -655,7 +705,8 @@ services:
     profiles: [apps-python]
     build: { <<: *python-build, args: { SERVICE: supplier-service } }
     ports: ["5019:5019"]
-    environment: { <<: *python-env, HTTP_PORT: "5019", DATABASE_URL: "postgres://postgres:postgres@postgres:5432/ecommerce", DB_SCHEMA: supplier }
+    environment:
+      { <<: *python-env, HTTP_PORT: "5019", DATABASE_URL: "postgres://postgres:postgres@postgres:5432/ecommerce", DB_SCHEMA: supplier, NODE_ID: "60" }
     entrypoint: ["sh", "-c"]
     command: ["python manage.py migrate_schema && exec python -m gunicorn -c config/gunicorn.py config.wsgi"]
     depends_on: { postgres: { condition: service_healthy } }
@@ -665,6 +716,7 @@ services:
     ports: ["5036:5036"]
     environment:
       <<: *python-env
+      NODE_ID: "48"
       HTTP_PORT: "5036"
       DATABASE_URL: postgresql://postgres:postgres@postgres:5432/ecommerce
       DB_SCHEMA: reconciliation
@@ -678,6 +730,7 @@ services:
     ports: ["5039:5039"]
     environment:
       <<: *python-env
+      NODE_ID: "49"
       HTTP_PORT: "5039"
       DATABASE_URL: postgresql://postgres:postgres@postgres:5432/ecommerce
       DB_SCHEMA: moderation
@@ -690,6 +743,7 @@ services:
     ports: ["5026:5026"]
     environment:
       <<: *python-env
+      NODE_ID: "59"
       HTTP_PORT: "5026"
       DATABASE_URL: postgresql://postgres:postgres@postgres:5432/ecommerce
       DB_SCHEMA: fraud

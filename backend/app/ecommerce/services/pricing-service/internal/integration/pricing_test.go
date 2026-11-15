@@ -1,10 +1,11 @@
-// Package integration_test chạy use case giá trên Postgres thật (TEST_DATABASE_URL hoặc container của testkit).
 package integration_test
 
 import (
 	"context"
 	"testing"
 	"time"
+
+	"github.com/pdcthanh112/CongThanhApp/backend/app/ecommerce/libs/go/platform/idgen"
 
 	"github.com/pdcthanh112/CongThanhApp/backend/app/ecommerce/libs/go/platform/apperr"
 	"github.com/pdcthanh112/CongThanhApp/backend/app/ecommerce/libs/go/platform/db/dbtest"
@@ -21,7 +22,7 @@ func TestPricingFlow(t *testing.T) {
 	repo := postgres.New(pool)
 	now := time.Now().UTC().Truncate(time.Second)
 	clock := func() time.Time { return now }
-	svc := app.NewService(repo, nil, postgres.UUIDv7{}, clock)
+	svc := app.NewService(repo, nil, snowflakeIDs(t), clock)
 	ctx := context.Background()
 	outbox := func() int {
 		var n int
@@ -31,11 +32,10 @@ func TestPricingFlow(t *testing.T) {
 		return n
 	}
 
-	// Giá khởi tạo từ catalog, rồi admin đổi giá.
 	if err := repo.SeedFromCatalog(ctx, "p1", "USD", 200_000); err != nil {
 		t.Fatal(err)
 	}
-	if err := repo.SeedFromCatalog(ctx, "p1", "USD", 999_999); err != nil { // không ghi đè
+	if err := repo.SeedFromCatalog(ctx, "p1", "USD", 999_999); err != nil { 
 		t.Fatal(err)
 	}
 	n, err := svc.UpsertPrices(ctx, "default", []domain.Price{{ProductID: "p1", Amount: 180_000}, {ProductID: "p2", Amount: 50_000}}, "admin")
@@ -45,7 +45,7 @@ func TestPricingFlow(t *testing.T) {
 	if n, _ := svc.UpsertPrices(ctx, "default", []domain.Price{{ProductID: "p2", Amount: 50_000}}, "admin"); n != 0 {
 		t.Fatalf("unchanged upsert should be a no-op, changed=%d", n)
 	}
-	if got := outbox(); got != 3 { // IMPORTED p1, MANUAL p1, MANUAL p2
+	if got := outbox(); got != 3 { 
 		t.Fatalf("outbox after upserts: %d", got)
 	}
 
@@ -54,7 +54,6 @@ func TestPricingFlow(t *testing.T) {
 		t.Fatalf("prices: %+v %v", ps, err)
 	}
 
-	// Bảng giá sỉ cho nhóm WHOLESALE.
 	if _, err := svc.CreatePriceList(ctx, domain.PriceList{Code: "Wholesale", Name: "Wholesale", Currency: "usd", CustomerGroup: "wholesale", Priority: 10, Active: true}); err != nil {
 		t.Fatal(err)
 	}
@@ -72,7 +71,6 @@ func TestPricingFlow(t *testing.T) {
 		t.Fatalf("public must not see wholesale: %+v", pub["p1"])
 	}
 
-	// Flash sale giảm 20% cho p1, p2 trong 2 giờ, bắt đầu sau 1 giờ.
 	ss, err := svc.CreateSchedules(ctx, app.NewSchedule{ProductIDs: []string{"p1", "p2"}, Kind: domain.KindFlash, PercentOff: ptr(20.0),
 		StartsAt: now.Add(time.Hour), EndsAt: ptr(now.Add(3 * time.Hour))}, "admin")
 	if err != nil || len(ss) != 2 || ss[0].Amount != 144_000 || ss[1].Amount != 40_000 {
@@ -87,7 +85,6 @@ func TestPricingFlow(t *testing.T) {
 		t.Fatalf("preview during sale: %+v", p)
 	}
 
-	// Scheduler: bắt đầu → ACTIVE + event; kết thúc → ENDED + event.
 	now = now.Add(61 * time.Minute)
 	if err := svc.Tick(ctx); err != nil {
 		t.Fatal(err)
@@ -111,7 +108,7 @@ func TestPricingFlow(t *testing.T) {
 		t.Fatal(err)
 	}
 	ended, _ := svc.Schedules(ctx, app.ScheduleFilter{Status: domain.Ended})
-	if len(ended) != 1 || outbox() != 6+2 { // cancel p2 + end p1
+	if len(ended) != 1 || outbox() != 6+2 { 
 		t.Fatalf("after end: ended=%d outbox=%d", len(ended), outbox())
 	}
 	after, _ := svc.Prices(ctx, []string{"p1"}, app.Context{})
@@ -123,7 +120,6 @@ func TestPricingFlow(t *testing.T) {
 		t.Fatalf("history: %+v", hist)
 	}
 
-	// Xoá sản phẩm: bỏ giá.
 	if err := repo.RemoveProduct(ctx, "p2"); err != nil {
 		t.Fatal(err)
 	}
@@ -133,4 +129,13 @@ func TestPricingFlow(t *testing.T) {
 	if err := svc.UpdatePriceList(ctx, domain.PriceList{Code: "default", Name: "x", Currency: "USD", Active: false}); apperr.KindOf(err) != apperr.KindInvalid {
 		t.Fatalf("deactivate default: %v", err)
 	}
+}
+
+func snowflakeIDs(t *testing.T) idgen.IDs {
+	t.Helper()
+	g, err := idgen.New(1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return idgen.IDs{Gen: g}
 }

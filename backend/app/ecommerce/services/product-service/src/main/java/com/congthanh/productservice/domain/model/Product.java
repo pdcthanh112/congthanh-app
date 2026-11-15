@@ -1,5 +1,7 @@
 package com.congthanh.productservice.domain.model;
 
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 import com.congthanh.productservice.domain.model.enums.ProductStatus;
 import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.fasterxml.jackson.annotation.JsonIgnore;
@@ -13,7 +15,6 @@ import java.util.List;
 import java.util.Set;
 
 @Entity
-//@Data
 @Getter
 @Setter
 @NoArgsConstructor
@@ -22,6 +23,7 @@ import java.util.Set;
 @Table(name = "products")
 public class Product {
 
+    @JdbcTypeCode(SqlTypes.BIGINT) 
     @Id
     private String id;
 

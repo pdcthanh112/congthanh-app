@@ -4,13 +4,13 @@ import (
 	"context"
 	"errors"
 
-	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"github.com/pdcthanh112/CongThanhApp/backend/app/ecommerce/libs/go/platform/apperr"
 	"github.com/pdcthanh112/CongThanhApp/backend/app/ecommerce/libs/go/platform/db"
+	"github.com/pdcthanh112/CongThanhApp/backend/app/ecommerce/libs/go/platform/idgen"
 	"github.com/pdcthanh112/CongThanhApp/backend/app/ecommerce/libs/go/platform/outbox"
 	shippingv1 "github.com/pdcthanh112/CongThanhApp/backend/app/ecommerce/libs/go/proto/ecommerce/shipping/v1"
 	"github.com/pdcthanh112/CongThanhApp/backend/app/ecommerce/services/shipping-service/internal/app"
@@ -27,10 +27,6 @@ type Repository struct{ pool *pgxpool.Pool }
 func New(pool *pgxpool.Pool) *Repository { return &Repository{pool: pool} }
 
 func (r *Repository) Ping(ctx context.Context) error { return r.pool.Ping(ctx) }
-
-type UUIDv7 struct{}
-
-func (UUIDv7) NewID() string { return uuid.Must(uuid.NewV7()).String() }
 
 const rateCols = `id, carrier, service_code, service_name, country_code, region_code, currency, base_fee_minor, per_kg_fee_minor, free_over_minor, days_min, days_max, active`
 
@@ -123,7 +119,7 @@ func (r *Repository) one(ctx context.Context, where string, arg any, what string
 }
 
 func (r *Repository) GetShipment(ctx context.Context, id string) (domain.Shipment, error) {
-	return r.one(ctx, "id", id, id)
+	return r.one(ctx, "id", idgen.Arg(id), id)
 }
 func (r *Repository) ShipmentByOrder(ctx context.Context, orderID string) (domain.Shipment, error) {
 	return r.one(ctx, "order_id", orderID, "for order "+orderID)

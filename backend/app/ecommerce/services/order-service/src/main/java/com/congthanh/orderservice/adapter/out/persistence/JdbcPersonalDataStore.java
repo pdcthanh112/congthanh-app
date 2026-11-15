@@ -1,15 +1,11 @@
 package com.congthanh.orderservice.adapter.out.persistence;
 
+import com.congthanh.commonservice.id.ErasedIds;
 import com.congthanh.ecommerce.privacy.v1.ErasureCompleted;
 import com.congthanh.platform.outbox.OutboxWriter;
 import com.congthanh.orderservice.application.port.out.PersonalDataStore;
 import org.springframework.jdbc.core.simple.JdbcClient;
 import org.springframework.stereotype.Component;
-
-import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
-import java.util.HexFormat;
 
 @Component
 class JdbcPersonalDataStore implements PersonalDataStore {
@@ -27,7 +23,7 @@ class JdbcPersonalDataStore implements PersonalDataStore {
 
     @Override
     public String anonymize(String subjectId) {
-        String anon = erasedId(subjectId);
+        String anon = ErasedIds.of(subjectId);
         jdbc.sql("""
                 UPDATE orders SET ship_full_name = 'Erased', ship_phone = NULL, ship_line1 = 'Erased', ship_line2 = NULL,
                        ship_ward = NULL, ship_district = NULL, ship_postal_code = NULL,
@@ -47,13 +43,4 @@ class JdbcPersonalDataStore implements PersonalDataStore {
                 .build());
     }
 
-    /** Định danh thay thế ổn định, không đảo ngược (cùng công thức với libs/ts/platform/privacy). */
-    static String erasedId(String subjectId) {
-        try {
-            byte[] h = MessageDigest.getInstance("SHA-256").digest(subjectId.getBytes(StandardCharsets.UTF_8));
-            return "erased-" + HexFormat.of().formatHex(h).substring(0, 16);
-        } catch (NoSuchAlgorithmException e) {
-            throw new IllegalStateException(e);
-        }
-    }
 }

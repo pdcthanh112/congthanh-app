@@ -9,6 +9,7 @@ import (
 
 	"github.com/pdcthanh112/CongThanhApp/backend/app/ecommerce/libs/go/platform/auth"
 	"github.com/pdcthanh112/CongThanhApp/backend/app/ecommerce/libs/go/platform/db"
+	"github.com/pdcthanh112/CongThanhApp/backend/app/ecommerce/libs/go/platform/idgen"
 	"github.com/pdcthanh112/CongThanhApp/backend/app/ecommerce/libs/go/platform/kafka"
 	"github.com/pdcthanh112/CongThanhApp/backend/app/ecommerce/libs/go/platform/logging"
 	"github.com/pdcthanh112/CongThanhApp/backend/app/ecommerce/libs/go/platform/otel"
@@ -59,7 +60,11 @@ func run() error {
 	}
 
 	repo := postgres.New(pool)
-	svc := app.NewService(repo, postgres.UUIDv7{}, carrier.Internal{})
+	ids, err := idgen.FromEnv()
+	if err != nil {
+		return err
+	}
+	svc := app.NewService(repo, idgen.IDs{Gen: ids}, carrier.Internal{})
 
 	var bg []func(context.Context) error
 	if len(cfg.KafkaBrokers) > 0 {
@@ -79,7 +84,6 @@ func run() error {
 	router := server.NewRouter(serviceName, repo.Ping)
 	httpadapter.New(svc, verifier).Mount(router)
 
-	// Dọn outbox (Debezium đã đọc qua WAL) và processed_events quá hạn.
 	bg = append(bg, outbox.NewJanitor(pool, outbox.JanitorConfig{}).Run)
 
 	return server.Run(ctx, server.Options{HTTPAddr: cfg.HTTPAddr, HTTPHandler: router, GRPCAddr: cfg.GRPCAddr, GRPCServer: grpcSrv, Background: bg})

@@ -10,11 +10,11 @@ from typing import Any
 import asyncpg
 from ecommerce.common.v1 import event_envelope_pb2, money_pb2
 from ecommerce.reconciliation.v1 import reconciliation_events_pb2 as rec
+from ecommerce_platform.ids import event_id
 from google.protobuf import timestamp_pb2
 from google.protobuf.message import Message
 
 from ..domain.matching import InternalTxn, Kind, MatchResult, ProviderTxn
-from ..service import uuid7
 
 SOURCE = "reconciliation-service"
 AGGREGATE_TYPE = "reconciliation"
@@ -72,7 +72,7 @@ async def connect(url: str, schema: str) -> asyncpg.Pool:
 
 async def write_outbox(c: asyncpg.Connection, aggregate_id: str, payload: Message) -> None:
     env = event_envelope_pb2.EventEnvelope(
-        id=uuid7(),
+        id=event_id(),
         type=payload.DESCRIPTOR.full_name,
         source=SOURCE,
         aggregate_type=AGGREGATE_TYPE,
@@ -104,8 +104,6 @@ class PostgresStore:
     async def ping(self) -> None:
         async with self.pool.acquire() as c:
             await c.execute("SELECT 1")
-
-    # ---------- sổ nội bộ từ event ----------
 
     async def once(self, c: asyncpg.Connection, event_id: str) -> bool:
         r = await c.execute(
@@ -151,8 +149,6 @@ class PostgresStore:
             for r in rows
         ]
 
-    # ---------- lần chạy ----------
-
     async def save_run(
         self, run_id: str, provider: str, day: date, source: str, txns: list[ProviderTxn], result: MatchResult
     ) -> None:
@@ -168,7 +164,7 @@ class PostgresStore:
                 )
             await c.execute(
                 """INSERT INTO runs (id, provider, business_date, source, provider_transactions, matched, mismatched,
-                   provider_fees_minor, currency) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)""",
+                   provider_fees_minor, currency) VALUES ($1::text::bigint,$2,$3,$4,$5,$6,$7,$8,$9)""",
                 run_id,
                 provider,
                 day,
@@ -181,7 +177,7 @@ class PostgresStore:
             )
             await c.executemany(
                 """INSERT INTO provider_txns (run_id, provider_ref, kind, amount_minor, fee_minor, currency, created_at, payout_id)
-                   VALUES ($1,$2,$3,$4,$5,$6,$7,$8)""",
+                   VALUES ($1::text::bigint,$2,$3,$4,$5,$6,$7,$8)""",
                 [
                     (run_id, t.ref, t.kind.value, t.amount_minor, t.fee_minor, t.currency, t.created_at, t.payout_id)
                     for t in txns
@@ -190,7 +186,7 @@ class PostgresStore:
             for m in result.mismatches:
                 await c.execute(
                     """INSERT INTO mismatches (run_id, provider, kind, txn_kind, provider_ref, order_id,
-                       provider_amount_minor, internal_amount_minor, currency) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)""",
+                       provider_amount_minor, internal_amount_minor, currency) VALUES ($1::text::bigint,$2,$3,$4,$5,$6,$7,$8,$9)""",
                     run_id,
                     provider,
                     m.kind.value,
@@ -235,7 +231,7 @@ class PostgresStore:
 
     async def run(self, run_id: str) -> dict[str, Any] | None:
         try:
-            r = await self.pool.fetchrow("SELECT * FROM runs WHERE id = $1::uuid", run_id)
+            r = await self.pool.fetchrow("SELECT * FROM runs WHERE id = $1::text::bigint", run_id)
         except asyncpg.DataError:
             return None
         if r is None:

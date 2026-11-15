@@ -10,3 +10,5 @@ keda:
 pdb:
   minAvailable: 0
 topologySpread: false
+env:
+  LIQUIBASE_CONTEXTS: seed

@@ -1,10 +1,5 @@
---liquibase formatted sql
-
---changeset subscription-service:0001-subscriptions
--- subscription-service (schema subscription_service), ADR 0026. payment_method_ref là id phương thức đã lưu phía
--- cổng (Stripe pm_...), không bao giờ là số thẻ.
 CREATE TABLE subscriptions (
-    id                 UUID         PRIMARY KEY,
+    id                 BIGINT       PRIMARY KEY,
     customer_id        VARCHAR(64)  NOT NULL,
     lines              JSONB        NOT NULL,
     interval_days      INT          NOT NULL CHECK (interval_days BETWEEN 7 AND 90),
@@ -25,4 +20,3 @@ CREATE TABLE subscriptions (
 CREATE INDEX subscriptions_customer ON subscriptions (customer_id, created_at DESC);
 CREATE INDEX subscriptions_due ON subscriptions (next_delivery_date) WHERE status = 'ACTIVE';
 CREATE INDEX subscriptions_retry ON subscriptions (next_attempt_at) WHERE status = 'PAST_DUE';
---rollback DROP TABLE subscriptions;

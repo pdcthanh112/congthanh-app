@@ -6,6 +6,7 @@ import {
   graphqlWsConfig,
   JwtVerifier,
   ModerationClient,
+  nextSnowflakeId,
   PlatformAuthModule,
   PlatformDatabaseModule,
   PlatformHealthModule,
@@ -16,7 +17,6 @@ import {
 import type { ApolloFederationDriverConfig } from '@nestjs/apollo';
 import { type DynamicModule, Module } from '@nestjs/common';
 import { GraphQLModule } from '@nestjs/graphql';
-import { v7 as uuidv7 } from 'uuid';
 import { ChatResolver } from './adapters/in/graphql/chat.resolver.js';
 import { ProductRef } from './adapters/in/graphql/types.js';
 import { erasureConsumer } from './adapters/in/kafka/privacy-erasure.js';
@@ -88,7 +88,7 @@ export class AppModule {
         },
         { provide: READ_REPOSITORIES, inject: [DB], useFactory: (db: Database<typeof schema>) => readRepositories(db) },
         { provide: CLOCK, useValue: { now: () => new Date() } },
-        { provide: ID_GENERATOR, useValue: { next: () => uuidv7() } },
+        { provide: ID_GENERATOR, useValue: { next: () => nextSnowflakeId() } },
         { provide: MEDIA_PREFIX, useValue: env.MEDIA_URL_PREFIX },
         {
           provide: CONTENT_MODERATION,

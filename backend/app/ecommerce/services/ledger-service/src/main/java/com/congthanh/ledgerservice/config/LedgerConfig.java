@@ -2,6 +2,8 @@ package com.congthanh.ledgerservice.config;
 
 import com.congthanh.platform.security.KeycloakJwtRoles;
 import org.apache.kafka.common.TopicPartition;
+import com.congthanh.commonservice.id.Snowflake;
+import com.congthanh.ledgerservice.application.port.out.Ids;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.kafka.core.KafkaTemplate;
@@ -14,6 +16,12 @@ import org.springframework.util.backoff.ExponentialBackOff;
 
 @Configuration
 class LedgerConfig {
+
+    /** Snowflake dùng chung trong common-core (BIGINT, node theo NODE_ID). */
+    @Bean
+    Ids ids() {
+        return Snowflake::nextString;
+    }
 
     @Bean
     SecurityFilterChain api(HttpSecurity http) throws Exception {

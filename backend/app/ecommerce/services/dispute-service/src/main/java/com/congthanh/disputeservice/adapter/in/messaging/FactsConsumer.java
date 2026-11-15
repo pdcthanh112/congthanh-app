@@ -20,11 +20,6 @@ import org.springframework.transaction.support.TransactionTemplate;
 import java.math.BigDecimal;
 import java.time.Instant;
 
-/**
- * Dữ kiện cho bằng chứng: đơn (OrderPlaced), mã giao dịch phía cổng (PaymentCaptured), vận đơn/ngày giao
- * (ShipmentStatusChanged), tiền đã hoàn (PaymentRefunded; RefundIssued chỉ khi hoàn bằng store credit, vì hoàn về
- * phương thức gốc đã có PaymentRefunded).
- */
 @Component
 @RequiredArgsConstructor
 class FactsConsumer {

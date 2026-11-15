@@ -1,6 +1,6 @@
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { createPool, runMigrations } from '@ecommerce/platform';
+import { createPool, nextSnowflakeId, runMigrations } from '@ecommerce/platform';
 import { sql } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/node-postgres';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
@@ -29,7 +29,6 @@ const draft = (name: string): AddressDraft => ({
 describe.skipIf(!url)('customer-service + Postgres', () => {
   const pool = createPool({ url: url ?? '', schema: SCHEMA, poolMax: 8, applicationName: 'customer-it' });
   const db = drizzle(pool, { schema, casing: 'snake_case' });
-  let seq = 0;
   let clock = Date.parse('2026-01-01T00:00:00Z');
   const service = new CustomerService(
     new DrizzleUnitOfWork(db),
@@ -40,7 +39,7 @@ describe.skipIf(!url)('customer-service + Postgres', () => {
         return new Date(clock);
       },
     },
-    { next: () => `a-${++seq}` },
+    { next: () => nextSnowflakeId() },
   );
 
   beforeAll(async () => {

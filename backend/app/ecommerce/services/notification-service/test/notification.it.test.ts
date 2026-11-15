@@ -1,6 +1,6 @@
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { createPool, runMigrations } from '@ecommerce/platform';
+import { createPool, nextSnowflakeId, runMigrations } from '@ecommerce/platform';
 import { sql } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/node-postgres';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
@@ -20,7 +20,6 @@ const usd = (n: number) => ({ currencyCode: 'USD', units: BigInt(n), nanos: 0 })
 describe.skipIf(!url)('notification-service + Postgres', () => {
   const pool = createPool({ url: url ?? '', schema: SCHEMA, poolMax: 8, applicationName: 'notification-it' });
   const db = drizzle(pool, { schema, casing: 'snake_case' });
-  let seq = 0;
   let now = new Date('2026-05-01T07:00:00Z');
   const clock = { now: () => now };
   const read = readRepositories(db);
@@ -35,7 +34,7 @@ describe.skipIf(!url)('notification-service + Postgres', () => {
       },
     },
     clock,
-    { next: () => `n-${++seq}` },
+    { next: () => nextSnowflakeId() },
   );
   const people: Record<string, Recipient> = {
     c1: { id: 'c1', email: 'c1@example.com', enabled: true },

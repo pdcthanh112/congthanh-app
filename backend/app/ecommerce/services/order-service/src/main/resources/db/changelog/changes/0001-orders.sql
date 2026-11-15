@@ -3,7 +3,7 @@
 --changeset order-service:0001-orders
 -- order-service (schema order_service). Bảng outbox/processed_events/idempotency_keys đến từ db/platform/changelog.yaml.
 CREATE TABLE orders (
-    id               VARCHAR(36)    PRIMARY KEY,
+    id               BIGINT         PRIMARY KEY, -- Snowflake
     order_code       VARCHAR(32)    NOT NULL UNIQUE,
     customer_id      VARCHAR(64)    NOT NULL,
     status           VARCHAR(16)    NOT NULL,
@@ -50,7 +50,7 @@ CREATE INDEX orders_pending ON orders (placed_at) WHERE status = 'PENDING';
 
 CREATE TABLE order_lines (
     id         BIGSERIAL      PRIMARY KEY,
-    order_id   VARCHAR(36)    NOT NULL REFERENCES orders (id) ON DELETE CASCADE,
+    order_id   BIGINT         NOT NULL REFERENCES orders (id) ON DELETE CASCADE,
     product_id VARCHAR(64)    NOT NULL,
     sku        VARCHAR(128),
     name       VARCHAR(512),

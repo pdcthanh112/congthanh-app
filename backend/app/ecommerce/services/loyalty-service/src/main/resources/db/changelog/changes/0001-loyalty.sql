@@ -11,7 +11,7 @@ CREATE TABLE members (
 );
 
 CREATE TABLE lots (
-    id          UUID           PRIMARY KEY,
+    id          BIGINT         PRIMARY KEY,
     customer_id VARCHAR(64)    NOT NULL REFERENCES members (customer_id),
     order_id    VARCHAR(36)    NOT NULL UNIQUE,
     points      BIGINT         NOT NULL CHECK (points > 0),

@@ -9,11 +9,11 @@ from typing import Any
 import asyncpg
 from ecommerce.common.v1 import event_envelope_pb2
 from ecommerce.moderation.v1 import moderation_events_pb2 as mod
+from ecommerce_platform.ids import event_id, snowflake
 from google.protobuf import timestamp_pb2
 from google.protobuf.message import Message
 
 from ..domain.policy import Decision, Item, Verdict
-from ..service import uuid7
 
 SOURCE = "moderation-service"
 AGGREGATE_TYPE = "moderation"
@@ -56,7 +56,7 @@ async def connect(url: str, schema: str) -> asyncpg.Pool:
 
 async def write_outbox(c: asyncpg.Connection, aggregate_id: str, payload: Message) -> None:
     env = event_envelope_pb2.EventEnvelope(
-        id=uuid7(),
+        id=event_id(),
         type=payload.DESCRIPTOR.full_name,
         source=SOURCE,
         aggregate_type=AGGREGATE_TYPE,
@@ -129,9 +129,9 @@ class PostgresStore:
             r = await c.fetchrow(
                 f"""INSERT INTO items (id, content_type, content_id, author_id, text, content_hash, status, decision,
                     categories, redacted_text, rationale, decided_by, policy_version)
-                    VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)
+                    VALUES ($1::text::bigint,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)
                     ON CONFLICT (content_type, content_id, content_hash) DO NOTHING RETURNING {_COLUMNS}""",
-                uuid7(),
+                snowflake(),
                 item.content_type.value,
                 item.content_id,
                 item.author_id,
@@ -154,7 +154,7 @@ class PostgresStore:
                 )
                 return _json(r)
             await c.execute(
-                "INSERT INTO decisions (item_id, decision, decided_by, note) VALUES ($1::uuid,$2,$3,$4)",
+                "INSERT INTO decisions (item_id, decision, decided_by, note) VALUES ($1::text::bigint,$2,$3,$4)",
                 r["id"],
                 verdict.decision.value,
                 decided_by,
@@ -182,7 +182,7 @@ class PostgresStore:
 
     async def get(self, item_id: str) -> dict[str, Any] | None:
         try:
-            r = await self.pool.fetchrow(f"SELECT {_COLUMNS}, text FROM items WHERE id = $1::uuid", item_id)
+            r = await self.pool.fetchrow(f"SELECT {_COLUMNS}, text FROM items WHERE id = $1::text::bigint", item_id)
         except asyncpg.DataError:
             return None
         return _json(r, True, r["text"]) if r else None
@@ -200,7 +200,7 @@ class PostgresStore:
             r = await c.fetchrow(
                 f"""UPDATE items SET status = 'DECIDED', decision = $2, redacted_text = $3, rationale = $4,
                     decided_by = $5, decided_at = now()
-                    WHERE id = $1::uuid AND status IN ('ESCALATED', 'APPEALED') RETURNING {_COLUMNS}""",
+                    WHERE id = $1::text::bigint AND status IN ('ESCALATED', 'APPEALED') RETURNING {_COLUMNS}""",
                 item_id,
                 verdict.decision.value,
                 verdict.redacted_text,
@@ -210,7 +210,7 @@ class PostgresStore:
             if r is None:
                 return None
             await c.execute(
-                "INSERT INTO decisions (item_id, decision, decided_by, note) VALUES ($1::uuid,$2,$3,$4)",
+                "INSERT INTO decisions (item_id, decision, decided_by, note) VALUES ($1::text::bigint,$2,$3,$4)",
                 item_id,
                 verdict.decision.value,
                 by,
@@ -222,7 +222,7 @@ class PostgresStore:
     async def appeal(self, item_id: str, author_id: str, reason: str) -> dict[str, Any] | None:
         r = await self.pool.fetchrow(
             f"""UPDATE items SET status = 'APPEALED', appeal_reason = $3
-                WHERE id = $1::uuid AND author_id = $2 AND status = 'DECIDED' AND decision IN ('REJECT', 'REDACT')
+                WHERE id = $1::text::bigint AND author_id = $2 AND status = 'DECIDED' AND decision IN ('REJECT', 'REDACT')
                   AND appeal_reason IS NULL RETURNING {_COLUMNS}""",
             item_id,
             author_id,
@@ -240,7 +240,7 @@ class PostgresStore:
     async def issue_strike(self, author_id: str, strikes: int, item_id: str) -> None:
         async with self.pool.acquire() as c, c.transaction():
             await c.execute(
-                """INSERT INTO strikes (author_id, strikes, last_item_id) VALUES ($1,$2,$3::uuid)
+                """INSERT INTO strikes (author_id, strikes, last_item_id) VALUES ($1,$2,$3::text::bigint)
                    ON CONFLICT (author_id) DO UPDATE SET strikes = EXCLUDED.strikes, last_item_id = EXCLUDED.last_item_id,
                    issued_at = now()""",
                 author_id,

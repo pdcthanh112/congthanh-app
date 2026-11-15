@@ -2,11 +2,10 @@
 
 from __future__ import annotations
 
-import os
-import time
-import uuid
 from datetime import date
 from typing import Any
+
+from ecommerce_platform.ids import snowflake
 
 from .domain.matching import match, parse_csv
 from .ports import ProviderReports, Store
@@ -18,13 +17,6 @@ class Invalid(Exception):
 
 class NotFound(Exception):
     pass
-
-
-def uuid7() -> str:
-    ms = int(time.time() * 1000)
-    rand = int.from_bytes(os.urandom(10), "big")
-    value = (ms << 80) | (0x7 << 76) | ((rand >> 68) & 0xFFF) << 64 | (0b10 << 62) | (rand & ((1 << 62) - 1))
-    return str(uuid.UUID(int=value))
 
 
 class ReconciliationService:
@@ -52,7 +44,7 @@ class ReconciliationService:
     async def _run(self, provider: str, day: date, source: str, txns) -> dict[str, Any]:
         internal = await self.store.internal_for_day(provider, day)
         result = match(txns, internal, self.tolerance)
-        run_id = uuid7()
+        run_id = snowflake()
         await self.store.save_run(run_id, provider, day, source, txns, result)
         return {
             "runId": run_id,

@@ -1,7 +1,7 @@
 -- +goose Up
 -- Metadata file người dùng tải lên. Nội dung nằm ở object storage (S3/R2/MinIO), service chỉ cấp URL ký sẵn.
 CREATE TABLE media (
-    id            TEXT PRIMARY KEY,
+    id            BIGINT PRIMARY KEY,
     owner_id      TEXT        NOT NULL,
     purpose       TEXT        NOT NULL,
     object_key    TEXT        NOT NULL UNIQUE,

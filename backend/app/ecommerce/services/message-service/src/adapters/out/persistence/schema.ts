@@ -1,4 +1,4 @@
-import { platformTables } from '@ecommerce/platform';
+import { platformTables, snowflakeId } from '@ecommerce/platform';
 import { bigint, index, pgSchema, primaryKey, text, timestamp, uniqueIndex, varchar } from 'drizzle-orm/pg-core';
 
 export const messageSchema = pgSchema('message_service');
@@ -8,7 +8,7 @@ export const conversationKind = messageSchema.enum('conversation_kind', ['SELLER
 export const conversations = messageSchema.table(
   'conversations',
   {
-    id: text().primaryKey(),
+    id: snowflakeId().primaryKey(),
     kind: conversationKind().notNull(),
     customerId: text().notNull(),
     counterpartId: text().notNull(),
@@ -29,8 +29,8 @@ export const conversations = messageSchema.table(
 export const messages = messageSchema.table(
   'messages',
   {
-    id: text().primaryKey(),
-    conversationId: text()
+    id: snowflakeId().primaryKey(),
+    conversationId: snowflakeId()
       .notNull()
       .references(() => conversations.id, { onDelete: 'cascade' }),
     seq: bigint({ mode: 'number' }).notNull(),
@@ -49,7 +49,7 @@ export const messages = messageSchema.table(
 export const conversationReads = messageSchema.table(
   'conversation_reads',
   {
-    conversationId: text()
+    conversationId: snowflakeId()
       .notNull()
       .references(() => conversations.id, { onDelete: 'cascade' }),
     userId: text().notNull(),

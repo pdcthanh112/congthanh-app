@@ -3,10 +3,9 @@
 from __future__ import annotations
 
 import logging
-import os
-import time
-import uuid
 from datetime import UTC, datetime, timedelta
+
+from ecommerce_platform.ids import snowflake
 
 from .domain.rules import Assessment, Decision, StreamFeatures, Thresholds, Transaction, Velocity, evaluate
 from .ports import Store, StoredAssessment, StreamFeatureStore, VelocityCounter
@@ -16,15 +15,6 @@ log = logging.getLogger(__name__)
 BLOCK_KINDS = ("EMAIL", "PHONE", "IP", "DEVICE", "CARD", "CUSTOMER")
 # Feature stream cũ hơn mức này coi như không có (job dừng lâu hoặc khách không hoạt động).
 STREAM_MAX_AGE = timedelta(hours=1)
-
-
-def uuid7() -> str:
-    """UUIDv7 (RFC 9562): 48 bit mili giây + ngẫu nhiên, sắp theo thời gian (uuid.uuid7 chỉ có từ Python 3.14)."""
-    ms = time.time_ns() // 1_000_000
-    b = bytearray(ms.to_bytes(6, "big") + os.urandom(10))
-    b[6] = (b[6] & 0x0F) | 0x70
-    b[8] = (b[8] & 0x3F) | 0x80
-    return str(uuid.UUID(bytes=bytes(b)))
 
 
 class NotFound(Exception):
@@ -80,7 +70,7 @@ class FraudService:
         history = await self.store.history(tx.customer_id, tx.shipping.fingerprint() if tx.shipping else None, now)
         stream = await self._stream_features(tx.customer_id, now)
         a = evaluate(tx, history, vel, blocked, now, self.t, stream)
-        aid = uuid7()
+        aid = snowflake()
         signals = {
             "history": history.__dict__,
             "velocity": None if vel is None else vel.__dict__,

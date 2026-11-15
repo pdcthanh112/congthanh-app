@@ -1,5 +1,7 @@
 package com.congthanh.paymentservice.adapter.out.persistence;
 
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
@@ -13,6 +15,7 @@ import java.time.Instant;
 @Table(name = "payments")
 public class PaymentEntity {
 
+    @JdbcTypeCode(SqlTypes.BIGINT) // Snowflake: cột BIGINT, code giữ String
     @Id
     String id;
 

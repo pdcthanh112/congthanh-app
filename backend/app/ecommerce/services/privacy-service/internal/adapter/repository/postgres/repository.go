@@ -5,15 +5,16 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strconv"
 	"time"
 
-	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"google.golang.org/protobuf/proto"
 
 	"github.com/pdcthanh112/CongThanhApp/backend/app/ecommerce/libs/go/platform/apperr"
+	"github.com/pdcthanh112/CongThanhApp/backend/app/ecommerce/libs/go/platform/idgen"
 	"github.com/pdcthanh112/CongThanhApp/backend/app/ecommerce/libs/go/platform/outbox"
 	privacyv1 "github.com/pdcthanh112/CongThanhApp/backend/app/ecommerce/libs/go/proto/ecommerce/privacy/v1"
 	"github.com/pdcthanh112/CongThanhApp/backend/app/ecommerce/services/privacy-service/internal/app"
@@ -101,7 +102,7 @@ func (t *txRepo) OpenRequestOfType(ctx context.Context, subject string, typ doma
 
 func (t *txRepo) InsertRequest(ctx context.Context, r *domain.Request) error {
 	_, err := t.tx.Exec(ctx, `INSERT INTO dsr_requests (id, subject_id, type, status, email_sha256, due_at, created_at, completed_at)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`, r.ID, r.SubjectID, string(r.Type), string(r.Status), r.EmailSHA256,
+		VALUES ($1::text::bigint, $2, $3, $4, $5, $6, $7, $8)`, r.ID, r.SubjectID, string(r.Type), string(r.Status), r.EmailSHA256,
 		r.DueAt, r.CreatedAt, r.CompletedAt)
 	var pgErr *pgconn.PgError
 	if errors.As(err, &pgErr) && pgErr.Code == "23505" {
@@ -111,7 +112,7 @@ func (t *txRepo) InsertRequest(ctx context.Context, r *domain.Request) error {
 		return err
 	}
 	for _, task := range r.Tasks {
-		if _, err := t.tx.Exec(ctx, `INSERT INTO dsr_tasks (request_id, processor, status) VALUES ($1, $2, $3)`,
+		if _, err := t.tx.Exec(ctx, `INSERT INTO dsr_tasks (request_id, processor, status) VALUES ($1::text::bigint, $2, $3)`,
 			r.ID, task.Processor, string(task.Status)); err != nil {
 			return err
 		}
@@ -126,7 +127,7 @@ func (t *txRepo) LockRequest(ctx context.Context, id string) (*domain.Request, e
 
 func (t *txRepo) UpdateRequest(ctx context.Context, r *domain.Request) error {
 	tag, err := t.tx.Exec(ctx, `UPDATE dsr_requests SET status = $2, due_at = $3, extended = $4, extension_reason = $5,
-		completed_at = $6, version = version + 1 WHERE id = $1 AND version = $7`,
+		completed_at = $6, version = version + 1 WHERE id = $1::text::bigint AND version = $7`,
 		r.ID, string(r.Status), r.DueAt, r.Extended, r.ExtensionReason, r.CompletedAt, r.Version)
 	if err != nil {
 		return err
@@ -136,7 +137,7 @@ func (t *txRepo) UpdateRequest(ctx context.Context, r *domain.Request) error {
 	}
 	for _, task := range r.Tasks {
 		if _, err := t.tx.Exec(ctx, `UPDATE dsr_tasks SET status = $3, retention_reason = $4, object_key = $5, completed_at = $6
-			WHERE request_id = $1 AND processor = $2`, r.ID, task.Processor, string(task.Status), task.RetentionReason,
+			WHERE request_id = $1::text::bigint AND processor = $2`, r.ID, task.Processor, string(task.Status), task.RetentionReason,
 			task.ObjectKey, task.CompletedAt); err != nil {
 			return err
 		}
@@ -146,7 +147,7 @@ func (t *txRepo) UpdateRequest(ctx context.Context, r *domain.Request) error {
 }
 
 func (t *txRepo) MarkReminded(ctx context.Context, id string, at time.Time) error {
-	_, err := t.tx.Exec(ctx, `UPDATE dsr_requests SET last_reminded_at = $2 WHERE id = $1`, id, at)
+	_, err := t.tx.Exec(ctx, `UPDATE dsr_requests SET last_reminded_at = $2 WHERE id = $1::text::bigint`, id, at)
 	return err
 }
 
@@ -182,13 +183,13 @@ func toProto(e domain.Event) (proto.Message, error) {
 	return nil, fmt.Errorf("unknown privacy event %T", e)
 }
 
-const requestColumns = `id, subject_id, type, status, email_sha256, due_at, extended, extension_reason, created_at, completed_at, version`
+const requestColumns = `id::text, subject_id, type, status, email_sha256, due_at, extended, extension_reason, created_at, completed_at, version`
 
 func getRequest(ctx context.Context, q querier, id string, lock bool) (*domain.Request, error) {
-	if _, err := uuid.Parse(id); err != nil {
+	if _, err := strconv.ParseInt(id, 10, 64); err != nil {
 		return nil, apperr.NotFound("request %s not found", id)
 	}
-	sql := `SELECT ` + requestColumns + ` FROM dsr_requests WHERE id = $1`
+	sql := `SELECT ` + requestColumns + ` FROM dsr_requests WHERE id = $1::text::bigint`
 	if lock {
 		sql += ` FOR UPDATE`
 	}
@@ -244,7 +245,7 @@ func scanRequest(row pgx.Row) (*domain.Request, error) {
 
 func loadTasks(ctx context.Context, q querier, r *domain.Request) error {
 	rows, err := q.Query(ctx, `SELECT processor, status, retention_reason, object_key, completed_at FROM dsr_tasks
-		WHERE request_id = $1 ORDER BY processor`, r.ID)
+		WHERE request_id = $1::text::bigint ORDER BY processor`, r.ID)
 	if err != nil {
 		return err
 	}
@@ -262,7 +263,7 @@ func loadTasks(ctx context.Context, q querier, r *domain.Request) error {
 	return rows.Err()
 }
 
-// UUIDv7 sinh id theo thời gian.
-type UUIDv7 struct{}
+// Snowflake sinh id BIGINT bằng libs/go/platform/idgen (node theo NODE_ID), trả dạng chuỗi số cho domain.
+type Snowflake struct{ Gen *idgen.Generator }
 
-func (UUIDv7) New() string { return uuid.Must(uuid.NewV7()).String() }
+func (s Snowflake) New() string { return strconv.FormatInt(s.Gen.Next(), 10) }

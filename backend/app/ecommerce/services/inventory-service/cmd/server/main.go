@@ -106,6 +106,7 @@ func run() error {
 
 	svc := app.NewService(repo, repo, repo.Warehouses(), flash, claims, app.Options{
 		ReservationTTL: cfg.ReservationTTL, DefaultWarehouse: cfg.DefaultWarehouse, FlashClaimTTL: cfg.FlashClaimTTL,
+		NewID: idgen.IDs{Gen: ids}.NewID,
 	})
 
 	if len(cfg.KafkaBrokers) > 0 {
@@ -161,8 +162,6 @@ func sweeper(svc *app.Service, every time.Duration) func(context.Context) error 
 	}
 }
 
-// flashSweeper trả suất của các claim flash sale quá hạn chưa đặt đơn, đồng thời cập nhật số sale đang
-// chạy (xem app.Service.flashClaimOf). 5 giây: suất trả về phải kịp cho người đang chờ.
 func flashSweeper(svc *app.Service) func(context.Context) error {
 	return func(ctx context.Context) error {
 		t := time.NewTicker(5 * time.Second)

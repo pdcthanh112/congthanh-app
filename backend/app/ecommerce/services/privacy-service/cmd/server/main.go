@@ -7,6 +7,7 @@ import (
 
 	"github.com/pdcthanh112/CongThanhApp/backend/app/ecommerce/libs/go/platform/auth"
 	"github.com/pdcthanh112/CongThanhApp/backend/app/ecommerce/libs/go/platform/db"
+	"github.com/pdcthanh112/CongThanhApp/backend/app/ecommerce/libs/go/platform/idgen"
 	"github.com/pdcthanh112/CongThanhApp/backend/app/ecommerce/libs/go/platform/kafka"
 	"github.com/pdcthanh112/CongThanhApp/backend/app/ecommerce/libs/go/platform/logging"
 	"github.com/pdcthanh112/CongThanhApp/backend/app/ecommerce/libs/go/platform/otel"
@@ -55,7 +56,15 @@ func run() error {
 	}
 
 	repo := postgres.New(pool)
-	svc := app.NewService(repo, postgres.UUIDv7{}, cfg.Processors, cfg.PolicyVersion)
+	node, err := idgen.NodeFromEnv()
+	if err != nil {
+		return err
+	}
+	ids, err := idgen.New(node)
+	if err != nil {
+		return err
+	}
+	svc := app.NewService(repo, postgres.Snowflake{Gen: ids}, cfg.Processors, cfg.PolicyVersion)
 	if cfg.KeycloakURL != "" && cfg.KeycloakClientSecret != "" {
 		svc.WithIdentity(keycloak.New(cfg.KeycloakURL, cfg.KeycloakRealm, cfg.KeycloakClientID, cfg.KeycloakClientSecret))
 	} else {

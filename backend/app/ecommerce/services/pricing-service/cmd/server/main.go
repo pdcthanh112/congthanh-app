@@ -1,5 +1,3 @@
-// pricing-service: bảng giá (công khai, theo nhóm khách), giá hẹn giờ / flash sale, lịch sử giá và
-// giá thấp nhất 30 ngày; tra giá theo lô qua gRPC/REST, phát ecommerce.pricing.events qua outbox.
 package main
 
 import (
@@ -13,6 +11,7 @@ import (
 
 	"github.com/pdcthanh112/CongThanhApp/backend/app/ecommerce/libs/go/platform/auth"
 	"github.com/pdcthanh112/CongThanhApp/backend/app/ecommerce/libs/go/platform/db"
+	"github.com/pdcthanh112/CongThanhApp/backend/app/ecommerce/libs/go/platform/idgen"
 	"github.com/pdcthanh112/CongThanhApp/backend/app/ecommerce/libs/go/platform/kafka"
 	"github.com/pdcthanh112/CongThanhApp/backend/app/ecommerce/libs/go/platform/logging"
 	"github.com/pdcthanh112/CongThanhApp/backend/app/ecommerce/libs/go/platform/otel"
@@ -79,7 +78,11 @@ func run() error {
 	}
 
 	repo := postgres.New(pool)
-	svc := app.NewService(repo, priceCache, postgres.UUIDv7{}, nil)
+	ids, err := idgen.FromEnv()
+	if err != nil {
+		return err
+	}
+	svc := app.NewService(repo, priceCache, idgen.IDs{Gen: ids}, nil)
 
 	bg := []func(context.Context) error{svc.RunScheduler(cfg.SchedulerInterval)}
 	if len(cfg.KafkaBrokers) > 0 {
@@ -100,7 +103,6 @@ func run() error {
 	router := server.NewRouter(serviceName, repo.Ping)
 	httpadapter.New(svc, verifier).Mount(router)
 
-	// Dọn outbox (Debezium đã đọc qua WAL) và processed_events quá hạn.
 	bg = append(bg, outbox.NewJanitor(pool, outbox.JanitorConfig{}).Run)
 
 	return server.Run(ctx, server.Options{HTTPAddr: cfg.HTTPAddr, HTTPHandler: router, GRPCAddr: cfg.GRPCAddr, GRPCServer: grpcSrv, Background: bg})

@@ -6,6 +6,7 @@ import {
   graphqlWsConfig,
   JwtVerifier,
   KafkaEventConsumer,
+  nextSnowflakeId,
   PlatformAuthModule,
   PlatformDatabaseModule,
   PlatformHealthModule,
@@ -16,7 +17,6 @@ import {
 import type { ApolloFederationDriverConfig } from '@nestjs/apollo';
 import { type DynamicModule, Module } from '@nestjs/common';
 import { GraphQLModule } from '@nestjs/graphql';
-import { v7 as uuidv7 } from 'uuid';
 import { NotificationResolver } from './adapters/in/graphql/notification.resolver.js';
 import { domainEventsConsumer } from './adapters/in/kafka/domain-events.consumer.js';
 import { erasureConsumer } from './adapters/in/kafka/privacy-erasure.js';
@@ -113,7 +113,7 @@ export class AppModule {
         },
         { provide: READ_REPOSITORIES, inject: [DB], useFactory: (db: Database<typeof schema>) => readRepositories(db) },
         { provide: CLOCK, useValue: { now: () => new Date() } },
-        { provide: ID_GENERATOR, useValue: { next: () => uuidv7() } },
+        { provide: ID_GENERATOR, useValue: { next: () => nextSnowflakeId() } },
         { provide: RedisPubSub, useFactory: () => new RedisPubSub(env.REDIS_URL) },
         {
           provide: REALTIME,

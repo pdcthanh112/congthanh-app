@@ -11,8 +11,7 @@ import java.util.List;
 @Repository
 public interface VariantOptionCombinationRepository extends JpaRepository<VariantOptionCombination, Long>, VariantOptionCombinationCustomRepository {
 
-    //    @Query("select e from VariantOptionCombination e where e.product.parent.id = ?1")
-    @Query(value = "select * from variant_option_combination where product_id =  ?1", nativeQuery = true)
+    @Query(value = "select * from variant_option_combination where product_id = CAST(?1 AS bigint)", nativeQuery = true)
     List<VariantOptionCombination> findAllByParentProductId(String parentProductId);
 
 }

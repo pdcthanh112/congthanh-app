@@ -1,8 +1,4 @@
-"""Nghiệp vụ gian hàng (tách khỏi view để test không cần HTTP)."""
-
 from __future__ import annotations
-
-import uuid
 
 from django.db import IntegrityError, transaction
 from django.db.models import F, Q, QuerySet
@@ -16,7 +12,6 @@ class Conflict(Exception):
 
 
 def make_slug(name: str) -> str:
-    # slugify bỏ dấu qua NFKD nhưng "đ" không tách được: đổi tay trước.
     base = slugify(name.replace("đ", "d").replace("Đ", "D"))[:200] or "supplier"
     slug, n = base, 1
     while Supplier.objects.filter(slug=slug).exists():
@@ -26,11 +21,12 @@ def make_slug(name: str) -> str:
 
 
 def find(key: str) -> Supplier | None:
-    """Tìm theo id (UUID) hoặc slug."""
-    try:
-        return Supplier.objects.filter(id=uuid.UUID(key)).first()
-    except ValueError:
-        return Supplier.objects.filter(slug=key).first()
+    """Tìm theo id (Snowflake) hoặc slug."""
+    if key.isdigit() and len(key) <= 19:
+        found = Supplier.objects.filter(id=int(key)).first()
+        if found:
+            return found
+    return Supplier.objects.filter(slug=key).first()
 
 
 def search(q: str | None, status: str | None) -> QuerySet[Supplier]:

@@ -17,6 +17,8 @@ spring:
   liquibase:
     change-log: classpath:db/changelog/db.changelog-master.yaml
     default-schema: product_service
+    # Dữ liệu mẫu (changes/0002-seed-data.sql, context seed) chỉ chạy khi LIQUIBASE_CONTEXTS=seed (local/dev/test).
+    contexts: ${LIQUIBASE_CONTEXTS:none}
   data:
     mongodb:
       uri: ${MONGODB_URI:mongodb://localhost:27017/ecommerce_product}

@@ -168,7 +168,7 @@
       "columns": {
         "id": {
           "name": "id",
-          "type": "text",
+          "type": "bigint",
           "primaryKey": true,
           "notNull": true
         },

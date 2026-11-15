@@ -1,6 +1,6 @@
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { createPool, runMigrations } from '@ecommerce/platform';
+import { createPool, nextSnowflakeId, runMigrations } from '@ecommerce/platform';
 import { sql } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/node-postgres';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
@@ -16,7 +16,6 @@ const migrations = join(dirname(fileURLToPath(import.meta.url)), '..', 'drizzle'
 describe.skipIf(!url)('message-service + Postgres', () => {
   const pool = createPool({ url: url ?? '', schema: SCHEMA, poolMax: 8, applicationName: 'message-it' });
   const db = drizzle(pool, { schema, casing: 'snake_case' });
-  let seq = 0;
   const events: { to: readonly string[]; support: boolean; e: RealtimeEvent }[] = [];
   let allowed = true;
   const chat = new ChatService(
@@ -31,7 +30,7 @@ describe.skipIf(!url)('message-service + Postgres', () => {
     { allow: async () => allowed },
     { sellerOf: async (p) => (p === 'p1' ? 'seller-1' : undefined) },
     { now: () => new Date() },
-    { next: () => `id-${++seq}` },
+    { next: () => nextSnowflakeId() },
     'https://cdn/',
     {
       check: async ({ text }) =>

@@ -73,7 +73,7 @@ class JdbcLoyaltyRepository implements LoyaltyRepository {
                 .param("t", m.tier().name()).param("c", m.customerId()).update();
         for (Lot l : m.lots()) {
             jdbc.sql("""
-                            INSERT INTO lots (%s) VALUES (:id::uuid, :c, :o, :points, :remaining, :status, :total, :earned, :confirm, :expires)
+                            INSERT INTO lots (%s) VALUES (:id::bigint, :c, :o, :points, :remaining, :status, :total, :earned, :confirm, :expires)
                             ON CONFLICT (id) DO UPDATE SET remaining = EXCLUDED.remaining, status = EXCLUDED.status,
                                 confirm_at = EXCLUDED.confirm_at, expires_at = EXCLUDED.expires_at""".formatted(LOT_COLUMNS))
                     .param("id", l.id()).param("c", l.customerId()).param("o", l.orderId()).param("points", l.points())

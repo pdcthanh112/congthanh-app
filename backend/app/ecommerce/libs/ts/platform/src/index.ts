@@ -12,6 +12,7 @@ export * from './db/inbox.js';
 export * from './db/janitor.js';
 export * from './db/outbox.js';
 export * from './db/platform-tables.js';
+export * from './db/snowflake.js';
 export * from './errors/domain-error.js';
 export * from './errors/problem.filter.js';
 export * from './graphql/federation.js';

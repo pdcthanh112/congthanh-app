@@ -1,9 +1,10 @@
-// Package integration_test: vòng đời vận đơn trên Postgres thật, kiểm cả outbox.
 package integration_test
 
 import (
 	"context"
 	"testing"
+
+	"github.com/pdcthanh112/CongThanhApp/backend/app/ecommerce/libs/go/platform/idgen"
 
 	"github.com/pdcthanh112/CongThanhApp/backend/app/ecommerce/libs/go/platform/apperr"
 	"github.com/pdcthanh112/CongThanhApp/backend/app/ecommerce/libs/go/platform/db/dbtest"
@@ -16,7 +17,7 @@ import (
 
 func TestShipmentLifecycle(t *testing.T) {
 	pool := dbtest.New(t, "shipping", migrations.FS)
-	svc := app.NewService(postgres.New(pool), postgres.UUIDv7{}, carrier.Internal{})
+	svc := app.NewService(postgres.New(pool), snowflakeIDs(t), carrier.Internal{})
 	ctx := context.Background()
 
 	q, err := svc.Quote(ctx, domain.Address{CountryCode: "US", RegionCode: "NY"}, domain.Parcel{WeightGrams: 1200, DeclaredValue: 2000, Currency: "USD"})
@@ -75,4 +76,13 @@ func TestShipmentLifecycle(t *testing.T) {
 	if outbox != 8 {
 		t.Fatalf("outbox rows = %d", outbox)
 	}
+}
+
+func snowflakeIDs(t *testing.T) idgen.IDs {
+	t.Helper()
+	g, err := idgen.New(1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return idgen.IDs{Gen: g}
 }

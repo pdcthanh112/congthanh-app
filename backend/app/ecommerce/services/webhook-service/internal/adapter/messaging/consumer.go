@@ -98,7 +98,7 @@ func scrub(m proto.Message) {
 	case *orderv1.OrderCancelled:
 		v.ReservationId = ""
 	case *streamv1.StockCover:
-		v.RiskChanged = false 
+		v.RiskChanged = false
 	case *fraudv1.FraudReviewRequested:
 		v.Reasons = nil
 	}

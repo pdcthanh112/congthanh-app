@@ -46,7 +46,7 @@ class JdbcReturnRepository implements ReturnRepository {
         if (r.version() == 0 && findById(r.id()).isEmpty()) {
             n = jdbc.sql("""
                             INSERT INTO return_requests (%s)
-                            VALUES (:id::uuid, :orderId, :customerId, :rma, :currency, :method, :lines::jsonb, :status, :refund, :fee,
+                            VALUES (:id::bigint, :orderId, :customerId, :rma, :currency, :method, :lines::jsonb, :status, :refund, :fee,
                                     :paymentId, :note, :createdAt, :updatedAt, 1)""".formatted(COLUMNS))
                     .param("id", r.id()).param("orderId", r.orderId()).param("customerId", r.customerId())
                     .param("rma", r.rmaCode()).param("currency", r.currency()).param("method", r.refundMethod().name())
@@ -60,7 +60,7 @@ class JdbcReturnRepository implements ReturnRepository {
                             UPDATE return_requests SET lines = :lines::jsonb, status = :status, refund_amount = :refund,
                                    restocking_fee = :fee, payment_id = :paymentId, note = :note, updated_at = :updatedAt,
                                    version = version + 1
-                            WHERE id = :id::uuid AND version = :version""")
+                            WHERE id = :id::bigint AND version = :version""")
                     .param("id", r.id()).param("lines", lines).param("status", r.status().name())
                     .param("refund", r.refundAmount()).param("fee", r.restockingFee()).param("paymentId", r.paymentId())
                     .param("note", r.note()).param("updatedAt", Timestamp.from(r.updatedAt()))
@@ -77,7 +77,7 @@ class JdbcReturnRepository implements ReturnRepository {
 
     @Override
     public Optional<ReturnRequest> findById(String id) {
-        return jdbc.sql("SELECT " + COLUMNS + " FROM return_requests WHERE id = :id::uuid")
+        return jdbc.sql("SELECT " + COLUMNS + " FROM return_requests WHERE id = :id::bigint")
                 .param("id", id).query((rs, i) -> map(rs)).optional();
     }
 
@@ -119,7 +119,7 @@ class JdbcReturnRepository implements ReturnRepository {
     public BigDecimal refundCommitted(String orderId, String exceptReturnId) {
         return jdbc.sql("""
                         SELECT COALESCE(SUM(refund_amount), 0) FROM return_requests
-                        WHERE order_id = :o AND id <> :id::uuid AND status IN ('REFUND_PENDING', 'REFUNDED', 'REFUND_FAILED')""")
+                        WHERE order_id = :o AND id <> :id::bigint AND status IN ('REFUND_PENDING', 'REFUNDED', 'REFUND_FAILED')""")
                 .param("o", orderId).param("id", exceptReturnId).query(BigDecimal.class).single();
     }
 

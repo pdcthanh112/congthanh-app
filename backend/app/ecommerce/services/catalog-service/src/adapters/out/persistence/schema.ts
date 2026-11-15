@@ -1,4 +1,4 @@
-import { platformTables } from '@ecommerce/platform';
+import { platformTables, snowflakeId } from '@ecommerce/platform';
 import { sql } from 'drizzle-orm';
 import {
   type AnyPgColumn,
@@ -23,12 +23,12 @@ export const tagStatus = catalogSchema.enum('tag_status', ['ACTIVE', 'INACTIVE']
 export const categories = catalogSchema.table(
   'categories',
   {
-    id: text().primaryKey(),
+    id: snowflakeId().primaryKey(),
     name: varchar({ length: 120 }).notNull(),
     slug: varchar({ length: 120 }).notNull(),
     description: text(),
     image: text(),
-    parentId: text().references((): AnyPgColumn => categories.id, { onDelete: 'restrict' }),
+    parentId: snowflakeId().references((): AnyPgColumn => categories.id, { onDelete: 'restrict' }),
     status: categoryStatus().notNull().default('ACTIVE'),
     sortOrder: integer().notNull().default(0),
     createdAt: timestamp({ withTimezone: true }).notNull().defaultNow(),

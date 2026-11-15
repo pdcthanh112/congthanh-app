@@ -1,5 +1,6 @@
 package com.congthanh.productservice.application.service;
 
+import com.congthanh.commonservice.id.Snowflake;
 import java.util.ArrayList;
 import com.congthanh.productservice.application.event.ProductChanged;
 import com.congthanh.productservice.application.port.out.CategoryCatalog;
@@ -60,7 +61,6 @@ public class ProductServiceImpl implements ProductService {
 
     private final VariantOptionCombinationRepository variantOptionCombinationRepository;
 
-    /** Bảng giá của pricing-service dùng cho giá hiển thị trên trang sản phẩm. */
     @Value("${product.read-model.price-list:default}")
     private String priceList;
 
@@ -170,18 +170,13 @@ public class ProductServiceImpl implements ProductService {
         return new ProductVariantVm(v.id(), v.name(), v.slug(), v.sku(), v.gtin(), v.price(), thumbnail, images, options);
     }
 
-    /**
-     * Ghi trực tiếp vào Postgres (thay cho CommandGateway → Aggregate → EventHandler của Axon), rồi phát
-     * ProductChanged: outbox ghi trong cùng transaction; read model Mongo cập nhật khi đọc lại event từ Kafka.
-     * Ảnh: client upload thẳng lên media-service bằng presigned URL; ở đây chỉ nhận id/thứ tự.
-     */
     @Override
     @Transactional
     public ProductDTO createProduct(CreateProductRequest request) {
         categoryCatalog.validate(request.getCategory());
 
         Product product = Product.builder()
-                .id(UUID.randomUUID().toString())
+                .id(Snowflake.nextString())
                 .name(request.getName())
                 .description(request.getDescription())
                 .slug(Helper.generateSlug(request.getName()))

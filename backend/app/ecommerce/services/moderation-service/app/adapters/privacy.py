@@ -7,16 +7,13 @@ Xoá trong một transaction cùng với việc đánh dấu processed_events v�
 from __future__ import annotations
 
 import asyncio
-import hashlib
 import logging
-import os
-import time
-import uuid
 
 import asyncpg
 from aiokafka import AIOKafkaConsumer
 from ecommerce.common.v1 import event_envelope_pb2
 from ecommerce.privacy.v1 import privacy_events_pb2
+from ecommerce_platform.ids import erased_id, event_id
 from google.protobuf import timestamp_pb2
 
 log = logging.getLogger(__name__)
@@ -24,18 +21,6 @@ log = logging.getLogger(__name__)
 TOPIC = "ecommerce.privacy.events"
 PROCESSOR = "moderation-service"
 CONSUMER = PROCESSOR + "-privacy"
-
-
-def erased_id(subject_id: str) -> str:
-    """Định danh thay thế ổn định, không đảo ngược (cùng công thức với Java/Go/TS)."""
-    return "erased-" + hashlib.sha256(subject_id.encode()).hexdigest()[:16]
-
-
-def _uuid7() -> str:
-    ms = int(time.time() * 1000)
-    rand = int.from_bytes(os.urandom(10), "big")
-    value = (ms << 80) | (0x7 << 76) | (((rand >> 68) & 0xFFF) << 64) | (0b10 << 62) | (rand & ((1 << 62) - 1))
-    return str(uuid.UUID(int=value))
 
 
 async def erase(c: asyncpg.Connection, subject_id: str) -> str:
@@ -77,7 +62,7 @@ async def process(pool: asyncpg.Pool, raw: bytes) -> None:
             retention_reason=retained,
         )
         out = event_envelope_pb2.EventEnvelope(
-            id=_uuid7(),
+            id=event_id(),
             type=reply.DESCRIPTOR.full_name,
             source=PROCESSOR,
             aggregate_type="privacy",

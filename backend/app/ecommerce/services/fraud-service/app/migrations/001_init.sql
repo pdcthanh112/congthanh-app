@@ -1,6 +1,6 @@
 -- Kết quả chấm điểm: lưu cả APPROVE để làm nhãn huấn luyện mô hình về sau.
 CREATE TABLE assessments (
-    id             UUID PRIMARY KEY,
+    id             BIGINT PRIMARY KEY,
     checkout_id    TEXT        NOT NULL,
     customer_id    TEXT        NOT NULL,
     order_id       TEXT,
@@ -19,7 +19,7 @@ CREATE INDEX assessments_order ON assessments (order_id) WHERE order_id IS NOT N
 
 -- Hàng chờ duyệt thủ công cho quyết định REVIEW.
 CREATE TABLE reviews (
-    assessment_id UUID PRIMARY KEY REFERENCES assessments (id) ON DELETE CASCADE,
+    assessment_id BIGINT PRIMARY KEY REFERENCES assessments (id) ON DELETE CASCADE,
     status        TEXT        NOT NULL DEFAULT 'PENDING' CHECK (status IN ('PENDING', 'APPROVED', 'REJECTED')),
     decided_by    TEXT,
     note          TEXT,

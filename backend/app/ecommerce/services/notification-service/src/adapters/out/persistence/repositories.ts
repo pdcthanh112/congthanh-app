@@ -1,6 +1,6 @@
 import type { Database } from '@ecommerce/platform';
+import { nextSnowflakeId } from '@ecommerce/platform';
 import { and, count, desc, eq, inArray, isNull, sql } from 'drizzle-orm';
-import { v7 as uuidv7 } from 'uuid';
 import type {
   DeliveryQueue,
   DeviceRepository,
@@ -38,9 +38,14 @@ export class DrizzleNotificationRepository implements NotificationRepository {
     const created = rows[0];
     if (!created) return undefined;
     if (channels.length > 0) {
-      await this.db
-        .insert(deliveries)
-        .values(channels.map((channel) => ({ id: uuidv7(), notificationId: created.id, channel, nextAttemptAt: now })));
+      await this.db.insert(deliveries).values(
+        channels.map((channel) => ({
+          id: nextSnowflakeId(),
+          notificationId: created.id,
+          channel,
+          nextAttemptAt: now,
+        })),
+      );
     }
     return toNotification(created);
   }

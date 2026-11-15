@@ -10,13 +10,13 @@
       "columns": {
         "id": {
           "name": "id",
-          "type": "text",
+          "type": "bigint",
           "primaryKey": true,
           "notNull": true
         },
         "notification_id": {
           "name": "notification_id",
-          "type": "text",
+          "type": "bigint",
           "primaryKey": false,
           "notNull": true
         },
@@ -167,7 +167,7 @@
       "columns": {
         "id": {
           "name": "id",
-          "type": "text",
+          "type": "bigint",
           "primaryKey": true,
           "notNull": true
         },

@@ -10,12 +10,13 @@ from typing import Any
 import asyncpg
 from ecommerce.common.v1 import event_envelope_pb2, money_pb2
 from ecommerce.fraud.v1 import fraud_events_pb2
+from ecommerce_platform.ids import event_id
 from google.protobuf import timestamp_pb2
 from google.protobuf.message import Message
 
 from ..domain.rules import Assessment, Decision, History, Transaction
 from ..ports import StoredAssessment
-from ..service import Conflict, NotFound, uuid7
+from ..service import Conflict, NotFound
 
 SOURCE = "fraud-service"
 AGGREGATE_TYPE = "fraud"
@@ -67,7 +68,7 @@ async def connect(url: str, schema: str) -> asyncpg.Pool:
 
 async def write_outbox(c: asyncpg.Connection, aggregate_id: str, payload: Message) -> None:
     env = event_envelope_pb2.EventEnvelope(
-        id=uuid7(),
+        id=event_id(),
         type=payload.DESCRIPTOR.full_name,
         source=SOURCE,
         aggregate_type=AGGREGATE_TYPE,
@@ -160,7 +161,7 @@ class PostgresStore:
         async with self.pool.acquire() as c, c.transaction():
             await c.execute(
                 """INSERT INTO assessments (id, checkout_id, customer_id, amount_minor, currency, payment_method, score, decision, reasons, signals)
-                   VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)""",
+                   VALUES ($1::text::bigint,$2,$3,$4,$5,$6,$7,$8,$9,$10)""",
                 id,
                 tx.checkout_id,
                 tx.customer_id,
@@ -173,7 +174,7 @@ class PostgresStore:
                 signals,
             )
             if a.decision == Decision.REVIEW:
-                await c.execute("INSERT INTO reviews (assessment_id) VALUES ($1)", id)
+                await c.execute("INSERT INTO reviews (assessment_id) VALUES ($1::text::bigint)", id)
                 await write_outbox(
                     c,
                     tx.checkout_id,

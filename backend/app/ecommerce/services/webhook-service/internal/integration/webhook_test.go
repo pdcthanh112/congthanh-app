@@ -1,4 +1,3 @@
-// Package integration_test: fan-out trong transaction, worker gửi, backoff, DEAD và retry trên Postgres thật.
 package integration_test
 
 import (
@@ -9,6 +8,8 @@ import (
 	"sync/atomic"
 	"testing"
 	"time"
+
+	"github.com/pdcthanh112/CongThanhApp/backend/app/ecommerce/libs/go/platform/idgen"
 
 	"github.com/pdcthanh112/CongThanhApp/backend/app/ecommerce/libs/go/platform/db/dbtest"
 	"github.com/pdcthanh112/CongThanhApp/backend/app/ecommerce/services/webhook-service/internal/adapter/delivery"
@@ -32,7 +33,7 @@ func TestWebhookDelivery(t *testing.T) {
 	defer srv.Close()
 
 	repo := postgres.New(pool)
-	svc := app.NewService(repo, delivery.New(5*time.Second, true), postgres.UUIDv7{}, true)
+	svc := app.NewService(repo, delivery.New(5*time.Second, true), snowflakeIDs(t), true)
 	ctx := context.Background()
 
 	hook, err := svc.Create(ctx, domain.Webhook{Name: "ERP", URL: srv.URL, Events: []string{domain.EventOrderCreated, domain.EventOrderCreated}, Active: true})
@@ -44,7 +45,6 @@ func TestWebhookDelivery(t *testing.T) {
 	}
 	_, _ = svc.Create(ctx, domain.Webhook{Name: "Other", URL: srv.URL, Events: []string{domain.EventProductUpdated}, Active: true})
 
-	// Fan-out hai lần cùng event id (Kafka giao lại) chỉ tạo một lượt giao.
 	for range 2 {
 		tx, _ := pool.Begin(ctx)
 		if err := svc.FanOutTx(ctx, tx, "evt-1", domain.EventOrderCreated, time.Now(), json.RawMessage(`{"orderId":"o1"}`)); err != nil {
@@ -60,7 +60,6 @@ func TestWebhookDelivery(t *testing.T) {
 		t.Fatalf("%+v", ds)
 	}
 
-	// Lỗi 500 → thử lại sau backoff, chưa đến hạn thì không gửi.
 	fail.Store(1)
 	d, _ := svc.Ping(ctx, hook.ID)
 	if n, _ := svc.DeliverDue(ctx, 10); n != 1 {
@@ -73,7 +72,7 @@ func TestWebhookDelivery(t *testing.T) {
 	if got.Status != domain.DeliveryPending || got.Attempts != 1 || got.NextAttemptAt.Before(time.Now().Add(20*time.Second)) {
 		t.Fatalf("%+v", got)
 	}
-	// Retry tay: gửi ngay và thành công.
+
 	fail.Store(0)
 	if err := svc.Retry(ctx, d.ID); err != nil {
 		t.Fatal(err)
@@ -88,7 +87,6 @@ func TestWebhookDelivery(t *testing.T) {
 		t.Fatal("cannot retry a succeeded delivery")
 	}
 
-	// Webhook bị tắt: lượt giao chuyển DEAD.
 	hook.Active = false
 	if _, err := svc.Update(ctx, hook); err != nil {
 		t.Fatal(err)
@@ -98,4 +96,13 @@ func TestWebhookDelivery(t *testing.T) {
 	if got, _ := repo.GetDelivery(ctx, d2.ID); got.Status != domain.DeliveryDead {
 		t.Fatalf("%+v", got)
 	}
+}
+
+func snowflakeIDs(t *testing.T) idgen.IDs {
+	t.Helper()
+	g, err := idgen.New(1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return idgen.IDs{Gen: g}
 }

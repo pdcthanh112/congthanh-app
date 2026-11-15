@@ -1,4 +1,4 @@
-import { platformTables } from '@ecommerce/platform';
+import { platformTables, snowflakeId } from '@ecommerce/platform';
 import { sql } from 'drizzle-orm';
 import {
   bigint,
@@ -22,7 +22,7 @@ export const purchaseStatus = reviewSchema.enum('purchase_status', ['PENDING', '
 export const reviews = reviewSchema.table(
   'reviews',
   {
-    id: text().primaryKey(),
+    id: snowflakeId().primaryKey(),
     productId: text().notNull(),
     customerId: text().notNull(),
     authorName: varchar({ length: 120 }).notNull(),
@@ -52,7 +52,7 @@ export const reviews = reviewSchema.table(
 export const helpfulVotes = reviewSchema.table(
   'helpful_votes',
   {
-    reviewId: text()
+    reviewId: snowflakeId()
       .notNull()
       .references(() => reviews.id, { onDelete: 'cascade' }),
     userId: text().notNull(),

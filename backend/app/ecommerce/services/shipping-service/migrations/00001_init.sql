@@ -1,5 +1,3 @@
--- +goose Up
--- Bảng giá: dòng có region_code ghi đè dòng chỉ có quốc gia (cùng carrier + service_code).
 CREATE TABLE shipping_rates (
     id               BIGSERIAL PRIMARY KEY,
     carrier          TEXT    NOT NULL,
@@ -18,7 +16,7 @@ CREATE TABLE shipping_rates (
 );
 
 CREATE TABLE shipments (
-    id              TEXT PRIMARY KEY,
+    id              BIGINT PRIMARY KEY,
     order_id        TEXT        NOT NULL UNIQUE,
     customer_id     TEXT        NOT NULL,
     carrier         TEXT        NOT NULL DEFAULT '',
@@ -31,10 +29,9 @@ CREATE TABLE shipments (
 );
 CREATE INDEX shipments_customer ON shipments (customer_id, created_at DESC);
 
--- Lịch sử hành trình (hiển thị cho khách khi tra cứu vận đơn).
 CREATE TABLE shipment_events (
     id          BIGSERIAL PRIMARY KEY,
-    shipment_id TEXT        NOT NULL REFERENCES shipments (id) ON DELETE CASCADE,
+    shipment_id BIGINT      NOT NULL REFERENCES shipments (id) ON DELETE CASCADE,
     status      TEXT        NOT NULL,
     note        TEXT        NOT NULL DEFAULT '',
     location    TEXT        NOT NULL DEFAULT '',
@@ -58,14 +55,12 @@ CREATE TABLE processed_events (
     processed_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
--- Giá mặc định nội địa (VND): giao tiêu chuẩn và nhanh, miễn phí tiêu chuẩn cho đơn từ 500.000đ.
 INSERT INTO shipping_rates (carrier, service_code, service_name, country_code, region_code, currency, base_fee_minor, per_kg_fee_minor, free_over_minor, days_min, days_max) VALUES
   ('internal', 'standard', 'Giao tiêu chuẩn', 'VN', '',    'VND', 30000, 5000, 500000, 3, 5),
   ('internal', 'standard', 'Giao tiêu chuẩn', 'VN', 'HCM', 'VND', 20000, 4000, 500000, 1, 2),
   ('internal', 'standard', 'Giao tiêu chuẩn', 'VN', 'HN',  'VND', 20000, 4000, 500000, 1, 2),
   ('internal', 'express',  'Giao nhanh',      'VN', '',    'VND', 50000, 8000, NULL,   1, 2);
 
--- +goose Down
 DROP TABLE processed_events;
 DROP TABLE outbox;
 DROP TABLE shipment_events;

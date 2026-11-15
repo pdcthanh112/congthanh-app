@@ -1,7 +1,5 @@
--- moderation-service (schema moderation), ADR 0026.
--- Nội dung được giữ để người duyệt xem; là dữ liệu cá nhân nên tham gia luồng xoá của privacy-service.
 CREATE TABLE items (
-    id              UUID PRIMARY KEY,
+    id              BIGINT PRIMARY KEY, 
     content_type    TEXT        NOT NULL,
     content_id      TEXT        NOT NULL,
     author_id       TEXT        NOT NULL,
@@ -23,10 +21,9 @@ CREATE INDEX items_queue ON items (created_at) WHERE status IN ('ESCALATED', 'AP
 CREATE INDEX items_hash ON items (content_hash, decided_at DESC) WHERE status = 'DECIDED';
 CREATE INDEX items_author_rejects ON items (author_id, decided_at) WHERE decision = 'REJECT';
 
--- Lịch sử quyết định (cả tự động và người duyệt) làm bằng chứng và dữ liệu đánh giá độ chính xác.
 CREATE TABLE decisions (
     id         BIGSERIAL PRIMARY KEY,
-    item_id    UUID        NOT NULL REFERENCES items (id),
+    item_id    BIGINT      NOT NULL REFERENCES items (id),
     decision   TEXT        NOT NULL,
     decided_by TEXT        NOT NULL,
     note       TEXT        NOT NULL DEFAULT '',
@@ -36,7 +33,7 @@ CREATE TABLE decisions (
 CREATE TABLE strikes (
     author_id    TEXT PRIMARY KEY,
     strikes      INT         NOT NULL,
-    last_item_id UUID        NOT NULL,
+    last_item_id BIGINT      NOT NULL,
     issued_at    TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 

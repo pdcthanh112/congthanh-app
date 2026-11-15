@@ -4,6 +4,7 @@ import {
   type Database,
   DB,
   GrpcServer,
+  nextSnowflakeId,
   PlatformAuthModule,
   PlatformDatabaseModule,
   PlatformHealthModule,
@@ -12,7 +13,6 @@ import {
 } from '@ecommerce/platform';
 import { type DynamicModule, Module } from '@nestjs/common';
 import { GraphQLModule } from '@nestjs/graphql';
-import { v7 as uuidv7 } from 'uuid';
 import { CustomerResolver, ProductWishlistResolver } from './adapters/in/graphql/customer.resolver.js';
 import { ProductRef } from './adapters/in/graphql/types.js';
 import { customerGrpcRoutes } from './adapters/in/grpc/customer.grpc.js';
@@ -69,7 +69,7 @@ export class AppModule {
         },
         { provide: READ_REPOSITORIES, inject: [DB], useFactory: (db: Database<typeof schema>) => readRepositories(db) },
         { provide: CLOCK, useValue: { now: () => new Date() } },
-        { provide: ID_GENERATOR, useValue: { next: () => uuidv7() } },
+        { provide: ID_GENERATOR, useValue: { next: () => nextSnowflakeId() } },
         {
           provide: GrpcServer,
           inject: [CustomerService],

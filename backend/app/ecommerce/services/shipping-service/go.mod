@@ -4,7 +4,6 @@ go 1.26.0
 
 require (
 	github.com/go-chi/chi/v5 v5.5.0
-	github.com/google/uuid v1.6.0
 	github.com/jackc/pgx/v5 v5.12.0
 	github.com/pdcthanh112/CongThanhApp/backend/app/ecommerce/libs/go/platform v0.0.0
 	github.com/pdcthanh112/CongThanhApp/backend/app/ecommerce/libs/go/proto v0.0.0
@@ -18,6 +17,7 @@ require (
 	github.com/MicahParks/keyfunc/v3 v3.9.1 // indirect
 	github.com/Microsoft/go-winio v0.6.3 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
+	github.com/bwmarrin/snowflake v0.3.0 // indirect
 	github.com/cenkalti/backoff/v4 v4.3.0 // indirect
 	github.com/cenkalti/backoff/v5 v5.0.3 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
@@ -36,6 +36,7 @@ require (
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/go-ole/go-ole v1.3.0 // indirect
 	github.com/golang-jwt/jwt/v5 v5.3.1 // indirect
+	github.com/google/uuid v1.6.0 // indirect
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.30.0 // indirect
 	github.com/jackc/pgpassfile v1.0.0 // indirect
 	github.com/jackc/pgservicefile v0.0.0-20240606120523-5a60cdf6a761 // indirect

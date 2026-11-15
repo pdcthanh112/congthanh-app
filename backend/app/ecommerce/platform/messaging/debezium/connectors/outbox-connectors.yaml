@@ -18,7 +18,7 @@ spec:
   config:
     plugin.name: pgoutput
     database.hostname: ecommerce-db-rw.data.svc.cluster.local
-    database.port: '5432'
+    database.port: "5432"
     database.dbname: ecommerce
     database.user: ${secrets:messaging/debezium-db:username}
     database.password: ${secrets:messaging/debezium-db:password}
@@ -28,7 +28,7 @@ spec:
     slot.name: debezium_inventory
     publication.name: dbz_inventory_outbox
     publication.autocreate.mode: filtered
-    tombstones.on.delete: 'false'
+    tombstones.on.delete: "false"
     skipped.operations: d,t
     transforms: outbox
     transforms.outbox.type: io.debezium.transforms.outbox.EventRouter
@@ -39,7 +39,7 @@ spec:
     transforms.outbox.table.fields.additional.placement: type:header:ce_type,traceparent:header:traceparent,id:header:ce_id
     key.converter: org.apache.kafka.connect.storage.StringConverter
     value.converter: io.debezium.converters.BinaryDataConverter
-    heartbeat.interval.ms: '10000'
+    heartbeat.interval.ms: "10000"
 ---
 apiVersion: kafka.strimzi.io/v1beta2
 kind: KafkaConnector
@@ -54,7 +54,7 @@ spec:
   config:
     plugin.name: pgoutput
     database.hostname: ecommerce-db-rw.data.svc.cluster.local
-    database.port: '5432'
+    database.port: "5432"
     database.dbname: ecommerce
     database.user: ${secrets:messaging/debezium-db:username}
     database.password: ${secrets:messaging/debezium-db:password}
@@ -64,7 +64,7 @@ spec:
     slot.name: debezium_cart
     publication.name: dbz_cart_outbox
     publication.autocreate.mode: filtered
-    tombstones.on.delete: 'false'
+    tombstones.on.delete: "false"
     skipped.operations: d,t
     transforms: outbox
     transforms.outbox.type: io.debezium.transforms.outbox.EventRouter
@@ -75,7 +75,7 @@ spec:
     transforms.outbox.table.fields.additional.placement: type:header:ce_type,traceparent:header:traceparent,id:header:ce_id
     key.converter: org.apache.kafka.connect.storage.StringConverter
     value.converter: io.debezium.converters.BinaryDataConverter
-    heartbeat.interval.ms: '10000'
+    heartbeat.interval.ms: "10000"
 ---
 apiVersion: kafka.strimzi.io/v1beta2
 kind: KafkaConnector
@@ -90,7 +90,7 @@ spec:
   config:
     plugin.name: pgoutput
     database.hostname: ecommerce-db-rw.data.svc.cluster.local
-    database.port: '5432'
+    database.port: "5432"
     database.dbname: ecommerce
     database.user: ${secrets:messaging/debezium-db:username}
     database.password: ${secrets:messaging/debezium-db:password}
@@ -100,7 +100,7 @@ spec:
     slot.name: debezium_order
     publication.name: dbz_order_outbox
     publication.autocreate.mode: filtered
-    tombstones.on.delete: 'false'
+    tombstones.on.delete: "false"
     skipped.operations: d,t
     transforms: outbox
     transforms.outbox.type: io.debezium.transforms.outbox.EventRouter
@@ -111,7 +111,7 @@ spec:
     transforms.outbox.table.fields.additional.placement: type:header:ce_type,traceparent:header:traceparent,id:header:ce_id
     key.converter: org.apache.kafka.connect.storage.StringConverter
     value.converter: io.debezium.converters.BinaryDataConverter
-    heartbeat.interval.ms: '10000'
+    heartbeat.interval.ms: "10000"
 ---
 apiVersion: kafka.strimzi.io/v1beta2
 kind: KafkaConnector
@@ -126,7 +126,7 @@ spec:
   config:
     plugin.name: pgoutput
     database.hostname: ecommerce-db-rw.data.svc.cluster.local
-    database.port: '5432'
+    database.port: "5432"
     database.dbname: ecommerce
     database.user: ${secrets:messaging/debezium-db:username}
     database.password: ${secrets:messaging/debezium-db:password}
@@ -136,7 +136,7 @@ spec:
     slot.name: debezium_payment
     publication.name: dbz_payment_outbox
     publication.autocreate.mode: filtered
-    tombstones.on.delete: 'false'
+    tombstones.on.delete: "false"
     skipped.operations: d,t
     transforms: outbox
     transforms.outbox.type: io.debezium.transforms.outbox.EventRouter
@@ -147,7 +147,7 @@ spec:
     transforms.outbox.table.fields.additional.placement: type:header:ce_type,traceparent:header:traceparent,id:header:ce_id
     key.converter: org.apache.kafka.connect.storage.StringConverter
     value.converter: io.debezium.converters.BinaryDataConverter
-    heartbeat.interval.ms: '10000'
+    heartbeat.interval.ms: "10000"
 ---
 apiVersion: kafka.strimzi.io/v1beta2
 kind: KafkaConnector
@@ -162,7 +162,7 @@ spec:
   config:
     plugin.name: pgoutput
     database.hostname: ecommerce-db-rw.data.svc.cluster.local
-    database.port: '5432'
+    database.port: "5432"
     database.dbname: ecommerce
     database.user: ${secrets:messaging/debezium-db:username}
     database.password: ${secrets:messaging/debezium-db:password}
@@ -172,7 +172,7 @@ spec:
     slot.name: debezium_promotion
     publication.name: dbz_promotion_outbox
     publication.autocreate.mode: filtered
-    tombstones.on.delete: 'false'
+    tombstones.on.delete: "false"
     skipped.operations: d,t
     transforms: outbox
     transforms.outbox.type: io.debezium.transforms.outbox.EventRouter
@@ -183,7 +183,7 @@ spec:
     transforms.outbox.table.fields.additional.placement: type:header:ce_type,traceparent:header:traceparent,id:header:ce_id
     key.converter: org.apache.kafka.connect.storage.StringConverter
     value.converter: io.debezium.converters.BinaryDataConverter
-    heartbeat.interval.ms: '10000'
+    heartbeat.interval.ms: "10000"
 ---
 apiVersion: kafka.strimzi.io/v1beta2
 kind: KafkaConnector
@@ -198,7 +198,7 @@ spec:
   config:
     plugin.name: pgoutput
     database.hostname: ecommerce-db-rw.data.svc.cluster.local
-    database.port: '5432'
+    database.port: "5432"
     database.dbname: ecommerce
     database.user: ${secrets:messaging/debezium-db:username}
     database.password: ${secrets:messaging/debezium-db:password}
@@ -208,7 +208,7 @@ spec:
     slot.name: debezium_product
     publication.name: dbz_product_outbox
     publication.autocreate.mode: filtered
-    tombstones.on.delete: 'false'
+    tombstones.on.delete: "false"
     skipped.operations: d,t
     transforms: outbox
     transforms.outbox.type: io.debezium.transforms.outbox.EventRouter
@@ -219,7 +219,7 @@ spec:
     transforms.outbox.table.fields.additional.placement: type:header:ce_type,traceparent:header:traceparent,id:header:ce_id
     key.converter: org.apache.kafka.connect.storage.StringConverter
     value.converter: io.debezium.converters.BinaryDataConverter
-    heartbeat.interval.ms: '10000'
+    heartbeat.interval.ms: "10000"
 ---
 apiVersion: kafka.strimzi.io/v1beta2
 kind: KafkaConnector
@@ -234,7 +234,7 @@ spec:
   config:
     plugin.name: pgoutput
     database.hostname: ecommerce-db-rw.data.svc.cluster.local
-    database.port: '5432'
+    database.port: "5432"
     database.dbname: ecommerce
     database.user: ${secrets:messaging/debezium-db:username}
     database.password: ${secrets:messaging/debezium-db:password}
@@ -244,7 +244,7 @@ spec:
     slot.name: debezium_catalog
     publication.name: dbz_catalog_outbox
     publication.autocreate.mode: filtered
-    tombstones.on.delete: 'false'
+    tombstones.on.delete: "false"
     skipped.operations: d,t
     transforms: outbox
     transforms.outbox.type: io.debezium.transforms.outbox.EventRouter
@@ -255,7 +255,7 @@ spec:
     transforms.outbox.table.fields.additional.placement: type:header:ce_type,traceparent:header:traceparent,id:header:ce_id
     key.converter: org.apache.kafka.connect.storage.StringConverter
     value.converter: io.debezium.converters.BinaryDataConverter
-    heartbeat.interval.ms: '10000'
+    heartbeat.interval.ms: "10000"
 ---
 apiVersion: kafka.strimzi.io/v1beta2
 kind: KafkaConnector
@@ -270,7 +270,7 @@ spec:
   config:
     plugin.name: pgoutput
     database.hostname: ecommerce-db-rw.data.svc.cluster.local
-    database.port: '5432'
+    database.port: "5432"
     database.dbname: ecommerce
     database.user: ${secrets:messaging/debezium-db:username}
     database.password: ${secrets:messaging/debezium-db:password}
@@ -280,7 +280,7 @@ spec:
     slot.name: debezium_customer
     publication.name: dbz_customer_outbox
     publication.autocreate.mode: filtered
-    tombstones.on.delete: 'false'
+    tombstones.on.delete: "false"
     skipped.operations: d,t
     transforms: outbox
     transforms.outbox.type: io.debezium.transforms.outbox.EventRouter
@@ -291,7 +291,7 @@ spec:
     transforms.outbox.table.fields.additional.placement: type:header:ce_type,traceparent:header:traceparent,id:header:ce_id
     key.converter: org.apache.kafka.connect.storage.StringConverter
     value.converter: io.debezium.converters.BinaryDataConverter
-    heartbeat.interval.ms: '10000'
+    heartbeat.interval.ms: "10000"
 ---
 apiVersion: kafka.strimzi.io/v1beta2
 kind: KafkaConnector
@@ -306,7 +306,7 @@ spec:
   config:
     plugin.name: pgoutput
     database.hostname: ecommerce-db-rw.data.svc.cluster.local
-    database.port: '5432'
+    database.port: "5432"
     database.dbname: ecommerce
     database.user: ${secrets:messaging/debezium-db:username}
     database.password: ${secrets:messaging/debezium-db:password}
@@ -316,7 +316,7 @@ spec:
     slot.name: debezium_review
     publication.name: dbz_review_outbox
     publication.autocreate.mode: filtered
-    tombstones.on.delete: 'false'
+    tombstones.on.delete: "false"
     skipped.operations: d,t
     transforms: outbox
     transforms.outbox.type: io.debezium.transforms.outbox.EventRouter
@@ -327,7 +327,7 @@ spec:
     transforms.outbox.table.fields.additional.placement: type:header:ce_type,traceparent:header:traceparent,id:header:ce_id
     key.converter: org.apache.kafka.connect.storage.StringConverter
     value.converter: io.debezium.converters.BinaryDataConverter
-    heartbeat.interval.ms: '10000'
+    heartbeat.interval.ms: "10000"
 ---
 apiVersion: kafka.strimzi.io/v1beta2
 kind: KafkaConnector
@@ -342,7 +342,7 @@ spec:
   config:
     plugin.name: pgoutput
     database.hostname: ecommerce-db-rw.data.svc.cluster.local
-    database.port: '5432'
+    database.port: "5432"
     database.dbname: ecommerce
     database.user: ${secrets:messaging/debezium-db:username}
     database.password: ${secrets:messaging/debezium-db:password}
@@ -352,7 +352,7 @@ spec:
     slot.name: debezium_message
     publication.name: dbz_message_outbox
     publication.autocreate.mode: filtered
-    tombstones.on.delete: 'false'
+    tombstones.on.delete: "false"
     skipped.operations: d,t
     transforms: outbox
     transforms.outbox.type: io.debezium.transforms.outbox.EventRouter
@@ -363,7 +363,7 @@ spec:
     transforms.outbox.table.fields.additional.placement: type:header:ce_type,traceparent:header:traceparent,id:header:ce_id
     key.converter: org.apache.kafka.connect.storage.StringConverter
     value.converter: io.debezium.converters.BinaryDataConverter
-    heartbeat.interval.ms: '10000'
+    heartbeat.interval.ms: "10000"
 ---
 apiVersion: kafka.strimzi.io/v1beta2
 kind: KafkaConnector
@@ -378,7 +378,7 @@ spec:
   config:
     plugin.name: pgoutput
     database.hostname: ecommerce-db-rw.data.svc.cluster.local
-    database.port: '5432'
+    database.port: "5432"
     database.dbname: ecommerce
     database.user: ${secrets:messaging/debezium-db:username}
     database.password: ${secrets:messaging/debezium-db:password}
@@ -388,7 +388,7 @@ spec:
     slot.name: debezium_shipping
     publication.name: dbz_shipping_outbox
     publication.autocreate.mode: filtered
-    tombstones.on.delete: 'false'
+    tombstones.on.delete: "false"
     skipped.operations: d,t
     transforms: outbox
     transforms.outbox.type: io.debezium.transforms.outbox.EventRouter
@@ -399,7 +399,7 @@ spec:
     transforms.outbox.table.fields.additional.placement: type:header:ce_type,traceparent:header:traceparent,id:header:ce_id
     key.converter: org.apache.kafka.connect.storage.StringConverter
     value.converter: io.debezium.converters.BinaryDataConverter
-    heartbeat.interval.ms: '10000'
+    heartbeat.interval.ms: "10000"
 ---
 apiVersion: kafka.strimzi.io/v1beta2
 kind: KafkaConnector
@@ -414,7 +414,7 @@ spec:
   config:
     plugin.name: pgoutput
     database.hostname: ecommerce-db-rw.data.svc.cluster.local
-    database.port: '5432'
+    database.port: "5432"
     database.dbname: ecommerce
     database.user: ${secrets:messaging/debezium-db:username}
     database.password: ${secrets:messaging/debezium-db:password}
@@ -424,7 +424,7 @@ spec:
     slot.name: debezium_pricing
     publication.name: dbz_pricing_outbox
     publication.autocreate.mode: filtered
-    tombstones.on.delete: 'false'
+    tombstones.on.delete: "false"
     skipped.operations: d,t
     transforms: outbox
     transforms.outbox.type: io.debezium.transforms.outbox.EventRouter
@@ -435,7 +435,7 @@ spec:
     transforms.outbox.table.fields.additional.placement: type:header:ce_type,traceparent:header:traceparent,id:header:ce_id
     key.converter: org.apache.kafka.connect.storage.StringConverter
     value.converter: io.debezium.converters.BinaryDataConverter
-    heartbeat.interval.ms: '10000'
+    heartbeat.interval.ms: "10000"
 ---
 apiVersion: kafka.strimzi.io/v1beta2
 kind: KafkaConnector
@@ -450,7 +450,7 @@ spec:
   config:
     plugin.name: pgoutput
     database.hostname: ecommerce-db-rw.data.svc.cluster.local
-    database.port: '5432'
+    database.port: "5432"
     database.dbname: ecommerce
     database.user: ${secrets:messaging/debezium-db:username}
     database.password: ${secrets:messaging/debezium-db:password}
@@ -460,7 +460,7 @@ spec:
     slot.name: debezium_fraud
     publication.name: dbz_fraud_outbox
     publication.autocreate.mode: filtered
-    tombstones.on.delete: 'false'
+    tombstones.on.delete: "false"
     skipped.operations: d,t
     transforms: outbox
     transforms.outbox.type: io.debezium.transforms.outbox.EventRouter
@@ -471,7 +471,7 @@ spec:
     transforms.outbox.table.fields.additional.placement: type:header:ce_type,traceparent:header:traceparent,id:header:ce_id
     key.converter: org.apache.kafka.connect.storage.StringConverter
     value.converter: io.debezium.converters.BinaryDataConverter
-    heartbeat.interval.ms: '10000'
+    heartbeat.interval.ms: "10000"
 ---
 apiVersion: kafka.strimzi.io/v1beta2
 kind: KafkaConnector
@@ -486,7 +486,7 @@ spec:
   config:
     plugin.name: pgoutput
     database.hostname: ecommerce-db-rw.data.svc.cluster.local
-    database.port: '5432'
+    database.port: "5432"
     database.dbname: ecommerce
     database.user: ${secrets:messaging/debezium-db:username}
     database.password: ${secrets:messaging/debezium-db:password}
@@ -496,7 +496,7 @@ spec:
     slot.name: debezium_ledger
     publication.name: dbz_ledger_outbox
     publication.autocreate.mode: filtered
-    tombstones.on.delete: 'false'
+    tombstones.on.delete: "false"
     skipped.operations: d,t
     transforms: outbox
     transforms.outbox.type: io.debezium.transforms.outbox.EventRouter
@@ -507,7 +507,7 @@ spec:
     transforms.outbox.table.fields.additional.placement: type:header:ce_type,traceparent:header:traceparent,id:header:ce_id
     key.converter: org.apache.kafka.connect.storage.StringConverter
     value.converter: io.debezium.converters.BinaryDataConverter
-    heartbeat.interval.ms: '10000'
+    heartbeat.interval.ms: "10000"
 ---
 apiVersion: kafka.strimzi.io/v1beta2
 kind: KafkaConnector
@@ -522,7 +522,7 @@ spec:
   config:
     plugin.name: pgoutput
     database.hostname: ecommerce-db-rw.data.svc.cluster.local
-    database.port: '5432'
+    database.port: "5432"
     database.dbname: ecommerce
     database.user: ${secrets:messaging/debezium-db:username}
     database.password: ${secrets:messaging/debezium-db:password}
@@ -532,7 +532,7 @@ spec:
     slot.name: debezium_returns
     publication.name: dbz_returns_outbox
     publication.autocreate.mode: filtered
-    tombstones.on.delete: 'false'
+    tombstones.on.delete: "false"
     skipped.operations: d,t
     transforms: outbox
     transforms.outbox.type: io.debezium.transforms.outbox.EventRouter
@@ -543,7 +543,7 @@ spec:
     transforms.outbox.table.fields.additional.placement: type:header:ce_type,traceparent:header:traceparent,id:header:ce_id
     key.converter: org.apache.kafka.connect.storage.StringConverter
     value.converter: io.debezium.converters.BinaryDataConverter
-    heartbeat.interval.ms: '10000'
+    heartbeat.interval.ms: "10000"
 ---
 apiVersion: kafka.strimzi.io/v1beta2
 kind: KafkaConnector
@@ -558,7 +558,7 @@ spec:
   config:
     plugin.name: pgoutput
     database.hostname: ecommerce-db-rw.data.svc.cluster.local
-    database.port: '5432'
+    database.port: "5432"
     database.dbname: ecommerce
     database.user: ${secrets:messaging/debezium-db:username}
     database.password: ${secrets:messaging/debezium-db:password}
@@ -568,7 +568,7 @@ spec:
     slot.name: debezium_privacy
     publication.name: dbz_privacy_outbox
     publication.autocreate.mode: filtered
-    tombstones.on.delete: 'false'
+    tombstones.on.delete: "false"
     skipped.operations: d,t
     transforms: outbox
     transforms.outbox.type: io.debezium.transforms.outbox.EventRouter
@@ -579,7 +579,7 @@ spec:
     transforms.outbox.table.fields.additional.placement: type:header:ce_type,traceparent:header:traceparent,id:header:ce_id
     key.converter: org.apache.kafka.connect.storage.StringConverter
     value.converter: io.debezium.converters.BinaryDataConverter
-    heartbeat.interval.ms: '10000'
+    heartbeat.interval.ms: "10000"
 ---
 apiVersion: kafka.strimzi.io/v1beta2
 kind: KafkaConnector
@@ -594,7 +594,7 @@ spec:
   config:
     plugin.name: pgoutput
     database.hostname: ecommerce-db-rw.data.svc.cluster.local
-    database.port: '5432'
+    database.port: "5432"
     database.dbname: ecommerce
     database.user: ${secrets:messaging/debezium-db:username}
     database.password: ${secrets:messaging/debezium-db:password}
@@ -604,7 +604,7 @@ spec:
     slot.name: debezium_storedvalue
     publication.name: dbz_storedvalue_outbox
     publication.autocreate.mode: filtered
-    tombstones.on.delete: 'false'
+    tombstones.on.delete: "false"
     skipped.operations: d,t
     transforms: outbox
     transforms.outbox.type: io.debezium.transforms.outbox.EventRouter
@@ -615,7 +615,7 @@ spec:
     transforms.outbox.table.fields.additional.placement: type:header:ce_type,traceparent:header:traceparent,id:header:ce_id
     key.converter: org.apache.kafka.connect.storage.StringConverter
     value.converter: io.debezium.converters.BinaryDataConverter
-    heartbeat.interval.ms: '10000'
+    heartbeat.interval.ms: "10000"
 ---
 apiVersion: kafka.strimzi.io/v1beta2
 kind: KafkaConnector
@@ -630,7 +630,7 @@ spec:
   config:
     plugin.name: pgoutput
     database.hostname: ecommerce-db-rw.data.svc.cluster.local
-    database.port: '5432'
+    database.port: "5432"
     database.dbname: ecommerce
     database.user: ${secrets:messaging/debezium-db:username}
     database.password: ${secrets:messaging/debezium-db:password}
@@ -640,7 +640,7 @@ spec:
     slot.name: debezium_dispute
     publication.name: dbz_dispute_outbox
     publication.autocreate.mode: filtered
-    tombstones.on.delete: 'false'
+    tombstones.on.delete: "false"
     skipped.operations: d,t
     transforms: outbox
     transforms.outbox.type: io.debezium.transforms.outbox.EventRouter
@@ -651,7 +651,7 @@ spec:
     transforms.outbox.table.fields.additional.placement: type:header:ce_type,traceparent:header:traceparent,id:header:ce_id
     key.converter: org.apache.kafka.connect.storage.StringConverter
     value.converter: io.debezium.converters.BinaryDataConverter
-    heartbeat.interval.ms: '10000'
+    heartbeat.interval.ms: "10000"
 ---
 apiVersion: kafka.strimzi.io/v1beta2
 kind: KafkaConnector
@@ -666,7 +666,7 @@ spec:
   config:
     plugin.name: pgoutput
     database.hostname: ecommerce-db-rw.data.svc.cluster.local
-    database.port: '5432'
+    database.port: "5432"
     database.dbname: ecommerce
     database.user: ${secrets:messaging/debezium-db:username}
     database.password: ${secrets:messaging/debezium-db:password}
@@ -676,7 +676,7 @@ spec:
     slot.name: debezium_reconciliation
     publication.name: dbz_reconciliation_outbox
     publication.autocreate.mode: filtered
-    tombstones.on.delete: 'false'
+    tombstones.on.delete: "false"
     skipped.operations: d,t
     transforms: outbox
     transforms.outbox.type: io.debezium.transforms.outbox.EventRouter
@@ -687,7 +687,7 @@ spec:
     transforms.outbox.table.fields.additional.placement: type:header:ce_type,traceparent:header:traceparent,id:header:ce_id
     key.converter: org.apache.kafka.connect.storage.StringConverter
     value.converter: io.debezium.converters.BinaryDataConverter
-    heartbeat.interval.ms: '10000'
+    heartbeat.interval.ms: "10000"
 ---
 apiVersion: kafka.strimzi.io/v1beta2
 kind: KafkaConnector
@@ -702,7 +702,7 @@ spec:
   config:
     plugin.name: pgoutput
     database.hostname: ecommerce-db-rw.data.svc.cluster.local
-    database.port: '5432'
+    database.port: "5432"
     database.dbname: ecommerce
     database.user: ${secrets:messaging/debezium-db:username}
     database.password: ${secrets:messaging/debezium-db:password}
@@ -712,7 +712,7 @@ spec:
     slot.name: debezium_loyalty
     publication.name: dbz_loyalty_outbox
     publication.autocreate.mode: filtered
-    tombstones.on.delete: 'false'
+    tombstones.on.delete: "false"
     skipped.operations: d,t
     transforms: outbox
     transforms.outbox.type: io.debezium.transforms.outbox.EventRouter
@@ -723,7 +723,7 @@ spec:
     transforms.outbox.table.fields.additional.placement: type:header:ce_type,traceparent:header:traceparent,id:header:ce_id
     key.converter: org.apache.kafka.connect.storage.StringConverter
     value.converter: io.debezium.converters.BinaryDataConverter
-    heartbeat.interval.ms: '10000'
+    heartbeat.interval.ms: "10000"
 ---
 apiVersion: kafka.strimzi.io/v1beta2
 kind: KafkaConnector
@@ -738,7 +738,7 @@ spec:
   config:
     plugin.name: pgoutput
     database.hostname: ecommerce-db-rw.data.svc.cluster.local
-    database.port: '5432'
+    database.port: "5432"
     database.dbname: ecommerce
     database.user: ${secrets:messaging/debezium-db:username}
     database.password: ${secrets:messaging/debezium-db:password}
@@ -748,7 +748,7 @@ spec:
     slot.name: debezium_subscription
     publication.name: dbz_subscription_outbox
     publication.autocreate.mode: filtered
-    tombstones.on.delete: 'false'
+    tombstones.on.delete: "false"
     skipped.operations: d,t
     transforms: outbox
     transforms.outbox.type: io.debezium.transforms.outbox.EventRouter
@@ -759,7 +759,7 @@ spec:
     transforms.outbox.table.fields.additional.placement: type:header:ce_type,traceparent:header:traceparent,id:header:ce_id
     key.converter: org.apache.kafka.connect.storage.StringConverter
     value.converter: io.debezium.converters.BinaryDataConverter
-    heartbeat.interval.ms: '10000'
+    heartbeat.interval.ms: "10000"
 ---
 apiVersion: kafka.strimzi.io/v1beta2
 kind: KafkaConnector
@@ -774,7 +774,7 @@ spec:
   config:
     plugin.name: pgoutput
     database.hostname: ecommerce-db-rw.data.svc.cluster.local
-    database.port: '5432'
+    database.port: "5432"
     database.dbname: ecommerce
     database.user: ${secrets:messaging/debezium-db:username}
     database.password: ${secrets:messaging/debezium-db:password}
@@ -784,7 +784,7 @@ spec:
     slot.name: debezium_moderation
     publication.name: dbz_moderation_outbox
     publication.autocreate.mode: filtered
-    tombstones.on.delete: 'false'
+    tombstones.on.delete: "false"
     skipped.operations: d,t
     transforms: outbox
     transforms.outbox.type: io.debezium.transforms.outbox.EventRouter
@@ -795,9 +795,8 @@ spec:
     transforms.outbox.table.fields.additional.placement: type:header:ce_type,traceparent:header:traceparent,id:header:ce_id
     key.converter: org.apache.kafka.connect.storage.StringConverter
     value.converter: io.debezium.converters.BinaryDataConverter
-    heartbeat.interval.ms: '10000'
+    heartbeat.interval.ms: "10000"
 ---
-# recommendation: chỉ để trả lời privacy-service (ErasureCompleted), ADR 0027.
 apiVersion: kafka.strimzi.io/v1beta2
 kind: KafkaConnector
 metadata:
@@ -811,7 +810,7 @@ spec:
   config:
     plugin.name: pgoutput
     database.hostname: ecommerce-db-rw.data.svc.cluster.local
-    database.port: '5432'
+    database.port: "5432"
     database.dbname: ecommerce
     database.user: ${secrets:messaging/debezium-db:username}
     database.password: ${secrets:messaging/debezium-db:password}
@@ -821,7 +820,7 @@ spec:
     slot.name: debezium_recommendation
     publication.name: dbz_recommendation_outbox
     publication.autocreate.mode: filtered
-    tombstones.on.delete: 'false'
+    tombstones.on.delete: "false"
     skipped.operations: d,t
     transforms: outbox
     transforms.outbox.type: io.debezium.transforms.outbox.EventRouter
@@ -832,4 +831,4 @@ spec:
     transforms.outbox.table.fields.additional.placement: type:header:ce_type,traceparent:header:traceparent,id:header:ce_id
     key.converter: org.apache.kafka.connect.storage.StringConverter
     value.converter: io.debezium.converters.BinaryDataConverter
-    heartbeat.interval.ms: '10000'
+    heartbeat.interval.ms: "10000"

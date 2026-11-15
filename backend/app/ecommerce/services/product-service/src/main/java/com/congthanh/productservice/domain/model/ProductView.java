@@ -1,5 +1,7 @@
 package com.congthanh.productservice.domain.model;
 
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -22,6 +24,7 @@ public class ProductView {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @JdbcTypeCode(SqlTypes.BIGINT) 
     @Column(name = "product_id", nullable = false)
     private String productId;
 

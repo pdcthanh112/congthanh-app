@@ -11,6 +11,7 @@ import (
 
 	"github.com/pdcthanh112/CongThanhApp/backend/app/ecommerce/libs/go/platform/auth"
 	"github.com/pdcthanh112/CongThanhApp/backend/app/ecommerce/libs/go/platform/db"
+	"github.com/pdcthanh112/CongThanhApp/backend/app/ecommerce/libs/go/platform/idgen"
 	"github.com/pdcthanh112/CongThanhApp/backend/app/ecommerce/libs/go/platform/logging"
 	"github.com/pdcthanh112/CongThanhApp/backend/app/ecommerce/libs/go/platform/otel"
 	"github.com/pdcthanh112/CongThanhApp/backend/app/ecommerce/libs/go/platform/server"
@@ -62,7 +63,11 @@ func run() error {
 		return err
 	}
 	repo := postgres.New(pool)
-	svc := app.NewService(repo, store, postgres.UUIDv7{}, app.Options{UploadTTL: cfg.UploadTTL, PendingTTL: cfg.PendingTTL})
+	ids, err := idgen.FromEnv()
+	if err != nil {
+		return err
+	}
+	svc := app.NewService(repo, store, idgen.IDs{Gen: ids}, app.Options{UploadTTL: cfg.UploadTTL, PendingTTL: cfg.PendingTTL})
 
 	cleanup := func(ctx context.Context) error {
 		t := time.NewTicker(cfg.CleanupInterval)

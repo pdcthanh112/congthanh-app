@@ -26,7 +26,7 @@ CREATE TABLE "customer_service"."search_history" (
 );
 --> statement-breakpoint
 CREATE TABLE "customer_service"."shipping_addresses" (
-	"id" text PRIMARY KEY NOT NULL,
+	"id" bigint PRIMARY KEY NOT NULL,
 	"customer_id" text NOT NULL,
 	"full_name" varchar(120) NOT NULL,
 	"phone_number" varchar(20) NOT NULL,

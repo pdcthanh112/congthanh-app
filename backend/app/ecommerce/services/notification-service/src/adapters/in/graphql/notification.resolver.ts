@@ -1,7 +1,6 @@
-import { CurrentPrincipal, type Principal, Role, Roles } from '@ecommerce/platform';
+import { CurrentPrincipal, nextSnowflakeId, type Principal, Role, Roles } from '@ecommerce/platform';
 import { Inject } from '@nestjs/common';
 import { Args, ID, Int, Mutation, Query, Resolver, Subscription } from '@nestjs/graphql';
-import { v7 as uuidv7 } from 'uuid';
 import { NotificationService } from '../../../application/notification.service.js';
 import { REALTIME, type RealtimePublisher } from '../../../application/ports.js';
 import { CATEGORIES, CHANNELS, type Notification, TRANSACTIONAL } from '../../../domain/notification.js';
@@ -119,7 +118,7 @@ export class NotificationResolver {
       category: 'SYSTEM',
       type: 'MANUAL',
       message: { title: i.title, body: i.body, link: i.link ?? null },
-      dedupKey: `manual:${p.id}:${uuidv7()}`,
+      dedupKey: `manual:${p.id}:${nextSnowflakeId()}`,
       channels: i.channels,
     });
     return n ? toModel(n) : null;

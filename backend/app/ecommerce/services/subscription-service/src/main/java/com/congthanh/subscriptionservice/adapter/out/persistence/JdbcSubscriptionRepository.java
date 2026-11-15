@@ -48,7 +48,7 @@ class JdbcSubscriptionRepository implements SubscriptionRepository {
         int n;
         if (s.version() == 0) {
             n = jdbc.sql("""
-                            INSERT INTO subscriptions (%s) VALUES (:id::uuid, :c, :lines::jsonb, :interval, :next, :pm, :addr,
+                            INSERT INTO subscriptions (%s) VALUES (:id::bigint, :c, :lines::jsonb, :interval, :next, :pm, :addr,
                                 :status, :cycle, :attempts, :nextAttempt, :reminded, :pausedUntil, :cancel, :createdAt, 1)"""
                             .formatted(COLUMNS))
                     .param("id", s.id()).param("c", s.customerId()).param("lines", lines)
@@ -64,7 +64,7 @@ class JdbcSubscriptionRepository implements SubscriptionRepository {
                                 status = :status, cycle = :cycle, attempts = :attempts, next_attempt_at = :nextAttempt,
                                 reminded_cycle = :reminded, paused_until = :pausedUntil, cancel_reason = :cancel,
                                 updated_at = now(), version = version + 1
-                            WHERE id = :id::uuid AND version = :version""")
+                            WHERE id = :id::bigint AND version = :version""")
                     .param("id", s.id()).param("lines", lines).param("interval", s.intervalDays())
                     .param("next", Date.valueOf(s.nextDeliveryDate())).param("status", s.status().name())
                     .param("cycle", s.cycle()).param("attempts", s.attempts()).param("nextAttempt", ts(s.nextAttemptAt()))
@@ -83,11 +83,11 @@ class JdbcSubscriptionRepository implements SubscriptionRepository {
     @Override
     public Optional<Subscription> findById(String id) {
         try {
-            java.util.UUID.fromString(id);
-        } catch (IllegalArgumentException e) {
+            Long.parseLong(id);
+        } catch (NumberFormatException e) {
             return Optional.empty();
         }
-        return jdbc.sql("SELECT " + COLUMNS + " FROM subscriptions WHERE id = :id::uuid").param("id", id)
+        return jdbc.sql("SELECT " + COLUMNS + " FROM subscriptions WHERE id = :id::bigint").param("id", id)
                 .query((rs, i) -> map(rs)).optional();
     }
 
@@ -117,7 +117,7 @@ class JdbcSubscriptionRepository implements SubscriptionRepository {
 
     @Override
     public void recordRenewalOrder(String orderId, String subscriptionId, int cycle) {
-        jdbc.sql("INSERT INTO renewal_orders (order_id, subscription_id, cycle) VALUES (:o, :s::uuid, :c) ON CONFLICT DO NOTHING")
+        jdbc.sql("INSERT INTO renewal_orders (order_id, subscription_id, cycle) VALUES (:o, :s::bigint, :c) ON CONFLICT DO NOTHING")
                 .param("o", orderId).param("s", subscriptionId).param("c", cycle).update();
     }
 

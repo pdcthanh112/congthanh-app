@@ -1,4 +1,4 @@
-import { platformTables } from '@ecommerce/platform';
+import { platformTables, snowflakeId } from '@ecommerce/platform';
 import {
   bigint,
   index,
@@ -20,7 +20,7 @@ export const deliveryStatus = notificationSchema.enum('delivery_status', ['PENDI
 export const notifications = notificationSchema.table(
   'notifications',
   {
-    id: text().primaryKey(),
+    id: snowflakeId().primaryKey(),
     userId: text().notNull(),
     category: varchar({ length: 20 }).notNull(),
     type: varchar({ length: 40 }).notNull(),
@@ -40,8 +40,8 @@ export const notifications = notificationSchema.table(
 export const deliveries = notificationSchema.table(
   'deliveries',
   {
-    id: text().primaryKey(),
-    notificationId: text()
+    id: snowflakeId().primaryKey(),
+    notificationId: snowflakeId()
       .notNull()
       .references(() => notifications.id, { onDelete: 'cascade' }),
     channel: channel().notNull(),

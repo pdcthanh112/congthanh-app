@@ -7,6 +7,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/pdcthanh112/CongThanhApp/backend/app/ecommerce/libs/go/platform/idgen"
 	"github.com/pdcthanh112/CongThanhApp/backend/app/ecommerce/services/inventory-service/internal/domain"
 )
 
@@ -14,6 +15,7 @@ type Options struct {
 	ReservationTTL   time.Duration
 	DefaultWarehouse string
 	FlashClaimTTL    time.Duration // khách giành được suất phải đặt đơn trong khoảng này
+	NewID            func() string // id Snowflake cho claim flash sale; nil = generator node 0
 }
 
 type Service struct {
@@ -37,6 +39,10 @@ func NewService(uow UnitOfWork, read Reader, wh WarehouseRepository, flash Flash
 	}
 	if opt.FlashClaimTTL == 0 {
 		opt.FlashClaimTTL = 10 * time.Minute
+	}
+	if opt.NewID == nil {
+		g, _ := idgen.New(0)
+		opt.NewID = idgen.IDs{Gen: g}.NewID
 	}
 	s := &Service{uow: uow, read: read, warehouses: wh, flash: flash, claims: claims, opt: opt, now: time.Now}
 	s.activeSales.Store(-1)

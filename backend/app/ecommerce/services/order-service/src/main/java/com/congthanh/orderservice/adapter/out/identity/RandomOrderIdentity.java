@@ -1,5 +1,6 @@
 package com.congthanh.orderservice.adapter.out.identity;
 
+import com.congthanh.commonservice.id.Snowflake;
 import com.congthanh.orderservice.application.port.out.OrderIdentity;
 import org.springframework.stereotype.Component;
 
@@ -7,10 +8,9 @@ import java.security.SecureRandom;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
-import java.util.UUID;
 
 /**
- * id nội bộ: UUID. Mã đơn cho khách: CT-yyMMdd-XXXXXXXX (Crockford base32, 40 bit ngẫu nhiên),
+ * id nội bộ: Snowflake (common-core). Mã đơn cho khách: CT-yyMMdd-XXXXXXXX (Crockford base32, 40 bit ngẫu nhiên),
  * không đoán được và không lộ số lượng đơn như id tăng dần.
  */
 @Component
@@ -22,7 +22,7 @@ class RandomOrderIdentity implements OrderIdentity {
 
     @Override
     public String newOrderId() {
-        return UUID.randomUUID().toString();
+        return Snowflake.nextString();
     }
 
     @Override

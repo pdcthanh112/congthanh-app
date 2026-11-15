@@ -3,8 +3,8 @@ CREATE SCHEMA IF NOT EXISTS "notification_service";
 CREATE TYPE "notification_service"."channel" AS ENUM('IN_APP', 'EMAIL', 'SMS', 'WEB_PUSH', 'FCM');--> statement-breakpoint
 CREATE TYPE "notification_service"."delivery_status" AS ENUM('PENDING', 'SENT', 'FAILED', 'SKIPPED');--> statement-breakpoint
 CREATE TABLE "notification_service"."deliveries" (
-	"id" text PRIMARY KEY NOT NULL,
-	"notification_id" text NOT NULL,
+	"id" bigint PRIMARY KEY NOT NULL,
+	"notification_id" bigint NOT NULL,
 	"channel" "notification_service"."channel" NOT NULL,
 	"status" "notification_service"."delivery_status" DEFAULT 'PENDING' NOT NULL,
 	"attempts" integer DEFAULT 0 NOT NULL,
@@ -21,7 +21,7 @@ CREATE TABLE "notification_service"."fcm_tokens" (
 );
 --> statement-breakpoint
 CREATE TABLE "notification_service"."notifications" (
-	"id" text PRIMARY KEY NOT NULL,
+	"id" bigint PRIMARY KEY NOT NULL,
 	"user_id" text NOT NULL,
 	"category" varchar(20) NOT NULL,
 	"type" varchar(40) NOT NULL,

@@ -1,27 +1,20 @@
-import os
-import time
-import uuid
-
 from django.db import models
+from ecommerce_platform.ids import snowflake
 
 
-def uuid7() -> uuid.UUID:
-    """UUIDv7 (RFC 9562) như các service Go: khoá có thứ tự thời gian, index B-tree gọn."""
-    ms = time.time_ns() // 1_000_000
-    b = bytearray(ms.to_bytes(6, "big") + os.urandom(10))
-    b[6] = (b[6] & 0x0F) | 0x70
-    b[8] = (b[8] & 0x3F) | 0x80
-    return uuid.UUID(bytes=bytes(b))
+def snowflake_id() -> int:
+    """Id Snowflake dùng chung (ADR 0028), lưu BIGINT; API trả dạng chuỗi để JS không mất chính xác."""
+    return int(snowflake())
 
 
 class Supplier(models.Model):
     class Status(models.TextChoices):
-        PENDING = "PENDING"  # chờ admin duyệt
+        PENDING = "PENDING"
         ACTIVE = "ACTIVE"
         SUSPENDED = "SUSPENDED"
         CLOSED = "CLOSED"
 
-    id = models.UUIDField(primary_key=True, default=uuid7, editable=False)
+    id = models.BigIntegerField(primary_key=True, default=snowflake_id, editable=False)
     owner_id = models.CharField(max_length=64, unique=True, help_text="Keycloak subject của người bán")
     name = models.CharField(max_length=200)
     slug = models.SlugField(max_length=220, unique=True)

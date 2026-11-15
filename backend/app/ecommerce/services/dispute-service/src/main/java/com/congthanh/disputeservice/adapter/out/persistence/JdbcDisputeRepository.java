@@ -46,7 +46,7 @@ class JdbcDisputeRepository implements DisputeRepository {
         int n;
         if (d.version() == 0) {
             n = jdbc.sql("""
-                            INSERT INTO disputes (%s) VALUES (:id::uuid, :provider, :pid, :paymentId, :orderId, :customerId,
+                            INSERT INTO disputes (%s) VALUES (:id::bigint, :provider, :pid, :paymentId, :orderId, :customerId,
                                 :amount, :fee, :currency, :reason, :due, :status, :evidence::jsonb, :note, :createdAt, :updatedAt, 1)
                             ON CONFLICT (provider, provider_dispute_id) DO NOTHING""".formatted(COLUMNS))
                     .param("id", d.id()).param("provider", d.provider()).param("pid", d.providerDisputeId())
@@ -60,7 +60,7 @@ class JdbcDisputeRepository implements DisputeRepository {
             n = jdbc.sql("""
                             UPDATE disputes SET status = :status, evidence = :evidence::jsonb, note = :note,
                                    updated_at = :updatedAt, version = version + 1
-                            WHERE id = :id::uuid AND version = :version""")
+                            WHERE id = :id::bigint AND version = :version""")
                     .param("id", d.id()).param("status", d.status().name()).param("evidence", evidence)
                     .param("note", d.note()).param("updatedAt", ts(d.updatedAt())).param("version", d.version())
                     .update();
@@ -75,7 +75,7 @@ class JdbcDisputeRepository implements DisputeRepository {
 
     @Override
     public Optional<Dispute> findById(String id) {
-        return jdbc.sql("SELECT " + COLUMNS + " FROM disputes WHERE id = :id::uuid").param("id", id)
+        return jdbc.sql("SELECT " + COLUMNS + " FROM disputes WHERE id = :id::bigint").param("id", id)
                 .query((rs, i) -> map(rs)).optional();
     }
 
