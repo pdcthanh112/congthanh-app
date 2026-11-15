@@ -10,6 +10,7 @@ ports:
 migrations:
   enabled: true
 env:
+  KAFKA_BROKERS: ecommerce-kafka-bootstrap.messaging.svc.cluster.local:9092
   OIDC_ISSUER_URI: "http://keycloak-service.identity.svc.cluster.local:8080/realms/ecommerce"
   JWT_JWKS_URL: "http://keycloak-service.identity.svc.cluster.local:8080/realms/ecommerce/protocol/openid-connect/certs"
   DB_SCHEMA: customer_service

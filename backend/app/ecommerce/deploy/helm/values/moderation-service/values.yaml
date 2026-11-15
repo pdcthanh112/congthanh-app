@@ -6,6 +6,7 @@ image:
 ports:
   http: 5039
 env:
+  KAFKA_BROKERS: ecommerce-kafka-bootstrap.messaging.svc.cluster.local:9092
   DB_SCHEMA: moderation
   JWT_JWKS_URL: http://keycloak-service.identity.svc.cluster.local:8080/realms/ecommerce/protocol/openid-connect/certs
   ANTHROPIC_MODEL: claude-haiku-5-5

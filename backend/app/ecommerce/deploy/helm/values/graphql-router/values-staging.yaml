@@ -1,0 +1,16 @@
+image:
+  tag: ""
+  digest: sha256:0000000000000000000000000000000000000000000000000000000000000000
+autoscaling:
+  minReplicas: 2
+  maxReplicas: 8
+pdb:
+  minAvailable: 1
+resources:
+  requests:
+    cpu: 250m
+    memory: 256Mi
+  limits:
+    memory: 512Mi
+scheduledScaling:
+  replicas: 2

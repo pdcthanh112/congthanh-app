@@ -189,3 +189,49 @@ func TestSweepRepublishesPendingRequests(t *testing.T) {
 		t.Fatalf("events = %v", eventNames(st.events))
 	}
 }
+
+type fakeIdentity struct{ deleted []string }
+
+func (f *fakeIdentity) DeleteUser(_ context.Context, id string) error {
+	f.deleted = append(f.deleted, id)
+	return nil
+}
+
+func (m *memStore) requestsByStatus(st domain.RequestStatus) []domain.Request {
+	var out []domain.Request
+	for _, r := range m.requests {
+		if r.Status == st {
+			out = append(out, *r)
+		}
+	}
+	return out
+}
+
+func TestKeycloakAccountIsDeletedLastAndClosesTheRequest(t *testing.T) {
+	ctx := context.Background()
+	st := &statusStore{memStore: newMem()}
+	id := &fakeIdentity{}
+	svc := NewService(st, &seqIDs{}, []string{"customer-service", IdentityProcessor}, "v1").WithIdentity(id)
+	r, _ := svc.OpenRequest(ctx, "c-1", "DELETE", "")
+
+	if n, _ := svc.CloseIdentity(ctx); n != 0 || len(id.deleted) != 0 {
+		t.Fatal("account must not be deleted while other services still hold data")
+	}
+	_ = svc.ProcessorReply(ctx, r.ID, "customer-service", false, "", "")
+	if n, err := svc.CloseIdentity(ctx); err != nil || n != 1 || id.deleted[0] != "c-1" {
+		t.Fatalf("n=%d err=%v deleted=%v", n, err, id.deleted)
+	}
+	got, _ := st.GetRequest(ctx, r.ID)
+	if got.Status != domain.StatusCompleted {
+		t.Fatalf("status = %v", got.Status)
+	}
+}
+
+// statusStore trả danh sách theo trạng thái (memStore gốc trả rỗng).
+type statusStore struct{ *memStore }
+
+func (s *statusStore) RequestsByStatus(_ context.Context, st domain.RequestStatus, _ int) ([]domain.Request, error) {
+	return s.requestsByStatus(st), nil
+}
+
+func (s *statusStore) InTx(ctx context.Context, fn func(Tx) error) error { return fn(s.memStore) }

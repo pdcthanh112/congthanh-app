@@ -118,13 +118,15 @@ services:
   connect-init-python:
     profiles: [apps-python]
     image: curlimages/curl:8.16.0
-    depends_on: { connect: { condition: service_healthy }, fraud-service: { condition: service_started }, reconciliation-service: { condition: service_started }, moderation-service: { condition: service_started } }
+    depends_on: { connect: { condition: service_healthy }, fraud-service: { condition: service_started }, recommendation-service: { condition: service_started }, reconciliation-service: { condition: service_started }, moderation-service: { condition: service_started } }
     volumes: ["../../platform/messaging/debezium/local:/connectors:ro"]
     entrypoint: ["sh", "-c"]
     command:
       - |
         until curl -sf http://fraud-service:5026/health/ready >/dev/null; do sleep 2; done
         curl -sf -X PUT -H 'Content-Type: application/json' --data @/connectors/fraud-outbox.json http://connect:8083/connectors/fraud-outbox/config >/dev/null && echo "registered fraud-outbox"
+        until curl -sf http://recommendation-service:5028/health/ready >/dev/null; do sleep 2; done
+        curl -sf -X PUT -H 'Content-Type: application/json' --data @/connectors/recommendation-outbox.json http://connect:8083/connectors/recommendation-outbox/config >/dev/null && echo "registered recommendation-outbox"
         until curl -sf http://reconciliation-service:5036/health/ready >/dev/null; do sleep 2; done
         curl -sf -X PUT -H 'Content-Type: application/json' --data @/connectors/reconciliation-outbox.json http://connect:8083/connectors/reconciliation-outbox/config >/dev/null && echo "registered reconciliation-outbox"
         until curl -sf http://moderation-service:5039/health/ready >/dev/null; do sleep 2; done
@@ -144,6 +146,7 @@ services:
       KC_DB_PASSWORD: postgres
       KEYCLOAK_GATEWAY_SECRET: local-gateway-secret
       ORDER_SERVICE_CLIENT_SECRET: local-order-secret
+      PRIVACY_SERVICE_CLIENT_SECRET: local-privacy-secret
       NOTIFICATION_SERVICE_CLIENT_SECRET: local-notification-secret
     volumes: ["../../platform/identity/keycloak/realms:/opt/keycloak/data/import:ro"]
     depends_on: { postgres: { condition: service_healthy } }
@@ -227,7 +230,11 @@ services:
     profiles: [apps-go]
     build: { context: ../.., dockerfile: services/privacy-service/Dockerfile }
     ports: ["5033:5033"]
-    environment: { <<: *go-env, DB_SCHEMA: privacy }
+    environment:
+      <<: *go-env
+      DB_SCHEMA: privacy
+      KEYCLOAK_URL: http://keycloak:8080
+      KEYCLOAK_CLIENT_SECRET: local-privacy-secret
     depends_on: { postgres: { condition: service_healthy }, kafka: { condition: service_healthy } }
 
   pricing-service:
@@ -499,7 +506,7 @@ services:
     profiles: [apps-node]
     build: { <<: *node-build, args: { SERVICE: customer-service } }
     ports: ["5004:5004", "19094:19094"]
-    environment: { <<: *node-env }
+    environment: { <<: *node-env, KAFKA_BROKERS: "kafka:9092" }
     depends_on: { postgres: { condition: service_healthy } }
 
   review-service:
@@ -527,7 +534,7 @@ services:
     profiles: [apps-node]
     build: { <<: *node-build, args: { SERVICE: message-service } }
     ports: ["5012:5012"]
-    environment: { <<: *node-env, PRODUCT_GRPC_ADDR: "product-service:29090", REDIS_URL: "redis://redis:6379/3", MODERATION_URL: "http://moderation-service:5039" }
+    environment: { <<: *node-env, PRODUCT_GRPC_ADDR: "product-service:29090", REDIS_URL: "redis://redis:6379/3", MODERATION_URL: "http://moderation-service:5039", KAFKA_BROKERS: "kafka:9092" }
     depends_on: { postgres: { condition: service_healthy }, redis: { condition: service_healthy } }
 
   storefront-bff:
@@ -674,7 +681,8 @@ services:
       HTTP_PORT: "5039"
       DATABASE_URL: postgresql://postgres:postgres@postgres:5432/ecommerce
       DB_SCHEMA: moderation
-    depends_on: { postgres: { condition: service_healthy } }
+      KAFKA_BROKERS: kafka:9092
+    depends_on: { postgres: { condition: service_healthy }, kafka: { condition: service_healthy } }
 
   fraud-service:
     profiles: [apps-python]

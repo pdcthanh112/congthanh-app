@@ -7,6 +7,7 @@ ports:
   http: 5006
   grpc: 19090
 env:
+  KAFKA_BROKERS: ecommerce-kafka-bootstrap.messaging.svc.cluster.local:9092
   # Cấu hình qua biến môi trường (application.yaml đọc env), không còn Spring profile.
   OIDC_ISSUER_URI: http://keycloak-service.identity.svc.cluster.local:8080/realms/ecommerce
   JWT_JWKS_URL: http://keycloak-service.identity.svc.cluster.local:8080/realms/ecommerce/protocol/openid-connect/certs

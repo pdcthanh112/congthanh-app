@@ -1,0 +1,8 @@
+image:
+  tag: ""
+  digest: sha256:0000000000000000000000000000000000000000000000000000000000000000
+autoscaling:
+  minReplicas: 2
+  maxReplicas: 4
+pdb:
+  minAvailable: 1

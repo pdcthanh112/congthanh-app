@@ -1,4 +1,3 @@
-# Operator và CRD nền, sync trước mọi thứ (wave -20).
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
@@ -247,8 +246,6 @@ spec:
       - CreateNamespace=true
       - ServerSideApply=true
 ---
-# Flink Kubernetes Operator: quản lý FlinkDeployment (savepoint khi nâng cấp, autoscaler theo backlog Kafka).
-# Webhook dùng chứng chỉ cert-manager (cài cùng wave). SA "flink" + RBAC được tạo trong namespace streaming.
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
@@ -283,8 +280,6 @@ spec:
       - CreateNamespace=true
       - ServerSideApply=true
 ---
-# Kargo: promote Freight (bộ image) dev → staging → prod bằng commit/PR vào repo (platform/delivery/kargo).
-# Đăng nhập UI bằng Keycloak (OIDC), tắt tài khoản admin mặc định.
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
@@ -320,7 +315,6 @@ spec:
       - CreateNamespace=true
       - ServerSideApply=true
 ---
-# Tetragon: runtime security bằng eBPF (TracingPolicy ở platform/security/tetragon).
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
@@ -350,7 +344,6 @@ spec:
     syncOptions:
       - ServerSideApply=true
 ---
-# Cilium (chaining với aws-cni) + Hubble: network policy L3-L7 và quan sát luồng bằng eBPF.
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
@@ -380,7 +373,6 @@ spec:
     syncOptions:
       - ServerSideApply=true
 ---
-# KServe (chế độ Standard: Deployment + HPA, không Knative/Istio ingress) phục vụ InferenceService ở platform/inference.
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
@@ -464,7 +456,6 @@ spec:
     syncOptions:
       - ServerSideApply=true
 ---
-# Chaos Mesh: thí nghiệm định kỳ ở platform/chaos (chỉ staging), game day thủ công ở tests/chaos.
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:

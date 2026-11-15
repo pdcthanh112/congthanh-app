@@ -50,6 +50,23 @@ spec:
     acls:
       - resource:
           type: topic
+          name: ecommerce.privacy.events
+        operations:
+          - Read
+          - Describe
+      - resource:
+          type: topic
+          name: ecommerce.privacy.events.dlq
+        operations:
+          - Write
+          - Describe
+      - resource:
+          type: group
+          name: cart-service-privacy
+        operations:
+          - Read
+      - resource:
+          type: topic
           name: ecommerce.order.events
         operations:
           - Read
@@ -79,6 +96,23 @@ spec:
   authorization:
     type: simple
     acls:
+      - resource:
+          type: topic
+          name: ecommerce.privacy.events
+        operations:
+          - Read
+          - Describe
+      - resource:
+          type: topic
+          name: ecommerce.privacy.events.dlq
+        operations:
+          - Write
+          - Describe
+      - resource:
+          type: group
+          name: order-service-privacy
+        operations:
+          - Read
       - resource:
           type: topic
           name: ecommerce.inventory.events
@@ -630,6 +664,23 @@ spec:
     acls:
       - resource:
           type: topic
+          name: ecommerce.privacy.events
+        operations:
+          - Read
+          - Describe
+      - resource:
+          type: topic
+          name: ecommerce.privacy.events.dlq
+        operations:
+          - Write
+          - Describe
+      - resource:
+          type: group
+          name: fraud-service-privacy
+        operations:
+          - Read
+      - resource:
+          type: topic
           name: ecommerce.stream.customer-risk
         operations:
           - Read
@@ -689,6 +740,23 @@ spec:
   authorization:
     type: simple
     acls:
+      - resource:
+          type: topic
+          name: ecommerce.privacy.events
+        operations:
+          - Read
+          - Describe
+      - resource:
+          type: topic
+          name: ecommerce.privacy.events.dlq
+        operations:
+          - Write
+          - Describe
+      - resource:
+          type: group
+          name: recommendation-service-privacy
+        operations:
+          - Read
       - resource:
           type: topic
           name: ecommerce.stream.product-trending
@@ -943,6 +1011,23 @@ spec:
     acls:
       - resource:
           type: topic
+          name: ecommerce.privacy.events
+        operations:
+          - Read
+          - Describe
+      - resource:
+          type: topic
+          name: ecommerce.privacy.events.dlq
+        operations:
+          - Write
+          - Describe
+      - resource:
+          type: group
+          name: returns-service-privacy
+        operations:
+          - Read
+      - resource:
+          type: topic
           name: ecommerce.order.events
         operations:
           - Read
@@ -1183,5 +1268,36 @@ spec:
       - resource:
           type: group
           name: subscription-service
+        operations:
+          - Read
+---
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaUser
+metadata:
+  name: moderation-service
+  namespace: messaging
+  labels:
+    strimzi.io/cluster: ecommerce
+spec:
+  authentication:
+    type: scram-sha-512
+  authorization:
+    type: simple
+    acls:
+      - resource:
+          type: topic
+          name: ecommerce.privacy.events
+        operations:
+          - Read
+          - Describe
+      - resource:
+          type: topic
+          name: ecommerce.privacy.events.dlq
+        operations:
+          - Write
+          - Describe
+      - resource:
+          type: group
+          name: moderation-service-privacy
         operations:
           - Read

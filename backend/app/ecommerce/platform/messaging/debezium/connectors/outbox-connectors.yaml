@@ -796,3 +796,40 @@ spec:
     key.converter: org.apache.kafka.connect.storage.StringConverter
     value.converter: io.debezium.converters.BinaryDataConverter
     heartbeat.interval.ms: '10000'
+---
+# recommendation: chỉ để trả lời privacy-service (ErasureCompleted), ADR 0027.
+apiVersion: kafka.strimzi.io/v1beta2
+kind: KafkaConnector
+metadata:
+  name: recommendation-outbox
+  namespace: messaging
+  labels:
+    strimzi.io/cluster: debezium
+spec:
+  class: io.debezium.connector.postgresql.PostgresConnector
+  tasksMax: 1
+  config:
+    plugin.name: pgoutput
+    database.hostname: ecommerce-db-rw.data.svc.cluster.local
+    database.port: '5432'
+    database.dbname: ecommerce
+    database.user: ${secrets:messaging/debezium-db:username}
+    database.password: ${secrets:messaging/debezium-db:password}
+    topic.prefix: cdc.recommendation
+    schema.include.list: recommendation
+    table.include.list: recommendation.outbox
+    slot.name: debezium_recommendation
+    publication.name: dbz_recommendation_outbox
+    publication.autocreate.mode: filtered
+    tombstones.on.delete: 'false'
+    skipped.operations: d,t
+    transforms: outbox
+    transforms.outbox.type: io.debezium.transforms.outbox.EventRouter
+    transforms.outbox.route.by.field: aggregatetype
+    transforms.outbox.route.topic.replacement: ecommerce.${routedByValue}.events
+    transforms.outbox.table.field.event.key: aggregateid
+    transforms.outbox.table.field.event.payload: payload
+    transforms.outbox.table.fields.additional.placement: type:header:ce_type,traceparent:header:traceparent,id:header:ce_id
+    key.converter: org.apache.kafka.connect.storage.StringConverter
+    value.converter: io.debezium.converters.BinaryDataConverter
+    heartbeat.interval.ms: '10000'

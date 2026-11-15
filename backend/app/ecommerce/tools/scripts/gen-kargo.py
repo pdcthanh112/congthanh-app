@@ -11,7 +11,7 @@ REPO = "https://github.com/pdcthanh112/CongThanhApp.git"
 APP = "backend/app/ecommerce"
 PROJECT = "congthanhapp"
 STREAM_IMAGE = "ghcr.io/pdcthanh112/congthanhapp/stream-processor"
-STAGES = ["dev", "staging", "prod"]
+STAGES = ["dev", "test", "staging", "prod"]
 
 
 def services() -> list[tuple[str, str]]:
@@ -40,6 +40,7 @@ def build() -> str:
             "spec": {
                 "promotionPolicies": [
                     {"stageSelector": {"name": "dev"}, "autoPromotionEnabled": True},
+                    {"stageSelector": {"name": "test"}, "autoPromotionEnabled": True},
                     {"stageSelector": {"name": "staging"}, "autoPromotionEnabled": True},
                     {"stageSelector": {"name": "prod"}, "autoPromotionEnabled": False},
                 ]

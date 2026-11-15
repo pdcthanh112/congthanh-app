@@ -5,6 +5,8 @@ image:
 ports:
   http: 5033
 env:
+  KEYCLOAK_URL: http://keycloak-service.identity.svc.cluster.local:8080
+  KEYCLOAK_REALM: ecommerce
   DB_SCHEMA: privacy
   KAFKA_BROKERS: ecommerce-kafka-bootstrap.messaging.svc.cluster.local:9092
   JWT_JWKS_URL: http://keycloak-service.identity.svc.cluster.local:8080/realms/ecommerce/protocol/openid-connect/certs
@@ -13,3 +15,6 @@ secretEnv:
   - name: DATABASE_URL
     key: ecommerce/privacy-service
     property: database_url
+  - name: KEYCLOAK_CLIENT_SECRET
+    key: ecommerce/privacy-service
+    property: keycloak_client_secret

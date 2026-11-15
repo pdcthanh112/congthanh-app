@@ -1,5 +1,3 @@
-# Mỗi thư mục deploy/helm/values/<service> × mỗi cluster (label env=dev|staging|prod) → 1 Application.
-# Thêm service mới = thêm thư mục values, không cần sửa file này.
 apiVersion: argoproj.io/v1alpha1
 kind: ApplicationSet
 metadata:

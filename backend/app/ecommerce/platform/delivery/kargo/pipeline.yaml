@@ -17,6 +17,9 @@ spec:
       name: dev
     autoPromotionEnabled: true
   - stageSelector:
+      name: test
+    autoPromotionEnabled: true
+  - stageSelector:
       name: staging
     autoPromotionEnabled: true
   - stageSelector:
@@ -696,6 +699,37 @@ spec:
 apiVersion: kargo.akuity.io/v1alpha1
 kind: Stage
 metadata:
+  name: test
+  namespace: congthanhapp
+  labels:
+    environment: test
+spec:
+  requestedFreight:
+  - origin:
+      kind: Warehouse
+      name: services
+    sources:
+      stages:
+      - dev
+  promotionTemplate:
+    spec:
+      vars:
+      - name: env
+        value: test
+      steps:
+      - task:
+          name: update-images
+      - uses: git-push
+        config:
+          path: ./src
+          targetBranch: main
+  verification:
+    analysisTemplates:
+    - name: ecommerce-health
+---
+apiVersion: kargo.akuity.io/v1alpha1
+kind: Stage
+metadata:
   name: staging
   namespace: congthanhapp
   labels:
@@ -707,7 +741,7 @@ spec:
       name: services
     sources:
       stages:
-      - dev
+      - test
   promotionTemplate:
     spec:
       vars:
