@@ -238,7 +238,7 @@ Phiên bản lấy từ `go.work`, `gradle/libs.versions.toml`, `package.json`, 
 | ---------------------------------------------------- | ----------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Keycloak 26**                                      | đăng nhập (OIDC/PKCE), role `CUSTOMER/SELLER/ADMIN/SUPPORT` | Mã nguồn mở, social login, consent screen (dùng cho MCP), thay auth-service tự viết.                                                                                |
 | **OpenFGA**                                          | phân quyền theo quan hệ (ReBAC)                             | "Ai xem được đơn nào, seller sửa được sản phẩm nào" khó biểu diễn bằng role; model ở `platform/authz/openfga/model.fga`, có test.                                   |
-| **Apache APISIX 3.14**                               | edge gateway                                                | Plugin OIDC, rate limit theo IP/consumer, giới hạn kết nối, OTel; cấu hình sinh từ một file `platform/gateway/routes.yaml`. Thay api-gateway Go tự viết (ADR 0005). |
+| **Apache APISIX 3.14**                               | edge gateway                                                | Plugin OIDC, rate limit theo IP/consumer, giới hạn kết nối, OTel; cấu hình sinh từ một file `services/api-gateway/routes.yaml`. Thay api-gateway Go tự viết (ADR 0005). |
 | **Istio Ambient**                                    | mTLS, AuthorizationPolicy deny-by-default                   | Không sidecar nên ít tài nguyên, nâng mesh không phải restart pod (ADR 0006).                                                                                       |
 | **Cilium + Hubble, Tetragon**                        | network policy L3–L7, runtime security eBPF                 | Đang chạy chế độ audit trước khi enforce.                                                                                                                           |
 | **Vault + External Secrets**                         | bí mật                                                      | Secret không nằm trong Git; ESO đồng bộ vào K8s Secret.                                                                                                             |
@@ -286,10 +286,10 @@ Platform chia theo **vai trò** trước, theo **service** sau:
 backend/app/ecommerce/
 ├── api/        hợp đồng (contract): thứ mà nhiều service cùng phụ thuộc → đặt riêng, là nguồn sự thật
 ├── libs/       thư viện nền theo ngôn ngữ + code sinh từ api/  → chuẩn chung (log, trace, auth, outbox) viết một lần
-├── services/   service nghiệp vụ phục vụ request, mỗi service một thư mục độc lập (build, test, deploy riêng)
+├── services/   service nghiệp vụ phục vụ request, mỗi service một thư mục độc lập (build, test, deploy riêng); `api-gateway/` giữ cấu hình APISIX
 ├── data/       pipeline dữ liệu (không phục vụ request người dùng): ingestion, streaming, lakehouse
 ├── ai/         thành phần cho AI agent (MCP)
-├── platform/   cấu hình phần mềm nền chạy trong cluster (gateway, identity, Kafka, mesh, observability...)
+├── platform/   cấu hình phần mềm nền chạy trong cluster (identity, Kafka, mesh, observability...)
 ├── deploy/     cách đóng gói và triển khai service (Helm, ArgoCD, compose local)
 ├── infra/      hạ tầng cloud (Terraform AWS)
 ├── tests/      test xuyên service (load, chaos, contract, e2e)
@@ -584,8 +584,7 @@ ai/commerce-mcp-service/               MCP server (Python) cho AI agent của kh
 
 | Thư mục                                                                                                    | Nội dung                                                                                                                                                                                      |
 | ---------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `gateway/routes.yaml`                                                                                      | ★ nguồn sự thật định tuyến; sinh ra `gateway/apisix/apisix.yaml` (local) và `gateway/apisix/k8s/routes.yaml` (ApisixRoute)                                                                    |
-| `gateway/apisix/config.yaml`, `k8s/global-rules.yaml`, `k8s/values.yaml`                                   | cấu hình APISIX, plugin toàn cục, Helm values                                                                                                                                                 |
+| `../services/api-gateway/`                                                                                 | gateway APISIX đã chuyển sang `services/api-gateway/` (bảng route `routes.yaml`, cấu hình, plugin, test); xem README ở đó                                                                     |
 | `identity/keycloak/realms/ecommerce-realm.json`                                                            | realm import khi chạy local: client, role, user mẫu; `k8s/` cho cluster                                                                                                                       |
 | `authz/openfga/model.fga`, `tests.fga.yaml`, `values.yaml`                                                 | model ReBAC + test                                                                                                                                                                            |
 | `messaging/kafka/{kafka-cluster,topics,users}.yaml`                                                        | Strimzi Kafka, KafkaTopic, KafkaUser                                                                                                                                                          |
@@ -638,7 +637,6 @@ tests/
 └── e2e/smoke.hurl, graphql.hurl
 
 tools/
-├── scripts/gen-apisix-routes.py     routes.yaml → cấu hình APISIX (--check trong CI)
 ├── scripts/gen-asyncapi.py          proto event → api/asyncapi/asyncapi.yaml
 ├── scripts/gen-kargo.py             helm/values → platform/delivery/kargo/pipeline.yaml
 ├── scripts/compose-supergraph.mjs   SDL subgraph → supergraph (npm run supergraph[:check])
@@ -724,7 +722,7 @@ sequenceDiagram
   KC-->>B: access token (JWT, claim roles)
   B->>CF: POST /graphql, Authorization: Bearer
   CF->>GW: chuyển tiếp (VPC origin → NLB nội bộ)
-  GW->>GW: rate limit, route theo platform/gateway/routes.yaml
+  GW->>GW: rate limit, route theo services/api-gateway/routes.yaml
   GW->>R: /graphql
   R->>R: kiểm chữ ký JWT (JWKS), giới hạn độ sâu
   R->>BFF: query con của subgraph, kèm Authorization
@@ -737,7 +735,7 @@ sequenceDiagram
 ```
 
 REST công khai (`/api/ecommerce/*`) đi thẳng APISIX → service; route có `auth: required` bị APISIX chặn nếu
-thiếu/sai token (plugin `openid-connect`, Keycloak `bearer_only`). Bảng route: `platform/gateway/routes.yaml`.
+thiếu/sai token (plugin `openid-connect`, Keycloak `bearer_only`). Bảng route: `services/api-gateway/routes.yaml`.
 
 ### 7.2 Luồng event: Transactional Outbox → Debezium → Kafka → consumer
 
@@ -1477,7 +1475,7 @@ TEST_REDIS_URL=redis://localhost:6379/15 uv run pytest
 
 ```bash
 make proto      # buf lint + buf generate (Go) + sinh Python
-make gen        # route APISIX (từ platform/gateway/routes.yaml), AsyncAPI (từ proto event), pipeline Kargo, supergraph
+make gen        # route APISIX (từ services/api-gateway/routes.yaml), AsyncAPI (từ proto event), pipeline Kargo, supergraph
 make check      # như CI: buf lint, file sinh còn khớp, supergraph:check
 make fga-test   # test model OpenFGA (platform/authz/openfga/tests.fga.yaml)
 make test       # test-go + test-java + test-node
@@ -1487,7 +1485,7 @@ make lint
 | Bạn đổi                         | Phải chạy                                                | Commit kèm                                                                      |
 | ------------------------------- | -------------------------------------------------------- | ------------------------------------------------------------------------------- |
 | `api/proto/**`                  | `make proto`                                             | `libs/go/proto`, `libs/python/ecommerce-proto`, `api/asyncapi` (qua `make gen`) |
-| `platform/gateway/routes.yaml`  | `make gen`                                               | `platform/gateway/apisix/apisix.yaml`, `apisix/k8s/routes.yaml`                 |
+| `services/api-gateway/routes.yaml`  | `make gen`                                               | `services/api-gateway/apisix/apisix.yaml`, `k8s/routes.yaml`                 |
 | resolver/type GraphQL           | `npm run schema:emit ... && npm run supergraph`          | `services/<svc>/schema.graphql`, `platform/graphql/<graph>/*`                   |
 | thêm `deploy/helm/values/<svc>` | `make gen`                                               | `platform/delivery/kargo/pipeline.yaml`                                         |
 | schema DB                       | migration mới (goose / Liquibase / Drizzle / SQL Python) | file migration, không sửa migration cũ                                          |
@@ -1848,7 +1846,7 @@ Grafana Alloy (eBPF) thu profile mọi pod, không cần sửa code.
 | `ci-java.yml`   | `libs/java`, 5 service Spring, stream-processor, `build-logic`, `api/proto`                                          | `./gradlew build`, `processAot`; main: image Jib, image native (Paketo), image Flink                                                                                          |
 | `ci-node.yml`   | `libs/ts`, service NestJS                                                                                            | typecheck, Biome, dependency-cruiser, test với Postgres thật, migration không bị quên, `schema.graphql` cập nhật, supergraph khớp, router config hợp lệ; image + image router |
 | `ci-python.yml` | service Python                                                                                                       | ruff, pytest; image                                                                                                                                                           |
-| `contracts.yml` | `api/`, proto sinh, `platform/gateway`, `tools/scripts`, `deploy/helm/values`, `platform/delivery`, `platform/authz` | buf lint/breaking, file sinh còn khớp, test OpenFGA, OpenAPI lint/breaking                                                                                                    |
+| `contracts.yml` | `api/`, proto sinh, `services/api-gateway`, `tools/scripts`, `deploy/helm/values`, `platform/delivery`, `platform/authz` | buf lint/breaking, file sinh còn khớp, test OpenFGA, OpenAPI lint/breaking                                                                                                    |
 | `security.yml`  |                                                                                                                      | quét secret, IaC + dependency, CodeQL, OpenSSF Scorecard                                                                                                                      |
 | `release.yml`   | push tag `vX.Y.Z`                                                                                                    | lấy digest image đã ký của commit, xác minh chữ ký Cosign, mở PR cập nhật `values-prod.yaml` (merge thì ArgoCD canary lên prod)                                               |
 
@@ -1883,14 +1881,14 @@ Dependabot + Renovate (`.github/renovate.json5`) cập nhật dependency; Renova
 - **Contract trước, code sau.** Đổi proto/GraphQL/OpenAPI thì chạy `make proto`/`make gen`, giữ tương thích ngược;
   muốn bỏ trường thì `@deprecated`/`reserved` trước.
 - **Không sửa file sinh bằng tay**: `libs/go/proto`, `libs/python/ecommerce-proto/src`, `libs/ts/proto-gen/src/gen`,
-  `api/asyncapi`, `platform/gateway/apisix/*.yaml`, `platform/graphql/*/{config.json,supergraph.graphql}`,
+  `api/asyncapi`, `services/api-gateway/{apisix/apisix.yaml,k8s/routes.yaml}`, `platform/graphql/*/{config.json,supergraph.graphql}`,
   `platform/delivery/kargo/pipeline.yaml`, `services/*/schema.graphql`.
 - **Giữ luật lục giác**: domain không import hạ tầng; use case chỉ biết port; adapter vào không gọi thẳng adapter ra;
   service không import code service khác.
 - **Event** luôn qua outbox trong cùng transaction; consumer phải idempotent; không xoá migration cũ, chỉ thêm mới.
 - **Saga**: đổi logic `CheckoutWorkflowImpl` phải bọc `Workflow.getVersion`; activity phải idempotent theo `orderId`.
 - **Đường gọi đồng bộ mới** phải mở trong `platform/mesh/istio/authorization-policies.yaml`; route mới khai trong
-  `platform/gateway/routes.yaml`.
+  `services/api-gateway/routes.yaml`.
 - **Quyết định kiến trúc mới** viết ADR mới trong `docs/adr` (không sửa ADR đã Accepted, đánh dấu Superseded).
 - **Triển khai**: không dùng image `:latest`, image phải ký bằng Cosign, deploy chỉ qua Git (ArgoCD).
 - Trước khi push: `make check && make lint && make test` (hoặc test của phần mình đổi).
@@ -2701,15 +2699,6 @@ backend/app/ecommerce/
 │   ├── featureflags/unleash/
 │   │   ├── flags.json
 │   │   └── values.yaml
-│   ├── gateway/
-│   │   ├── apisix/
-│   │   │   ├── k8s/
-│   │   │   │   ├── global-rules.yaml
-│   │   │   │   ├── routes.yaml
-│   │   │   │   └── values.yaml
-│   │   │   ├── apisix.yaml
-│   │   │   └── config.yaml
-│   │   └── routes.yaml
 │   ├── graphql/
 │   │   ├── backoffice/
 │   │   │   ├── graph.yaml
@@ -2839,6 +2828,24 @@ backend/app/ecommerce/
 │       ├── namespaces.yaml
 │       └── values.yaml
 ├── services/
+│   ├── api-gateway/
+│   │   ├── apisix/
+│   │   │   ├── apisix.yaml
+│   │   │   └── config.yaml
+│   │   ├── k8s/
+│   │   │   ├── global-rules.yaml
+│   │   │   ├── routes.yaml
+│   │   │   └── values.yaml
+│   │   ├── plugins/
+│   │   │   └── README.md
+│   │   ├── scripts/
+│   │   │   └── gen-routes.py
+│   │   ├── tests/
+│   │   │   └── test_routes.py
+│   │   ├── Dockerfile
+│   │   ├── README.md
+│   │   ├── catalog-info.yaml
+│   │   └── routes.yaml
 │   ├── backoffice-bff/
 │   │   ├── src/
 │   │   │   ├── adapters/in/graphql/
@@ -4168,7 +4175,6 @@ backend/app/ecommerce/
 │   │   └── template.yaml
 │   └── scripts/
 │       ├── compose-supergraph.mjs
-│       ├── gen-apisix-routes.py
 │       ├── gen-asyncapi.py
 │       ├── gen-kargo.py
 │       ├── new-node-service.sh

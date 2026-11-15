@@ -1,8 +1,7 @@
-# Giá trị mặc định; mỗi service ghi đè trong deploy/helm/values/<service>/values*.yaml.
 nameOverride: ""
 image:
   repository: ghcr.io/pdcthanh112/congthanhapp/SERVICE
-  tag: ""            # CI ghi digest/version; không bao giờ dùng latest (Kyverno chặn)
+  tag: ""
   digest: ""
   pullPolicy: IfNotPresent
 
@@ -20,14 +19,14 @@ args: []
 
 ports:
   http: 8080
-  grpc: 0            # 0 = không mở gRPC
+  grpc: 0 # 0 = không mở gRPC
 
-env: {}              # biến môi trường thường
-secretEnv: []        # tên key lấy từ Vault qua ExternalSecret: [{name: DATABASE_URL, key: ecommerce/x, property: database_url}]
+env: {} # biến môi trường thường
+secretEnv: [] # tên key lấy từ Vault qua ExternalSecret: [{name: DATABASE_URL, key: ecommerce/x, property: database_url}]
 
 resources:
-  requests: {cpu: 100m, memory: 128Mi}
-  limits: {memory: 256Mi}
+  requests: { cpu: 100m, memory: 128Mi }
+  limits: { memory: 256Mi }
 
 probes:
   readinessPath: /health/ready
@@ -41,11 +40,11 @@ rollout:
   trafficRouting: gatewayAPI
   steps:
     - setWeight: 10
-    - pause: {duration: 2m}
-    - analysis: {templates: [{templateName: "{{ include \"ms.name\" . }}-success-rate"}]}
+    - pause: { duration: 2m }
+    - analysis: { templates: [{ templateName: '{{ include "ms.name" . }}-success-rate' }] }
     - setWeight: 50
-    - pause: {duration: 5m}
-    - analysis: {templates: [{templateName: "{{ include \"ms.name\" . }}-success-rate"}]}
+    - pause: { duration: 5m }
+    - analysis: { templates: [{ templateName: '{{ include "ms.name" . }}-success-rate' }] }
   successRateThreshold: 0.99
   # p99 độ trễ (ms) của canary phải dưới ngưỡng; 0 = không kiểm.
   latencyP99Ms: 0
@@ -86,12 +85,12 @@ pdb:
   minAvailable: 1
 
 serviceMonitor:
-  enabled: false     # metrics chủ yếu đẩy qua OTLP; bật cho Java actuator
+  enabled: false # metrics chủ yếu đẩy qua OTLP; bật cho Java actuator
   path: /actuator/prometheus
 
 otel:
   endpoint: http://otel-collector.observability.svc.cluster.local:4317
-  javaAutoInstrumentation: false   # true → annotation OTel Operator inject Java agent
+  javaAutoInstrumentation: false # true → annotation OTel Operator inject Java agent
 
 serviceAccount:
   annotations: {}

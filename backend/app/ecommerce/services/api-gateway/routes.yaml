@@ -1,7 +1,7 @@
 # Nguồn sự thật duy nhất cho định tuyến north-south (thay api-gateway Go cũ).
-# Sinh cấu hình APISIX bằng:  python3 tools/scripts/gen-apisix-routes.py
-#   → platform/gateway/apisix/apisix.yaml        (standalone, dùng cho deploy/local)
-#   → platform/gateway/apisix/k8s/routes.yaml    (ApisixRoute CRD cho cluster)
+# Sinh cấu hình APISIX bằng:  python3 services/api-gateway/scripts/gen-routes.py
+#   → services/api-gateway/apisix/apisix.yaml    (standalone, dùng cho deploy/local)
+#   → services/api-gateway/k8s/routes.yaml       (ApisixRoute CRD cho cluster)
 #
 # auth: required  → plugin openid-connect (Keycloak, bearer_only) chặn request thiếu/sai token
 #       optional  → không chặn ở gateway; service tự xác thực JWT nếu có

@@ -1,6 +1,5 @@
-# prod: canary Argo Rollouts, autoscale; image digest do workflow release ghi.
 image:
-  tag: ''
+  tag: ""
   digest: sha256:0000000000000000000000000000000000000000000000000000000000000000
 autoscaling:
   minReplicas: 3

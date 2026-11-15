@@ -139,6 +139,7 @@ metadata:
   name: ecommerce-services
 spec:
   targets:
+  - ./services/api-gateway/catalog-info.yaml
   - ./services/cart-service/catalog-info.yaml
   - ./services/chatbot-service/catalog-info.yaml
   - ./ai/commerce-mcp-service/catalog-info.yaml

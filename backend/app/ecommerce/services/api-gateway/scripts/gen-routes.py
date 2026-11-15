@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""Sinh cấu hình APISIX từ platform/gateway/routes.yaml.
+"""Sinh cấu hình APISIX từ services/api-gateway/routes.yaml.
 
-  python3 tools/scripts/gen-apisix-routes.py [--check]
+  python3 services/api-gateway/scripts/gen-routes.py [--check]
 
 --check: chỉ so sánh, trả mã 1 nếu file sinh ra đã cũ (dùng trong CI).
 """
@@ -10,11 +10,12 @@ import sys
 
 import yaml
 
-ROOT = pathlib.Path(__file__).resolve().parents[2]
-SRC = ROOT / "platform/gateway/routes.yaml"
-OUT_STANDALONE = ROOT / "platform/gateway/apisix/apisix.yaml"
-OUT_K8S = ROOT / "platform/gateway/apisix/k8s/routes.yaml"
-HEADER = "# FILE SINH TỰ ĐỘNG từ platform/gateway/routes.yaml — đừng sửa tay.\n"
+GATEWAY = pathlib.Path(__file__).resolve().parents[1]  # services/api-gateway
+ROOT = GATEWAY.parents[1]
+SRC = GATEWAY / "routes.yaml"
+OUT_STANDALONE = GATEWAY / "apisix/apisix.yaml"
+OUT_K8S = GATEWAY / "k8s/routes.yaml"
+HEADER = "# FILE SINH TỰ ĐỘNG từ services/api-gateway/routes.yaml — đừng sửa tay.\n"
 
 
 def plugins(r, cfg, k8s):

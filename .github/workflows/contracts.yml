@@ -2,7 +2,7 @@
 name: contracts
 on:
   pull_request:
-    paths: ["backend/app/ecommerce/api/**", "backend/app/ecommerce/libs/go/proto/**", "backend/app/ecommerce/libs/python/ecommerce-proto/**", "backend/app/ecommerce/buf*.yaml", "backend/app/ecommerce/platform/gateway/**", "backend/app/ecommerce/tools/scripts/**", "backend/app/ecommerce/deploy/helm/values/**", "backend/app/ecommerce/platform/delivery/**", "backend/app/ecommerce/platform/authz/**"]
+    paths: ["backend/app/ecommerce/api/**", "backend/app/ecommerce/libs/go/proto/**", "backend/app/ecommerce/libs/python/ecommerce-proto/**", "backend/app/ecommerce/buf*.yaml", "backend/app/ecommerce/services/api-gateway/**", "backend/app/ecommerce/tools/scripts/**", "backend/app/ecommerce/deploy/helm/values/**", "backend/app/ecommerce/platform/delivery/**", "backend/app/ecommerce/platform/authz/**"]
 permissions: {contents: read, pull-requests: write}
 defaults:
   run: {working-directory: backend/app/ecommerce}
@@ -37,7 +37,8 @@ jobs:
     steps:
       - uses: actions/checkout@v5
       - run: pip install pyyaml==6.0.3
-      - run: python3 -I tools/scripts/gen-apisix-routes.py --check
+      - run: python3 -I services/api-gateway/scripts/gen-routes.py --check
+      - run: python3 -I -m unittest discover -s services/api-gateway/tests -v
       - run: python3 -I tools/scripts/gen-asyncapi.py --check
       - run: python3 -I tools/scripts/gen-kargo.py --check
   openfga-model:

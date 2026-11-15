@@ -1,5 +1,3 @@
-# backoffice-bff: BFF quản trị/người bán: sản phẩm + tồn kho, điều chỉnh kho, hỗ trợ khách.
-# Giá trị chung mọi môi trường; ghi đè theo môi trường ở values-<env>.yaml.
 nameOverride: backoffice-bff
 runtime: node
 image:
@@ -17,5 +15,5 @@ env:
   PROMOTION_GRPC_ADDR: "promotion-service:9095"
   ORDER_REST_URL: "http://order-service"
 resources:
-  requests: {cpu: 100m, memory: 192Mi}
-  limits: {memory: 384Mi}
+  requests: { cpu: 100m, memory: 192Mi }
+  limits: { memory: 384Mi }

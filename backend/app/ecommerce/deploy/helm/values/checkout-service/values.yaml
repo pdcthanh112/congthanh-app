@@ -1,4 +1,3 @@
-# checkout-service: phiên checkout + saga Temporal (queue checkout-workflow). Ghi đè theo môi trường ở values-<env>.yaml.
 nameOverride: checkout-service
 runtime: java
 image:
@@ -24,15 +23,15 @@ env:
   # fraud-service sập thì vẫn cho đặt đơn (ghi log cảnh báo); đặt false nếu muốn chặn.
   FRAUD_FAIL_OPEN: "true"
 secretEnv:
-- name: DATABASE_URL
-  key: ecommerce/checkout-service
-  property: database_url
-- name: DATABASE_USER
-  key: ecommerce/checkout-service
-  property: database_user
-- name: DATABASE_PASSWORD
-  key: ecommerce/checkout-service
-  property: database_password
+  - name: DATABASE_URL
+    key: ecommerce/checkout-service
+    property: database_url
+  - name: DATABASE_USER
+    key: ecommerce/checkout-service
+    property: database_user
+  - name: DATABASE_PASSWORD
+    key: ecommerce/checkout-service
+    property: database_password
 probes:
   readinessPath: /actuator/health/readiness
   livenessPath: /actuator/health/liveness

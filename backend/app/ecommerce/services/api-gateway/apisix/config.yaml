@@ -1,8 +1,10 @@
 # APISIX chế độ standalone (không cần etcd) cho môi trường local.
-# Route nằm trong apisix.yaml (sinh từ platform/gateway/routes.yaml).
-# Trên K8s dùng APISIX Ingress Controller + ApisixRoute (xem k8s/).
+# Route nằm trong apisix.yaml (sinh từ ../routes.yaml).
+# Trên K8s dùng APISIX Ingress Controller + ApisixRoute (xem ../k8s/).
 apisix:
   node_listen: 9080
+  # Plugin tuỳ biến của repo: ../plugins/<tên>.lua, mount vào /usr/local/apisix/custom/apisix/plugins.
+  extra_lua_path: "/usr/local/apisix/custom/?.lua"
   enable_admin: false
   ssl:
     enable: false

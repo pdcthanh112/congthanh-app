@@ -1,0 +1,20 @@
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: api-gateway
+  description: Edge gateway Apache APISIX - bảng route, cấu hình và plugin tuỳ biến (ADR 0005)
+  tags:
+  - apisix
+  - gateway
+  annotations:
+    github.com/project-slug: pdcthanh112/CongThanhApp
+    backstage.io/source-location: url:https://github.com/pdcthanh112/CongThanhApp/tree/main/backend/app/ecommerce/services/api-gateway
+    argocd/app-name: apisix
+    backstage.io/techdocs-ref: dir:../../docs
+spec:
+  type: service
+  lifecycle: production
+  owner: team-ecommerce
+  system: ecommerce
+  dependsOn:
+  - resource:ecommerce-redis

@@ -272,7 +272,7 @@ spec:
       targetRevision: 2.12.*
       helm:
         valueFiles:
-          - $values/backend/app/ecommerce/platform/gateway/apisix/k8s/values.yaml
+          - $values/backend/app/ecommerce/services/api-gateway/k8s/values.yaml
     - repoURL: https://github.com/pdcthanh112/CongThanhApp.git
       targetRevision: main
       ref: values
@@ -301,7 +301,7 @@ spec:
   source:
     repoURL: https://github.com/pdcthanh112/CongThanhApp.git
     targetRevision: main
-    path: backend/app/ecommerce/platform/gateway/apisix/k8s
+    path: backend/app/ecommerce/services/api-gateway/k8s
     directory:
       exclude: values.yaml
 ---

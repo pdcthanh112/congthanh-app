@@ -33,14 +33,14 @@ proto-python: ## Chỉ sinh lại libs/python/ecommerce-proto
 	libs/python/ecommerce-proto/generate.sh
 
 gen: ## Sinh cấu hình APISIX, AsyncAPI, pipeline Kargo và supergraph GraphQL
-	python3 -I tools/scripts/gen-apisix-routes.py
+	python3 -I services/api-gateway/scripts/gen-routes.py
 	python3 -I tools/scripts/gen-asyncapi.py
 	python3 -I tools/scripts/gen-kargo.py
 	npm run build && npm run schema:emit --workspaces --if-present && npm run supergraph
 
 check: ## Kiểm tra code/cấu hình sinh ra còn khớp (như CI)
 	buf lint
-	python3 -I tools/scripts/gen-apisix-routes.py --check
+	python3 -I services/api-gateway/scripts/gen-routes.py --check
 	python3 -I tools/scripts/gen-asyncapi.py --check
 	python3 -I tools/scripts/gen-kargo.py --check
 	npm run supergraph:check

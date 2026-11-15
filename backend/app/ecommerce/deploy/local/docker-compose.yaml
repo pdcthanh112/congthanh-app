@@ -168,8 +168,9 @@ services:
     ports: ["9080:9080", "9091:9091"]
     environment: { APISIX_STAND_ALONE: "true", KEYCLOAK_GATEWAY_SECRET: local-gateway-secret }
     volumes:
-      - ../../platform/gateway/apisix/config.yaml:/usr/local/apisix/conf/config.yaml:ro
-      - ../../platform/gateway/apisix/apisix.yaml:/usr/local/apisix/conf/apisix.yaml:ro
+      - ../../services/api-gateway/apisix/config.yaml:/usr/local/apisix/conf/config.yaml:ro
+      - ../../services/api-gateway/apisix/apisix.yaml:/usr/local/apisix/conf/apisix.yaml:ro
+      - ../../services/api-gateway/plugins:/usr/local/apisix/custom/apisix/plugins:ro
     depends_on: [keycloak, redis]
 
   unleash:

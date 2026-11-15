@@ -74,7 +74,7 @@ jobs:
       - name: router config hợp lệ theo schema của Cosmo Router
         run: pip install --quiet jsonschema pyyaml && python3 tools/scripts/validate-router-config.py
       - name: route APISIX sinh từ routes.yaml đã cập nhật
-        run: python3 tools/scripts/gen-apisix-routes.py --check
+        run: python3 services/api-gateway/scripts/gen-routes.py --check
 
   image:
     if: github.event_name == 'push'
