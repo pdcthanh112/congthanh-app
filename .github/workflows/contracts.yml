@@ -20,7 +20,7 @@ jobs:
           breaking: true
           breaking_against: "${{ github.event.repository.clone_url }}#branch=main,subdir=backend/app/ecommerce"
           push: false
-      - uses: actions/setup-go@v6
+      - uses: actions/setup-go@v7
         with: {go-version: "1.26.x"}
       - name: code Go sinh từ proto phải khớp
         run: |
