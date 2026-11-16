@@ -158,17 +158,21 @@ export class EventHandlers {
 
   productUpserted(eventId: string, productId: string, name: string, price: MoneyLike | undefined) {
     return this.handle(eventId, async (tx) => {
-      const priceMinor = toMinor(price);
+      // Giá không kèm đơn vị tiền thì coi như không có giá: không tự gán USD.
+      const currency = price?.currencyCode || undefined;
+      const priceMinor = currency ? toMinor(price) : undefined;
       const before = await tx.views.updateProduct(productId, {
         name,
-        ...(priceMinor !== undefined ? { priceMinor, currency: price?.currencyCode ?? 'USD' } : {}),
+        ...(priceMinor !== undefined && currency ? { priceMinor, currency } : {}),
       });
-      if (!before?.priceMinor || priceMinor === undefined || priceMinor >= before.priceMinor) return [];
+      if (!before?.priceMinor || priceMinor === undefined || !currency || priceMinor >= before.priceMinor) return [];
+      // Giá cũ và giá mới khác đơn vị tiền thì không so sánh được.
+      if (before.currency !== currency) return [];
       // Chỉ báo khi giảm ít nhất 5% để tránh spam vì chỉnh giá lặt vặt.
       if ((before.priceMinor - priceMinor) / before.priceMinor < 0.05) return [];
       const fmt = (minor: number) =>
         formatMoney({
-          currencyCode: price?.currencyCode ?? 'USD',
+          currencyCode: currency,
           units: BigInt(Math.floor(minor / 100)),
           nanos: (minor % 100) * 1e7,
         });

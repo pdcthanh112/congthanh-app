@@ -26,6 +26,7 @@ message ProductResponse {
   string sku = 5;
   string slug = 6;
   double price = 7;
+  string currency = 8; 
 }
 
 message ProductDetail {
@@ -43,12 +44,13 @@ message ProductDetail {
   string preorder_end_date = 12;
   string variant_id = 13;
   map<string, string> attributes = 14;
+  string currency = 15; 
 }
 
 message ValidateProductRequest {
   repeated string product_ids = 1;
-  bool check_availability = 2; // Kiểm tra sản phẩm còn bán không
-  bool check_active = 3; // Kiểm tra sản phẩm active không
+  bool check_availability = 2; 
+  bool check_active = 3; 
 }
 
 message ValidateProductResponse {
@@ -109,7 +111,6 @@ message Dimensions {
   string unit = 4;
 }
 
-// ============= Update Product Stock =============
 message UpdateProductStockRequest {
   repeated StockUpdate updates = 1;
   string reason = 2;
@@ -143,7 +144,6 @@ message StockUpdateResult {
   string error_message = 5;
 }
 
-// ============= Get Products By IDs =============
 message GetProductsByIdsRequest {
   repeated string product_ids = 1;
   bool include_inactive = 2;
@@ -154,7 +154,6 @@ message GetProductsByIdsResponse {
   repeated string not_found = 2;
 }
 
-// ============= Get Products For Order (order saga, step 1) =============
 message GetProductsForOrderRequest {
   repeated string product_ids = 1;
   string shipping_province_code = 2;

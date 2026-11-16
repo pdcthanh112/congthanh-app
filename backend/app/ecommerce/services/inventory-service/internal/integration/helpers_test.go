@@ -1,6 +1,3 @@
-// Package integration_test chạy use case thật trên Postgres (+ Redis cho flash sale).
-//
-//	go test ./internal/integration/...   (tự bật container; hoặc đặt TEST_DATABASE_URL, TEST_REDIS_URL)
 package integration_test
 
 import (
@@ -15,12 +12,10 @@ import (
 	"github.com/pdcthanh112/CongThanhApp/backend/app/ecommerce/services/inventory-service/internal/app"
 )
 
-// fakeClaims thay Kafka producer: ghi lại các claim đã publish.
 type fakeClaims struct {
 	mu   sync.Mutex
-	sent map[string]int32 // customer → qty
+	sent map[string]int32 
 	all  []app.PublishedClaim
-	// failWith != nil: failTimes lần gửi tới trả lỗi này (failTimes < 0 = luôn lỗi).
 	failWith  error
 	failTimes int
 }
@@ -58,7 +53,6 @@ func (f *fakeClaims) published(claimID string) int {
 	return n
 }
 
-// reset xoá claim của test trước (biến dùng chung cả package).
 func (f *fakeClaims) reset() {
 	f.mu.Lock()
 	defer f.mu.Unlock()
@@ -67,7 +61,6 @@ func (f *fakeClaims) reset() {
 
 var claims = &fakeClaims{}
 
-// flashStore trả Redis store (TEST_REDIS_URL hoặc container của testkit).
 func flashStore(t *testing.T) app.FlashSaleStore {
 	url := testkit.RedisURL(t)
 	opt, err := goredis.ParseURL(url)

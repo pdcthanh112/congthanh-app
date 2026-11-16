@@ -1,5 +1,3 @@
-// Package grpcclient là driven adapter gọi product-service và inventory-service qua gRPC,
-// hiện thực app.ProductCatalog và app.StockChecker. Circuit breaking / retry do Istio lo.
 package grpcclient
 
 import (
@@ -15,7 +13,6 @@ import (
 	"github.com/pdcthanh112/CongThanhApp/backend/app/ecommerce/services/cart-service/internal/domain"
 )
 
-// toDomain đổi lỗi gRPC của service khác sang lỗi nghiệp vụ.
 func toDomain(err error) error {
 	switch status.Code(err) {
 	case codes.NotFound:

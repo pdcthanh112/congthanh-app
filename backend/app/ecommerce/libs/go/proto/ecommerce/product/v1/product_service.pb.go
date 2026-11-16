@@ -181,6 +181,7 @@ type ProductResponse struct {
 	Sku           string                 `protobuf:"bytes,5,opt,name=sku,proto3" json:"sku,omitempty"`
 	Slug          string                 `protobuf:"bytes,6,opt,name=slug,proto3" json:"slug,omitempty"`
 	Price         float64                `protobuf:"fixed64,7,opt,name=price,proto3" json:"price,omitempty"`
+	Currency      string                 `protobuf:"bytes,8,opt,name=currency,proto3" json:"currency,omitempty"` // ISO 4217 của price
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -264,6 +265,13 @@ func (x *ProductResponse) GetPrice() float64 {
 	return 0
 }
 
+func (x *ProductResponse) GetCurrency() string {
+	if x != nil {
+		return x.Currency
+	}
+	return ""
+}
+
 type ProductDetail struct {
 	state               protoimpl.MessageState `protogen:"open.v1"`
 	ProductId           string                 `protobuf:"bytes,1,opt,name=product_id,json=productId,proto3" json:"product_id,omitempty"`
@@ -280,6 +288,7 @@ type ProductDetail struct {
 	PreorderEndDate     string                 `protobuf:"bytes,12,opt,name=preorder_end_date,json=preorderEndDate,proto3" json:"preorder_end_date,omitempty"`
 	VariantId           string                 `protobuf:"bytes,13,opt,name=variant_id,json=variantId,proto3" json:"variant_id,omitempty"`
 	Attributes          map[string]string      `protobuf:"bytes,14,rep,name=attributes,proto3" json:"attributes,omitempty" protobuf_key:"bytes,1,opt,name=key" protobuf_val:"bytes,2,opt,name=value"`
+	Currency            string                 `protobuf:"bytes,15,opt,name=currency,proto3" json:"currency,omitempty"` // ISO 4217 của original_price và selling_price; luôn có khi sản phẩm có giá
 	unknownFields       protoimpl.UnknownFields
 	sizeCache           protoimpl.SizeCache
 }
@@ -410,6 +419,13 @@ func (x *ProductDetail) GetAttributes() map[string]string {
 		return x.Attributes
 	}
 	return nil
+}
+
+func (x *ProductDetail) GetCurrency() string {
+	if x != nil {
+		return x.Currency
+	}
+	return ""
 }
 
 type ValidateProductRequest struct {
@@ -1437,7 +1453,7 @@ const file_ecommerce_product_v1_product_service_proto_rawDesc = "" +
 	"\n" +
 	"*ecommerce/product/v1/product_service.proto\x12\x14ecommerce.product.v1\".\n" +
 	"\x0eProductRequest\x12\x1c\n" +
-	"\tproductId\x18\x01 \x01(\tR\tproductId\"\xaf\x01\n" +
+	"\tproductId\x18\x01 \x01(\tR\tproductId\"\xcb\x01\n" +
 	"\x0fProductResponse\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12\x1a\n" +
@@ -1445,7 +1461,8 @@ const file_ecommerce_product_v1_product_service_proto_rawDesc = "" +
 	"\vsubcategory\x18\x04 \x01(\tR\vsubcategory\x12\x10\n" +
 	"\x03sku\x18\x05 \x01(\tR\x03sku\x12\x12\n" +
 	"\x04slug\x18\x06 \x01(\tR\x04slug\x12\x14\n" +
-	"\x05price\x18\a \x01(\x01R\x05price\"\xd3\x04\n" +
+	"\x05price\x18\a \x01(\x01R\x05price\x12\x1a\n" +
+	"\bcurrency\x18\b \x01(\tR\bcurrency\"\xef\x04\n" +
 	"\rProductDetail\x12\x1d\n" +
 	"\n" +
 	"product_id\x18\x01 \x01(\tR\tproductId\x12\x10\n" +
@@ -1467,7 +1484,8 @@ const file_ecommerce_product_v1_product_service_proto_rawDesc = "" +
 	"variant_id\x18\r \x01(\tR\tvariantId\x12S\n" +
 	"\n" +
 	"attributes\x18\x0e \x03(\v23.ecommerce.product.v1.ProductDetail.AttributesEntryR\n" +
-	"attributes\x1a=\n" +
+	"attributes\x12\x1a\n" +
+	"\bcurrency\x18\x0f \x01(\tR\bcurrency\x1a=\n" +
 	"\x0fAttributesEntry\x12\x10\n" +
 	"\x03key\x18\x01 \x01(\tR\x03key\x12\x14\n" +
 	"\x05value\x18\x02 \x01(\tR\x05value:\x028\x01\"\x8b\x01\n" +

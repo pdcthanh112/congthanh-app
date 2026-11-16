@@ -3,7 +3,15 @@ from datetime import UTC, datetime
 import pytest
 
 from app.adapters.stripe import parse_balance_transaction
-from app.domain.matching import InternalTxn, Kind, MismatchKind, ProviderTxn, match, parse_csv
+from app.domain.matching import (
+    InternalTxn,
+    Kind,
+    MismatchKind,
+    ProviderTxn,
+    match,
+    parse_csv,
+    split_by_currency,
+)
 
 AT = datetime(2026, 11, 13, 15, tzinfo=UTC)
 
@@ -16,37 +24,46 @@ def i(ref, kind=Kind.CHARGE, amount=10800, currency="USD", order="o-1"):
     return InternalTxn("stripe", ref, kind, amount, currency, order, AT)
 
 
+def test_match_rejects_mixed_currencies():
+    with pytest.raises(ValueError):
+        match([p("pi_1"), p("pi_2", currency="EUR")], [], "USD")
+
+
 def test_exact_matches_and_fees_are_totalled():
-    r = match([p("pi_1"), p("pi_2", amount=5000, fee=175)], [i("pi_1"), i("pi_2", amount=5000, order="o-2")])
+    r = match([p("pi_1"), p("pi_2", amount=5000, fee=175)], [i("pi_1"), i("pi_2", amount=5000, order="o-2")], "USD")
     assert r.matched == 2
     assert r.mismatches == []
     assert r.provider_fees_minor == 518
 
 
 def test_every_kind_of_mismatch_is_reported():
-    r = match(
-        [p("pi_only_provider"), p("pi_amount", amount=9999), p("pi_cur", currency="EUR")],
+    buckets = split_by_currency(
+        [p("pi_only_provider"), p("pi_amount", amount=9999), p("pi_cur", currency="EUR", fee=100)],
         [i("pi_only_internal", order="o-9"), i("pi_amount"), i("pi_cur")],
     )
-    kinds = {(m.ref, m.kind) for m in r.mismatches}
+    results = {c: match(pr, it, c) for c, (pr, it) in buckets.items()}
+    # Phí tính riêng theo từng đơn vị tiền, không cộng USD với EUR.
+    assert (results["USD"].provider_fees_minor, results["EUR"].provider_fees_minor) == (686, 100)
+    mismatches = [m for r in results.values() for m in r.mismatches]
+    kinds = {(m.ref, m.kind) for m in mismatches}
     assert kinds == {
         ("pi_only_provider", MismatchKind.MISSING_INTERNAL),
         ("pi_only_internal", MismatchKind.MISSING_PROVIDER),
         ("pi_amount", MismatchKind.AMOUNT_MISMATCH),
         ("pi_cur", MismatchKind.CURRENCY_MISMATCH),
     }
-    missing = next(m for m in r.mismatches if m.ref == "pi_only_internal")
+    missing = next(m for m in mismatches if m.ref == "pi_only_internal")
     assert missing.order_id == "o-9"
 
 
 def test_refunds_are_compared_as_totals_per_payment():
     provider = [p("pi_1", Kind.REFUND, 3000, 0), p("pi_1", Kind.REFUND, 2400, 0)]
     internal = [i("pi_1", Kind.REFUND, 5400)]
-    assert match(provider, internal).matched == 1
+    assert match(provider, internal, "USD").matched == 1
 
 
 def test_tolerance_absorbs_rounding():
-    r = match([p("pi_1", amount=10801)], [i("pi_1")], tolerance_minor=1)
+    r = match([p("pi_1", amount=10801)], [i("pi_1")], "USD", tolerance_minor=1)
     assert r.matched == 1
 
 

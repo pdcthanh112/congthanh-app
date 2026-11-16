@@ -17,7 +17,7 @@ import java.util.Objects;
 /**
  * Thành viên chương trình và các lô điểm còn hiệu lực. Quy tắc:
  * <ul>
- *   <li>Tích: floor(tổng đơn USD × % theo hạng / 100) điểm, lô PENDING.</li>
+ *   <li>Tích: floor(tổng đơn (theo đơn vị tiền của chương trình) × % theo hạng / 100) điểm, lô PENDING.</li>
  *   <li>Lô thành AVAILABLE khi qua hạn trả hàng (giao + {@link Rules#returnWindow()}); không có ngày giao thì sau
  *       {@link Rules#fallbackConfirm()} từ lúc tích. Hết hạn sau {@link Rules#lotLifetime()} kể từ lúc khả dụng.</li>
  *   <li>Đổi: giữ chỗ FIFO theo lô sắp hết hạn; xác nhận khi đơn xong, trả lại khi saga bù trừ.</li>
@@ -26,10 +26,15 @@ import java.util.Objects;
  */
 public final class Member {
 
-    public record Rules(Duration returnWindow, Duration fallbackConfirm, Duration lotLifetime, BigDecimal pointValueUsd,
-                        long minRedeem) {
-        public static Rules defaults() {
-            return new Rules(Duration.ofDays(30), Duration.ofDays(45), Duration.ofDays(365), new BigDecimal("0.01"), 100);
+    /**
+     * @param currency   đơn vị tiền của chương trình điểm (ISO 4217); mọi giá trị quy đổi đều theo đơn vị này
+     * @param pointValue giá trị một điểm theo {@code currency}
+     */
+    public record Rules(Duration returnWindow, Duration fallbackConfirm, Duration lotLifetime, String currency,
+                        BigDecimal pointValue, long minRedeem) {
+        public Rules {
+            java.util.Objects.requireNonNull(currency, "currency");
+            java.util.Objects.requireNonNull(pointValue, "pointValue");
         }
     }
 
@@ -50,13 +55,13 @@ public final class Member {
         lots.forEach(l -> this.lots.put(l.id(), l));
     }
 
-    public Lot earn(String lotId, String orderId, BigDecimal orderTotalUsd, Instant now) {
+    public Lot earn(String lotId, String orderId, BigDecimal orderTotal, Instant now) {
         if (lots.values().stream().anyMatch(l -> l.orderId().equals(orderId))) {
             return lots.values().stream().filter(l -> l.orderId().equals(orderId)).findFirst().orElseThrow();
         }
-        long points = orderTotalUsd.multiply(BigDecimal.valueOf(tier.earnPercent()))
+        long points = orderTotal.multiply(BigDecimal.valueOf(tier.earnPercent()))
                 .divide(BigDecimal.valueOf(100), 0, RoundingMode.FLOOR).longValueExact();
-        Lot lot = new Lot(lotId, customerId, orderId, points, points, Lot.Status.PENDING, orderTotalUsd, now, null, null);
+        Lot lot = new Lot(lotId, customerId, orderId, points, points, Lot.Status.PENDING, orderTotal, now, null, null);
         if (points > 0) {
             lots.put(lotId, lot);
             events.add(new LoyaltyEvent.Earned(customerId, orderId, lotId, points));
@@ -93,7 +98,7 @@ public final class Member {
     }
 
     /** Đảo điểm khi trả hàng/huỷ đơn. @return số điểm đã đảo */
-    public long reverse(String orderId, BigDecimal refundedUsd, String reason) {
+    public long reverse(String orderId, BigDecimal refunded, String reason) {
         long total = 0;
         for (Lot l : List.copyOf(lots.values())) {
             if (!l.orderId().equals(orderId) || l.remaining() == 0
@@ -101,7 +106,7 @@ public final class Member {
                 continue;
             }
             long target = l.orderTotal().signum() == 0 ? l.points()
-                    : refundedUsd.multiply(BigDecimal.valueOf(l.points()))
+                    : refunded.multiply(BigDecimal.valueOf(l.points()))
                     .divide(l.orderTotal(), 0, RoundingMode.CEILING).longValue();
             long take = Math.min(Math.max(target, 0), l.remaining());
             if (take == 0) {
@@ -184,7 +189,8 @@ public final class Member {
     }
 
     public BigDecimal value(long points, Rules rules) {
-        return rules.pointValueUsd().multiply(BigDecimal.valueOf(points)).setScale(2, RoundingMode.HALF_UP);
+        int digits = Math.max(0, java.util.Currency.getInstance(rules.currency()).getDefaultFractionDigits());
+        return rules.pointValue().multiply(BigDecimal.valueOf(points)).setScale(digits, RoundingMode.HALF_UP);
     }
 
     public List<LoyaltyEvent> pullEvents() {

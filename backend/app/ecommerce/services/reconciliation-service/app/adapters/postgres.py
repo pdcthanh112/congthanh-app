@@ -154,9 +154,10 @@ class PostgresStore:
     ) -> None:
         async with self.pool.acquire() as c, c.transaction():
             old = await c.fetchval(
-                "UPDATE runs SET superseded = true WHERE provider = $1 AND business_date = $2 AND NOT superseded RETURNING id",
+                "UPDATE runs SET superseded = true WHERE provider = $1 AND business_date = $2 AND currency = $3 AND NOT superseded RETURNING id",
                 provider,
                 day,
+                result.currency,
             )
             if old:
                 await c.execute(

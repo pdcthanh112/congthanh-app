@@ -23,14 +23,12 @@ const (
 )
 
 type CategoryUpserted struct {
-	state      protoimpl.MessageState `protogen:"open.v1"`
-	CategoryId string                 `protobuf:"bytes,1,opt,name=category_id,json=categoryId,proto3" json:"category_id,omitempty"`
-	Name       string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
-	Slug       string                 `protobuf:"bytes,3,opt,name=slug,proto3" json:"slug,omitempty"`
-	ParentId   string                 `protobuf:"bytes,4,opt,name=parent_id,json=parentId,proto3" json:"parent_id,omitempty"`
-	// ACTIVE | INACTIVE
-	Status string `protobuf:"bytes,5,opt,name=status,proto3" json:"status,omitempty"`
-	// Đường dẫn từ gốc tới danh mục này (id), để lọc theo nhánh mà không cần gọi lại catalog.
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	CategoryId    string                 `protobuf:"bytes,1,opt,name=category_id,json=categoryId,proto3" json:"category_id,omitempty"`
+	Name          string                 `protobuf:"bytes,2,opt,name=name,proto3" json:"name,omitempty"`
+	Slug          string                 `protobuf:"bytes,3,opt,name=slug,proto3" json:"slug,omitempty"`
+	ParentId      string                 `protobuf:"bytes,4,opt,name=parent_id,json=parentId,proto3" json:"parent_id,omitempty"`
+	Status        string                 `protobuf:"bytes,5,opt,name=status,proto3" json:"status,omitempty"`
 	Path          []string               `protobuf:"bytes,6,rep,name=path,proto3" json:"path,omitempty"`
 	UpdatedAt     *timestamppb.Timestamp `protobuf:"bytes,7,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
 	unknownFields protoimpl.UnknownFields

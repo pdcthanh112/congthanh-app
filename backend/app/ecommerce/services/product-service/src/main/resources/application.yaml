@@ -64,13 +64,10 @@ server:
   shutdown: graceful
 
 product:
-  currency: ${PRODUCT_CURRENCY:USD}
   read-model:
-    # Bảng giá (pricing-service) hiển thị trên trang sản phẩm.
     price-list: ${PRODUCT_PRICE_LIST:default}
     consumer-concurrency: ${READ_MODEL_CONSUMER_CONCURRENCY:3}
 
-# worker-id phải khác nhau giữa các pod (Helm gán từ ordinal của StatefulSet hoặc hash tên pod).
 snowflake:
   worker-id: ${SNOWFLAKE_WORKER_ID:1}
   datacenter-id: ${SNOWFLAKE_DATACENTER_ID:1}
@@ -105,7 +102,6 @@ management:
       probes:
         enabled: true
   health:
-    # Mongo là read model: sập thì vẫn phục vụ được (fallback Postgres), không đánh dấu pod không sẵn sàng.
     mongo:
       enabled: false
   observations:

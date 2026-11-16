@@ -114,7 +114,11 @@ class StoredValueAndDisputeConsumer {
 
     private static FinancialFact points(EventEnvelope env, Instant at, String kind, String customer, String ref, long points,
                                         com.congthanh.ecommerce.common.v1.Money value) {
+        if (value.getCurrencyCode().isBlank()) {
+            // Sổ cái không tự gán đơn vị tiền: event thiếu currency phải dừng lại để xử lý, không hạch toán bừa.
+            throw new IllegalArgumentException("loyalty event " + env.getId() + " has no currency");
+        }
         return new FinancialFact.LoyaltyPoints(env.getId(), at, kind, customer, ref, points, amount(value),
-                value.getCurrencyCode().isEmpty() ? "USD" : value.getCurrencyCode());
+                value.getCurrencyCode());
     }
 }

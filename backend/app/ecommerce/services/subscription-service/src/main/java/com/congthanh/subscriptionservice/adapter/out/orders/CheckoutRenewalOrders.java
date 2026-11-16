@@ -48,6 +48,7 @@ class CheckoutRenewalOrders implements RenewalOrders {
                 "lines", s.lines().stream().map(l -> Map.of("productId", l.productId(), "quantity", l.quantity())).toList(),
                 "addressId", s.addressId() == null ? "" : s.addressId(),
                 "paymentMethodRef", s.paymentMethodRef(),
+                "currency", s.currency(),
                 "promotionCode", promotionCode);
         try {
             Map<?, ?> res = http.post().uri("/internal/checkout/subscription-orders").body(body).retrieve().body(Map.class);

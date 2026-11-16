@@ -73,7 +73,6 @@ platform:
     namespace: ${TEMPORAL_NAMESPACE:default}
 
 checkout:
-  currency: ${CHECKOUT_CURRENCY:USD}
   session-ttl: ${CHECKOUT_SESSION_TTL:PT30M}
   default-weight-grams: ${CHECKOUT_DEFAULT_WEIGHT_GRAMS:500}
   default-tax-class-id: ${CHECKOUT_DEFAULT_TAX_CLASS_ID:1}

@@ -41,7 +41,6 @@ export type ProductPage = z.infer<typeof Page>;
 export interface ProductClientOptions {
   grpcAddress: string;
   restBaseUrl: string;
-  currency?: string;
 }
 
 /** product-service (Java): gRPC cho tra cứu theo lô, REST cho chi tiết/danh sách (chưa có trên gRPC). */
@@ -49,12 +48,10 @@ export class ProductClient {
   private readonly grpc;
   private readonly rest: RestClient;
   private readonly policy = resiliencePolicy({ timeoutMs: 2_000 });
-  private readonly currency: string;
 
   constructor(opts: ProductClientOptions) {
     this.grpc = grpcClient(ProductService, { address: opts.grpcAddress });
     this.rest = new RestClient({ baseUrl: opts.restBaseUrl, name: 'product-service' });
-    this.currency = opts.currency ?? 'USD';
   }
 
   async byIds(ids: readonly string[], includeInactive = false): Promise<Map<string, ProductSummary>> {
@@ -70,12 +67,15 @@ export class ProductClient {
           ),
         );
         for (const p of res.products) {
+          // Giá luôn đi kèm đơn vị tiền do product-service trả; sản phẩm chưa có giá/currency thì coi như không có
+          // (giỏ hàng sẽ báo không mua được) thay vì gán một currency mặc định.
+          if (!p.currency) continue;
           map.set(p.productId, {
             id: p.productId,
             sku: p.sku,
             name: p.name,
-            price: fromDecimal(p.sellingPrice, this.currency),
-            originalPrice: fromDecimal(p.originalPrice, this.currency),
+            price: fromDecimal(p.sellingPrice, p.currency),
+            originalPrice: fromDecimal(p.originalPrice, p.currency),
             active: p.isActive,
             sellerId: p.sellerId,
           });

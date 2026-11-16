@@ -22,6 +22,8 @@ public class ProductVariantRequest {
 
     private BigDecimal price;
 
+    private String currency;
+
     private List<CreateVariantImageRequest> image;
 
 }

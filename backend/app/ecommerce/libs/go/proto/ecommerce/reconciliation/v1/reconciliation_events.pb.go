@@ -221,8 +221,8 @@ const file_ecommerce_reconciliation_v1_reconciliation_events_proto_rawDesc = "" 
 	"\n" +
 	"mismatched\x18\x05 \x01(\x05R\n" +
 	"mismatched\x12?\n" +
-	"\rprovider_fees\x18\x06 \x01(\v2\x1a.ecommerce.common.v1.MoneyR\fproviderFeesB-\n" +
-	")com.congthanh.ecommerce.reconciliation.v1P\x01b\x06proto3"
+	"\rprovider_fees\x18\x06 \x01(\v2\x1a.ecommerce.common.v1.MoneyR\fproviderFeesB\xc0\x02\n" +
+	"\x1fcom.ecommerce.reconciliation.v1B\x19ReconciliationEventsProtoP\x01Ztgithub.com/pdcthanh112/CongThanhApp/backend/app/ecommerce/libs/go/proto/ecommerce/reconciliation/v1;reconciliationv1\xa2\x02\x03ERX\xaa\x02\x1bEcommerce.Reconciliation.V1\xca\x02\x1bEcommerce\\Reconciliation\\V1\xe2\x02'Ecommerce\\Reconciliation\\V1\\GPBMetadata\xea\x02\x1dEcommerce::Reconciliation::V1b\x06proto3"
 
 var (
 	file_ecommerce_reconciliation_v1_reconciliation_events_proto_rawDescOnce sync.Once

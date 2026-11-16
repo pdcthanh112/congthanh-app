@@ -8,7 +8,6 @@ import com.congthanh.productservice.grpc.ProductServiceGrpc;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import io.github.resilience4j.retry.annotation.Retry;
 import io.grpc.StatusRuntimeException;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.grpc.client.GrpcChannelFactory;
 import org.springframework.stereotype.Component;
 
@@ -23,11 +22,9 @@ import java.util.concurrent.TimeUnit;
 class ProductCatalogGrpcAdapter implements ProductCatalog {
 
     private final ProductServiceGrpc.ProductServiceBlockingStub stub;
-    private final String currency;
 
-    ProductCatalogGrpcAdapter(GrpcChannelFactory channels, @Value("${order.currency:USD}") String currency) {
+    ProductCatalogGrpcAdapter(GrpcChannelFactory channels) {
         this.stub = ProductServiceGrpc.newBlockingStub(channels.createChannel("product"));
-        this.currency = currency;
     }
 
     @Override
@@ -41,7 +38,12 @@ class ProductCatalogGrpcAdapter implements ProductCatalog {
             for (ProductDetail p : res.getProductsList()) {
                 boolean purchasable = p.getIsActive() && !p.getIsDeleted() && (p.getSellerId().isEmpty() || p.getSellerActive());
                 // Giá bán cuối cùng do product-service tính; client không bao giờ gửi giá.
-                Money price = new Money(BigDecimal.valueOf(p.getSellingPrice()), currency);
+                // Đơn vị tiền đi kèm giá từ product-service; thiếu thì không dựng được giá nên bỏ sản phẩm này
+                // (đơn sẽ báo sản phẩm không mua được) thay vì đoán một currency.
+                if (p.getCurrency().isBlank()) {
+                    continue;
+                }
+                Money price = new Money(BigDecimal.valueOf(p.getSellingPrice()), p.getCurrency());
                 out.put(p.getProductId(), new ProductSnapshot(p.getProductId(), p.getSku(), p.getName(), price,
                         purchasable, p.getMaxQuantityPerOrder()));
             }

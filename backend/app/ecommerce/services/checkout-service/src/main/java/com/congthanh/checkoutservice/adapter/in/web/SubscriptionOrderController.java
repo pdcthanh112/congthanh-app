@@ -34,7 +34,7 @@ class SubscriptionOrderController {
     SubscriptionOrders.Result place(@Valid @RequestBody Request r) {
         return orders.place(new SubscriptionOrders.Command(r.idempotencyKey(), r.subscriptionId(), r.customerId(),
                 r.lines().stream().map(l -> new CheckoutSession.Item(l.productId(), l.quantity())).toList(),
-                r.addressId(), r.paymentMethodRef(), r.promotionCode()));
+                r.addressId(), r.paymentMethodRef(), r.currency(), r.promotionCode()));
     }
 
     record Line(@NotBlank String productId, @Positive int quantity) {
@@ -42,6 +42,6 @@ class SubscriptionOrderController {
 
     record Request(@NotBlank String idempotencyKey, @NotBlank String subscriptionId, @NotBlank String customerId,
                    @NotEmpty List<@Valid Line> lines, String addressId, @NotBlank String paymentMethodRef,
-                   String promotionCode) {
+                   @NotBlank String currency, String promotionCode) {
     }
 }

@@ -34,7 +34,6 @@ type Cart struct {
 
 func (c Cart) CountItem() int { return len(c.Items) }
 
-// NewCart kiểm tra dữ liệu đầu vào của một giỏ mới.
 func NewCart(name, customerID string, isDefault bool) (Cart, error) {
 	name, customerID = strings.TrimSpace(name), strings.TrimSpace(customerID)
 	if name == "" || customerID == "" {
@@ -50,14 +49,12 @@ func (c Cart) EnsureActive() error {
 	return nil
 }
 
-// Rename đổi tên; tên rỗng bị bỏ qua.
 func (c *Cart) Rename(name string) {
 	if n := strings.TrimSpace(name); n != "" {
 		c.Name = n
 	}
 }
 
-// SetStatus: giỏ INACTIVE không thể là giỏ mặc định.
 func (c *Cart) SetStatus(s Status) error {
 	if s != StatusActive && s != StatusInactive {
 		return Invalid("status must be ACTIVE or INACTIVE")
@@ -77,7 +74,6 @@ func (c *Cart) MakeDefault() error {
 	return nil
 }
 
-// Policy là giới hạn nghiệp vụ của giỏ.
 type Policy struct {
 	MaxItemQuantity int32
 	MaxItemsPerCart int
@@ -93,7 +89,6 @@ func (p Policy) CheckQuantity(q int32) error {
 	return nil
 }
 
-// CheckAdd: count = số sản phẩm khác nhau trong giỏ, current = số lượng hiện có của sản phẩm (0 nếu chưa có).
 func (p Policy) CheckAdd(count int, current, add int32) error {
 	if add < 1 {
 		return Invalid("quantity must be >= 1")

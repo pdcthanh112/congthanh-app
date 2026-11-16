@@ -394,8 +394,8 @@ const file_ecommerce_storedvalue_v1_storedvalue_events_proto_rawDesc = "" +
 	"\ahold_id\x18\x02 \x01(\tR\x06holdId\x12\x19\n" +
 	"\border_id\x18\x03 \x01(\tR\aorderId\x122\n" +
 	"\x06amount\x18\x04 \x01(\v2\x1a.ecommerce.common.v1.MoneyR\x06amount\x12\x16\n" +
-	"\x06reason\x18\x05 \x01(\tR\x06reasonB*\n" +
-	"&com.congthanh.ecommerce.storedvalue.v1P\x01b\x06proto3"
+	"\x06reason\x18\x05 \x01(\tR\x06reasonB\xa8\x02\n" +
+	"\x1ccom.ecommerce.storedvalue.v1B\x16StoredvalueEventsProtoP\x01Zngithub.com/pdcthanh112/CongThanhApp/backend/app/ecommerce/libs/go/proto/ecommerce/storedvalue/v1;storedvaluev1\xa2\x02\x03ESX\xaa\x02\x18Ecommerce.Storedvalue.V1\xca\x02\x18Ecommerce\\Storedvalue\\V1\xe2\x02$Ecommerce\\Storedvalue\\V1\\GPBMetadata\xea\x02\x1aEcommerce::Storedvalue::V1b\x06proto3"
 
 var (
 	file_ecommerce_storedvalue_v1_storedvalue_events_proto_rawDescOnce sync.Once

@@ -41,7 +41,7 @@ final class CheckoutDtos {
         }
     }
 
-    record OpenRequest(@NotEmpty @Size(max = 100) List<@Valid ItemRequest> items, @Size(min = 3, max = 3) String currency,
+    record OpenRequest(@NotEmpty @Size(max = 100) List<@Valid ItemRequest> items, @NotBlank @Size(min = 3, max = 3) String currency,
                        @Size(max = 64) String promotionCode, @Valid AddressDto shippingAddress,
                        @Valid AddressDto billingAddress, @Size(max = 1000) String note) {
     }

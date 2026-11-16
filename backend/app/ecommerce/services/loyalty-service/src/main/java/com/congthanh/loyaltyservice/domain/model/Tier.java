@@ -4,19 +4,19 @@ package com.congthanh.loyaltyservice.domain.model;
 public enum Tier {
     MEMBER(0, 100), SILVER(500, 125), GOLD(1500, 150);
 
-    private final long minSpendUsd;
+    private final long minSpend;
     private final int earnPercent;
 
-    Tier(long minSpendUsd, int earnPercent) {
-        this.minSpendUsd = minSpendUsd;
+    Tier(long minSpend, int earnPercent) {
+        this.minSpend = minSpend;
         this.earnPercent = earnPercent;
     }
 
-    public long minSpendUsd() {
-        return minSpendUsd;
+    public long minSpend() {
+        return minSpend;
     }
 
-    /** Phần trăm điểm so với mức cơ bản (100 = 1 điểm / 1 USD). */
+    /** Phần trăm điểm so với mức cơ bản (100 = 1 điểm cho mỗi 1 đơn vị tiền của chương trình). */
     public int earnPercent() {
         return earnPercent;
     }
@@ -24,7 +24,7 @@ public enum Tier {
     public static Tier forSpend(java.math.BigDecimal spend) {
         Tier t = MEMBER;
         for (Tier x : values()) {
-            if (spend.compareTo(java.math.BigDecimal.valueOf(x.minSpendUsd)) >= 0) {
+            if (spend.compareTo(java.math.BigDecimal.valueOf(x.minSpend)) >= 0) {
                 t = x;
             }
         }

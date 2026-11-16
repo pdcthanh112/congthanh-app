@@ -1,4 +1,3 @@
-// Package redis hiện thực app.FlashSaleStore trên Redis bằng Lua script.
 package redis
 
 import (

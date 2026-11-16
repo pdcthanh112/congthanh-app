@@ -37,9 +37,10 @@ def internal_txn(env: event_envelope_pb2.EventEnvelope) -> InternalTxn | None:
     amount = to_minor(ev.amount)
     if amount <= 0:
         return None
-    return InternalTxn(
-        ev.provider.lower(), ev.provider_ref, kind, amount, ev.amount.currency_code or "USD", ev.order_id, at
-    )
+    if not ev.amount.currency_code:
+        log.error("payment event %s has no currency; cannot reconcile it", env.id)
+        return None
+    return InternalTxn(ev.provider.lower(), ev.provider_ref, kind, amount, ev.amount.currency_code, ev.order_id, at)
 
 
 async def process(store: PostgresStore, raw: bytes) -> None:

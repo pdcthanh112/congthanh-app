@@ -1,4 +1,3 @@
-// Package postgres hiện thực Reader/UnitOfWork/Tx của cart-service bằng PostgreSQL.
 package postgres
 
 import (

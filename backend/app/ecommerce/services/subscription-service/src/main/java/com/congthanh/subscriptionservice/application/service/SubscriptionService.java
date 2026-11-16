@@ -42,10 +42,10 @@ public class SubscriptionService implements SubscriptionUseCases {
 
     @Override
     public Subscription create(String customerId, List<Line> lines, int intervalDays, LocalDate firstDelivery,
-                               String paymentMethodRef, String addressId) {
+                               String paymentMethodRef, String currency, String addressId) {
         return tx.execute(s -> {
             Subscription sub = Subscription.create(ids.next(), customerId, lines, intervalDays, firstDelivery,
-                    paymentMethodRef, addressId, today(), clock.instant());
+                    paymentMethodRef, currency, addressId, today(), clock.instant());
             repo.save(sub);
             return sub;
         });

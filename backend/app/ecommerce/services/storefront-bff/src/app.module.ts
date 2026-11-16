@@ -23,7 +23,6 @@ import {
   type AddressPort,
   CARTS,
   CHECKOUTS,
-  CURRENCY,
   type CartPort,
   type CheckoutPort,
   INVENTORY,
@@ -56,7 +55,6 @@ export function realBackends(env: Env): Backends {
     products: new ProductClient({
       grpcAddress: env.PRODUCT_GRPC_ADDR,
       restBaseUrl: env.PRODUCT_REST_URL,
-      currency: env.CURRENCY,
     }),
     inventory: new InventoryClient(env.INVENTORY_GRPC_ADDR),
     carts: new CartClient({ grpcAddress: env.CART_GRPC_ADDR, restBaseUrl: env.CART_REST_URL }),
@@ -102,7 +100,6 @@ export class AppModule {
         CartResolver,
         OrderResolver,
         RecommendationResolver,
-        { provide: CURRENCY, useValue: env.CURRENCY },
         { provide: PRODUCTS, useFactory: () => b().products },
         { provide: INVENTORY, useFactory: () => b().inventory },
         { provide: CARTS, useFactory: () => b().carts },

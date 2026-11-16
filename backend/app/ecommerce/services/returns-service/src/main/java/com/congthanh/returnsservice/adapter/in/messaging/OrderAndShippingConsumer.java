@@ -56,9 +56,11 @@ class OrderAndShippingConsumer {
     }
 
     static OrderSnapshot snapshot(OrderPlaced e) {
-        String currency = e.hasTotal() ? e.getTotal().getCurrencyCode() : "USD";
-        return new OrderSnapshot(e.getOrderId(), e.getCustomerId(), "PLACED", null, currency,
-                e.hasTotal() ? amount(e.getTotal()) : BigDecimal.ZERO,
+        if (!e.hasTotal() || e.getTotal().getCurrencyCode().isBlank()) {
+            throw new IllegalArgumentException("OrderPlaced " + e.getOrderId() + " has no total currency");
+        }
+        return new OrderSnapshot(e.getOrderId(), e.getCustomerId(), "PLACED", null, e.getTotal().getCurrencyCode(),
+                amount(e.getTotal()),
                 e.getLinesList().stream().map(l -> new OrderSnapshot.Line(l.getProductId(), l.getQuantity(),
                         amount(l.getUnitPrice()))).toList(), null);
     }

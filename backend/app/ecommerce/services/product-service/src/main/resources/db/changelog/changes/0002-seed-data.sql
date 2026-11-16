@@ -24,19 +24,19 @@ INSERT INTO products (id, name, slug, has_variant, sku, gtin, price, parent_id, 
     (1136423099780520, 'Rolex GMT Master II ', 'rolex-gmt-master-ii', false, NULL, NULL, NULL, NULL, 'description', 'ACTIVE'),
     (1233877787362295, 'Richard Mille RM 70-01 Tourbillon', 'richard-mille-rm-70-01', false, NULL, NULL, NULL, NULL, 'description', 'ACTIVE');
 
-INSERT INTO products (id, name, has_variant, parent_id, sku, gtin, price, description, status) VALUES
-    (772266622382519, 'Iphone 16 Pro Max Đen 128GB', false, 369334726608713, 'IPHON-COLOR-CAPAC-1432', '1845678901901', 25000000, 'description', 'ACTIVE'),
-    (4375511598425480, 'Iphone 16 Pro Max Đen 256GB', false, 369334726608713, 'IPHON-COLOR-CAPAC-5432', '1845678901001', 35000000, 'description', 'ACTIVE'),
-    (3290008034609610, 'Iphone 16 Pro Max Đen 512GB', false, 369334726608713, 'IPHON-COLOR-CAPAC-7652', '1845678901201', 45000000, 'description', 'ACTIVE'),
-    (4074358702518785, 'Iphone 16 Pro Max Đen 1TB', false, 369334726608713, 'IPHON-COLOR-CAPAC-1245', '1845678901301', 55000000, 'description', 'ACTIVE'),
-    (3462609080730822, 'Iphone 16 Pro Max Trắng 128GB', false, 369334726608713, 'IPHON-COLOR-CAPAC-6565', '1845678901021', 26000000, 'description', 'ACTIVE'),
-    (1626969164074855, 'Iphone 16 Pro Max Trắng 256GB', false, 369334726608713, 'IPHON-COLOR-CAPAC-8623', '1845678901401', 36000000, 'description', 'ACTIVE'),
-    (1785377336959597, 'Iphone 16 Pro Max Trắng 512GB', false, 369334726608713, 'IPHON-COLOR-CAPAC-4184', '1845678901501', 46000000, 'description', 'ACTIVE'),
-    (3310162956519876, 'Iphone 16 Pro Max Trắng 1TB', false, 369334726608713, 'IPHON-COLOR-CAPAC-1457', '1845678901601', 56000000, 'description', 'ACTIVE'),
-    (1731618100637396, 'Iphone 16 Pro Max Titan 128GB', false, 369334726608713, 'IPHON-COLOR-CAPAC-6894', '1845678901071', 29000000, 'description', 'ACTIVE'),
-    (87950754801030, 'Iphone 16 Pro Max Titan 256GB', false, 369334726608713, 'IPHON-COLOR-CAPAC-9867', '1845678901611', 39000000, 'description', 'ACTIVE'),
-    (2183680520018239, 'Iphone 16 Pro Max Titan 512B', false, 369334726608713, 'IPHON-COLOR-CAPAC-6474', '1845678901614', 49000000, 'description', 'ACTIVE'),
-    (625333548123667, 'Iphone 16 Pro Max Titan 1TB', false, 369334726608713, 'IPHON-COLOR-CAPAC-8735', '1845678901612', 59000000, 'description', 'ACTIVE');
+INSERT INTO products (id, name, has_variant, parent_id, sku, gtin, price, currency, description, status) VALUES
+    (772266622382519, 'Iphone 16 Pro Max Đen 128GB', false, 369334726608713, 'IPHON-COLOR-CAPAC-1432', '1845678901901', 25000000, 'VND', 'description', 'ACTIVE'),
+    (4375511598425480, 'Iphone 16 Pro Max Đen 256GB', false, 369334726608713, 'IPHON-COLOR-CAPAC-5432', '1845678901001', 35000000, 'VND', 'description', 'ACTIVE'),
+    (3290008034609610, 'Iphone 16 Pro Max Đen 512GB', false, 369334726608713, 'IPHON-COLOR-CAPAC-7652', '1845678901201', 45000000, 'VND', 'description', 'ACTIVE'),
+    (4074358702518785, 'Iphone 16 Pro Max Đen 1TB', false, 369334726608713, 'IPHON-COLOR-CAPAC-1245', '1845678901301', 55000000, 'VND', 'description', 'ACTIVE'),
+    (3462609080730822, 'Iphone 16 Pro Max Trắng 128GB', false, 369334726608713, 'IPHON-COLOR-CAPAC-6565', '1845678901021', 26000000, 'VND', 'description', 'ACTIVE'),
+    (1626969164074855, 'Iphone 16 Pro Max Trắng 256GB', false, 369334726608713, 'IPHON-COLOR-CAPAC-8623', '1845678901401', 36000000, 'VND', 'description', 'ACTIVE'),
+    (1785377336959597, 'Iphone 16 Pro Max Trắng 512GB', false, 369334726608713, 'IPHON-COLOR-CAPAC-4184', '1845678901501', 46000000, 'VND', 'description', 'ACTIVE'),
+    (3310162956519876, 'Iphone 16 Pro Max Trắng 1TB', false, 369334726608713, 'IPHON-COLOR-CAPAC-1457', '1845678901601', 56000000, 'VND', 'description', 'ACTIVE'),
+    (1731618100637396, 'Iphone 16 Pro Max Titan 128GB', false, 369334726608713, 'IPHON-COLOR-CAPAC-6894', '1845678901071', 29000000, 'VND', 'description', 'ACTIVE'),
+    (87950754801030, 'Iphone 16 Pro Max Titan 256GB', false, 369334726608713, 'IPHON-COLOR-CAPAC-9867', '1845678901611', 39000000, 'VND', 'description', 'ACTIVE'),
+    (2183680520018239, 'Iphone 16 Pro Max Titan 512B', false, 369334726608713, 'IPHON-COLOR-CAPAC-6474', '1845678901614', 49000000, 'VND', 'description', 'ACTIVE'),
+    (625333548123667, 'Iphone 16 Pro Max Titan 1TB', false, 369334726608713, 'IPHON-COLOR-CAPAC-8735', '1845678901612', 59000000, 'VND', 'description', 'ACTIVE');
 
 INSERT INTO product_images (id, product_id, image_path, is_default, display_order) VALUES
     (2026111500000001, 279094089499572, 'https://www.mrlinhadventure.com/UserFiles/image/Travel-blog/Image-content/Top-Landscapes-in-Vietnam-1.jpg', true, 0),

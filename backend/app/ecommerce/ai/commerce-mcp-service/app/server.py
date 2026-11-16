@@ -17,7 +17,7 @@ from .service import CommerceTools
 
 # Văn bản dưới đây do client LLM đọc nên viết tiếng Anh (cửa hàng bán cho khách ở Mỹ).
 INSTRUCTIONS = """Shopping tools for CongThanh Shop, acting on behalf of the signed-in user.
-Prices are in the currency returned with each amount (usually USD). Always ask the user to confirm before
+Prices are in the currency returned with each amount (never assume one). Always ask the user to confirm before
 cancelling an order; cancel_order only runs with confirm=true. There is no payment tool: the user places
 and pays for orders on the website or app."""
 

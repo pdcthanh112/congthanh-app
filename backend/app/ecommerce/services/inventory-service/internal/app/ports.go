@@ -1,5 +1,3 @@
-// Package app chứa các use case của inventory-service. Nó chỉ phụ thuộc domain và các
-// port (interface) dưới đây; adapter (Postgres, Redis, Kafka, gRPC, HTTP) hiện thực port.
 package app
 
 import (

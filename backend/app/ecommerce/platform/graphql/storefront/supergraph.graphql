@@ -12,8 +12,8 @@ type Cart {
   id: ID
   itemCount: Int!
   lines: [CartLine!]!
-  """Tạm tính các dòng mua được"""
-  subtotal: Money!
+  """Tạm tính các dòng mua được; null khi giỏ chưa có dòng nào có giá"""
+  subtotal: Money
 }
 
 type CartLine {
@@ -72,7 +72,9 @@ input CheckoutInput {
   """
   paymentToken: String
   promotionCode: String
-  """Bắt buộc với PayPal và trả góp: trang quay về sau khi khách duyệt thanh toán"""
+  """
+  Bắt buộc với PayPal và trả góp: trang quay về sau khi khách duyệt thanh toán
+  """
   returnUrl: String
   """Bỏ trống = địa chỉ mặc định"""
   shippingAddressId: ID

@@ -103,7 +103,11 @@ export class CartLineModel {
 export class CartModel {
   @Field(() => ID, { nullable: true, description: 'null khi khách chưa có giỏ' }) id!: number | null;
   @Field(() => [CartLineModel]) lines!: CartLineModel[];
-  @Field(() => MoneyModel, { description: 'Tạm tính các dòng mua được' }) subtotal!: MoneyModel;
+  @Field(() => MoneyModel, {
+    nullable: true,
+    description: 'Tạm tính các dòng mua được; null khi giỏ chưa có dòng nào có giá',
+  })
+  subtotal!: MoneyModel | null;
   @Field(() => Int) itemCount!: number;
   @Field({ description: 'Mọi dòng đều mua được và giỏ không rỗng' }) checkoutReady!: boolean;
 }
@@ -141,7 +145,10 @@ export class CheckoutInput {
       'ConfirmationToken (ctoken_...) từ Stripe Payment Element cho CARD/APPLE_PAY/GOOGLE_PAY/AFFIRM/KLARNA/AFTERPAY; bỏ trống với PayPal',
   })
   paymentToken?: string;
-  @Field({ nullable: true, description: 'Bắt buộc với PayPal và trả góp: trang quay về sau khi khách duyệt thanh toán' })
+  @Field({
+    nullable: true,
+    description: 'Bắt buộc với PayPal và trả góp: trang quay về sau khi khách duyệt thanh toán',
+  })
   returnUrl?: string;
   @Field({ nullable: true }) note?: string;
   @Field(() => Float, {

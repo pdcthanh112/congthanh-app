@@ -1,4 +1,3 @@
-// Package grpc là driving adapter gRPC (ecommerce.cart.v1.CartService) cho order-service khi checkout.
 package grpc
 
 import (

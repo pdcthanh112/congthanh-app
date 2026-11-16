@@ -10,7 +10,7 @@ import java.util.List;
 public interface SubscriptionUseCases {
 
     Subscription create(String customerId, List<Line> lines, int intervalDays, LocalDate firstDelivery,
-                        String paymentMethodRef, String addressId);
+                        String paymentMethodRef, String currency, String addressId);
 
     List<Subscription> mine(String customerId);
 

@@ -430,6 +430,9 @@ services:
       <<: *java-env
       NODE_ID: "45"
       DATABASE_URL: jdbc:postgresql://postgres:5432/ecommerce?currentSchema=loyalty_service
+      # Chương trình điểm của môi trường local: đơn vị tiền và giá trị một điểm (bắt buộc, service không có mặc định).
+      LOYALTY_CURRENCY: USD
+      LOYALTY_POINT_VALUE: "0.01"
     depends_on: { postgres: { condition: service_healthy }, kafka: { condition: service_healthy } }
 
   subscription-service:

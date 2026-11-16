@@ -4,7 +4,6 @@ import { z } from 'zod';
 export const envSchema = baseEnv.extend({
   SERVICE_NAME: z.string().default('backoffice-bff'),
   HTTP_PORT: z.coerce.number().default(5021),
-  CURRENCY: z.string().length(3).default('USD'),
   PRODUCT_GRPC_ADDR: z.string().default('localhost:29090'),
   PRODUCT_REST_URL: z.url().default('http://localhost:5008'),
   CART_GRPC_ADDR: z.string().default('localhost:19091'),

@@ -35,7 +35,8 @@ class JdbcSubscriptionRepository implements SubscriptionRepository {
 
     static final String AGGREGATE = "subscription";
     private static final String COLUMNS = """
-            id, customer_id, lines, interval_days, next_delivery_date, payment_method_ref, address_id, status, cycle,
+            id, customer_id, lines, interval_days, next_delivery_date, payment_method_ref, currency, address_id, status,
+            cycle,
             attempts, next_attempt_at, reminded_cycle, paused_until, cancel_reason, created_at, version""";
 
     private final JdbcClient jdbc;
@@ -48,12 +49,12 @@ class JdbcSubscriptionRepository implements SubscriptionRepository {
         int n;
         if (s.version() == 0) {
             n = jdbc.sql("""
-                            INSERT INTO subscriptions (%s) VALUES (:id::bigint, :c, :lines::jsonb, :interval, :next, :pm, :addr,
+                            INSERT INTO subscriptions (%s) VALUES (:id::bigint, :c, :lines::jsonb, :interval, :next, :pm, :currency, :addr,
                                 :status, :cycle, :attempts, :nextAttempt, :reminded, :pausedUntil, :cancel, :createdAt, 1)"""
                             .formatted(COLUMNS))
                     .param("id", s.id()).param("c", s.customerId()).param("lines", lines)
                     .param("interval", s.intervalDays()).param("next", Date.valueOf(s.nextDeliveryDate()))
-                    .param("pm", s.paymentMethodRef()).param("addr", s.addressId()).param("status", s.status().name())
+                    .param("pm", s.paymentMethodRef()).param("currency", s.currency()).param("addr", s.addressId()).param("status", s.status().name())
                     .param("cycle", s.cycle()).param("attempts", s.attempts()).param("nextAttempt", ts(s.nextAttemptAt()))
                     .param("reminded", s.remindedCycle()).param("pausedUntil", date(s.pausedUntil()))
                     .param("cancel", s.cancelReason()).param("createdAt", ts(s.createdAt()))
@@ -134,7 +135,7 @@ class JdbcSubscriptionRepository implements SubscriptionRepository {
         Timestamp nextAttempt = rs.getTimestamp("next_attempt_at");
         Date paused = rs.getDate("paused_until");
         return Subscription.rehydrate(rs.getString("id"), rs.getString("customer_id"), lines, rs.getInt("interval_days"),
-                rs.getDate("next_delivery_date").toLocalDate(), rs.getString("payment_method_ref"),
+                rs.getDate("next_delivery_date").toLocalDate(), rs.getString("payment_method_ref"), rs.getString("currency"),
                 rs.getString("address_id"), SubscriptionStatus.valueOf(rs.getString("status")), rs.getInt("cycle"),
                 rs.getInt("attempts"), nextAttempt == null ? null : nextAttempt.toInstant(), rs.getInt("reminded_cycle"),
                 paused == null ? null : paused.toLocalDate(), rs.getString("cancel_reason"),

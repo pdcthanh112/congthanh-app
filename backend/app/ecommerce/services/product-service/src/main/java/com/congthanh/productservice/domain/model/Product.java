@@ -54,6 +54,9 @@ public class Product {
     @Column(name = "price", precision = 19, scale = 2)
     private BigDecimal price;
 
+    @Column(name = "currency", length = 3, columnDefinition = "character(3)")
+    private String currency;
+
     @OneToMany(mappedBy = "product", cascade = CascadeType.PERSIST, orphanRemoval = true)
     @OrderBy("displayOrder ASC")
     private List<ProductCategory> category = new ArrayList<>();
@@ -67,8 +70,6 @@ public class Product {
 
     @Column(columnDefinition = "text")
     private String description;
-
-//    private int maxQuantityPerOrder = 0;  // 0 = unlimited
 
     @Column()
     private Long thumbnail;

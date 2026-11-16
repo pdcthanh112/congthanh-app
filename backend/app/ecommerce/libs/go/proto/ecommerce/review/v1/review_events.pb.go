@@ -107,13 +107,12 @@ func (x *ReviewSubmitted) GetSubmittedAt() *timestamppb.Timestamp {
 }
 
 type ReviewModerated struct {
-	state     protoimpl.MessageState `protogen:"open.v1"`
-	ReviewId  string                 `protobuf:"bytes,1,opt,name=review_id,json=reviewId,proto3" json:"review_id,omitempty"`
-	ProductId string                 `protobuf:"bytes,2,opt,name=product_id,json=productId,proto3" json:"product_id,omitempty"`
-	// PUBLISHED | HIDDEN
-	Status        string `protobuf:"bytes,3,opt,name=status,proto3" json:"status,omitempty"`
-	Reason        string `protobuf:"bytes,4,opt,name=reason,proto3" json:"reason,omitempty"`
-	ModeratorId   string `protobuf:"bytes,5,opt,name=moderator_id,json=moderatorId,proto3" json:"moderator_id,omitempty"`
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	ReviewId      string                 `protobuf:"bytes,1,opt,name=review_id,json=reviewId,proto3" json:"review_id,omitempty"`
+	ProductId     string                 `protobuf:"bytes,2,opt,name=product_id,json=productId,proto3" json:"product_id,omitempty"`
+	Status        string                 `protobuf:"bytes,3,opt,name=status,proto3" json:"status,omitempty"`
+	Reason        string                 `protobuf:"bytes,4,opt,name=reason,proto3" json:"reason,omitempty"`
+	ModeratorId   string                 `protobuf:"bytes,5,opt,name=moderator_id,json=moderatorId,proto3" json:"moderator_id,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -251,14 +250,12 @@ func (x *ReviewReplied) GetSellerId() string {
 	return ""
 }
 
-// Điểm tổng hợp sau mỗi thay đổi (key = product_id, chỉ cần bản mới nhất: topic có thể compact).
 type ProductRatingChanged struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	ProductId     string                 `protobuf:"bytes,1,opt,name=product_id,json=productId,proto3" json:"product_id,omitempty"`
 	ReviewCount   int64                  `protobuf:"varint,2,opt,name=review_count,json=reviewCount,proto3" json:"review_count,omitempty"`
 	AverageRating float64                `protobuf:"fixed64,3,opt,name=average_rating,json=averageRating,proto3" json:"average_rating,omitempty"`
-	// Số lượng theo sao: index 0 = 1 sao ... index 4 = 5 sao.
-	StarCounts    []int64 `protobuf:"varint,4,rep,packed,name=star_counts,json=starCounts,proto3" json:"star_counts,omitempty"`
+	StarCounts    []int64                `protobuf:"varint,4,rep,packed,name=star_counts,json=starCounts,proto3" json:"star_counts,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }

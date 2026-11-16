@@ -13,6 +13,7 @@ public record ProductDetailVm(
         Boolean isFeatured,
         Boolean hasVariant,
         BigDecimal price,
+        String currency,
         String thumbnail,
         List<String> images,
         Double averageRating,

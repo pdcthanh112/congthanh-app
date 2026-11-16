@@ -67,8 +67,7 @@ public class ProductGrpcService extends ProductServiceGrpc.ProductServiceImplBas
                                 .setErrorMessage("Product " + p.getId() + " is not available");
                         break;
                     }
-                    // Seller status, shipping restrictions, per-order limits and pre-orders are not
-                    // modelled on Product yet; add those checks here once the fields exist.
+
                     double price = p.getPrice() != null ? p.getPrice().doubleValue() : 0d;
                     details.add(ProductDetail.newBuilder()
                             .setProductId(p.getId())
@@ -76,6 +75,7 @@ public class ProductGrpcService extends ProductServiceGrpc.ProductServiceImplBas
                             .setName(p.getName())
                             .setOriginalPrice(price)
                             .setSellingPrice(price)
+                            .setCurrency(p.getCurrency() != null ? p.getCurrency() : "")
                             .setIsActive(true)
                             .setIsDeleted(false)
                             .setSellerId(p.getSupplier() != null ? p.getSupplier() : "")
@@ -131,6 +131,7 @@ public class ProductGrpcService extends ProductServiceGrpc.ProductServiceImplBas
                 .setName(p.getName())
                 .setOriginalPrice(price)
                 .setSellingPrice(price)
+                .setCurrency(p.getCurrency() != null ? p.getCurrency() : "")
                 .setIsActive(active)
                 .setIsDeleted(false)
                 .setSellerId(p.getSupplier() != null ? p.getSupplier() : "")

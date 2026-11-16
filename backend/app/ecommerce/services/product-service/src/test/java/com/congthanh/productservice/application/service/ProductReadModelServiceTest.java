@@ -51,7 +51,7 @@ class ProductReadModelServiceTest {
         when(tm.getTransaction(any())).thenReturn(new SimpleTransactionStatus());
         when(products.snapshotMicros()).thenReturn(1_000L, 2_000L, 3_000L);
         when(store.upsertCore(any())).thenReturn(true);
-        service = new ProductReadModelService(products, store, new ProductDocumentAssembler(catalog, combos, "USD"), tm);
+        service = new ProductReadModelService(products, store, new ProductDocumentAssembler(catalog, combos), tm);
     }
 
     @Test
@@ -144,7 +144,7 @@ class ProductReadModelServiceTest {
 
     @Test
     void rebuildPagesThroughIdsAndCountsFailures() {
-        when(products.findIdsAfter(eq(""), any(Limit.class))).thenReturn(List.of("a", "b"));
+        when(products.findIdsAfter(eq("0"), any(Limit.class))).thenReturn(List.of("a", "b"));
         when(products.findIdsAfter(eq("b"), any(Limit.class))).thenReturn(List.of());
         when(products.findById("a")).thenReturn(Optional.of(product("a", "a", null)));
         when(products.findById("b")).thenThrow(new IllegalStateException("boom"));
@@ -163,6 +163,7 @@ class ProductReadModelServiceTest {
         p.setSlug(slug);
         p.setStatus(ProductStatus.ACTIVE);
         p.setPrice(new BigDecimal("10.00"));
+        p.setCurrency("USD");
         p.setParent(parent);
         return p;
     }

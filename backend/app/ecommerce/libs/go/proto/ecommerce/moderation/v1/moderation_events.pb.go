@@ -216,8 +216,8 @@ const file_ecommerce_moderation_v1_moderation_events_proto_rawDesc = "" +
 	"\tauthor_id\x18\x01 \x01(\tR\bauthorId\x12\x18\n" +
 	"\astrikes\x18\x02 \x01(\x05R\astrikes\x12 \n" +
 	"\flast_item_id\x18\x03 \x01(\tR\n" +
-	"lastItemIdB)\n" +
-	"%com.congthanh.ecommerce.moderation.v1P\x01b\x06proto3"
+	"lastItemIdB\xa0\x02\n" +
+	"\x1bcom.ecommerce.moderation.v1B\x15ModerationEventsProtoP\x01Zlgithub.com/pdcthanh112/CongThanhApp/backend/app/ecommerce/libs/go/proto/ecommerce/moderation/v1;moderationv1\xa2\x02\x03EMX\xaa\x02\x17Ecommerce.Moderation.V1\xca\x02\x17Ecommerce\\Moderation\\V1\xe2\x02#Ecommerce\\Moderation\\V1\\GPBMetadata\xea\x02\x19Ecommerce::Moderation::V1b\x06proto3"
 
 var (
 	file_ecommerce_moderation_v1_moderation_events_proto_rawDescOnce sync.Once

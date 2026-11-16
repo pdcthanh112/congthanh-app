@@ -17,7 +17,6 @@ import {
   type CartPort,
   CHECKOUTS,
   type CheckoutPort,
-  CURRENCY,
   INVENTORY,
   type InventoryPort,
   ORDERS,
@@ -49,7 +48,8 @@ export interface CartLineView {
 export interface CartSnapshot {
   id: number | null;
   lines: CartLineView[];
-  subtotal: Money;
+  /** Tạm tính theo đơn vị tiền của các dòng mua được; null khi chưa có dòng nào có giá. */
+  subtotal: Money | null;
   itemCount: number;
   checkoutReady: boolean;
 }
@@ -105,7 +105,6 @@ export class StorefrontService {
     @Inject(ADDRESSES) private readonly addresses: AddressPort,
     @Inject(CHECKOUTS) private readonly checkouts: CheckoutPort,
     @Inject(RECOMMENDATIONS) private readonly recommender: RecommendationPort,
-    @Inject(CURRENCY) private readonly currency: string,
   ) {}
 
   async cart(p: Principal): Promise<CartSnapshot> {
@@ -114,7 +113,7 @@ export class StorefrontService {
       return {
         id: cart?.id ?? null,
         lines: [],
-        subtotal: sumMoney([], this.currency),
+        subtotal: null,
         itemCount: 0,
         checkoutReady: false,
       };
@@ -126,7 +125,8 @@ export class StorefrontService {
     return {
       id: cart.id,
       lines,
-      subtotal: sumMoney(priced, this.currency),
+      // Đơn vị tiền lấy từ chính giá sản phẩm; giỏ lẫn nhiều currency thì sumMoney báo lỗi.
+      subtotal: priced[0] ? sumMoney(priced, priced[0].currency) : null,
       itemCount: lines.reduce((n, l) => n + l.quantity, 0),
       checkoutReady: lines.length > 0 && lines.every((l) => l.purchasable),
     };
@@ -169,12 +169,14 @@ export class StorefrontService {
   async quotePromotion(p: Principal, code: string): Promise<DiscountQuote & { subtotal: Money; total: Money }> {
     const cart = await this.cart(p);
     if (cart.lines.length === 0) throw DomainError.invalid('cart is empty', 'CART_EMPTY');
-    const q = await this.promotions.quote(code.trim().toUpperCase(), p.id, cart.subtotal);
+    const subtotal = cart.subtotal;
+    if (!subtotal) throw DomainError.conflict('no purchasable items in the cart', 'CART_NOT_PURCHASABLE');
+    const q = await this.promotions.quote(code.trim().toUpperCase(), p.id, subtotal);
     const discount = q.valid && q.discount ? q.discount : null;
     const total = discount
-      ? { ...cart.subtotal, amountMinor: Math.max(0, cart.subtotal.amountMinor - discount.amountMinor) }
-      : cart.subtotal;
-    return { ...q, discount, subtotal: cart.subtotal, total };
+      ? { ...subtotal, amountMinor: Math.max(0, subtotal.amountMinor - discount.amountMinor) }
+      : subtotal;
+    return { ...q, discount, subtotal, total };
   }
 
   /**
@@ -197,6 +199,9 @@ export class StorefrontService {
         'CART_NOT_PURCHASABLE',
       );
     }
+    // Đơn vị tiền của đơn là đơn vị tiền của giá sản phẩm trong giỏ, không có mặc định.
+    const currency = cart.subtotal?.currency;
+    if (!currency) throw DomainError.conflict('cart has no priced items', 'CART_NOT_PURCHASABLE');
     const address = toOrderAddress(await this.addresses.shippingAddress(p.id, cmd.shippingAddressId));
     const promotionCode = cmd.promotionCode?.trim().toUpperCase() || null;
     // Mở phiên cũng mang Idempotency-Key (khác key đặt đơn): gửi lại sau khi mất mạng nhận lại đúng phiên cũ,
@@ -205,7 +210,7 @@ export class StorefrontService {
       p.token,
       {
         items: cart.lines.map((l) => ({ productId: l.productId, quantity: l.quantity })),
-        currency: this.currency,
+        currency,
         promotionCode,
         shippingAddress: address,
         note: cmd.note?.slice(0, 500) ?? null,

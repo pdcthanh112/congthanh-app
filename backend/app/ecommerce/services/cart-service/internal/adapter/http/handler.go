@@ -1,5 +1,3 @@
-// Package http là driving adapter REST của cart-service, giữ nguyên đường dẫn và format
-// phản hồi của bản Java (/api/ecommerce/carts/...).
 package http
 
 import (

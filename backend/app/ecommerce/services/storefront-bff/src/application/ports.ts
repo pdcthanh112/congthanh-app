@@ -33,4 +33,3 @@ export const ORDERS = Symbol('ORDERS');
 export const ADDRESSES = Symbol('ADDRESSES');
 export const CHECKOUTS = Symbol('CHECKOUTS');
 export const RECOMMENDATIONS = Symbol('RECOMMENDATIONS');
-export const CURRENCY = Symbol('CURRENCY');

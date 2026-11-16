@@ -23,6 +23,7 @@ public final class Subscription {
     private final String id;
     private final String customerId;
     private final String paymentMethodRef;
+    private final String currency;
     private final String addressId;
     private final Instant createdAt;
     private final long version;
@@ -40,8 +41,8 @@ public final class Subscription {
     private final List<SubscriptionEvent> events = new ArrayList<>();
 
     private Subscription(String id, String customerId, List<Line> lines, int intervalDays, LocalDate nextDeliveryDate,
-                         String paymentMethodRef, String addressId, SubscriptionStatus status, int cycle, int attempts,
-                         Instant nextAttemptAt, int remindedCycle, LocalDate pausedUntil, String cancelReason,
+                         String paymentMethodRef, String currency, String addressId, SubscriptionStatus status,
+                         int cycle, int attempts, Instant nextAttemptAt, int remindedCycle, LocalDate pausedUntil, String cancelReason,
                          Instant createdAt, long version) {
         this.id = Objects.requireNonNull(id);
         this.customerId = Objects.requireNonNull(customerId);
@@ -49,6 +50,7 @@ public final class Subscription {
         this.intervalDays = intervalDays;
         this.nextDeliveryDate = nextDeliveryDate;
         this.paymentMethodRef = paymentMethodRef;
+        this.currency = Objects.requireNonNull(currency, "currency");
         this.addressId = addressId;
         this.status = status;
         this.cycle = cycle;
@@ -62,8 +64,8 @@ public final class Subscription {
     }
 
     public static Subscription create(String id, String customerId, List<Line> lines, int intervalDays,
-                                      LocalDate firstDelivery, String paymentMethodRef, String addressId,
-                                      LocalDate today, Instant now) {
+                                      LocalDate firstDelivery, String paymentMethodRef, String currency,
+                                      String addressId, LocalDate today, Instant now) {
         validate(lines, intervalDays);
         if (firstDelivery == null || !firstDelivery.isAfter(today.plusDays(2))) {
             throw SubscriptionException.invalid("first delivery must be at least 3 days from today");
@@ -71,19 +73,22 @@ public final class Subscription {
         if (paymentMethodRef == null || paymentMethodRef.isBlank()) {
             throw SubscriptionException.invalid("a saved payment method is required");
         }
+        if (currency == null || !currency.trim().toUpperCase(java.util.Locale.ROOT).matches("[A-Z]{3}")) {
+            throw SubscriptionException.invalid("currency (ISO 4217) is required");
+        }
         Subscription s = new Subscription(id, customerId, lines, intervalDays, firstDelivery, paymentMethodRef,
-                addressId, SubscriptionStatus.ACTIVE, 1, 0, null, 0, null, null, now, 0);
+                currency.trim().toUpperCase(java.util.Locale.ROOT), addressId, SubscriptionStatus.ACTIVE, 1, 0, null, 0, null, null, now, 0);
         s.events.add(new SubscriptionEvent.Created(s));
         return s;
     }
 
     public static Subscription rehydrate(String id, String customerId, List<Line> lines, int intervalDays,
-                                         LocalDate nextDeliveryDate, String paymentMethodRef, String addressId,
-                                         SubscriptionStatus status, int cycle, int attempts, Instant nextAttemptAt,
+                                         LocalDate nextDeliveryDate, String paymentMethodRef, String currency,
+                                         String addressId, SubscriptionStatus status, int cycle, int attempts, Instant nextAttemptAt,
                                          int remindedCycle, LocalDate pausedUntil, String cancelReason,
                                          Instant createdAt, long version) {
-        return new Subscription(id, customerId, lines, intervalDays, nextDeliveryDate, paymentMethodRef, addressId,
-                status, cycle, attempts, nextAttemptAt, remindedCycle, pausedUntil, cancelReason, createdAt, version);
+        return new Subscription(id, customerId, lines, intervalDays, nextDeliveryDate, paymentMethodRef, currency,
+                addressId, status, cycle, attempts, nextAttemptAt, remindedCycle, pausedUntil, cancelReason, createdAt, version);
     }
 
     private static void validate(List<Line> lines, int intervalDays) {
@@ -237,6 +242,7 @@ public final class Subscription {
     public int intervalDays() { return intervalDays; }
     public LocalDate nextDeliveryDate() { return nextDeliveryDate; }
     public String paymentMethodRef() { return paymentMethodRef; }
+    public String currency() { return currency; }
     public String addressId() { return addressId; }
     public SubscriptionStatus status() { return status; }
     public int cycle() { return cycle; }

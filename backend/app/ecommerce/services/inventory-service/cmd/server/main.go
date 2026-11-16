@@ -1,5 +1,3 @@
-// inventory-service: tồn kho, kho hàng, giữ chỗ cho saga đặt hàng và flash sale.
-// Composition root của kiến trúc hexagonal: chỉ nơi này biết đến mọi adapter.
 package main
 
 import (

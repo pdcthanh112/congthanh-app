@@ -1,6 +1,3 @@
--- +goose Up
--- Gộp warehouse-service vào inventory-service: kho và tồn kho nằm chung một chỗ,
--- nên giữ chỗ/trừ kho chạy được trong một transaction.
 CREATE TABLE warehouses (
     id          TEXT PRIMARY KEY,
     name        TEXT        NOT NULL,
@@ -13,7 +10,6 @@ CREATE TABLE warehouses (
 
 INSERT INTO warehouses (id, name) VALUES ('WH-DEFAULT', 'Kho mặc định');
 
--- Tồn kho theo (sản phẩm, kho). available = quantity - reserved.
 CREATE TABLE stocks (
     id               BIGINT PRIMARY KEY,
     product_id       TEXT        NOT NULL,
@@ -33,7 +29,7 @@ CREATE TABLE stocks (
 CREATE INDEX stocks_sku_idx ON stocks (sku);
 
 CREATE TABLE reservations (
-    id          TEXT PRIMARY KEY,           -- saga id / order id do bên gọi cấp
+    id          TEXT PRIMARY KEY,       
     customer_id TEXT        NOT NULL DEFAULT '',
     order_id    TEXT        NOT NULL DEFAULT '',
     type        TEXT        NOT NULL,       -- ORDER | CART | QUOTE

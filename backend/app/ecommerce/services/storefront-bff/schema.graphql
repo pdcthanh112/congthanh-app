@@ -16,8 +16,8 @@ type Cart {
   id: ID
   itemCount: Int!
   lines: [CartLine!]!
-  """Tạm tính các dòng mua được"""
-  subtotal: Money!
+  """Tạm tính các dòng mua được; null khi giỏ chưa có dòng nào có giá"""
+  subtotal: Money
 }
 
 type CartLine {

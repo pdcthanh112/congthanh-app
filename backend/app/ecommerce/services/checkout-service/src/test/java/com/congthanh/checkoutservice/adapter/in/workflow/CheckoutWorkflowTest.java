@@ -308,7 +308,8 @@ class CheckoutWorkflowTest {
     }
 
     private final class FakePoints implements LoyaltyActivities {
-        @Override public BigDecimal reserve(String redemptionId, String customerId, String orderId, long pts) {
+        @Override public BigDecimal reserve(String redemptionId, String customerId, String orderId, long pts,
+                                            String currency) {
             calls.add("loyalty.reserve");
             return BigDecimal.valueOf(pts).movePointLeft(2);
         }

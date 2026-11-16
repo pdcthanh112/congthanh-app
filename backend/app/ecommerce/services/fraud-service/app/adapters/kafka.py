@@ -40,6 +40,10 @@ async def handle(store: PostgresStore, c: asyncpg.Connection, env: event_envelop
     if t == _name(order_events_pb2.OrderPlaced):
         ev = order_events_pb2.OrderPlaced()
         env.payload.Unpack(ev)
+        if not ev.total.currency_code:
+            # Không đoán đơn vị tiền: đơn thiếu currency không được tính vào lịch sử chi tiêu.
+            log.error("OrderPlaced %s has no currency; skipped", ev.order_id)
+            return
         a = ev.shipping_address
         fp = (
             Address(a.country_code, a.region_code, a.line1, a.phone).fingerprint()
@@ -51,7 +55,7 @@ async def handle(store: PostgresStore, c: asyncpg.Connection, env: event_envelop
             ev.order_id,
             ev.customer_id,
             to_minor(ev.total),
-            ev.total.currency_code or "USD",
+            ev.total.currency_code,
             ev.checkout_workflow_id,
             fp,
         )

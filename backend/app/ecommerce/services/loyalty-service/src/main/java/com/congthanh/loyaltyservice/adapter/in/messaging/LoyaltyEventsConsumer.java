@@ -18,7 +18,7 @@ import org.springframework.transaction.support.TransactionTemplate;
 import java.math.BigDecimal;
 import java.time.Instant;
 
-/** Tích điểm khi đơn xác nhận, hẹn ngày xác nhận khi giao, đảo khi hoàn tiền/huỷ. Chỉ tính đơn USD (ADR 0015). */
+/** Tích điểm khi đơn xác nhận, hẹn ngày xác nhận khi giao, đảo khi hoàn tiền/huỷ. Chỉ tính đơn dùng đơn vị tiền của chương trình điểm (cấu hình loyalty.currency). */
 @Component
 @RequiredArgsConstructor
 class LoyaltyEventsConsumer {
@@ -37,13 +37,15 @@ class LoyaltyEventsConsumer {
                 ? Instant.ofEpochSecond(env.getOccurredAt().getSeconds(), env.getOccurredAt().getNanos())
                 : Instant.now();
         EventEnvelopes.unpack(env, OrderConfirmed.class)
-                .filter(e -> e.hasTotal() && "USD".equals(e.getTotal().getCurrencyCode()))
-                .ifPresent(e -> once(env, () -> loyalty.orderConfirmed(e.getOrderId(), e.getCustomerId(), amount(e.getTotal()))));
+                .filter(OrderConfirmed::hasTotal)
+                .ifPresent(e -> once(env, () -> loyalty.orderConfirmed(e.getOrderId(), e.getCustomerId(),
+                        amount(e.getTotal()), e.getTotal().getCurrencyCode())));
         EventEnvelopes.unpack(env, OrderCancelled.class).ifPresent(e -> once(env, () -> loyalty.orderCancelled(e.getOrderId())));
         EventEnvelopes.unpack(env, ShipmentStatusChanged.class).filter(e -> "DELIVERED".equalsIgnoreCase(e.getToStatus()))
                 .ifPresent(e -> once(env, () -> loyalty.orderDelivered(e.getOrderId(), at)));
         EventEnvelopes.unpack(env, RefundIssued.class)
-                .ifPresent(e -> once(env, () -> loyalty.refunded(e.getOrderId(), amount(e.getAmount()), "RETURN " + e.getReturnId())));
+                .ifPresent(e -> once(env, () -> loyalty.refunded(e.getOrderId(), amount(e.getAmount()),
+                        e.getAmount().getCurrencyCode(), "RETURN " + e.getReturnId())));
     }
 
     // Use case tự mở transaction; processed_events dùng transaction riêng bọc ngoài (lồng nhau cùng transaction).

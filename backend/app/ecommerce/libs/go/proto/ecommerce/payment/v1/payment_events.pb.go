@@ -384,8 +384,8 @@ const file_ecommerce_payment_v1_payment_events_proto_rawDesc = "" +
 	"\x06reason\x18\x05 \x01(\tR\x06reason\x12\x1a\n" +
 	"\bprovider\x18\x06 \x01(\tR\bprovider\x12%\n" +
 	"\x0efully_refunded\x18\a \x01(\bR\rfullyRefunded\x12!\n" +
-	"\fprovider_ref\x18\b \x01(\tR\vproviderRefB&\n" +
-	"\"com.congthanh.ecommerce.payment.v1P\x01b\x06proto3"
+	"\fprovider_ref\x18\b \x01(\tR\vproviderRefB\x88\x02\n" +
+	"\x18com.ecommerce.payment.v1B\x12PaymentEventsProtoP\x01Zfgithub.com/pdcthanh112/CongThanhApp/backend/app/ecommerce/libs/go/proto/ecommerce/payment/v1;paymentv1\xa2\x02\x03EPX\xaa\x02\x14Ecommerce.Payment.V1\xca\x02\x14Ecommerce\\Payment\\V1\xe2\x02 Ecommerce\\Payment\\V1\\GPBMetadata\xea\x02\x16Ecommerce::Payment::V1b\x06proto3"
 
 var (
 	file_ecommerce_payment_v1_payment_events_proto_rawDescOnce sync.Once

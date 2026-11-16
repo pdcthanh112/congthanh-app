@@ -15,7 +15,6 @@ import (
 const (
 	MaxProductsPerRequest = 500
 	MaxPricesPerUpsert    = 1000
-	DefaultCurrency       = "USD"
 )
 
 type Repository interface {
@@ -87,14 +86,14 @@ func NewService(repo Repository, cache Cache, ids IDGen, now Clock) *Service {
 	return &Service{repo: repo, cache: cache, ids: ids, now: now, ttl: 30 * time.Second}
 }
 
-func (c Context) normalized(now time.Time) (Context, bool) {
+func (c Context) normalized(now time.Time) (Context, bool, error) {
 	live := c.At.IsZero()
 	if live {
 		c.At = now
 	}
 	c.Currency = strings.ToUpper(strings.TrimSpace(c.Currency))
-	if c.Currency == "" {
-		c.Currency = DefaultCurrency
+	if len(c.Currency) != 3 {
+		return c, live, apperr.Invalid("currency (ISO 4217) is required")
 	}
 	gs := make([]string, 0, len(c.Groups))
 	for _, g := range c.Groups {
@@ -104,7 +103,7 @@ func (c Context) normalized(now time.Time) (Context, bool) {
 	}
 	slices.Sort(gs)
 	c.Groups = slices.Compact(gs)
-	return c, live
+	return c, live, nil
 }
 
 func dedupe(ids []string) []string {
@@ -145,7 +144,6 @@ func itoa(n int64) string {
 	return string(b[i:])
 }
 
-// Prices: giá hiện hành của nhiều sản phẩm (theo lô). Sản phẩm chưa định giá không có trong kết quả.
 func (s *Service) Prices(ctx context.Context, productIDs []string, pc Context) (map[string]domain.Resolved, error) {
 	ids := dedupe(productIDs)
 	if len(ids) > MaxProductsPerRequest {
@@ -155,9 +153,11 @@ func (s *Service) Prices(ctx context.Context, productIDs []string, pc Context) (
 	if len(ids) == 0 {
 		return out, nil
 	}
-	c, live := pc.normalized(s.now())
+	c, live, err := pc.normalized(s.now())
+	if err != nil {
+		return nil, err
+	}
 
-	// Chỉ cache giá "bây giờ"; truy vấn theo thời điểm khác (xem trước đợt sale) luôn đọc DB.
 	var gen int64 = -1
 	if s.cache != nil && live {
 		if g, err := s.cache.Generation(ctx); err == nil {
@@ -270,7 +270,10 @@ func (s *Service) QuoteLines(ctx context.Context, lines []Line, pc Context) (Quo
 		}
 		ids = append(ids, l.ProductID)
 	}
-	c, _ := pc.normalized(s.now())
+	c, _, err := pc.normalized(s.now())
+	if err != nil {
+		return Quote{}, err
+	}
 	noCache := *s
 	noCache.cache = nil
 	prices, err := noCache.Prices(ctx, ids, Context{Currency: c.Currency, Groups: c.Groups, At: c.At})

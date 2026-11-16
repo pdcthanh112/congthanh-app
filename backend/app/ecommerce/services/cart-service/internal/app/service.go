@@ -51,7 +51,6 @@ type CreateInput struct {
 	IsDefault  bool   `json:"isDefault"`
 }
 
-// Create tạo giỏ; giỏ đầu tiên của khách tự động là giỏ mặc định.
 func (s *Service) Create(ctx context.Context, in CreateInput) (domain.Cart, error) {
 	c, err := domain.NewCart(in.Name, in.CustomerID, in.IsDefault)
 	if err != nil {
@@ -141,7 +140,6 @@ func (s *Service) Delete(ctx context.Context, id int64) error {
 	})
 }
 
-// AddItem thêm sản phẩm; đã có thì cộng dồn số lượng.
 func (s *Service) AddItem(ctx context.Context, cartID int64, productID string, qty int32) (domain.Item, error) {
 	productID = strings.TrimSpace(productID)
 	if productID == "" {
@@ -204,7 +202,6 @@ func (s *Service) DeleteItem(ctx context.Context, cartID, itemID int64) error {
 	})
 }
 
-// Clear xoá item (tất cả, hoặc theo productIDs — sau checkout).
 func (s *Service) Clear(ctx context.Context, cartID int64, productIDs []string) (int, error) {
 	var n int
 	err := s.uow.Do(ctx, func(ctx context.Context, tx Tx) error {
@@ -222,7 +219,6 @@ func (s *Service) Clear(ctx context.Context, cartID int64, productIDs []string) 
 	return n, err
 }
 
-// OrderPlaced ghi nhớ sản phẩm của đơn; giỏ chưa bị đụng tới vì đơn có thể còn bị huỷ (thanh toán lỗi, hết hàng).
 func (s *Service) OrderPlaced(ctx context.Context, orderID, customerID string, productIDs []string) error {
 	if orderID == "" || customerID == "" || len(productIDs) == 0 {
 		return nil
@@ -230,7 +226,6 @@ func (s *Service) OrderPlaced(ctx context.Context, orderID, customerID string, p
 	return s.pending.RememberOrder(ctx, orderID, customerID, productIDs)
 }
 
-// OrderConfirmed (đã thanh toán) mới bỏ các sản phẩm của đơn khỏi giỏ mặc định. Gọi lại an toàn.
 func (s *Service) OrderConfirmed(ctx context.Context, orderID string) (int, error) {
 	customerID, productIDs, ok, err := s.pending.PendingOrder(ctx, orderID)
 	if err != nil || !ok {
@@ -243,12 +238,10 @@ func (s *Service) OrderConfirmed(ctx context.Context, orderID string) (int, erro
 	return n, s.pending.ForgetOrder(ctx, orderID)
 }
 
-// OrderCancelled bỏ phần ghi nhớ; giỏ giữ nguyên.
 func (s *Service) OrderCancelled(ctx context.Context, orderID string) error {
 	return s.pending.ForgetOrder(ctx, orderID)
 }
 
-// ClearOrdered bỏ khỏi giỏ mặc định các sản phẩm của đơn đã xác nhận.
 func (s *Service) ClearOrdered(ctx context.Context, customerID string, productIDs []string) (int, error) {
 	c, err := s.read.GetDefault(ctx, customerID)
 	if domain.KindOf(err) == domain.KindNotFound || len(productIDs) == 0 {
@@ -260,7 +253,6 @@ func (s *Service) ClearOrdered(ctx context.Context, customerID string, productID
 	return s.Clear(ctx, c.ID, productIDs)
 }
 
-// ItemDetail lấy item kèm thông tin sản phẩm.
 func (s *Service) ItemDetail(ctx context.Context, cartID, itemID int64) (domain.ItemDetail, error) {
 	it, err := s.read.Item(ctx, cartID, itemID)
 	if err != nil {
@@ -292,7 +284,6 @@ func (s *Service) checkProducts(ctx context.Context, ids ...string) error {
 	return nil
 }
 
-// Validate kiểm tra từng item còn đủ hàng và còn bán trước khi checkout.
 func (s *Service) Validate(ctx context.Context, cartID int64) (domain.Validation, error) {
 	c, err := s.read.Get(ctx, cartID)
 	if err != nil || len(c.Items) == 0 {

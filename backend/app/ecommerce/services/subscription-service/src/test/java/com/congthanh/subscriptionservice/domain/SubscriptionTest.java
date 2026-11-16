@@ -22,18 +22,18 @@ class SubscriptionTest {
 
     private static Subscription sub() {
         Subscription s = Subscription.create("s-1", "c-1", List.of(new Line("p-1", 2)), 30, TODAY.plusDays(10), "pm_1",
-                "a-1", TODAY, NOW);
+                "USD", "a-1", TODAY, NOW);
         s.pullEvents();
         return s;
     }
 
     @Test
     void validatesIntervalFirstDeliveryAndPaymentMethod() {
-        assertThatThrownBy(() -> Subscription.create("s", "c", List.of(new Line("p", 1)), 5, TODAY.plusDays(10), "pm", null, TODAY, NOW))
+        assertThatThrownBy(() -> Subscription.create("s", "c", List.of(new Line("p", 1)), 5, TODAY.plusDays(10), "pm", "USD", null, TODAY, NOW))
                 .isInstanceOf(SubscriptionException.class);
-        assertThatThrownBy(() -> Subscription.create("s", "c", List.of(new Line("p", 1)), 30, TODAY.plusDays(1), "pm", null, TODAY, NOW))
+        assertThatThrownBy(() -> Subscription.create("s", "c", List.of(new Line("p", 1)), 30, TODAY.plusDays(1), "pm", "USD", null, TODAY, NOW))
                 .isInstanceOf(SubscriptionException.class);
-        assertThatThrownBy(() -> Subscription.create("s", "c", List.of(new Line("p", 1)), 30, TODAY.plusDays(10), "", null, TODAY, NOW))
+        assertThatThrownBy(() -> Subscription.create("s", "c", List.of(new Line("p", 1)), 30, TODAY.plusDays(10), "", "USD", null, TODAY, NOW))
                 .isInstanceOf(SubscriptionException.class);
     }
 

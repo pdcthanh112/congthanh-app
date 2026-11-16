@@ -1,6 +1,3 @@
--- +goose Up
--- Transactional outbox (Debezium Outbox Event Router đọc bảng này) và bảng chống
--- xử lý trùng cho Kafka consumer.
 CREATE TABLE outbox (
     id            UUID PRIMARY KEY,
     aggregatetype TEXT        NOT NULL,

@@ -21,8 +21,9 @@ class SearchServiceClient:
                 name=h["name"],
                 slug=h.get("slug", ""),
                 price=float(h.get("price", 0)),
-                currency=h.get("currency", "USD"),
+                currency=h["currency"],
             )
             for h in hits
-            if h.get("status", "ACTIVE") == "ACTIVE"
+            # Sản phẩm không kèm đơn vị tiền thì không đưa cho LLM: không đoán giá theo USD.
+            if h.get("status", "ACTIVE") == "ACTIVE" and h.get("currency")
         ]

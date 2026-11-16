@@ -1,11 +1,11 @@
-// cart-service: giỏ hàng của khách. Composition root của kiến trúc hexagonal.
 package main
 
 import (
 	"context"
-	"github.com/jackc/pgx/v5"
 	"log/slog"
 	"os"
+
+	"github.com/jackc/pgx/v5"
 
 	healthpb "google.golang.org/grpc/health/grpc_health_v1"
 
@@ -71,7 +71,6 @@ func run() error {
 		return err
 	}
 
-	// --- driven adapters ---
 	productConn, err := grpcx.Dial(cfg.ProductGRPCAddr)
 	if err != nil {
 		return err
@@ -109,7 +108,6 @@ func run() error {
 		slog.Warn("KAFKA_BROKERS not set: ordered items will not be removed from carts automatically")
 	}
 
-	// --- driving adapters ---
 	grpcSrv, health := server.NewGRPCServer(verifier)
 	pb.RegisterCartServiceServer(grpcSrv, grpcadapter.New(svc))
 	health.SetServingStatus("", healthpb.HealthCheckResponse_SERVING)

@@ -550,8 +550,8 @@ const file_ecommerce_privacy_v1_privacy_events_proto_rawDesc = "" +
 	"\n" +
 	"subject_id\x18\x02 \x01(\tR\tsubjectId\x12\x12\n" +
 	"\x04type\x18\x03 \x01(\tR\x04type\x12\x18\n" +
-	"\aoutcome\x18\x04 \x01(\tR\aoutcomeB&\n" +
-	"\"com.congthanh.ecommerce.privacy.v1P\x01b\x06proto3"
+	"\aoutcome\x18\x04 \x01(\tR\aoutcomeB\x88\x02\n" +
+	"\x18com.ecommerce.privacy.v1B\x12PrivacyEventsProtoP\x01Zfgithub.com/pdcthanh112/CongThanhApp/backend/app/ecommerce/libs/go/proto/ecommerce/privacy/v1;privacyv1\xa2\x02\x03EPX\xaa\x02\x14Ecommerce.Privacy.V1\xca\x02\x14Ecommerce\\Privacy\\V1\xe2\x02 Ecommerce\\Privacy\\V1\\GPBMetadata\xea\x02\x16Ecommerce::Privacy::V1b\x06proto3"
 
 var (
 	file_ecommerce_privacy_v1_privacy_events_proto_rawDescOnce sync.Once

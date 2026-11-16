@@ -107,14 +107,13 @@ func (x *FraudReviewRequested) GetReasons() []string {
 }
 
 type FraudReviewDecided struct {
-	state        protoimpl.MessageState `protogen:"open.v1"`
-	AssessmentId string                 `protobuf:"bytes,1,opt,name=assessment_id,json=assessmentId,proto3" json:"assessment_id,omitempty"`
-	CheckoutId   string                 `protobuf:"bytes,2,opt,name=checkout_id,json=checkoutId,proto3" json:"checkout_id,omitempty"`
-	CustomerId   string                 `protobuf:"bytes,3,opt,name=customer_id,json=customerId,proto3" json:"customer_id,omitempty"`
-	// APPROVE | REJECT
-	Decision      string `protobuf:"bytes,4,opt,name=decision,proto3" json:"decision,omitempty"`
-	DecidedBy     string `protobuf:"bytes,5,opt,name=decided_by,json=decidedBy,proto3" json:"decided_by,omitempty"`
-	Note          string `protobuf:"bytes,6,opt,name=note,proto3" json:"note,omitempty"`
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	AssessmentId  string                 `protobuf:"bytes,1,opt,name=assessment_id,json=assessmentId,proto3" json:"assessment_id,omitempty"`
+	CheckoutId    string                 `protobuf:"bytes,2,opt,name=checkout_id,json=checkoutId,proto3" json:"checkout_id,omitempty"`
+	CustomerId    string                 `protobuf:"bytes,3,opt,name=customer_id,json=customerId,proto3" json:"customer_id,omitempty"`
+	Decision      string                 `protobuf:"bytes,4,opt,name=decision,proto3" json:"decision,omitempty"`
+	DecidedBy     string                 `protobuf:"bytes,5,opt,name=decided_by,json=decidedBy,proto3" json:"decided_by,omitempty"`
+	Note          string                 `protobuf:"bytes,6,opt,name=note,proto3" json:"note,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }

@@ -155,9 +155,9 @@ class JdbcLoyaltyRepository implements LoyaltyRepository {
     }
 
     private Money value(long points) {
-        BigDecimal a = rules.pointValueUsd().multiply(BigDecimal.valueOf(points)).setScale(9, RoundingMode.HALF_EVEN);
+        BigDecimal a = rules.pointValue().multiply(BigDecimal.valueOf(points)).setScale(9, RoundingMode.HALF_EVEN);
         BigDecimal units = a.setScale(0, RoundingMode.DOWN);
-        return Money.newBuilder().setCurrencyCode("USD").setUnits(units.longValueExact())
+        return Money.newBuilder().setCurrencyCode(rules.currency()).setUnits(units.longValueExact())
                 .setNanos(a.subtract(units).movePointRight(9).intValueExact()).build();
     }
 

@@ -1,4 +1,3 @@
-// Package postgres hiện thực các port lưu trữ của inventory-service bằng PostgreSQL (pgx).
 package postgres
 
 import (

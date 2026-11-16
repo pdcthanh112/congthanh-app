@@ -38,7 +38,7 @@ class SubscriptionController {
     @ResponseStatus(HttpStatus.CREATED)
     Dto create(@Valid @RequestBody CreateRequest r, @AuthenticationPrincipal Jwt jwt) {
         return Dto.of(subs.create(jwt.getSubject(), lines(r.lines()), r.intervalDays(), r.firstDeliveryDate(),
-                r.paymentMethodRef(), r.addressId()));
+                r.paymentMethodRef(), r.currency(), r.addressId()));
     }
 
     @GetMapping("/mine")
@@ -92,7 +92,8 @@ class SubscriptionController {
     }
 
     record CreateRequest(@NotEmpty List<@Valid LineRequest> lines, @Positive int intervalDays,
-                         @NotNull LocalDate firstDeliveryDate, @NotBlank String paymentMethodRef, String addressId) {
+                         @NotNull LocalDate firstDeliveryDate, @NotBlank String paymentMethodRef,
+                         @NotBlank String currency, String addressId) {
     }
 
     record ChangeRequest(List<LineRequest> lines, Integer intervalDays) {
@@ -104,10 +105,11 @@ class SubscriptionController {
     record CancelRequest(String reason) {
     }
 
-    record Dto(String id, String status, List<Line> lines, int intervalDays, LocalDate nextDeliveryDate, int cycle,
+    record Dto(String id, String status, String currency, List<Line> lines, int intervalDays,
+               LocalDate nextDeliveryDate, int cycle,
                LocalDate pausedUntil, String cancelReason) {
         static Dto of(Subscription s) {
-            return new Dto(s.id(), s.status().name(), s.lines(), s.intervalDays(), s.nextDeliveryDate(), s.cycle(),
+            return new Dto(s.id(), s.status().name(), s.currency(), s.lines(), s.intervalDays(), s.nextDeliveryDate(), s.cycle(),
                     s.pausedUntil(), s.cancelReason());
         }
     }

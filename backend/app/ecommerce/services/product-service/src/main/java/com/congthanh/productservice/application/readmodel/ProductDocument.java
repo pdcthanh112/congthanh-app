@@ -64,7 +64,7 @@ public class ProductDocument {
     public record VariantOption(Long optionId, String name, String value) {
     }
 
-    public record Variant(String id, String name, String slug, String sku, String gtin, BigDecimal price,
+    public record Variant(String id, String name, String slug, String sku, String gtin, BigDecimal price, String currency,
                           String thumbnail, List<Image> images, List<VariantOption> options) {
     }
 
@@ -82,5 +82,11 @@ public class ProductDocument {
     public BigDecimal effectivePrice(String priceList) {
         Price p = prices == null ? null : prices.get(priceList);
         return p != null ? p.amount() : basePrice;
+    }
+
+    /** Đơn vị tiền của {@link #effectivePrice}: theo bảng giá nếu có, không thì theo giá gốc. */
+    public String effectiveCurrency(String priceList) {
+        Price p = prices == null ? null : prices.get(priceList);
+        return p != null ? p.currency() : currency;
     }
 }

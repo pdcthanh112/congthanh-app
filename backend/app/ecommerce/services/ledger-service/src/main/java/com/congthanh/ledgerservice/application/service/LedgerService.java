@@ -41,7 +41,7 @@ public class LedgerService implements LedgerPosting, LedgerQueries, ManualEntrie
         }
         if (fact instanceof FinancialFact.ProviderFees f) {
             String expense = "expense:psp_fees:" + f.provider().toLowerCase(java.util.Locale.ROOT).replaceAll("[^a-z0-9_]", "_");
-            BigDecimal posted = repo.bySource("psp_fees", PostingRules.feeSource(f.provider(), f.businessDate())).stream()
+            BigDecimal posted = repo.bySource("psp_fees", PostingRules.feeSource(f.provider(), f.businessDate(), f.currency())).stream()
                     .flatMap(e -> e.postings().stream())
                     .filter(p -> p.account().value().equals(expense))
                     .map(p -> p.side() == com.congthanh.ledgerservice.domain.model.Side.DEBIT ? p.amount() : p.amount().negate())

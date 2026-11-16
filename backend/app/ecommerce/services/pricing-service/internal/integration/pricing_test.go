@@ -35,7 +35,7 @@ func TestPricingFlow(t *testing.T) {
 	if err := repo.SeedFromCatalog(ctx, "p1", "USD", 200_000); err != nil {
 		t.Fatal(err)
 	}
-	if err := repo.SeedFromCatalog(ctx, "p1", "USD", 999_999); err != nil { 
+	if err := repo.SeedFromCatalog(ctx, "p1", "USD", 999_999); err != nil {
 		t.Fatal(err)
 	}
 	n, err := svc.UpsertPrices(ctx, "default", []domain.Price{{ProductID: "p1", Amount: 180_000}, {ProductID: "p2", Amount: 50_000}}, "admin")
@@ -45,11 +45,11 @@ func TestPricingFlow(t *testing.T) {
 	if n, _ := svc.UpsertPrices(ctx, "default", []domain.Price{{ProductID: "p2", Amount: 50_000}}, "admin"); n != 0 {
 		t.Fatalf("unchanged upsert should be a no-op, changed=%d", n)
 	}
-	if got := outbox(); got != 3 { 
+	if got := outbox(); got != 3 {
 		t.Fatalf("outbox after upserts: %d", got)
 	}
 
-	ps, err := svc.Prices(ctx, []string{"p1", "p2", "nope"}, app.Context{})
+	ps, err := svc.Prices(ctx, []string{"p1", "p2", "nope"}, app.Context{Currency: "USD"})
 	if err != nil || len(ps) != 2 || ps["p1"].Amount != 180_000 || *ps["p1"].Lowest30d != 180_000 {
 		t.Fatalf("prices: %+v %v", ps, err)
 	}
@@ -67,7 +67,7 @@ func TestPricingFlow(t *testing.T) {
 	if w := ws["p1"]; w.Amount != 150_000 || w.PriceList != "wholesale" || w.CompareAt != 180_000 || w.DiscountPercent != 16 {
 		t.Fatalf("wholesale: %+v", w)
 	}
-	if pub, _ := svc.Prices(ctx, []string{"p1"}, app.Context{}); pub["p1"].Amount != 180_000 {
+	if pub, _ := svc.Prices(ctx, []string{"p1"}, app.Context{Currency: "USD"}); pub["p1"].Amount != 180_000 {
 		t.Fatalf("public must not see wholesale: %+v", pub["p1"])
 	}
 
@@ -93,7 +93,7 @@ func TestPricingFlow(t *testing.T) {
 	if len(active) != 2 || outbox() != 4+2 {
 		t.Fatalf("after start: active=%d outbox=%d", len(active), outbox())
 	}
-	q, err := svc.QuoteLines(ctx, []app.Line{{LineID: "l1", ProductID: "p1", Quantity: 2}, {LineID: "l2", ProductID: "ghost", Quantity: 1}}, app.Context{})
+	q, err := svc.QuoteLines(ctx, []app.Line{{LineID: "l1", ProductID: "p1", Quantity: 2}, {LineID: "l2", ProductID: "ghost", Quantity: 1}}, app.Context{Currency: "USD"})
 	if err != nil || q.Subtotal != 288_000 || len(q.Unpriced) != 1 || q.Lines[0].CompareAt != 180_000 {
 		t.Fatalf("quote: %+v %v", q, err)
 	}
@@ -108,10 +108,10 @@ func TestPricingFlow(t *testing.T) {
 		t.Fatal(err)
 	}
 	ended, _ := svc.Schedules(ctx, app.ScheduleFilter{Status: domain.Ended})
-	if len(ended) != 1 || outbox() != 6+2 { 
+	if len(ended) != 1 || outbox() != 6+2 {
 		t.Fatalf("after end: ended=%d outbox=%d", len(ended), outbox())
 	}
-	after, _ := svc.Prices(ctx, []string{"p1"}, app.Context{})
+	after, _ := svc.Prices(ctx, []string{"p1"}, app.Context{Currency: "USD"})
 	if p := after["p1"]; p.Amount != 180_000 || *p.Lowest30d != 144_000 || p.DiscountPercent != 0 {
 		t.Fatalf("after sale: %+v lowest=%d", p, *p.Lowest30d)
 	}
@@ -123,7 +123,7 @@ func TestPricingFlow(t *testing.T) {
 	if err := repo.RemoveProduct(ctx, "p2"); err != nil {
 		t.Fatal(err)
 	}
-	if gone, _ := svc.Prices(ctx, []string{"p2"}, app.Context{}); len(gone) != 0 {
+	if gone, _ := svc.Prices(ctx, []string{"p2"}, app.Context{Currency: "USD"}); len(gone) != 0 {
 		t.Fatalf("removed product still priced: %+v", gone)
 	}
 	if err := svc.UpdatePriceList(ctx, domain.PriceList{Code: "default", Name: "x", Currency: "USD", Active: false}); apperr.KindOf(err) != apperr.KindInvalid {

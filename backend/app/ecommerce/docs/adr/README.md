@@ -32,3 +32,4 @@ Không sửa ADR đã "Accepted"; muốn đổi thì viết ADR mới và đánh
 | 0026 | [Thêm loyalty, subscription, moderation](0026-loyalty-subscription-moderation.md) | Proposed |
 | 0027 | [Nối các service mới: checkout, gia hạn, kiểm duyệt, xoá dữ liệu](0027-wiring-new-services.md) | Proposed |
 | 0028 | [Id thực thể dùng Snowflake (BIGINT) thay UUIDv7](0028-snowflake-ids.md) | Proposed |
+| 0029 | [Mọi khoản tiền phải mang đơn vị tiền của giao dịch, không mặc định USD](0029-currency-required.md) | Proposed |

@@ -75,6 +75,8 @@ platform:
 
 loyalty:
   return-window: ${LOYALTY_RETURN_WINDOW:P30D}
-  point-value-usd: ${LOYALTY_POINT_VALUE_USD:0.01}
+  # Bắt buộc cấu hình, không có mặc định: đơn vị tiền của chương trình điểm và giá trị một điểm theo đơn vị đó.
+  currency: ${LOYALTY_CURRENCY}
+  point-value: ${LOYALTY_POINT_VALUE}
   min-redeem: ${LOYALTY_MIN_REDEEM:100}
 

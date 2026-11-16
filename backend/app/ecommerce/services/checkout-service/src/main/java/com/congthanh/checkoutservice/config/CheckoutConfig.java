@@ -29,10 +29,9 @@ class CheckoutConfig {
     CheckoutUseCase checkoutUseCase(SessionRepository sessions, Catalog catalog, Pricing pricing, Promotions promotions,
                                     Shipping shipping, Tax tax, FraudCheck fraud, Orders orders,
                                     CheckoutWorkflows workflows, Ids ids, Clock clock,
-                                    @Value("${checkout.currency:USD}") String currency,
                                     @Value("${checkout.session-ttl:PT30M}") Duration ttl) {
         return new CheckoutService(sessions, catalog, pricing, promotions, shipping, tax, fraud, orders, workflows, ids,
-                clock, new CheckoutService.Settings(currency, ttl));
+                clock, new CheckoutService.Settings(ttl));
     }
 
     /** checkout-service poll queue "checkout-workflow": chỉ chạy workflow; activity ở order-service và payment-service. */

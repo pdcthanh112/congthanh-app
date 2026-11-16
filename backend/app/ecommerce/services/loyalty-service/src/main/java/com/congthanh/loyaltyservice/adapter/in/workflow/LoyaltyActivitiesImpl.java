@@ -16,9 +16,9 @@ public class LoyaltyActivitiesImpl implements LoyaltyActivities {
     private final LoyaltyUseCases loyalty;
 
     @Override
-    public BigDecimal reserve(String redemptionId, String customerId, String orderId, long points) {
+    public BigDecimal reserve(String redemptionId, String customerId, String orderId, long points, String currency) {
         try {
-            return loyalty.reserve(redemptionId, customerId, orderId, points);
+            return loyalty.reserve(redemptionId, customerId, orderId, points, currency);
         } catch (LoyaltyException e) {
             throw ApplicationFailure.newNonRetryableFailure(e.getMessage(), REJECTED);
         }

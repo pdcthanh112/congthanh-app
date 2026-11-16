@@ -249,7 +249,8 @@ public class CheckoutWorkflowImpl implements CheckoutWorkflow {
         step = Step.RESERVING_TENDERS;
         if (in.usesLoyaltyPoints()) {
             saga.addCompensation(loyaltyMustComplete::release, in.orderId());
-            BigDecimal value = loyalty.reserve(in.orderId(), in.customerId(), in.orderId(), in.loyaltyPoints());
+            BigDecimal value = loyalty.reserve(in.orderId(), in.customerId(), in.orderId(), in.loyaltyPoints(),
+                    in.currency());
             reservedPoints = true;
             payable = payable.subtract(value);
         }

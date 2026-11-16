@@ -68,7 +68,6 @@ platform:
     namespace: ${TEMPORAL_NAMESPACE:default}
 
 order:
-  currency: ${ORDER_CURRENCY:USD}
   checkout:
     payment-timeout: ${CHECKOUT_PAYMENT_TIMEOUT:PT15M}
     # Giữ hàng = payment-timeout + margin (gửi expiry_time sang inventory), để hàng không hết hạn trước khi saga xong.

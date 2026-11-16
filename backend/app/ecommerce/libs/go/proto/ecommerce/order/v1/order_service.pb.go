@@ -475,8 +475,8 @@ const file_ecommerce_order_v1_order_service_proto_rawDesc = "" +
 	"\bdiscount\x18\x05 \x01(\v2\x1a.ecommerce.common.v1.MoneyR\bdiscount2k\n" +
 	"\fOrderService\x12[\n" +
 	"\n" +
-	"PlaceOrder\x12%.ecommerce.order.v1.PlaceOrderRequest\x1a&.ecommerce.order.v1.PlaceOrderResponseB$\n" +
-	" com.congthanh.ecommerce.order.v1P\x01b\x06proto3"
+	"PlaceOrder\x12%.ecommerce.order.v1.PlaceOrderRequest\x1a&.ecommerce.order.v1.PlaceOrderResponseB\xf9\x01\n" +
+	"\x16com.ecommerce.order.v1B\x11OrderServiceProtoP\x01Zbgithub.com/pdcthanh112/CongThanhApp/backend/app/ecommerce/libs/go/proto/ecommerce/order/v1;orderv1\xa2\x02\x03EOX\xaa\x02\x12Ecommerce.Order.V1\xca\x02\x12Ecommerce\\Order\\V1\xe2\x02\x1eEcommerce\\Order\\V1\\GPBMetadata\xea\x02\x14Ecommerce::Order::V1b\x06proto3"
 
 var (
 	file_ecommerce_order_v1_order_service_proto_rawDescOnce sync.Once

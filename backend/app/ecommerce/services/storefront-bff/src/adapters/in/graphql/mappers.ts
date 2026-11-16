@@ -42,7 +42,7 @@ export function cart(c: CartSnapshot): CartModel {
       issue: l.issue as CartModel["lines"][number]["issue"],
       addedAt: l.addedAt,
     })),
-    subtotal: money(c.subtotal),
+    subtotal: c.subtotal ? money(c.subtotal) : null,
     itemCount: c.itemCount,
     checkoutReady: c.checkoutReady,
   };

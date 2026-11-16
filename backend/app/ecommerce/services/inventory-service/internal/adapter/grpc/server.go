@@ -1,4 +1,3 @@
-// Package grpc là driving adapter gRPC (ecommerce.inventory.v1.InventoryService).
 package grpc
 
 import (

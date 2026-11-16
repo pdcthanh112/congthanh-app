@@ -10,6 +10,7 @@ public record ProductVariantVm(String id,
                                String sku,
                                String gtin,
                                BigDecimal price,
+                               String currency,
                                ProductImageVm thumbnail,
                                List<ProductImageVm> image,
                                Map<Long, String> options) {

@@ -500,8 +500,8 @@ const file_ecommerce_loyalty_v1_loyalty_events_proto_rawDesc = "" +
 	"\vcustomer_id\x18\x01 \x01(\tR\n" +
 	"customerId\x12\x1b\n" +
 	"\tfrom_tier\x18\x02 \x01(\tR\bfromTier\x12\x17\n" +
-	"\ato_tier\x18\x03 \x01(\tR\x06toTierB&\n" +
-	"\"com.congthanh.ecommerce.loyalty.v1P\x01b\x06proto3"
+	"\ato_tier\x18\x03 \x01(\tR\x06toTierB\x88\x02\n" +
+	"\x18com.ecommerce.loyalty.v1B\x12LoyaltyEventsProtoP\x01Zfgithub.com/pdcthanh112/CongThanhApp/backend/app/ecommerce/libs/go/proto/ecommerce/loyalty/v1;loyaltyv1\xa2\x02\x03ELX\xaa\x02\x14Ecommerce.Loyalty.V1\xca\x02\x14Ecommerce\\Loyalty\\V1\xe2\x02 Ecommerce\\Loyalty\\V1\\GPBMetadata\xea\x02\x16Ecommerce::Loyalty::V1b\x06proto3"
 
 var (
 	file_ecommerce_loyalty_v1_loyalty_events_proto_rawDescOnce sync.Once

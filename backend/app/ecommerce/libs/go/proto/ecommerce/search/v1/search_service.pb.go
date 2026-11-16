@@ -23,16 +23,14 @@ const (
 )
 
 type SearchProductsRequest struct {
-	state      protoimpl.MessageState `protogen:"open.v1"`
-	Query      string                 `protobuf:"bytes,1,opt,name=query,proto3" json:"query,omitempty"`
-	CategoryId string                 `protobuf:"bytes,2,opt,name=category_id,json=categoryId,proto3" json:"category_id,omitempty"`
-	// Khoảng giá (đơn vị chính của tiền tệ), 0 = không giới hạn.
-	MinPrice float64 `protobuf:"fixed64,3,opt,name=min_price,json=minPrice,proto3" json:"min_price,omitempty"`
-	MaxPrice float64 `protobuf:"fixed64,4,opt,name=max_price,json=maxPrice,proto3" json:"max_price,omitempty"`
-	// relevance (mặc định), price_asc, price_desc, newest.
-	Sort          string `protobuf:"bytes,5,opt,name=sort,proto3" json:"sort,omitempty"`
-	Page          int32  `protobuf:"varint,6,opt,name=page,proto3" json:"page,omitempty"`
-	PageSize      int32  `protobuf:"varint,7,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Query         string                 `protobuf:"bytes,1,opt,name=query,proto3" json:"query,omitempty"`
+	CategoryId    string                 `protobuf:"bytes,2,opt,name=category_id,json=categoryId,proto3" json:"category_id,omitempty"`
+	MinPrice      float64                `protobuf:"fixed64,3,opt,name=min_price,json=minPrice,proto3" json:"min_price,omitempty"`
+	MaxPrice      float64                `protobuf:"fixed64,4,opt,name=max_price,json=maxPrice,proto3" json:"max_price,omitempty"`
+	Sort          string                 `protobuf:"bytes,5,opt,name=sort,proto3" json:"sort,omitempty"`
+	Page          int32                  `protobuf:"varint,6,opt,name=page,proto3" json:"page,omitempty"`
+	PageSize      int32                  `protobuf:"varint,7,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }

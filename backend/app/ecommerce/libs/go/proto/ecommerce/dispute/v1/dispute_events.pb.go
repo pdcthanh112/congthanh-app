@@ -338,8 +338,8 @@ const file_ecommerce_dispute_v1_dispute_events_proto_rawDesc = "" +
 	"\aoutcome\x18\x05 \x01(\tR\aoutcome\x12\x16\n" +
 	"\x06reason\x18\x06 \x01(\tR\x06reason\x122\n" +
 	"\x06amount\x18\a \x01(\v2\x1a.ecommerce.common.v1.MoneyR\x06amount\x12,\n" +
-	"\x03fee\x18\b \x01(\v2\x1a.ecommerce.common.v1.MoneyR\x03feeB&\n" +
-	"\"com.congthanh.ecommerce.dispute.v1P\x01b\x06proto3"
+	"\x03fee\x18\b \x01(\v2\x1a.ecommerce.common.v1.MoneyR\x03feeB\x88\x02\n" +
+	"\x18com.ecommerce.dispute.v1B\x12DisputeEventsProtoP\x01Zfgithub.com/pdcthanh112/CongThanhApp/backend/app/ecommerce/libs/go/proto/ecommerce/dispute/v1;disputev1\xa2\x02\x03EDX\xaa\x02\x14Ecommerce.Dispute.V1\xca\x02\x14Ecommerce\\Dispute\\V1\xe2\x02 Ecommerce\\Dispute\\V1\\GPBMetadata\xea\x02\x16Ecommerce::Dispute::V1b\x06proto3"
 
 var (
 	file_ecommerce_dispute_v1_dispute_events_proto_rawDescOnce sync.Once

@@ -39,10 +39,10 @@ class LoyaltyController {
         }
     }
 
-    record SummaryDto(String customerId, String tier, long available, long pending, BigDecimal availableValueUsd,
-                      List<LotDto> lots) {
+    record SummaryDto(String customerId, String tier, long available, long pending, BigDecimal availableValue,
+                      String currency, List<LotDto> lots) {
         static SummaryDto of(LoyaltyUseCases.Summary s) {
-            return new SummaryDto(s.customerId(), s.tier().name(), s.available(), s.pending(), s.availableValueUsd(),
+            return new SummaryDto(s.customerId(), s.tier().name(), s.available(), s.pending(), s.availableValue(), s.currency(),
                     s.lots().stream().map(LotDto::of).toList());
         }
     }

@@ -16,7 +16,6 @@ function setup() {
     b.addresses,
     b.checkouts,
     b.recommendations,
-    'USD',
   );
   return { ...f, svc, me: testPrincipal('c1') };
 }
@@ -51,7 +50,7 @@ describe('StorefrontService', () => {
     stock.set('p2', { productId: 'p2', available: 0, reserved: 0, total: 0, reorderPoint: 2, status: 'OUT_OF_STOCK' });
     const cart = await svc.cart(me);
     expect(cart.lines.find((l) => l.productId === 'p2')).toMatchObject({ purchasable: false, issue: 'OUT_OF_STOCK' });
-    expect(cart.subtotal.amountMinor).toBe(3_000);
+    expect(cart.subtotal?.amountMinor).toBe(3_000);
     expect(cart.checkoutReady).toBe(false);
     await expect(svc.checkout(me, { idempotencyKey: 'k'.repeat(20), paymentMethod: 'CARD' })).rejects.toMatchObject({
       code: 'CART_NOT_PURCHASABLE',

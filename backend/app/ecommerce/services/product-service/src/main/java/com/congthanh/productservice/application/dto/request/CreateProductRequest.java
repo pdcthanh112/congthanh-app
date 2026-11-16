@@ -25,6 +25,7 @@ public class CreateProductRequest {
     private String sku;
     private String gtin;
     private BigDecimal price;
+    private String currency;
     private String description;
     private String supplier;
     private String brand;
@@ -40,6 +41,7 @@ public class CreateProductRequest {
     record ProductAttributeRequest(@NotNull String attribute, @NotNull String value) {
     }
 
-    record ProductVariantRequest(@NotNull String sku, @NotNull String gtin, @NotNull BigDecimal price) {
+    record ProductVariantRequest(@NotNull String sku, @NotNull String gtin, @NotNull BigDecimal price,
+                                 @NotNull String currency) {
     }
 }

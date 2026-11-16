@@ -18,7 +18,8 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 class MemberTest {
 
     private static final Instant T0 = Instant.parse("2026-01-10T00:00:00Z");
-    private static final Member.Rules RULES = Member.Rules.defaults();
+    private static final Member.Rules RULES = new Member.Rules(java.time.Duration.ofDays(30), java.time.Duration.ofDays(45),
+            java.time.Duration.ofDays(365), "USD", new java.math.BigDecimal("0.01"), 100);
 
     private static Member member(Tier tier) {
         return new Member("c-1", tier, List.of(), 1);

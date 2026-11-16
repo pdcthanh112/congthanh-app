@@ -15,9 +15,12 @@ public interface LoyaltyActivities {
 
     String REJECTED = "LoyaltyRejected";
 
-    /** Giữ điểm; trả về giá trị USD được giảm. */
+    /**
+     * Giữ điểm cho đơn tính bằng {@code currency}; trả về giá trị được giảm theo đúng đơn vị đó. Đơn khác đơn vị tiền
+     * của chương trình điểm bị từ chối ({@link #REJECTED}).
+     */
     @ActivityMethod
-    BigDecimal reserve(String redemptionId, String customerId, String orderId, long points);
+    BigDecimal reserve(String redemptionId, String customerId, String orderId, long points, String currency);
 
     @ActivityMethod
     void commit(String redemptionId);

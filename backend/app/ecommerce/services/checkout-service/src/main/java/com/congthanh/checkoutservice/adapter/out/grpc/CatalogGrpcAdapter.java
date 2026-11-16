@@ -43,7 +43,7 @@ class CatalogGrpcAdapter implements Catalog {
                 boolean purchasable = p.getIsActive() && !p.getIsDeleted() && (p.getSellerId().isEmpty() || p.getSellerActive());
                 out.put(p.getProductId(), new Product(p.getProductId(), p.getSku(), p.getName(), purchasable,
                         p.getMaxQuantityPerOrder(), intAttr(p, "weight_grams", defaultWeight),
-                        intAttr(p, "tax_class_id", (int) defaultTaxClass)));
+                        intAttr(p, "tax_class_id", (int) defaultTaxClass), p.getCurrency()));
             }
             return out;
         } catch (StatusRuntimeException e) {

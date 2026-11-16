@@ -17,10 +17,11 @@ public interface SubscriptionOrders {
     /**
      * @param paymentMethodRef phương thức đã lưu dạng {@code cus_...:pm_...} (Stripe Customer + PaymentMethod từ
      *                         SetupIntent); sandbox nhận chuỗi bất kỳ
+     * @param currency         đơn vị tiền của gói (ISO 4217), bắt buộc
      * @param promotionCode    mã khuyến mãi dành cho subscriber (Subscribe &amp; Save), trống = không giảm
      */
     record Command(String idempotencyKey, String subscriptionId, String customerId, List<CheckoutSession.Item> items,
-                   String addressId, String paymentMethodRef, String promotionCode) {
+                   String addressId, String paymentMethodRef, String currency, String promotionCode) {
     }
 
     record Result(String orderId, String orderCode, BigDecimal total, String currency) {

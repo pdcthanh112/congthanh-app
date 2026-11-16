@@ -24,7 +24,7 @@ CREATE TABLE runs (
     created_at             TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
-CREATE UNIQUE INDEX runs_current ON runs (provider, business_date) WHERE NOT superseded;
+CREATE UNIQUE INDEX runs_current ON runs (provider, business_date, currency) WHERE NOT superseded;
 
 CREATE TABLE provider_txns (
     run_id       BIGINT      NOT NULL REFERENCES runs (id),

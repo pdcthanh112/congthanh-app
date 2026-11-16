@@ -22,7 +22,6 @@ const (
 	_ = protoimpl.EnforceVersion(protoimpl.MaxVersion - 20)
 )
 
-// Topic ecommerce.stream.customer-risk. Cửa sổ trượt theo thời điểm event mới nhất của khách.
 type CustomerRiskFeatures struct {
 	state      protoimpl.MessageState `protogen:"open.v1"`
 	CustomerId string                 `protobuf:"bytes,1,opt,name=customer_id,json=customerId,proto3" json:"customer_id,omitempty"`

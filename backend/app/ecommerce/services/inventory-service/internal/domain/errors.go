@@ -1,4 +1,3 @@
-// Package domain là lõi nghiệp vụ tồn kho: không phụ thuộc DB, HTTP, gRPC hay Kafka.
 package domain
 
 import (

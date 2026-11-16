@@ -1,5 +1,3 @@
-// Package http là driving adapter REST của inventory-service, giữ các đường dẫn cũ dưới
-// /api/ecommerce/inventory và thêm /api/ecommerce/warehouses (gộp từ warehouse-service).
 package http
 
 import (

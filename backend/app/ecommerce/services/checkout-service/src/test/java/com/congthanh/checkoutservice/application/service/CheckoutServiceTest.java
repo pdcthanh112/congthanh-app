@@ -77,7 +77,7 @@ class CheckoutServiceTest {
         };
         Catalog catalog = idsIn -> {
             Map<String, Catalog.Product> out = new HashMap<>();
-            idsIn.forEach(id -> out.put(id, new Catalog.Product(id, "SKU-" + id, "Product " + id, !id.equals("gone"), 5, 1000, 1)));
+            idsIn.forEach(id -> out.put(id, new Catalog.Product(id, "SKU-" + id, "Product " + id, !id.equals("gone"), 5, 1000, 1, "USD")));
             return out;
         };
         Pricing pricing = (q, currency, groups) -> {
@@ -121,12 +121,12 @@ class CheckoutServiceTest {
             }
         };
         service = new CheckoutService(repo, catalog, pricing, promotions, shipping, tax, fraud, orders, workflows,
-                () -> "id-" + ids.incrementAndGet(), clock, new CheckoutService.Settings("USD", Duration.ofMinutes(30)));
+                () -> "id-" + ids.incrementAndGet(), clock, new CheckoutService.Settings(Duration.ofMinutes(30)));
     }
 
     private CheckoutSession open() {
         return service.open(ME, new OpenCommand(List.of(new Item("p-1", 2), new Item("p-2", 1), new Item("p-1", 0 + 1)),
-                null, "SALE10", NYC, null, null));
+                "USD", "SALE10", NYC, null, null));
     }
 
     @Test
@@ -257,11 +257,11 @@ class CheckoutServiceTest {
 
     @Test
     void unavailableAndUnpricedProducts() {
-        assertThatThrownBy(() -> service.open(ME, new OpenCommand(List.of(new Item("gone", 1)), null, null, null, null, null)))
+        assertThatThrownBy(() -> service.open(ME, new OpenCommand(List.of(new Item("gone", 1)), "USD", null, null, null, null)))
                 .extracting("code").isEqualTo("PRODUCT_UNAVAILABLE");
-        assertThatThrownBy(() -> service.open(ME, new OpenCommand(List.of(new Item("p-1", 6)), null, null, null, null, null)))
+        assertThatThrownBy(() -> service.open(ME, new OpenCommand(List.of(new Item("p-1", 6)), "USD", null, null, null, null)))
                 .extracting("code").isEqualTo("QUANTITY_LIMIT");
-        CheckoutSession s = service.open(ME, new OpenCommand(List.of(new Item("p-1", 1), new Item("new", 1)), null, null, NYC, null, null));
+        CheckoutSession s = service.open(ME, new OpenCommand(List.of(new Item("p-1", 1), new Item("new", 1)), "USD", null, NYC, null, null));
         assertThat(s.unpriced()).containsExactly("new");
         assertThatThrownBy(() -> service.place(ME, s.id(), new PlaceCommand("STRIPE", "t", null, null, null, null)))
                 .extracting("code").isEqualTo("PRODUCT_UNAVAILABLE");

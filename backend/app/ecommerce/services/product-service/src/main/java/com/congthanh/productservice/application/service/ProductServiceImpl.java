@@ -15,6 +15,7 @@ import com.congthanh.productservice.domain.model.enums.ProductStatus;
 import com.congthanh.productservice.application.dto.ProductDTO;
 import com.congthanh.productservice.application.readmodel.ProductDocument;
 import com.congthanh.productservice.application.dto.request.CreateProductRequest;
+import com.congthanh.commonservice.exception.BadRequestException;
 import com.congthanh.commonservice.exception.NotFoundException;
 import com.congthanh.productservice.application.mapper.ProductMapper;
 import com.congthanh.productservice.application.dto.viewmodel.*;
@@ -148,6 +149,7 @@ public class ProductServiceImpl implements ProductService {
                 d.isFeatured(),
                 d.isHasVariant(),
                 d.effectivePrice(priceList),
+                d.effectiveCurrency(priceList),
                 d.getThumbnail(),
                 d.getImages().stream().map(ProductDocument.Image::url).toList(),
                 d.getRating() == null ? null : d.getRating().average(),
@@ -167,7 +169,7 @@ public class ProductServiceImpl implements ProductService {
         List<ProductImageVm> images = v.images().stream().map(i -> new ProductImageVm(i.id(), i.url())).toList();
         ProductImageVm thumbnail = images.stream().filter(i -> Objects.equals(i.imagePath(), v.thumbnail())).findFirst()
                 .orElse(null);
-        return new ProductVariantVm(v.id(), v.name(), v.slug(), v.sku(), v.gtin(), v.price(), thumbnail, images, options);
+        return new ProductVariantVm(v.id(), v.name(), v.slug(), v.sku(), v.gtin(), v.price(), v.currency(), thumbnail, images, options);
     }
 
     @Override
@@ -175,8 +177,13 @@ public class ProductServiceImpl implements ProductService {
     public ProductDTO createProduct(CreateProductRequest request) {
         categoryCatalog.validate(request.getCategory());
 
+        if (request.getPrice() != null && (request.getCurrency() == null || request.getCurrency().isBlank())) {
+            throw new BadRequestException("currency is required when price is set");
+        }
         Product product = Product.builder()
                 .id(Snowflake.nextString())
+                .price(request.getPrice())
+                .currency(request.getPrice() == null ? null : request.getCurrency().trim().toUpperCase(java.util.Locale.ROOT))
                 .name(request.getName())
                 .description(request.getDescription())
                 .slug(Helper.generateSlug(request.getName()))
@@ -256,6 +263,7 @@ public class ProductServiceImpl implements ProductService {
                         product.getSku(),
                         product.getGtin(),
                         product.getPrice(),
+                        product.getCurrency(),
                         thumbnailVm,
                         product.getImage().stream().map(productImage -> new ProductImageVm(productImage.getId(), productImage.getImagePath())).toList(),
                         options
@@ -354,7 +362,7 @@ public class ProductServiceImpl implements ProductService {
     static ProductChanged changed(Product p) {
         List<String> categoryIds = p.getCategory() == null ? List.of()
                 : p.getCategory().stream().map(ProductCategory::getCategoryId).toList();
-        return new ProductChanged(p.getId(), false, p.getSku(), p.getName(), p.getSlug(), categoryIds, p.getPrice(),
+        return new ProductChanged(p.getId(), false, p.getSku(), p.getName(), p.getSlug(), categoryIds, p.getPrice(), p.getCurrency(),
                 p.getStatus() == null ? null : p.getStatus().name(), p.getDescription(), p.isHasVariant(), p.isFeatured());
     }
 }

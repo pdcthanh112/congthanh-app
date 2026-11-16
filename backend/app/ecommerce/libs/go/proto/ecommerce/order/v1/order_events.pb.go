@@ -444,8 +444,8 @@ const file_ecommerce_order_v1_order_events_proto_rawDesc = "" +
 	"\x0eOrderCancelled\x12\x19\n" +
 	"\border_id\x18\x01 \x01(\tR\aorderId\x12\x16\n" +
 	"\x06reason\x18\x02 \x01(\tR\x06reason\x12%\n" +
-	"\x0ereservation_id\x18\x03 \x01(\tR\rreservationIdB$\n" +
-	" com.congthanh.ecommerce.order.v1P\x01b\x06proto3"
+	"\x0ereservation_id\x18\x03 \x01(\tR\rreservationIdB\xf8\x01\n" +
+	"\x16com.ecommerce.order.v1B\x10OrderEventsProtoP\x01Zbgithub.com/pdcthanh112/CongThanhApp/backend/app/ecommerce/libs/go/proto/ecommerce/order/v1;orderv1\xa2\x02\x03EOX\xaa\x02\x12Ecommerce.Order.V1\xca\x02\x12Ecommerce\\Order\\V1\xe2\x02\x1eEcommerce\\Order\\V1\\GPBMetadata\xea\x02\x14Ecommerce::Order::V1b\x06proto3"
 
 var (
 	file_ecommerce_order_v1_order_events_proto_rawDescOnce sync.Once

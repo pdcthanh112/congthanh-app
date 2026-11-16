@@ -54,9 +54,12 @@ final class ReturnEventMapper {
     }
 
     static Money money(BigDecimal amount, String currency) {
+        if (currency == null || currency.isBlank()) {
+            throw new IllegalStateException("money amount " + amount + " has no currency");
+        }
         BigDecimal a = amount.setScale(9, RoundingMode.HALF_EVEN);
         BigDecimal units = a.setScale(0, RoundingMode.DOWN);
-        return Money.newBuilder().setCurrencyCode(currency == null ? "USD" : currency).setUnits(units.longValueExact())
+        return Money.newBuilder().setCurrencyCode(currency).setUnits(units.longValueExact())
                 .setNanos(a.subtract(units).movePointRight(9).intValueExact()).build();
     }
 }

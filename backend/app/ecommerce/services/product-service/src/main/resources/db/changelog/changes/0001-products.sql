@@ -53,6 +53,7 @@ CREATE TABLE products (
     has_variant boolean NOT NULL,
     is_featured boolean,
     price numeric(19,2),
+    currency character(3), -- ISO 4217 của price; bắt buộc khi có giá
     brand bigint,
     thumbnail bigint,
     description text,
@@ -64,6 +65,7 @@ CREATE TABLE products (
     slug character varying(255),
     status character varying(255),
     supplier character varying(255),
+    CONSTRAINT products_price_currency_check CHECK (price IS NULL OR currency IS NOT NULL),
     CONSTRAINT products_status_check CHECK (((status)::text = ANY ((ARRAY['ACTIVE'::character varying, 'INACTIVE'::character varying, 'DELETED'::character varying])::text[])))
 );
 CREATE TABLE variant_option (

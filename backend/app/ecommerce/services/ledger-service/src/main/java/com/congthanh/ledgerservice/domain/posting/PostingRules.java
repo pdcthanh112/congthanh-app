@@ -93,7 +93,7 @@ public final class PostingRules {
                         : Posting.credit(expense, amount(delta.negate()), f.currency());
                 Posting b = delta.signum() > 0 ? Posting.credit(clearing(f.provider()), amount(delta), f.currency())
                         : Posting.debit(clearing(f.provider()), amount(delta.negate()), f.currency());
-                yield new JournalEntry(entryId, "psp_fees", feeSource(f.provider(), f.businessDate()), f.eventId(),
+                yield new JournalEntry(entryId, "psp_fees", feeSource(f.provider(), f.businessDate(), f.currency()), f.eventId(),
                         "Provider fees " + f.provider() + " " + f.businessDate(), LocalDate.parse(f.businessDate()),
                         List.of(a, b), "system", now);
             }
@@ -126,8 +126,9 @@ public final class PostingRules {
         return "asset:psp_clearing:" + provider.trim().toLowerCase(Locale.ROOT).replaceAll("[^a-z0-9_]", "_");
     }
 
-    public static String feeSource(String provider, String businessDate) {
-        return provider.toLowerCase(Locale.ROOT) + ":" + businessDate;
+    /** Phí cổng hạch toán riêng theo từng đơn vị tiền của ngày đó, không cộng lẫn. */
+    public static String feeSource(String provider, String businessDate, String currency) {
+        return provider.toLowerCase(Locale.ROOT) + ":" + businessDate + ":" + currency;
     }
 
     static String storedValue(String kind) {

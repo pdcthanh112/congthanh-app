@@ -27,10 +27,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-/**
- * Không còn endpoint "tạo thanh toán" công khai: thanh toán chỉ bắt đầu từ saga checkout.
- * HTTP ở đây là đọc trạng thái + callback của cổng (chữ ký được kiểm tra trong provider).
- */
+
 @RestController
 @RequestMapping("/api/ecommerce/payment")
 @Tag(name = "Payments")
@@ -74,7 +71,7 @@ class PaymentController {
     @Operation(summary = "Pay-later partners available for an amount (public)")
     @GetMapping("/installment-options")
     List<InstallmentOptionView> installmentOptions(@RequestParam BigDecimal amount,
-                                                   @RequestParam(defaultValue = "USD") String currency) {
+                                                   @RequestParam String currency) {
         return payments.installmentOptions(amount, currency).stream()
                 .map(o -> new InstallmentOptionView(o.method().name(), o.minAmount(), o.maxAmount(), o.currency()))
                 .toList();

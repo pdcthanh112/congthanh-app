@@ -55,7 +55,7 @@ public class CheckoutService implements CheckoutUseCase, com.congthanh.checkouts
     private final Settings settings;
     private com.congthanh.checkoutservice.application.port.out.Customers customers;
 
-    public record Settings(String defaultCurrency, Duration sessionTtl) {
+    public record Settings(Duration sessionTtl) {
     }
 
     /** Đặt sau khi khởi tạo để không đổi chữ ký constructor (test hiện có dựng service không có port này). */
@@ -81,8 +81,9 @@ public class CheckoutService implements CheckoutUseCase, com.congthanh.checkouts
         }
         String orderId = java.util.UUID.nameUUIDFromBytes(("subscription-order:" + cmd.idempotencyKey())
                 .getBytes(java.nio.charset.StandardCharsets.UTF_8)).toString();
+        String currency = requireCurrency(cmd.currency());
         CheckoutSession s = existing.orElseGet(() -> CheckoutSession.open(sessionId, orderId, cmd.customerId(), List.of(),
-                settings.defaultCurrency(), cmd.items(), clock.instant(), settings.sessionTtl()));
+                currency, cmd.items(), clock.instant(), settings.sessionTtl()));
         s.changeAddresses(customers.shippingAddress(cmd.customerId(), cmd.addressId()), null);
         s.changeNote("subscription " + cmd.subscriptionId());
         s.changePromotion(cmd.promotionCode() == null || cmd.promotionCode().isBlank() ? null : cmd.promotionCode());
@@ -123,10 +124,21 @@ public class CheckoutService implements CheckoutUseCase, com.congthanh.checkouts
         this.settings = settings;
     }
 
+    /** Mọi phiên checkout phải nêu rõ đơn vị tiền; không có giá trị mặc định. */
+    private static String requireCurrency(String currency) {
+        if (currency == null || currency.isBlank()) {
+            throw CheckoutException.invalid("currency is required");
+        }
+        String c = currency.trim().toUpperCase(Locale.ROOT);
+        if (!c.matches("[A-Z]{3}")) {
+            throw CheckoutException.invalid("currency must be an ISO 4217 code");
+        }
+        return c;
+    }
+
     @Override
     public CheckoutSession open(Customer customer, OpenCommand cmd) {
-        String currency = cmd.currency() == null || cmd.currency().isBlank()
-                ? settings.defaultCurrency() : cmd.currency().trim().toUpperCase(Locale.ROOT);
+        String currency = requireCurrency(cmd.currency());
         CheckoutSession s = CheckoutSession.open(ids.newId(), ids.newId(), customer.id(), customer.groups(), currency,
                 cmd.items(), clock.instant(), settings.sessionTtl());
         s.changePromotion(cmd.promotionCode());
@@ -271,9 +283,16 @@ public class CheckoutService implements CheckoutUseCase, com.congthanh.checkouts
         if (sessions.findById(claim.claimId()).isPresent()) {
             return; // event giao lại
         }
+        // Phiên flash sale tính theo đơn vị tiền của chính sản phẩm (product-service trả kèm giá), không có mặc định.
+        Catalog.Product product = catalog.lookup(List.of(claim.productId())).get(claim.productId());
+        if (product == null || product.currency() == null || product.currency().isBlank()) {
+            log.warn("flash sale claim {}: product {} has no price currency, no checkout session opened",
+                    claim.claimId(), claim.productId());
+            return;
+        }
         CheckoutSession s = CheckoutSession.openForFlashSale(
                 new CheckoutSession.FlashSale(claim.saleId(), claim.productId(), claim.claimId(), claim.expiresAt()),
-                claim.customerId(), settings.defaultCurrency(), claim.quantity(), clock.instant());
+                claim.customerId(), product.currency(), claim.quantity(), clock.instant());
         try {
             requote(s);
         } catch (CheckoutException e) {

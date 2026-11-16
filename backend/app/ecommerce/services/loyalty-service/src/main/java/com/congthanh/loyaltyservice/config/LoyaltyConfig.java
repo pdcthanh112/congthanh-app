@@ -39,7 +39,7 @@ class LoyaltyConfig {
 
     @Bean
     Member.Rules loyaltyRules(LoyaltyProperties p) {
-        return new Member.Rules(p.returnWindow(), p.fallbackConfirm(), p.lotLifetime(), p.pointValueUsd(), p.minRedeem());
+        return new Member.Rules(p.returnWindow(), p.fallbackConfirm(), p.lotLifetime(), p.currency().trim().toUpperCase(java.util.Locale.ROOT), p.pointValue(), p.minRedeem());
     }
 
     @Bean

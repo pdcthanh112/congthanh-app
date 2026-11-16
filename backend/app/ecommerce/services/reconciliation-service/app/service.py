@@ -7,7 +7,7 @@ from typing import Any
 
 from ecommerce_platform.ids import snowflake
 
-from .domain.matching import match, parse_csv
+from .domain.matching import match, parse_csv, split_by_currency
 from .ports import ProviderReports, Store
 
 
@@ -43,18 +43,31 @@ class ReconciliationService:
 
     async def _run(self, provider: str, day: date, source: str, txns) -> dict[str, Any]:
         internal = await self.store.internal_for_day(provider, day)
-        result = match(txns, internal, self.tolerance)
-        run_id = snowflake()
-        await self.store.save_run(run_id, provider, day, source, txns, result)
+        # Mỗi đơn vị tiền một lượt đối soát riêng: phí cổng và số tiền không cộng lẫn giữa các currency.
+        runs = []
+        for currency, (p, i) in sorted(split_by_currency(txns, internal).items()):
+            result = match(p, i, currency, self.tolerance)
+            run_id = snowflake()
+            await self.store.save_run(run_id, provider, day, source, p, result)
+            runs.append(
+                {
+                    "runId": run_id,
+                    "currency": currency,
+                    "providerTransactions": len(p),
+                    "internalTransactions": len(i),
+                    "matched": result.matched,
+                    "mismatched": len(result.mismatches),
+                    "providerFeesMinor": result.provider_fees_minor,
+                }
+            )
         return {
-            "runId": run_id,
             "provider": provider,
             "businessDate": day.isoformat(),
             "providerTransactions": len(txns),
             "internalTransactions": len(internal),
-            "matched": result.matched,
-            "mismatched": len(result.mismatches),
-            "providerFeesMinor": result.provider_fees_minor,
+            "matched": sum(r["matched"] for r in runs),
+            "mismatched": sum(r["mismatched"] for r in runs),
+            "runs": runs,
         }
 
     async def runs(self, limit: int) -> list[dict[str, Any]]:

@@ -5,6 +5,7 @@ CREATE TABLE subscriptions (
     interval_days      INT          NOT NULL CHECK (interval_days BETWEEN 7 AND 90),
     next_delivery_date DATE         NOT NULL,
     payment_method_ref VARCHAR(128) NOT NULL,
+    currency           CHAR(3)      NOT NULL, 
     address_id         VARCHAR(64),
     status             VARCHAR(10)  NOT NULL CHECK (status IN ('ACTIVE', 'PAUSED', 'PAST_DUE', 'CANCELLED')),
     cycle              INT          NOT NULL,

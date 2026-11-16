@@ -35,7 +35,6 @@ export function realBackends(env: Env): Backends {
     products: new ProductClient({
       grpcAddress: env.PRODUCT_GRPC_ADDR,
       restBaseUrl: env.PRODUCT_REST_URL,
-      currency: env.CURRENCY,
     }),
     inventory: new InventoryClient(env.INVENTORY_GRPC_ADDR),
     carts: new CartClient({ grpcAddress: env.CART_GRPC_ADDR, restBaseUrl: env.CART_REST_URL }),

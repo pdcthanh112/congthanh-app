@@ -643,8 +643,8 @@ const file_ecommerce_returns_v1_returns_events_proto_rawDesc = "" +
 	"\fReturnClosed\x12\x1b\n" +
 	"\treturn_id\x18\x01 \x01(\tR\breturnId\x12\x19\n" +
 	"\border_id\x18\x02 \x01(\tR\aorderId\x12\x18\n" +
-	"\aoutcome\x18\x03 \x01(\tR\aoutcomeB&\n" +
-	"\"com.congthanh.ecommerce.returns.v1P\x01b\x06proto3"
+	"\aoutcome\x18\x03 \x01(\tR\aoutcomeB\x88\x02\n" +
+	"\x18com.ecommerce.returns.v1B\x12ReturnsEventsProtoP\x01Zfgithub.com/pdcthanh112/CongThanhApp/backend/app/ecommerce/libs/go/proto/ecommerce/returns/v1;returnsv1\xa2\x02\x03ERX\xaa\x02\x14Ecommerce.Returns.V1\xca\x02\x14Ecommerce\\Returns\\V1\xe2\x02 Ecommerce\\Returns\\V1\\GPBMetadata\xea\x02\x16Ecommerce::Returns::V1b\x06proto3"
 
 var (
 	file_ecommerce_returns_v1_returns_events_proto_rawDescOnce sync.Once

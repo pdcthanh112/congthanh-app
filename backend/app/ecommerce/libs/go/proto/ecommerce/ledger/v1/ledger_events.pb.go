@@ -261,8 +261,8 @@ const file_ecommerce_ledger_v1_ledger_events_proto_rawDesc = "" +
 	"\x0fsource_event_id\x18\x01 \x01(\tR\rsourceEventId\x12\x1d\n" +
 	"\n" +
 	"event_type\x18\x02 \x01(\tR\teventType\x12\x16\n" +
-	"\x06reason\x18\x03 \x01(\tR\x06reasonB%\n" +
-	"!com.congthanh.ecommerce.ledger.v1P\x01b\x06proto3"
+	"\x06reason\x18\x03 \x01(\tR\x06reasonB\x80\x02\n" +
+	"\x17com.ecommerce.ledger.v1B\x11LedgerEventsProtoP\x01Zdgithub.com/pdcthanh112/CongThanhApp/backend/app/ecommerce/libs/go/proto/ecommerce/ledger/v1;ledgerv1\xa2\x02\x03ELX\xaa\x02\x13Ecommerce.Ledger.V1\xca\x02\x13Ecommerce\\Ledger\\V1\xe2\x02\x1fEcommerce\\Ledger\\V1\\GPBMetadata\xea\x02\x15Ecommerce::Ledger::V1b\x06proto3"
 
 var (
 	file_ecommerce_ledger_v1_ledger_events_proto_rawDescOnce sync.Once

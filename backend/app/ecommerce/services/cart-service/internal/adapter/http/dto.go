@@ -6,7 +6,6 @@ import (
 	"github.com/pdcthanh112/CongThanhApp/backend/app/ecommerce/services/cart-service/internal/domain"
 )
 
-// CartDTO / CartItemDTO / CartVm / CartItemVm giữ đúng tên field JSON của bản Java.
 type CartItemDTO struct {
 	ID        int64     `json:"id"`
 	Cart      int64     `json:"cart"`

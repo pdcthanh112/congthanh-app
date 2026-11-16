@@ -9,7 +9,9 @@ export interface MoneyLike {
 export function formatMoney(m: MoneyLike | undefined): string {
   if (!m) return '';
   const value = Number(m.units) + m.nanos / 1e9;
-  return new Intl.NumberFormat('en-US', { style: 'currency', currency: m.currencyCode || 'USD' }).format(value);
+  // Thiếu đơn vị tiền thì chỉ in con số, không tự gắn ký hiệu USD.
+  if (!m.currencyCode) return String(value);
+  return new Intl.NumberFormat('en-US', { style: 'currency', currency: m.currencyCode }).format(value);
 }
 
 const shortId = (id: string) => id.slice(-8).toUpperCase();

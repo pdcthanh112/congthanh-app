@@ -61,7 +61,7 @@ class CatalogClient:
                 "name": h.get("name", ""),
                 "slug": h.get("slug", ""),
                 "price": h.get("price"),
-                "currency": h.get("currency", "USD"),
+                "currency": h.get("currency"),  # None nếu index chưa có: không tự gán USD
             }
             for h in hits
             if h.get("status", "ACTIVE") == "ACTIVE"

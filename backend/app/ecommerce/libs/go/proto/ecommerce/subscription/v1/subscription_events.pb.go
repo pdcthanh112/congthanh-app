@@ -492,8 +492,8 @@ const file_ecommerce_subscription_v1_subscription_events_proto_rawDesc = "" +
 	"\vfrom_status\x18\x03 \x01(\tR\n" +
 	"fromStatus\x12\x1b\n" +
 	"\tto_status\x18\x04 \x01(\tR\btoStatus\x12\x16\n" +
-	"\x06reason\x18\x05 \x01(\tR\x06reasonB+\n" +
-	"'com.congthanh.ecommerce.subscription.v1P\x01b\x06proto3"
+	"\x06reason\x18\x05 \x01(\tR\x06reasonB\xb0\x02\n" +
+	"\x1dcom.ecommerce.subscription.v1B\x17SubscriptionEventsProtoP\x01Zpgithub.com/pdcthanh112/CongThanhApp/backend/app/ecommerce/libs/go/proto/ecommerce/subscription/v1;subscriptionv1\xa2\x02\x03ESX\xaa\x02\x19Ecommerce.Subscription.V1\xca\x02\x19Ecommerce\\Subscription\\V1\xe2\x02%Ecommerce\\Subscription\\V1\\GPBMetadata\xea\x02\x1bEcommerce::Subscription::V1b\x06proto3"
 
 var (
 	file_ecommerce_subscription_v1_subscription_events_proto_rawDescOnce sync.Once

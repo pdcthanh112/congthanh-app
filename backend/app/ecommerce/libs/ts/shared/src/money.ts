@@ -22,7 +22,8 @@ export function toDecimal(m: Money): number {
 
 /** Từ ecommerce.common.v1.Money (units + nanos). */
 export function fromProtoMoney(m: { currencyCode: string; units: bigint; nanos: number }): Money {
-  return fromDecimal(Number(m.units) + m.nanos / 1e9, m.currencyCode || 'USD');
+  if (!m.currencyCode) throw new Error('Money without currencyCode');
+  return fromDecimal(Number(m.units) + m.nanos / 1e9, m.currencyCode);
 }
 
 /** Sang ecommerce.common.v1.Money. */
@@ -36,7 +37,8 @@ export function multiplyMoney(m: Money, factor: number): Money {
   return { amountMinor: Math.round(m.amountMinor * factor), currency: m.currency };
 }
 
-export function sumMoney(items: readonly Money[], currency = 'USD'): Money {
+/** `currency` là đơn vị của tổng khi danh sách rỗng; bắt buộc truyền, không có mặc định. */
+export function sumMoney(items: readonly Money[], currency: string): Money {
   const mixed = items.find((i) => i.currency !== (items[0]?.currency ?? currency));
   if (mixed) throw new Error(`cannot add ${mixed.currency} to ${items[0]?.currency}`);
   return { amountMinor: items.reduce((a, i) => a + i.amountMinor, 0), currency: items[0]?.currency ?? currency };

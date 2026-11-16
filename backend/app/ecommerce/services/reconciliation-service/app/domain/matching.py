@@ -63,10 +63,10 @@ class Mismatch:
 
 @dataclass
 class MatchResult:
+    currency: str
     matched: int = 0
     mismatches: list[Mismatch] = field(default_factory=list)
     provider_fees_minor: int = 0
-    currency: str = "USD"
 
 
 def _sum_by_ref(items):
@@ -77,12 +77,13 @@ def _sum_by_ref(items):
     return out
 
 
-def match(provider: list[ProviderTxn], internal: list[InternalTxn], tolerance_minor: int = 0) -> MatchResult:
-    """So khớp một ngày giao dịch. Mỗi mã giao dịch được xét riêng cho CHARGE và REFUND."""
-    result = MatchResult()
+def match(
+    provider: list[ProviderTxn], internal: list[InternalTxn], currency: str, tolerance_minor: int = 0
+) -> MatchResult:
+    if any(t.currency != currency for t in provider):
+        raise ValueError(f"provider transactions must all be in {currency}")
+    result = MatchResult(currency=currency)
     result.provider_fees_minor = sum(t.fee_minor for t in provider)
-    if provider:
-        result.currency = provider[0].currency
     for kind in Kind:
         p = _sum_by_ref([t for t in provider if t.kind == kind])
         i = _sum_by_ref([t for t in internal if t.kind == kind])
@@ -100,6 +101,18 @@ def match(provider: list[ProviderTxn], internal: list[InternalTxn], tolerance_mi
             else:
                 result.matched += 1
     return result
+
+
+def split_by_currency(
+    provider: list[ProviderTxn], internal: list[InternalTxn]
+) -> dict[str, tuple[list[ProviderTxn], list[InternalTxn]]]:
+    ref_currency = {t.ref: t.currency for t in provider}
+    out: dict[str, tuple[list[ProviderTxn], list[InternalTxn]]] = {}
+    for t in provider:
+        out.setdefault(t.currency, ([], []))[0].append(t)
+    for t in internal:
+        out.setdefault(ref_currency.get(t.ref, t.currency), ([], []))[1].append(t)
+    return out
 
 
 CSV_COLUMNS = ("provider_ref", "type", "amount", "fee", "currency", "created", "payout_id")

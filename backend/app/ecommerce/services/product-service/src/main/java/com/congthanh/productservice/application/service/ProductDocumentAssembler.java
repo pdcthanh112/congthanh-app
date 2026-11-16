@@ -8,7 +8,6 @@ import com.congthanh.productservice.domain.model.ProductCategory;
 import com.congthanh.productservice.domain.model.ProductImage;
 import com.congthanh.productservice.domain.model.VariantOptionCombination;
 import com.congthanh.productservice.domain.model.enums.ProductStatus;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import java.time.Instant;
@@ -22,13 +21,10 @@ class ProductDocumentAssembler {
 
     private final CategoryCatalog categories;
     private final VariantOptionCombinationRepository combinations;
-    private final String currency;
 
-    ProductDocumentAssembler(CategoryCatalog categories, VariantOptionCombinationRepository combinations,
-                             @Value("${product.currency:USD}") String currency) {
+    ProductDocumentAssembler(CategoryCatalog categories, VariantOptionCombinationRepository combinations) {
         this.categories = categories;
         this.combinations = combinations;
-        this.currency = currency;
     }
 
     ProductDocument assemble(Product p, long coreVersion) {
@@ -60,7 +56,7 @@ class ProductDocumentAssembler {
                 .map(this::variant)
                 .toList());
         d.setBasePrice(p.getPrice());
-        d.setCurrency(currency);
+        d.setCurrency(p.getCurrency());
         d.setCoreVersion(coreVersion);
         d.setUpdatedAt(Instant.now());
         return d;
@@ -92,7 +88,7 @@ class ProductDocumentAssembler {
                         c.getVariantOption() == null ? null : c.getVariantOption().getName(),
                         c.getValue()))
                 .toList();
-        return new ProductDocument.Variant(v.getId(), v.getName(), v.getSlug(), v.getSku(), v.getGtin(), v.getPrice(),
+        return new ProductDocument.Variant(v.getId(), v.getName(), v.getSlug(), v.getSku(), v.getGtin(), v.getPrice(), v.getCurrency(),
                 thumbnail(v.getThumbnail(), images), images, options);
     }
 
