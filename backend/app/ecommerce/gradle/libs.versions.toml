@@ -6,7 +6,7 @@ resilience4j = "2.4.0"
 archunit = "1.5.1"
 jib = "3.5.4"
 # Khớp native-build-tools-plugin.version trong BOM Spring Boot 4.1.2.
-graalvm-native = "1.1.14"
+graalvm-native = "1.1.18"
 springdoc = "3.2.0"
 modelmapper = "3.2.8"
 protoc = "4.36.2"
