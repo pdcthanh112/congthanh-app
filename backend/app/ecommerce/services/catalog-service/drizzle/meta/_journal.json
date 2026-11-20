@@ -15,6 +15,20 @@
       "when": 1794247390311,
       "tag": "0001_seed_reference_data",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1794850660455,
+      "tag": "0002_currencies",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1794850677237,
+      "tag": "0003_seed_currencies",
+      "breakpoints": true
     }
   ]
 }

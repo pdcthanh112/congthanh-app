@@ -1,3 +1,4 @@
+-- +goose Up
 CREATE TABLE outbox (
     id            UUID PRIMARY KEY,
     aggregatetype TEXT        NOT NULL,

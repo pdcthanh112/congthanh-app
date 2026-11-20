@@ -1,3 +1,4 @@
+-- +goose Up
 CREATE TABLE warehouses (
     id          TEXT PRIMARY KEY,
     name        TEXT        NOT NULL,

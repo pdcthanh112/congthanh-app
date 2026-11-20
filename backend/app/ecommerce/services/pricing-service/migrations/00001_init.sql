@@ -1,3 +1,4 @@
+-- +goose Up
 CREATE TABLE price_lists (
     id             BIGSERIAL PRIMARY KEY,
     code           TEXT        NOT NULL UNIQUE CHECK (code ~ '^[a-z0-9][a-z0-9_-]{0,62}$'),
@@ -71,6 +72,7 @@ CREATE TABLE processed_events (
 
 INSERT INTO price_lists (code, name, currency, priority) VALUES ('default', 'Giá bán lẻ', 'VND', 0);
 
+-- +goose Down
 DROP TABLE processed_events;
 DROP TABLE outbox;
 DROP TABLE price_history;

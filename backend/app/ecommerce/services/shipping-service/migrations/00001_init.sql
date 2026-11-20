@@ -1,3 +1,4 @@
+-- +goose Up
 CREATE TABLE shipping_rates (
     id               BIGSERIAL PRIMARY KEY,
     carrier          TEXT    NOT NULL,
@@ -61,6 +62,7 @@ INSERT INTO shipping_rates (carrier, service_code, service_name, country_code, r
   ('internal', 'standard', 'Giao tiêu chuẩn', 'VN', 'HN',  'VND', 20000, 4000, 500000, 1, 2),
   ('internal', 'express',  'Giao nhanh',      'VN', '',    'VND', 50000, 8000, NULL,   1, 2);
 
+-- +goose Down
 DROP TABLE processed_events;
 DROP TABLE outbox;
 DROP TABLE shipment_events;

@@ -5,7 +5,7 @@ GO_MODULES := libs/go/platform services/cart-service data/ingestion/clickstream-
 TEST_DATABASE_URL ?=
 TEST_REDIS_URL ?=
 
-.PHONY: help up down logs ps proto proto-python gen check test test-go test-java lint build-java token
+.PHONY: help up infra down logs ps proto proto-python gen check test test-go test-java lint build-java token
 
 help:
 	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  %-14s %s\n", $$1, $$2}'
@@ -15,6 +15,9 @@ help:
 
 up: .env ## Chạy stack local (PROFILES="observability workflow analytics streaming apps-java apps-node apps-python ollama")
 	$(COMPOSE) $(foreach p,$(PROFILES),--profile $(p)) up -d --build
+
+infra: .env ## Chỉ bật hạ tầng (Postgres, Redis, Kafka, Keycloak, Temporal, Mongo - không build service)
+	$(COMPOSE) up -d postgres redis kafka schema-registry connect connect-init keycloak apisix unleash openfga openfga-migrate temporal temporal-ui mongo
 
 down: ## Dừng stack local
 	$(COMPOSE) --profile observability --profile workflow --profile analytics --profile apps-java --profile apps-node --profile apps-python --profile ollama down

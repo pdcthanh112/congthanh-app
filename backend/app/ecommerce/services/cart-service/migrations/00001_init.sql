@@ -1,3 +1,4 @@
+-- +goose Up
 CREATE TABLE carts (
     id          BIGINT PRIMARY KEY,
     name        TEXT        NOT NULL,

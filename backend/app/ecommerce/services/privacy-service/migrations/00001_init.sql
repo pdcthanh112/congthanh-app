@@ -1,3 +1,4 @@
+-- +goose Up
 CREATE TABLE consents (
     id             BIGSERIAL PRIMARY KEY,
     subject_id     TEXT        NOT NULL,
@@ -53,4 +54,5 @@ CREATE TABLE processed_events (
     processed_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
+-- +goose Down
 DROP TABLE processed_events, outbox, dsr_tasks, dsr_requests, consents;

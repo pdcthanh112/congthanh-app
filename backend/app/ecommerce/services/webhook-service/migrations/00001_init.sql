@@ -1,3 +1,4 @@
+-- +goose Up
 CREATE TABLE webhooks (
     id          BIGINT PRIMARY KEY,
     name        TEXT        NOT NULL,
@@ -35,6 +36,7 @@ CREATE TABLE processed_events (
     processed_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
+-- +goose Down
 DROP TABLE processed_events;
 DROP TABLE deliveries;
 DROP TABLE webhooks;
