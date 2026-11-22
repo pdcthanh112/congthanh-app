@@ -64,10 +64,6 @@ class PaymentController {
     record InstallmentOptionView(String method, BigDecimal minAmount, BigDecimal maxAmount, String currency) {
     }
 
-    /**
-     * Đối tác trả góp hợp lệ cho số tiền (ADR 0016). Cố ý không trả số tiền mỗi kỳ hay APR: frontend dùng
-     * Stripe Payment Method Messaging Element / PayPal Pay Later messages để hiển thị điều khoản.
-     */
     @Operation(summary = "Pay-later partners available for an amount (public)")
     @GetMapping("/installment-options")
     List<InstallmentOptionView> installmentOptions(@RequestParam BigDecimal amount,

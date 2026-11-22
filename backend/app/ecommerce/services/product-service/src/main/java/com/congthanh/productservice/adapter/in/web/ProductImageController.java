@@ -1,8 +1,7 @@
 package com.congthanh.productservice.adapter.in.web;
 
-import com.congthanh.commonservice.constants.ResponseStatus;
-import com.congthanh.productservice.application.dto.ProductImageDTO;
 import com.congthanh.commonservice.model.response.Response;
+import com.congthanh.productservice.application.dto.ProductImageDTO;
 import com.congthanh.productservice.application.port.in.ProductImageService;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
@@ -11,6 +10,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+
+import static com.congthanh.productservice.adapter.in.web.ProductAttributeController.ok;
 
 @RestController
 @RequestMapping("/api/ecommerce/product-image")
@@ -22,21 +23,17 @@ public class ProductImageController {
 
     @GetMapping("/getByProduct")
     public ResponseEntity<Response<List<ProductImageDTO>>> getImageByProduct(@RequestParam("product") String productId) {
-        List<ProductImageDTO> data = productImageService.getImageByProduct(productId);
-        Response<List<ProductImageDTO>> response = new Response<>();
-        response.setData(data);
-        response.setMessage("Get successfully");
-        response.setStatus(ResponseStatus.STATUS_SUCCESS);
-        return ResponseEntity.ok().body(response);
+        return ResponseEntity.ok(ok(productImageService.getImageByProduct(productId), "Get successfully"));
     }
 
     @PostMapping("/create")
     public ResponseEntity<Response<ProductImageDTO>> addProductImage(@RequestBody ProductImageDTO productImageDTO) {
-        ProductImageDTO data = productImageService.addProductImage(productImageDTO);
-        Response<ProductImageDTO> response = new Response<>();
-        response.setData(data);
-        response.setMessage("Create successfully");
-        response.setStatus(ResponseStatus.STATUS_SUCCESS);
-        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+        return ResponseEntity.status(HttpStatus.CREATED).body(ok(productImageService.addProductImage(productImageDTO), "Create successfully"));
+    }
+
+    @DeleteMapping("/{productId}/{imageId}")
+    public ResponseEntity<Void> deleteProductImage(@PathVariable("productId") String productId, @PathVariable("imageId") Long imageId) {
+        productImageService.deleteProductImage(productId, imageId);
+        return ResponseEntity.noContent().build();
     }
 }

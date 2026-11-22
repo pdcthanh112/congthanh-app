@@ -16,6 +16,7 @@ function setup() {
     b.addresses,
     b.checkouts,
     b.recommendations,
+    b.search,
   );
   return { ...f, svc, me: testPrincipal('c1') };
 }

@@ -1,0 +1,142 @@
+openapi: 3.1.0
+info:
+  title: search-service
+  version: 1.0.0
+  description: |
+    Tìm kiếm sản phẩm trên Elasticsearch: lọc, facet, sắp xếp và gợi ý từ khoá (ADR 0030). API công khai.
+servers:
+  - url: https://api.congthanh.vn
+  - url: http://localhost:9080
+tags:
+  - name: search
+paths:
+  /api/ecommerce/search/products:
+    get:
+      operationId: searchProducts
+      summary: Tìm sản phẩm
+      description: |
+        Nhiều giá trị của một bộ lọc cách nhau bằng dấu phẩy hoặc lặp tham số (OR); các bộ lọc khác nhau là AND.
+        Lọc theo thuộc tính dùng tham số `attr.<mã thuộc tính>` (ví dụ `attr.material=cotton,linen`), lọc theo trục
+        biến thể dùng `opt.<tên trục>` (ví dụ `opt.size=M`). Trang sâu quá 10.000 kết quả bị từ chối.
+      tags: [search]
+      parameters:
+        - {name: q, in: query, schema: {type: string, maxLength: 200}}
+        - {name: categoryId, in: query, schema: {type: string}}
+        - name: brand
+          in: query
+          description: Id thương hiệu
+          schema: {type: array, items: {type: string}}
+          style: form
+          explode: true
+        - {name: currency, in: query, description: Bắt buộc khi lọc theo giá, schema: {type: string, example: USD}}
+        - {name: minPrice, in: query, description: Đơn vị chính của currency, schema: {type: number, minimum: 0}}
+        - {name: maxPrice, in: query, schema: {type: number, minimum: 0}}
+        - {name: sort, in: query, schema: {type: string, enum: [relevance, price_asc, price_desc, newest], default: relevance}}
+        - {name: page, in: query, schema: {type: integer, minimum: 0, default: 0}}
+        - {name: size, in: query, schema: {type: integer, minimum: 1, maximum: 100, default: 20}}
+        - {name: attr.material, in: query, description: Ví dụ bộ lọc thuộc tính, schema: {type: string}}
+        - {name: opt.size, in: query, description: Ví dụ bộ lọc trục biến thể, schema: {type: string}}
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - properties:
+                      data: {$ref: '#/components/schemas/SearchResult'}
+        '400': {$ref: '#/components/responses/Error'}
+  /api/ecommerce/search/suggest:
+    get:
+      operationId: suggestSearchTerms
+      summary: Gợi ý tên sản phẩm theo tiền tố
+      tags: [search]
+      parameters:
+        - {name: q, in: query, required: true, schema: {type: string, maxLength: 100}}
+        - {name: limit, in: query, schema: {type: integer, minimum: 1, maximum: 20, default: 10}}
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - properties:
+                      data: {type: array, items: {type: string}}
+        '400': {$ref: '#/components/responses/Error'}
+components:
+  responses:
+    Error:
+      description: Lỗi
+      content:
+        application/json:
+          schema: {$ref: '#/components/schemas/Envelope'}
+  schemas:
+    Envelope:
+      type: object
+      properties:
+        message: {type: string}
+        data: {}
+        status: {type: string, enum: [Success, Failed]}
+        errorCode: {type: integer}
+    Bucket:
+      type: object
+      properties:
+        value: {type: string}
+        count: {type: integer, format: int64}
+    FacetGroup:
+      type: object
+      properties:
+        key: {type: string}
+        values: {type: array, items: {$ref: '#/components/schemas/Bucket'}}
+    Hit:
+      type: object
+      properties:
+        id: {type: string}
+        sku: {type: string}
+        skus: {type: array, items: {type: string}}
+        name: {type: string}
+        slug: {type: string}
+        categoryId: {type: string}
+        categoryIds: {type: array, items: {type: string}}
+        brandId: {type: string}
+        price: {type: number, description: 'Giá thấp nhất trong các biến thể, đơn vị chính'}
+        priceMax: {type: number}
+        currency: {type: string}
+        status: {type: string}
+        featured: {type: boolean}
+        attributes:
+          type: array
+          items:
+            type: object
+            properties:
+              code: {type: string}
+              name: {type: string}
+              value: {type: string}
+              number: {type: number}
+        options:
+          type: array
+          items:
+            type: object
+            properties:
+              name: {type: string}
+              value: {type: string}
+        updatedAt: {type: string, format: date-time}
+        score: {type: number}
+    SearchResult:
+      type: object
+      properties:
+        hits: {type: array, items: {$ref: '#/components/schemas/Hit'}}
+        total: {type: integer, format: int64}
+        categories:
+          type: array
+          items:
+            type: object
+            properties:
+              categoryId: {type: string}
+              count: {type: integer, format: int64}
+        brands: {type: array, items: {$ref: '#/components/schemas/Bucket'}}
+        attributes: {type: array, items: {$ref: '#/components/schemas/FacetGroup'}}
+        options: {type: array, items: {$ref: '#/components/schemas/FacetGroup'}}

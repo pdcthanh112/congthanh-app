@@ -12,12 +12,15 @@ import com.congthanh.productservice.grpc.ProductServiceGrpc;
 import com.congthanh.productservice.application.dto.ProductDTO;
 import com.congthanh.commonservice.exception.NotFoundException;
 import com.congthanh.productservice.domain.model.Product;
-import com.congthanh.productservice.application.port.out.product.ProductRepository;
 import com.congthanh.productservice.application.port.in.ProductService;
 import io.grpc.stub.StreamObserver;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.grpc.server.service.GrpcService;
 
+import com.congthanh.ecommerce.common.v1.Money;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -26,12 +29,12 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @GrpcService
+@Slf4j
 @RequiredArgsConstructor
 public class ProductGrpcService extends ProductServiceGrpc.ProductServiceImplBase {
 
     private final ProductService productService;
 
-    private final ProductRepository productRepository;
 
     @Override
     public void getProductById(ProductRequest request, StreamObserver<ProductResponse> responseObserver) {
@@ -54,7 +57,7 @@ public class ProductGrpcService extends ProductServiceGrpc.ProductServiceImplBas
 
         try {
             List<String> productIds = request.getProductIdsList();
-            List<Product> products = productRepository.findAllById(productIds);
+            List<Product> products = productService.findByIds(productIds);
 
             if (products.size() != productIds.size()) {
                 responseBuilder.setErrorCode("NOT_FOUND")
@@ -62,43 +65,26 @@ public class ProductGrpcService extends ProductServiceGrpc.ProductServiceImplBas
             } else {
                 List<ProductDetail> details = new ArrayList<>();
                 for (Product p : products) {
-                    if (p.getStatus() != ProductStatus.ACTIVE) {
+                    if (p.status() != ProductStatus.ACTIVE) {
                         responseBuilder.setErrorCode("NOT_AVAILABLE")
-                                .setErrorMessage("Product " + p.getId() + " is not available");
+                                .setErrorMessage("Product " + p.id() + " is not available");
                         break;
                     }
-
-                    double price = p.getPrice() != null ? p.getPrice().doubleValue() : 0d;
-                    details.add(ProductDetail.newBuilder()
-                            .setProductId(p.getId())
-                            .setSku(p.getSku() != null ? p.getSku() : "")
-                            .setName(p.getName())
-                            .setOriginalPrice(price)
-                            .setSellingPrice(price)
-                            .setCurrency(p.getCurrency() != null ? p.getCurrency() : "")
-                            .setIsActive(true)
-                            .setIsDeleted(false)
-                            .setSellerId(p.getSupplier() != null ? p.getSupplier() : "")
-                            .setSellerActive(true)
-                            .build());
+                    details.add(toDetail(p, true));
                 }
                 if (responseBuilder.getErrorCode().isEmpty()) {
                     responseBuilder.addAllProducts(details);
                 }
             }
-        } catch (Exception e) {
-            responseBuilder.setErrorCode("INTERNAL_ERROR")
-                    .setErrorMessage(e.getMessage());
+        } catch (RuntimeException e) {
+            log.error("getProductsForOrder failed", e);
+            responseBuilder.setErrorCode("INTERNAL_ERROR").setErrorMessage("internal error");
         }
 
         responseObserver.onNext(responseBuilder.build());
         responseObserver.onCompleted();
     }
 
-    /**
-     * Tra cứu hàng loạt cho các service NestJS (catalog kiểm tra quyền gắn tag, BFF ghép dữ liệu).
-     * Giữ thứ tự id đầu vào, id không tồn tại (hoặc không active khi include_inactive=false) trả về not_found.
-     */
     @Override
     public void getProductsByIds(GetProductsByIdsRequest request, StreamObserver<GetProductsByIdsResponse> responseObserver) {
         List<String> ids = List.copyOf(new LinkedHashSet<>(request.getProductIdsList()));
@@ -107,12 +93,12 @@ public class ProductGrpcService extends ProductServiceGrpc.ProductServiceImplBas
                     .withDescription("at most 200 product ids per call").asRuntimeException());
             return;
         }
-        Map<String, Product> byId = productRepository.findAllById(ids).stream()
-                .collect(Collectors.toMap(Product::getId, Function.identity(), (a, b) -> a));
+        Map<String, Product> byId = productService.findByIds(ids).stream()
+                .collect(Collectors.toMap(Product::id, Function.identity(), (a, b) -> a));
         GetProductsByIdsResponse.Builder response = GetProductsByIdsResponse.newBuilder();
         for (String id : ids) {
             Product p = byId.get(id);
-            boolean active = p != null && p.getStatus() == ProductStatus.ACTIVE;
+            boolean active = p != null && p.status() == ProductStatus.ACTIVE;
             if (p == null || (!active && !request.getIncludeInactive())) {
                 response.addNotFound(id);
             } else {
@@ -124,18 +110,29 @@ public class ProductGrpcService extends ProductServiceGrpc.ProductServiceImplBas
     }
 
     private static ProductDetail toDetail(Product p, boolean active) {
-        double price = p.getPrice() != null ? p.getPrice().doubleValue() : 0d;
-        return ProductDetail.newBuilder()
-                .setProductId(p.getId())
-                .setSku(p.getSku() != null ? p.getSku() : "")
-                .setName(p.getName())
-                .setOriginalPrice(price)
-                .setSellingPrice(price)
-                .setCurrency(p.getCurrency() != null ? p.getCurrency() : "")
+        ProductDetail.Builder b = ProductDetail.newBuilder()
+                .setProductId(p.id())
+                .setSku(p.sku() != null ? p.sku() : "")
+                .setName(p.name())
+                .setCurrency(p.price() != null ? p.price().currency() : "")
                 .setIsActive(active)
-                .setIsDeleted(false)
-                .setSellerId(p.getSupplier() != null ? p.getSupplier() : "")
-                .setSellerActive(true)
-                .build();
+                .setIsDeleted(p.status() == ProductStatus.DELETED)
+                .setSellerId(p.supplier() != null ? p.supplier() : "")
+                .setSellerActive(true);
+        if (p.price() != null) {
+            Money price = money(p.price().amount(), p.price().currency());
+            // Giá bán cuối cùng theo bảng giá thuộc pricing-service; ở đây là giá niêm yết gốc.
+            b.setOriginalPriceMoney(price).setSellingPriceMoney(price);
+            // Trường double cũ giữ cho client chưa chuyển sang *_money (deprecated).
+            b.setOriginalPrice(p.price().amount().doubleValue()).setSellingPrice(p.price().amount().doubleValue());
+        }
+        return b.build();
+    }
+
+    private static Money money(BigDecimal amount, String currency) {
+        BigDecimal a = amount.setScale(9, RoundingMode.HALF_EVEN);
+        BigDecimal units = a.setScale(0, RoundingMode.DOWN);
+        return Money.newBuilder().setCurrencyCode(currency).setUnits(units.longValueExact())
+                .setNanos(a.subtract(units).movePointRight(9).intValueExact()).build();
     }
 }

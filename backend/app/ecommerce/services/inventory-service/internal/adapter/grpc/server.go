@@ -29,7 +29,6 @@ func toItems(in []*pb.InventoryItem) []domain.Item {
 	return out
 }
 
-// grpcErr đổi lỗi nghiệp vụ sang mã gRPC tương ứng.
 func grpcErr(err error) error {
 	switch domain.KindOf(err) {
 	case domain.KindInvalid:
@@ -45,7 +44,6 @@ func grpcErr(err error) error {
 	return status.Error(codes.Internal, "internal error")
 }
 
-// GetInventoryByProduct (API cũ): tổng tồn kho khả dụng theo SKU.
 func (s *Server) GetInventoryByProduct(ctx context.Context, req *pb.InventoryRequest) (*pb.InventoryResponse, error) {
 	stocks, err := s.svc.StocksBySKU(ctx, req.GetSku())
 	if err != nil {

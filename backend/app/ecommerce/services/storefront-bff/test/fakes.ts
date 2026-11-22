@@ -74,9 +74,19 @@ export function fakeBackends() {
       async byCategory(_c, page, limit) {
         return backends.products.list(page, limit);
       },
-      async search(keyword) {
-        const hits = [...products.values()].filter((p) => p.name.toLowerCase().includes(keyword.toLowerCase()));
-        return Promise.all(hits.map((p) => backends.products.detail(p.id)));
+    },
+    search: {
+      async search(q) {
+        const k = (q.text ?? '').toLowerCase();
+        const hits = [...products.values()].filter((p) => p.name.toLowerCase().includes(k));
+        return {
+          hits: hits.map((p) => ({ id: p.id, name: p.name, price: 0 })),
+          total: hits.length,
+          categories: [],
+          brands: [],
+          attributes: [],
+          options: [],
+        };
       },
     },
     inventory: {

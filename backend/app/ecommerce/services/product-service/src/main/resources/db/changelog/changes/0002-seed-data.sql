@@ -88,7 +88,11 @@ INSERT INTO variant_option_value (id, variant_option_id, product_id, value, disp
     (1965809232457275, 1865809232457272, 369334726608713, '512 GB', 3),
     (1965809232457276, 1865809232457272, 369334726608713, '1 TB', 4);
 
-INSERT INTO variant_option_combination (id, product_id, variant_option_id, value, display_order) VALUES
+-- Tổ hợp variant: dữ liệu giữ nguyên dạng (variant, trục, giá trị); câu SELECT đổi giá trị chữ sang id
+-- variant_option_value của sản phẩm gốc (ADR 0030).
+INSERT INTO variant_option_combination (id, variant_id, parent_id, variant_option_id, variant_option_value_id, display_order)
+SELECT c.id, c.product_id, p.parent_id, c.variant_option_id, v.id, c.display_order
+FROM (VALUES
     (556939800219647, 772266622382519, 1865809232457271, 'Black', 1),
     (556939800219648, 772266622382519, 1865809232457272, '128 GB', 2),
     (556939800219649, 4375511598425480, 1865809232457271, 'Black', 1),
@@ -112,7 +116,27 @@ INSERT INTO variant_option_combination (id, product_id, variant_option_id, value
     (556939800219667, 2183680520018239, 1865809232457271, 'Titan', 1),
     (556939800219668, 2183680520018239, 1865809232457272, '512 GB', 2),
     (556939800219669, 625333548123667, 1865809232457271, 'Titan', 1),
-    (556939800219670, 625333548123667, 1865809232457272, '1 TB', 2);
+    (556939800219670, 625333548123667, 1865809232457272, '1 TB', 2)
+) AS c (id, product_id, variant_option_id, value, display_order)
+JOIN products p ON p.id = c.product_id
+JOIN variant_option_value v
+  ON v.product_id = p.parent_id AND v.variant_option_id = c.variant_option_id AND v.value = c.value;
+
+-- variant_key = id các giá trị đã chọn, sắp tăng dần, nối '-' (giống ProductVariantService).
+UPDATE products p
+SET variant_key = k.variant_key
+FROM (SELECT variant_id, string_agg(variant_option_value_id::text, '-' ORDER BY variant_option_value_id) AS variant_key
+      FROM variant_option_combination GROUP BY variant_id) k
+WHERE p.id = k.variant_id;
+
+-- Định nghĩa thuộc tính: code, kiểu dữ liệu và cờ lọc (ADR 0030).
+UPDATE product_attribute SET code = 'manufacture', is_filterable = true WHERE id = 16556939800219641;
+UPDATE product_attribute SET code = 'made_in', is_filterable = true WHERE id = 16556939800219642;
+UPDATE product_attribute SET code = 'material', is_filterable = true WHERE id = 16556939800219643;
+UPDATE product_attribute SET code = 'author', is_filterable = true, is_searchable = true WHERE id = 16556939800219644;
+UPDATE product_attribute SET code = 'pages', data_type = 'NUMBER' WHERE id = 16556939800219645;
+UPDATE product_attribute SET code = 'isbn', is_searchable = true WHERE id = 16556939800219646;
+UPDATE product_attribute_value SET value_number = 225 WHERE id = 486580923245727746;
 
 INSERT INTO product_categories (id, product_id, category_id, display_order) VALUES
     (1, 369334726608713, '3247917155611621', 1),

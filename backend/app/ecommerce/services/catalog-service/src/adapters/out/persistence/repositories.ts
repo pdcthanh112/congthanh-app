@@ -49,7 +49,6 @@ export class DrizzleCategoryRepository implements CategoryRepository {
   }
 
   async pathTo(id: string): Promise<string[]> {
-    // CTE đệ quy đi ngược lên gốc; depth giới hạn để dữ liệu hỏng (vòng) không treo truy vấn.
     const result = await this.db.execute<{ id: string }>(sql`
       WITH RECURSIVE up AS (
         SELECT id, parent_id, 0 AS depth FROM ${categories} WHERE id = ${id}

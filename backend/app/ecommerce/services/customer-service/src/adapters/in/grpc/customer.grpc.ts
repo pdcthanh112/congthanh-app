@@ -1,13 +1,9 @@
-import { create } from '@bufbuild/protobuf';
-import type { ConnectRouter } from '@connectrpc/connect';
-import { DomainError } from '@ecommerce/platform';
-import {
-  CustomerService as CustomerGrpc,
-  type ShippingAddress,
-  ShippingAddressSchema,
-} from '@ecommerce/proto/ecommerce/customer/v1/customer_service_pb';
-import type { CustomerService } from '../../../application/customer.service.js';
-import type { ShippingAddressProps } from '../../../domain/shipping-address.js';
+import { create } from "@bufbuild/protobuf";
+import type { ConnectRouter } from "@connectrpc/connect";
+import { DomainError } from "@ecommerce/platform";
+import { CustomerService as CustomerGrpc, type ShippingAddress, ShippingAddressSchema } from "@ecommerce/proto/ecommerce/customer/v1/customer_service_pb";
+import type { CustomerService } from "../../../application/customer.service.js";
+import type { ShippingAddressProps } from "../../../domain/shipping-address.js";
 
 const toProto = (a: ShippingAddressProps): ShippingAddress =>
   create(ShippingAddressSchema, {
@@ -17,17 +13,16 @@ const toProto = (a: ShippingAddressProps): ShippingAddress =>
     phoneNumber: a.phoneNumber,
     label: a.label,
     countryCode: a.countryCode,
-    provinceCode: a.provinceCode ?? '',
-    districtCode: a.districtCode ?? '',
-    wardCode: a.wardCode ?? '',
+    provinceCode: a.provinceCode ?? "",
+    districtCode: a.districtCode ?? "",
+    wardCode: a.wardCode ?? "",
     addressLine: a.addressLine,
-    postalCode: a.postalCode ?? '',
+    postalCode: a.postalCode ?? "",
     latitude: a.latitude ?? 0,
     longitude: a.longitude ?? 0,
     isDefault: a.isDefault,
   });
 
-/** gRPC nội bộ cho order-service (mTLS trong mesh; không đi qua gateway). */
 export function customerGrpcRoutes(customers: CustomerService) {
   return (router: ConnectRouter) => {
     router.service(CustomerGrpc, {

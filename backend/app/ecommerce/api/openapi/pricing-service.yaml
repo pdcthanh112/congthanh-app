@@ -1,0 +1,403 @@
+openapi: 3.1.0
+info:
+  title: pricing-service
+  version: 1.0.0
+  description: |
+    Bảng giá, giá theo nhóm khách, lịch giảm giá (SALE/FLASH) và lịch sử giá.
+    Mọi số tiền là số nguyên theo đơn vị nhỏ nhất của currency (cent với USD, đồng với VND); currency bắt buộc (ADR 0029).
+    Nhóm khách lấy từ vai trò trong token, không nhận qua query.
+servers:
+  - url: https://api.congthanh.vn
+  - url: http://localhost:9080
+security:
+  - keycloak: []
+tags:
+  - name: price
+  - name: price-list
+  - name: schedule
+paths:
+  /api/ecommerce/pricing/products:
+    get:
+      operationId: getProductPrices
+      summary: Giá hiện hành của các sản phẩm (công khai)
+      tags: [price]
+      security:
+        - {}
+        - keycloak: []
+      parameters:
+        - name: ids
+          in: query
+          required: true
+          description: Id sản phẩm, lặp tham số hoặc cách nhau bởi dấu phẩy
+          schema: {type: array, items: {type: string}}
+          style: form
+          explode: true
+        - {name: currency, in: query, required: true, schema: {type: string, example: USD}}
+        - {name: at, in: query, description: 'Thời điểm tính giá (RFC 3339), mặc định là bây giờ', schema: {type: string, format: date-time}}
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - properties:
+                      data: {type: array, items: {$ref: '#/components/schemas/ResolvedPrice'}}
+        '400': {$ref: '#/components/responses/Error'}
+  /api/ecommerce/pricing/quote:
+    post:
+      operationId: quotePrices
+      summary: Báo giá các dòng hàng (công khai)
+      tags: [price]
+      security:
+        - {}
+        - keycloak: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [currency, lines]
+              properties:
+                currency: {type: string}
+                lines: {type: array, items: {$ref: '#/components/schemas/Line'}}
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - properties:
+                      data:
+                        type: object
+                        properties:
+                          currency: {type: string}
+                          subtotal: {type: integer, format: int64}
+                          unpricedProductIds: {type: array, items: {type: string}}
+                          lines:
+                            type: array
+                            items:
+                              allOf:
+                                - $ref: '#/components/schemas/Line'
+                                - properties:
+                                    unitPrice: {type: integer, format: int64}
+                                    lineTotal: {type: integer, format: int64}
+                                    compareAt: {type: integer, format: int64}
+                                    priceList: {type: string}
+        '400': {$ref: '#/components/responses/Error'}
+  /api/ecommerce/pricing/price-lists:
+    get:
+      operationId: listPriceLists
+      summary: Danh sách bảng giá (ADMIN)
+      tags: [price-list]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - properties:
+                      data: {type: array, items: {$ref: '#/components/schemas/PriceList'}}
+        '403': {$ref: '#/components/responses/Error'}
+    post:
+      operationId: createPriceList
+      summary: Tạo bảng giá (ADMIN)
+      tags: [price-list]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/PriceList'}
+      responses:
+        '201': {$ref: '#/components/responses/PriceList'}
+        '400': {$ref: '#/components/responses/Error'}
+        '403': {$ref: '#/components/responses/Error'}
+        '409': {$ref: '#/components/responses/Error'}
+  /api/ecommerce/pricing/price-lists/{code}:
+    parameters:
+      - $ref: '#/components/parameters/Code'
+    put:
+      operationId: updatePriceList
+      summary: Sửa bảng giá (ADMIN)
+      tags: [price-list]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/PriceList'}
+      responses:
+        '200': {$ref: '#/components/responses/PriceList'}
+        '400': {$ref: '#/components/responses/Error'}
+        '403': {$ref: '#/components/responses/Error'}
+        '404': {$ref: '#/components/responses/Error'}
+  /api/ecommerce/pricing/price-lists/{code}/prices:
+    parameters:
+      - $ref: '#/components/parameters/Code'
+    get:
+      operationId: listPricesInList
+      summary: Giá trong một bảng giá (ADMIN)
+      tags: [price-list]
+      parameters:
+        - {name: productId, in: query, schema: {type: string}}
+        - {name: limit, in: query, schema: {type: integer}}
+        - {name: offset, in: query, schema: {type: integer}}
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - properties:
+                      data: {type: array, items: {$ref: '#/components/schemas/Price'}}
+        '403': {$ref: '#/components/responses/Error'}
+        '404': {$ref: '#/components/responses/Error'}
+    put:
+      operationId: upsertPrices
+      summary: Thêm hoặc sửa giá hàng loạt (ADMIN)
+      tags: [price-list]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [prices]
+              properties:
+                prices: {type: array, items: {$ref: '#/components/schemas/Price'}}
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - properties:
+                      data:
+                        type: object
+                        properties:
+                          changed: {type: integer, description: Số giá thực sự thay đổi}
+        '400': {$ref: '#/components/responses/Error'}
+        '403': {$ref: '#/components/responses/Error'}
+        '404': {$ref: '#/components/responses/Error'}
+  /api/ecommerce/pricing/price-lists/{code}/prices/{productId}:
+    parameters:
+      - $ref: '#/components/parameters/Code'
+      - $ref: '#/components/parameters/ProductId'
+    delete:
+      operationId: deletePrice
+      summary: Xoá giá của sản phẩm khỏi bảng giá (ADMIN)
+      tags: [price-list]
+      responses:
+        '200': {$ref: '#/components/responses/Empty'}
+        '403': {$ref: '#/components/responses/Error'}
+        '404': {$ref: '#/components/responses/Error'}
+  /api/ecommerce/pricing/schedules:
+    get:
+      operationId: listSchedules
+      summary: Lịch giảm giá (ADMIN)
+      tags: [schedule]
+      parameters:
+        - {name: productId, in: query, schema: {type: string}}
+        - {name: status, in: query, schema: {$ref: '#/components/schemas/ScheduleStatus'}}
+        - {name: limit, in: query, schema: {type: integer}}
+      responses:
+        '200': {$ref: '#/components/responses/Schedules'}
+        '403': {$ref: '#/components/responses/Error'}
+    post:
+      operationId: createSchedules
+      summary: Tạo lịch giảm giá cho nhiều sản phẩm (ADMIN)
+      description: Gửi `amount` (giá cố định cho mọi sản phẩm) hoặc `percentOff` (giảm % từ giá thường), không gửi cả hai.
+      tags: [schedule]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [priceList, productIds, kind, startsAt]
+              properties:
+                priceList: {type: string}
+                productIds: {type: array, items: {type: string}}
+                kind: {$ref: '#/components/schemas/SaleKind'}
+                amount: {type: integer, format: int64}
+                percentOff: {type: number}
+                startsAt: {type: string, format: date-time}
+                endsAt: {type: string, format: date-time}
+                reason: {type: string}
+      responses:
+        '201': {$ref: '#/components/responses/Schedules'}
+        '400': {$ref: '#/components/responses/Error'}
+        '403': {$ref: '#/components/responses/Error'}
+        '409': {$ref: '#/components/responses/Error'}
+  /api/ecommerce/pricing/schedules/{id}/cancel:
+    post:
+      operationId: cancelSchedule
+      summary: Huỷ lịch giảm giá (ADMIN)
+      tags: [schedule]
+      parameters:
+        - {name: id, in: path, required: true, schema: {type: string}}
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - properties:
+                      data: {$ref: '#/components/schemas/Schedule'}
+        '403': {$ref: '#/components/responses/Error'}
+        '404': {$ref: '#/components/responses/Error'}
+        '409': {$ref: '#/components/responses/Error'}
+  /api/ecommerce/pricing/products/{productId}/history:
+    get:
+      operationId: getPriceHistory
+      summary: Lịch sử đổi giá của sản phẩm (ADMIN)
+      tags: [price]
+      parameters:
+        - $ref: '#/components/parameters/ProductId'
+        - {name: limit, in: query, schema: {type: integer}}
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - properties:
+                      data:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            priceList: {type: string}
+                            productId: {type: string}
+                            old: {type: integer, format: int64}
+                            new: {type: integer, format: int64}
+                            reason: {type: string}
+                            changedBy: {type: string}
+                            changedAt: {type: string, format: date-time}
+        '403': {$ref: '#/components/responses/Error'}
+components:
+  securitySchemes:
+    keycloak:
+      type: openIdConnect
+      openIdConnectUrl: https://auth.congthanh.vn/realms/ecommerce/.well-known/openid-configuration
+  parameters:
+    Code:
+      name: code
+      in: path
+      required: true
+      schema: {type: string, example: RETAIL_USD}
+    ProductId:
+      name: productId
+      in: path
+      required: true
+      schema: {type: string}
+  responses:
+    Error:
+      description: Lỗi
+      content:
+        application/json:
+          schema: {$ref: '#/components/schemas/Envelope'}
+    Empty:
+      description: OK
+      content:
+        application/json:
+          schema: {$ref: '#/components/schemas/Envelope'}
+    PriceList:
+      description: OK
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/Envelope'
+              - properties:
+                  data: {$ref: '#/components/schemas/PriceList'}
+    Schedules:
+      description: OK
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/Envelope'
+              - properties:
+                  data: {type: array, items: {$ref: '#/components/schemas/Schedule'}}
+  schemas:
+    Envelope:
+      type: object
+      properties:
+        message: {type: string}
+        data: {}
+        status: {type: string, enum: [Success, Failed]}
+        errorCode: {type: integer}
+    SaleKind:
+      type: string
+      enum: [SALE, FLASH]
+    ScheduleStatus:
+      type: string
+      enum: [SCHEDULED, ACTIVE, ENDED, CANCELLED]
+    Line:
+      type: object
+      required: [productId, quantity]
+      properties:
+        lineId: {type: string}
+        productId: {type: string}
+        quantity: {type: integer, minimum: 1}
+    PriceList:
+      type: object
+      required: [code, name, currency]
+      properties:
+        id: {type: integer, format: int64, readOnly: true}
+        code: {type: string}
+        name: {type: string}
+        currency: {type: string}
+        customerGroup: {type: string, description: Rỗng là bảng giá công khai; khác rỗng là vai trò trong token}
+        priority: {type: integer}
+        active: {type: boolean}
+        startsAt: {type: string, format: date-time}
+        endsAt: {type: string, format: date-time}
+    Price:
+      type: object
+      required: [productId, amount]
+      properties:
+        priceListId: {type: integer, format: int64, readOnly: true}
+        productId: {type: string}
+        amount: {type: integer, format: int64}
+        compareAt: {type: integer, format: int64, description: Giá gạch}
+    Schedule:
+      type: object
+      properties:
+        id: {type: string}
+        priceListId: {type: integer, format: int64}
+        priceList: {type: string}
+        productId: {type: string}
+        kind: {$ref: '#/components/schemas/SaleKind'}
+        amount: {type: integer, format: int64}
+        startsAt: {type: string, format: date-time}
+        endsAt: {type: string, format: date-time}
+        status: {$ref: '#/components/schemas/ScheduleStatus'}
+        reason: {type: string}
+        createdBy: {type: string}
+    ResolvedPrice:
+      type: object
+      properties:
+        productId: {type: string}
+        currency: {type: string}
+        amount: {type: integer, format: int64}
+        compareAt: {type: integer, format: int64}
+        discountPercent: {type: integer}
+        priceList: {type: string}
+        saleKind: {$ref: '#/components/schemas/SaleKind'}
+        saleEndsAt: {type: string, format: date-time}
+        lowest30d: {type: integer, format: int64, description: Giá thấp nhất 30 ngày qua (Omnibus)}

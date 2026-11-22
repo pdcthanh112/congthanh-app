@@ -1,12 +1,7 @@
-import { createHash } from 'node:crypto';
-import { hostname } from 'node:os';
-import { customType } from 'drizzle-orm/pg-core';
+import { customType } from "drizzle-orm/pg-core";
+import { createHash } from "node:crypto";
+import { hostname } from "node:os";
 
-/**
- * Snowflake 64 bit, cùng công thức với Java common-core và Python ecommerce_platform.ids (ADR 0028):
- * 41 bit mili-giây từ 2021-01-01, 10 bit node, 12 bit sequence. Id trả ra dạng chuỗi số để không mất chính xác
- * trong JavaScript (lớn hơn 2^53); DB lưu BIGINT (node-postgres trả int8 về dạng chuỗi).
- */
 export const SNOWFLAKE_EPOCH_MS = 1609459200000n;
 export const MAX_NODE = 1023;
 
@@ -20,7 +15,7 @@ export function nodeFromEnv(env: NodeJS.ProcessEnv = process.env): number {
     return n;
   }
   const host = env.HOSTNAME || hostname() || String(process.pid);
-  return createHash('sha256').update(host).digest().readUInt32BE(0) % (MAX_NODE + 1);
+  return createHash("sha256").update(host).digest().readUInt32BE(0) % (MAX_NODE + 1);
 }
 
 export class Snowflake {
@@ -38,7 +33,7 @@ export class Snowflake {
 
   next(): string {
     let now = BigInt(this.clock());
-    if (now < this.last) now = this.last; // đồng hồ lùi: giữ mốc cũ
+    if (now < this.last) now = this.last;
     if (now === this.last) {
       this.seq = (this.seq + 1n) & 0xfffn;
       if (this.seq === 0n) {
@@ -54,7 +49,6 @@ export class Snowflake {
 
 let shared: Snowflake | undefined;
 
-/** Id thực thể kế tiếp từ generator dùng chung của process. */
 export function nextSnowflakeId(): string {
   shared ??= new Snowflake();
   return shared.next();
@@ -66,12 +60,8 @@ export function isSnowflakeId(v: string): boolean {
   return SNOWFLAKE_RE.test(v);
 }
 
-/**
- * Cột BIGINT giữ id Snowflake dạng chuỗi trong code. Chuỗi không phải số (link cũ còn id UUID, client gửi sai) được
- * đổi thành -1 để tra cứu trả "không thấy" thay vì lỗi ép kiểu của Postgres (500).
- */
 export const snowflakeId = customType<{ data: string; driverData: string }>({
-  dataType: () => 'bigint',
-  toDriver: (v) => (SNOWFLAKE_RE.test(v) ? v : '-1'),
+  dataType: () => "bigint",
+  toDriver: (v) => (SNOWFLAKE_RE.test(v) ? v : "-1"),
   fromDriver: (v) => String(v),
 });

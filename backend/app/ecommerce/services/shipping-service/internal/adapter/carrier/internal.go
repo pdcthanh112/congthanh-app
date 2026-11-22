@@ -16,7 +16,6 @@ type Internal struct{}
 
 func (Internal) Code() string { return "internal" }
 
-// CreateLabel sinh mã dạng CT2611XXXXXXXX (tiền tố, năm-tháng, 8 ký tự ngẫu nhiên không nhầm lẫn).
 func (Internal) CreateLabel(_ context.Context, _ domain.Shipment) (string, error) {
 	const alphabet = "23456789ABCDEFGHJKLMNPQRSTUVWXYZ"
 	b := make([]byte, 8)

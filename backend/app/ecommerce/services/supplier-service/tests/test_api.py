@@ -2,7 +2,6 @@ import pytest
 from rest_framework.test import APIClient
 
 from suppliers.models import Supplier
-from suppliers.service import make_slug
 
 pytestmark = pytest.mark.django_db
 URL = "/api/ecommerce/suppliers"
@@ -23,7 +22,7 @@ def test_seller_creates_and_admin_activates():
     assert body["status"] == "Success" and body["data"]["slug"] == "brooklyn-home-goods"
     assert body["data"]["status"] == "PENDING"
     sid = body["data"]["id"]
-    assert isinstance(sid, str) and sid.isdigit() 
+    assert isinstance(sid, str) and sid.isdigit()
 
     assert client().get(f"{URL}/{sid}").status_code == 404
     assert seller.get(f"{URL}/brooklyn-home-goods").json()["data"]["email"] == "a@b.com"
@@ -48,7 +47,7 @@ def test_rules():
     r = seller.post(URL, {"name": "Shop B"}, format="json")
     assert r.status_code == 409 and r.json()["errorCode"] == 409
     r = seller.post(URL, {}, format="json")
-    assert r.status_code == 400  
+    assert r.status_code == 400
     assert client("s3", "SELLER").post(URL, {"name": ""}, format="json").json()["message"].startswith("Invalid request")
 
 
@@ -67,7 +66,26 @@ def test_update_optimistic_lock_and_ownership():
 
 def test_slug_unique():
     Supplier.objects.create(owner_id="x1", name="Shop", slug="shop")
-    assert make_slug("Shop") == "shop-2"
+    r = client("s5", "SELLER").post(URL, {"name": "Shop"}, format="json")
+    assert r.status_code == 201 and r.json()["data"]["slug"] == "shop-2"
+    r = client("s6", "SELLER").post(URL, {"name": "Other", "slug": "shop"}, format="json")
+    assert r.status_code == 409
+
+
+def test_status_transitions_follow_lifecycle():
+    seller = client("s7", "SELLER")
+    sid = seller.post(URL, {"name": "Shop D"}, format="json").json()["data"]["id"]
+    admin = client("a1", "ADMIN")
+    assert admin.put(f"{URL}/{sid}/status", {"status": "SUSPENDED"}, format="json").status_code == 409
+    assert admin.put(f"{URL}/{sid}/status", {"status": "CLOSED"}, format="json").status_code == 200
+    assert admin.put(f"{URL}/{sid}/status", {"status": "ACTIVE"}, format="json").status_code == 409
+
+
+def test_edit_updates_timestamp():
+    seller = client("s8", "SELLER")
+    s = seller.post(URL, {"name": "Shop E"}, format="json").json()["data"]
+    updated = seller.patch(f"{URL}/{s['id']}", {"description": "x"}, format="json").json()["data"]
+    assert updated["updatedAt"] >= s["updatedAt"] and updated["version"] == 1
 
 
 def test_health():

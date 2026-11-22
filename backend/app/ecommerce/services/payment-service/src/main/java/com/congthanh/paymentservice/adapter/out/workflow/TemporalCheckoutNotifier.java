@@ -23,7 +23,6 @@ class TemporalCheckoutNotifier implements CheckoutNotifier {
             client.newUntypedWorkflowStub(CheckoutContract.workflowId(orderId))
                     .signal(CheckoutContract.SIGNAL_PAYMENT_COMPLETED, new PaymentCompleted(paymentId, success, reason));
         } catch (WorkflowNotFoundException e) {
-            // Saga đã kết thúc (ví dụ hết hạn chờ): service tự hoàn tiền nếu cần, không còn ai để báo.
             log.info("checkout for order {} is no longer running; payment callback recorded only", orderId);
         }
     }

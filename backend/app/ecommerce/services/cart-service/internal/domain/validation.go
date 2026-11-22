@@ -32,7 +32,6 @@ type Validation struct {
 	Items  []ValidationLine `json:"items"`
 }
 
-// Evaluate đối chiếu item với tồn kho (avail = nil: không kiểm) và sản phẩm không bán được.
 func Evaluate(c Cart, avail map[string]int32, invalid map[string]string) Validation {
 	v := Validation{CartID: c.ID, Valid: len(c.Items) > 0, Items: []ValidationLine{}}
 	for _, it := range c.Items {

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from drf_spectacular.extensions import OpenApiAuthenticationExtension
 from ecommerce_platform.auth import AuthError, Principal, bearer, verifier_from_env
 from rest_framework import authentication, exceptions
 
@@ -42,3 +43,13 @@ class JWTAuthentication(authentication.BaseAuthentication):
 
     def authenticate_header(self, request):
         return 'Bearer realm="ecommerce"'
+
+
+class JWTAuthenticationScheme(OpenApiAuthenticationExtension):
+    """Mô tả JWTAuthentication trong OpenAPI: Bearer JWT do Keycloak cấp."""
+
+    target_class = "suppliers.auth.JWTAuthentication"
+    name = "keycloak"
+
+    def get_security_definition(self, auto_schema):
+        return {"type": "http", "scheme": "bearer", "bearerFormat": "JWT"}

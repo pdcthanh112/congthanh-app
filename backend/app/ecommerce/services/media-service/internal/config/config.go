@@ -7,7 +7,7 @@ import (
 )
 
 type Config struct {
-	AuthDisabled                                 bool // AUTH_DISABLED=true: tắt xác thực, chỉ cho dev/test
+	AuthDisabled                                 bool
 	HTTPAddr, DatabaseURL, DBSchema              string
 	S3Bucket, S3Region, S3Endpoint, S3PresignURL string
 	S3PathStyle                                  bool

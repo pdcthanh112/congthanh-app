@@ -1,6 +1,6 @@
 import { bearer, fromGrpcError, grpcClient, RestClient, resiliencePolicy } from '@ecommerce/platform';
 import { ProductService } from '@ecommerce/proto/ecommerce/product/v1/product_service_pb';
-import { fromDecimal, type Money } from '@ecommerce/shared';
+import { fromProtoMoney, type Money } from '@ecommerce/shared';
 import { z } from 'zod';
 
 /** Thông tin gọn để hiển thị danh sách/giỏ hàng (gRPC GetProductsByIds, gọi theo lô). */
@@ -69,13 +69,13 @@ export class ProductClient {
         for (const p of res.products) {
           // Giá luôn đi kèm đơn vị tiền do product-service trả; sản phẩm chưa có giá/currency thì coi như không có
           // (giỏ hàng sẽ báo không mua được) thay vì gán một currency mặc định.
-          if (!p.currency) continue;
+          if (!p.sellingPriceMoney?.currencyCode || !p.originalPriceMoney?.currencyCode) continue;
           map.set(p.productId, {
             id: p.productId,
             sku: p.sku,
             name: p.name,
-            price: fromDecimal(p.sellingPrice, p.currency),
-            originalPrice: fromDecimal(p.originalPrice, p.currency),
+            price: fromProtoMoney(p.sellingPriceMoney),
+            originalPrice: fromProtoMoney(p.originalPriceMoney),
             active: p.isActive,
             sellerId: p.sellerId,
           });

@@ -1,5 +1,3 @@
-# storefront-bff: BFF khách hàng: Product, giỏ hàng, đặt hàng (gom gRPC/REST của Go/Java).
-# Giá trị chung mọi môi trường; ghi đè theo môi trường ở values-<env>.yaml.
 nameOverride: storefront-bff
 runtime: node
 image:
@@ -18,7 +16,8 @@ env:
   ORDER_REST_URL: "http://order-service"
   CHECKOUT_REST_URL: "http://checkout-service"
   RECOMMENDATION_REST_URL: "http://recommendation-service"
+  SEARCH_REST_URL: "http://search-service"
   CUSTOMER_GRPC_ADDR: "customer-service:19094"
 resources:
-  requests: {cpu: 100m, memory: 192Mi}
-  limits: {memory: 384Mi}
+  requests: { cpu: 100m, memory: 192Mi }
+  limits: { memory: 384Mi }

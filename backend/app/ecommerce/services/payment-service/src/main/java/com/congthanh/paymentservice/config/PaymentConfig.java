@@ -22,7 +22,6 @@ class PaymentConfig {
         return props.toPolicy();
     }
 
-    /** payment-service poll task queue "payment" (activity Payment.authorize/capture/refund). */
     @Bean
     TemporalWorkerRegistration paymentWorker(PaymentActivitiesImpl activities) {
         return new TemporalWorkerRegistration(TaskQueues.PAYMENT, w -> w.registerActivitiesImplementations(activities));

@@ -21,7 +21,7 @@ func New(svc *app.Service) *Server { return &Server{svc: svc} }
 
 func (s *Server) SearchProducts(ctx context.Context, req *pb.SearchProductsRequest) (*pb.SearchProductsResponse, error) {
 	res, err := s.svc.Search(ctx, domain.Query{
-		Text: req.GetQuery(), CategoryID: req.GetCategoryId(), MinPrice: req.GetMinPrice(), MaxPrice: req.GetMaxPrice(),
+		Text: req.GetQuery(), CategoryID: req.GetCategoryId(), MinPrice: req.GetMinPrice(), MaxPrice: req.GetMaxPrice(), Currency: req.GetCurrency(),
 		Sort: domain.Sort(req.GetSort()), Page: int(req.GetPage()), Size: int(req.GetPageSize()),
 	})
 	if err != nil {

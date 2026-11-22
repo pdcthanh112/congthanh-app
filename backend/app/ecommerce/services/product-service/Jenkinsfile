@@ -1,4 +1,4 @@
-// CI chính là GitHub Actions (.github/workflows/ci-java.yml); Jenkinsfile giữ cho môi trường Jenkins nội bộ.
+
 pipeline {
     agent any
     stages {

@@ -10,7 +10,6 @@ import (
 	"github.com/pdcthanh112/CongThanhApp/backend/app/ecommerce/services/inventory-service/internal/domain"
 )
 
-// Warehouses hiện thực app.WarehouseRepository.
 type Warehouses struct{ pool *pgxpool.Pool }
 
 const whCols = `id, name, location, address, is_active, created_at, updated_at`
@@ -62,7 +61,6 @@ func (w Warehouses) Update(ctx context.Context, in domain.Warehouse) (domain.War
 	return wh, err
 }
 
-// Delete chỉ xoá được kho không còn tồn kho; ngược lại hãy chuyển isActive=false.
 func (w Warehouses) Delete(ctx context.Context, id string) error {
 	tag, err := w.pool.Exec(ctx, `DELETE FROM warehouses WHERE id = $1`, id)
 	if pgCode(err) == "23503" {

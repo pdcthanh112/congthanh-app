@@ -37,9 +37,6 @@ spring:
       value-serializer: org.apache.kafka.common.serialization.ByteArraySerializer
     listener:
       auto-startup: ${KAFKA_CONSUMERS_ENABLED:true}
-  graphql:
-    graphiql:
-      enabled: ${GRAPHIQL_ENABLED:false}
   security:
     oauth2:
       resourceserver:
@@ -127,3 +124,9 @@ logging:
   structured:
     format:
       console: ${LOG_FORMAT:ecs}
+
+platform:
+  # Tạo sản phẩm/variant tác động tới hàng hoá: gửi lại cùng Idempotency-Key trả kết quả cũ, không tạo bản trùng.
+  idempotency:
+    paths: [/api/ecommerce/products, /api/ecommerce/products/*/variants]
+    required: false

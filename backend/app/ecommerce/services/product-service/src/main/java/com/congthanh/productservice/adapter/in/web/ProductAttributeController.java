@@ -1,8 +1,8 @@
 package com.congthanh.productservice.adapter.in.web;
 
 import com.congthanh.commonservice.constants.ResponseStatus;
-import com.congthanh.productservice.application.dto.ProductAttributeDTO;
 import com.congthanh.commonservice.model.response.Response;
+import com.congthanh.productservice.application.dto.ProductAttributeDTO;
 import com.congthanh.productservice.application.port.in.ProductAttributeService;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
@@ -22,21 +22,26 @@ public class ProductAttributeController {
 
     @GetMapping("")
     public ResponseEntity<Response<List<ProductAttributeDTO>>> getAllProductAttributes() {
-        List<ProductAttributeDTO> data = productAttributeService.getAllProductAttribute();
-        Response<List<ProductAttributeDTO>> response = new Response<>();
-        response.setData(data);
-        response.setStatus(ResponseStatus.STATUS_SUCCESS);
-        response.setMessage("Created successfully");
-        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+        return ResponseEntity.ok(ok(productAttributeService.getAllProductAttribute(), "Get successfully"));
     }
 
-    @PostMapping("/create")
+    @PostMapping("")
     public ResponseEntity<Response<ProductAttributeDTO>> createProductAttribute(@RequestBody ProductAttributeDTO productAttributeDTO) {
-        ProductAttributeDTO data = productAttributeService.createProductAttribute(productAttributeDTO);
-        Response<ProductAttributeDTO> response = new Response<>();
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(ok(productAttributeService.createProductAttribute(productAttributeDTO), "Created successfully"));
+    }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<Response<ProductAttributeDTO>> updateProductAttribute(@PathVariable("id") Long id,
+                                                                               @RequestBody ProductAttributeDTO productAttributeDTO) {
+        return ResponseEntity.ok(ok(productAttributeService.updateProductAttribute(id, productAttributeDTO), "Updated successfully"));
+    }
+
+    static <T> Response<T> ok(T data, String message) {
+        Response<T> response = new Response<>();
         response.setData(data);
         response.setStatus(ResponseStatus.STATUS_SUCCESS);
-        response.setMessage("Created successfully");
-        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+        response.setMessage(message);
+        return response;
     }
 }

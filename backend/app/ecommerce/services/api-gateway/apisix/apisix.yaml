@@ -170,6 +170,11 @@ routes:
 - id: product
   uris:
   - /api/ecommerce/products*
+  - /api/ecommerce/product-attribute*
+  - /api/ecommerce/attribute-value*
+  - /api/ecommerce/product-image*
+  - /api/ecommerce/product-view*
+  - /api/ecommerce/variant-options*
   upstream_id: product
   plugins:
     limit-count:

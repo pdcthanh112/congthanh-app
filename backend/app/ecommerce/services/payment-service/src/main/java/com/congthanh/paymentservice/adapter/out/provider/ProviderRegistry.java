@@ -12,10 +12,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-/**
- * Chọn cổng cho phương thức: cổng thật đã cấu hình được ưu tiên, sandbox (nếu bật) lấp chỗ còn lại.
- * Cổng chỉ được tạo bean khi có cấu hình (xem các @ConditionalOnProperty).
- */
 @Component
 class ProviderRegistry implements PaymentProviders {
 

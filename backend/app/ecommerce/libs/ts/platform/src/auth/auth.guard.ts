@@ -1,14 +1,10 @@
-import { type CanActivate, type ExecutionContext, Injectable, Logger } from '@nestjs/common';
-import { Reflector } from '@nestjs/core';
-import { DomainError } from '../errors/domain-error.js';
-import { IS_PUBLIC, ROLES, requestOf } from './decorators.js';
-import { bearerToken, JwtVerifier } from './jwt-verifier.js';
-import { hasAnyRole } from './principal.js';
+import { type CanActivate, type ExecutionContext, Injectable, Logger } from "@nestjs/common";
+import { Reflector } from "@nestjs/core";
+import { DomainError } from "../errors/domain-error.js";
+import { IS_PUBLIC, requestOf, ROLES } from "./decorators.js";
+import { bearerToken, JwtVerifier } from "./jwt-verifier.js";
+import { hasAnyRole } from "./principal.js";
 
-/**
- * Guard toàn cục: mặc định mọi route/resolver cần token hợp lệ; @Public() mở; @Roles() giới hạn role.
- * Gateway (APISIX) và router GraphQL cũng kiểm tra token, nhưng service vẫn tự kiểm tra (zero trust).
- */
 @Injectable()
 export class AuthGuard implements CanActivate {
   private readonly log = new Logger(AuthGuard.name);
@@ -41,13 +37,13 @@ export class AuthGuard implements CanActivate {
       }
     }
     if (!isPublic && !req.principal && (req as { authError?: string }).authError) {
-      throw DomainError.unauthenticated('invalid or expired token');
+      throw DomainError.unauthenticated("invalid or expired token");
     }
 
     if (isPublic) return true;
-    if (!req.principal) throw DomainError.unauthenticated('authentication required');
+    if (!req.principal) throw DomainError.unauthenticated("authentication required");
     if (roles.length > 0 && !hasAnyRole(req.principal, roles)) {
-      throw DomainError.forbidden(`requires one of roles: ${roles.join(', ')}`);
+      throw DomainError.forbidden(`requires one of roles: ${roles.join(", ")}`);
     }
     return true;
   }

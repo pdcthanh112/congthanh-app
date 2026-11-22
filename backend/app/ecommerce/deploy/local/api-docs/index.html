@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Ecommerce API docs</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swagger-ui-dist@5.34.0/swagger-ui.css">
+  <style>body { margin: 0; }</style>
+</head>
+<body>
+  <div id="swagger-ui"></div>
+  <script src="https://cdn.jsdelivr.net/npm/swagger-ui-dist@5.34.0/swagger-ui-bundle.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/swagger-ui-dist@5.34.0/swagger-ui-standalone-preset.js"></script>
+  <script>
+    // Spec tĩnh (api/openapi, service Go) và spec do service tự sinh (proxy qua nginx, cần service đang chạy).
+    // Service NestJS dùng GraphQL: xem tại GraphQL router http://localhost:4000.
+    const staticSpecs = ["cart", "inventory", "media", "pricing", "privacy", "search", "shipping", "tax", "webhook"];
+    const liveSpecs = [
+      "product", "order", "payment", "promotion", "checkout", "ledger", "returns", "stored-value", "dispute",
+      "loyalty", "subscription", "supplier", "fraud", "chatbot", "recommendation", "translate", "moderation",
+      "reconciliation",
+    ];
+    const urls = [
+      ...staticSpecs.map((s) => ({ name: `${s}-service`, url: `/specs/static/${s}-service.yaml` })),
+      ...liveSpecs.map((s) => ({ name: `${s}-service`, url: `/specs/live/${s}-service.json` })),
+    ].sort((a, b) => a.name.localeCompare(b.name));
+
+    window.ui = SwaggerUIBundle({
+      urls,
+      "urls.primaryName": new URLSearchParams(location.search).get("service") || "cart-service",
+      dom_id: "#swagger-ui",
+      deepLinking: true,
+      presets: [SwaggerUIBundle.presets.apis, SwaggerUIStandalonePreset],
+      layout: "StandaloneLayout",
+      persistAuthorization: true,
+      // Spec tĩnh khai server http://localhost:9080 (APISIX): chuyển về cùng origin để đi qua proxy /api/, tránh CORS.
+      requestInterceptor: (req) => {
+        req.url = req.url.replace(/^http:\/\/localhost:9080/, location.origin);
+        return req;
+      },
+    });
+  </script>
+</body>
+</html>

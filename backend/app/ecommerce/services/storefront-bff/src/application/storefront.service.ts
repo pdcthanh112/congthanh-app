@@ -27,6 +27,8 @@ import {
   type PromotionPort,
   RECOMMENDATIONS,
   type RecommendationPort,
+  SEARCH,
+  type SearchPort,
 } from './ports.js';
 
 export const MAX_QUANTITY = 999;
@@ -105,6 +107,7 @@ export class StorefrontService {
     @Inject(ADDRESSES) private readonly addresses: AddressPort,
     @Inject(CHECKOUTS) private readonly checkouts: CheckoutPort,
     @Inject(RECOMMENDATIONS) private readonly recommender: RecommendationPort,
+    @Inject(SEARCH) readonly search: SearchPort,
   ) {}
 
   async cart(p: Principal): Promise<CartSnapshot> {

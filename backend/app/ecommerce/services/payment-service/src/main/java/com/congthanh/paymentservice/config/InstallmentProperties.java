@@ -11,10 +11,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-/**
- * {@code payment.installments}: đối tác trả góp (ADR 0016). Hạn mức mặc định trong application.yaml lấy theo
- * tài liệu Stripe lúc viết, phải đối chiếu lại với tài khoản Stripe trước khi bật ở prod.
- */
 @ConfigurationProperties("payment.installments")
 record InstallmentProperties(Partner affirm, Partner klarna, Partner afterpay, List<String> currencies) {
 

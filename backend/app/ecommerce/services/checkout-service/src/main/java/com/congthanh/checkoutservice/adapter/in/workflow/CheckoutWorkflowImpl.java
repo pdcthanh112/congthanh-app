@@ -49,9 +49,7 @@ public class CheckoutWorkflowImpl implements CheckoutWorkflow {
 
     private static final Logger log = Workflow.getLogger(CheckoutWorkflowImpl.class);
     private static final Duration DEFAULT_PAYMENT_TIMEOUT = Duration.ofMinutes(15);
-    /** Đổi thứ tự capture/commit kho; workflow cũ đang chạy vẫn replay theo nhánh DEFAULT_VERSION. */
     static final String CAPTURE_BEFORE_COMMIT = "capture-before-commit";
-    /** ADR 0027: giữ store credit + điểm thưởng trước khi authorize, chỉ charge phần còn lại. */
     static final String TENDERS = "store-credit-and-loyalty";
 
     private static final RetryOptions FORWARD_RETRY = RetryOptions.newBuilder()

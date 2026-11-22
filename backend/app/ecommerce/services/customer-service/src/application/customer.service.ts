@@ -1,26 +1,10 @@
-import { DomainError } from '@ecommerce/platform/errors';
-import { Inject, Injectable } from '@nestjs/common';
-import { normalizeKeyword, SEARCH_HISTORY_LIMIT, type SearchEntry } from '../domain/search-history.js';
-import {
-  type AddressDraft,
-  MAX_ADDRESSES_PER_CUSTOMER,
-  nextDefaultAfterDelete,
-  normalizeAddress,
-  type ShippingAddressProps,
-} from '../domain/shipping-address.js';
-import { MAX_WISHLIST_ITEMS, type WishlistItem } from '../domain/wishlist.js';
-import {
-  CLOCK,
-  type Clock,
-  ID_GENERATOR,
-  type IdGenerator,
-  READ_REPOSITORIES,
-  type ReadRepositories,
-  UNIT_OF_WORK,
-  type UnitOfWork,
-} from './ports.js';
+import { DomainError } from "@ecommerce/platform/errors";
+import { Inject, Injectable } from "@nestjs/common";
+import { normalizeKeyword, SEARCH_HISTORY_LIMIT, type SearchEntry } from "../domain/search-history.js";
+import { type AddressDraft, MAX_ADDRESSES_PER_CUSTOMER, nextDefaultAfterDelete, normalizeAddress, type ShippingAddressProps } from "../domain/shipping-address.js";
+import { MAX_WISHLIST_ITEMS, type WishlistItem } from "../domain/wishlist.js";
+import { CLOCK, type Clock, ID_GENERATOR, type IdGenerator, READ_REPOSITORIES, type ReadRepositories, UNIT_OF_WORK, type UnitOfWork } from "./ports.js";
 
-/** Use case của khách hàng. Mọi thao tác đều theo `customerId` = `sub` của token (không nhận từ client). */
 @Injectable()
 export class CustomerService {
   constructor(
@@ -30,15 +14,13 @@ export class CustomerService {
     @Inject(ID_GENERATOR) private readonly ids: IdGenerator,
   ) {}
 
-  // ---------- địa chỉ giao hàng ----------
-
   addAddress(customerId: string, draft: AddressDraft, makeDefault: boolean): Promise<ShippingAddressProps> {
     const data = normalizeAddress(draft);
     return this.uow.run(async (tx) => {
       await tx.addresses.lockCustomer(customerId);
       const count = await tx.addresses.count(customerId);
       if (count >= MAX_ADDRESSES_PER_CUSTOMER) {
-        throw DomainError.invalid(`at most ${MAX_ADDRESSES_PER_CUSTOMER} addresses`, 'ADDRESS_LIMIT');
+        throw DomainError.invalid(`at most ${MAX_ADDRESSES_PER_CUSTOMER} addresses`, "ADDRESS_LIMIT");
       }
       const now = this.clock.now();
       const address: ShippingAddressProps = {
@@ -93,18 +75,16 @@ export class CustomerService {
     });
   }
 
-  // ---------- wishlist ----------
-
   wishlist(customerId: string, page: number, size: number): Promise<{ items: WishlistItem[]; total: number }> {
     const limit = Math.min(Math.max(size, 1), 100);
     return this.read.wishlist.list(customerId, limit, Math.max(page - 1, 0) * limit);
   }
 
   addToWishlist(customerId: string, productId: string): Promise<boolean> {
-    if (!productId?.trim()) throw DomainError.invalid('productId is required');
+    if (!productId?.trim()) throw DomainError.invalid("productId is required");
     return this.uow.run(async (tx) => {
       if ((await tx.wishlist.count(customerId)) >= MAX_WISHLIST_ITEMS) {
-        throw DomainError.invalid(`wishlist is limited to ${MAX_WISHLIST_ITEMS} items`, 'WISHLIST_FULL');
+        throw DomainError.invalid(`wishlist is limited to ${MAX_WISHLIST_ITEMS} items`, "WISHLIST_FULL");
       }
       const now = this.clock.now();
       const added = await tx.wishlist.add(customerId, productId, now);
@@ -120,8 +100,6 @@ export class CustomerService {
       return removed;
     });
   }
-
-  // ---------- lịch sử tìm kiếm ----------
 
   recentSearches(userId: string, limit: number): Promise<SearchEntry[]> {
     return this.read.searches.recent(userId, Math.min(Math.max(limit, 1), SEARCH_HISTORY_LIMIT));

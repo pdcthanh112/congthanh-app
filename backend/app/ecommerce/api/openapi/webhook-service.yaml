@@ -1,0 +1,234 @@
+openapi: 3.1.0
+info:
+  title: webhook-service
+  version: 1.0.0
+  description: |
+    Webhook ra ngoài cho hệ thống đối tác (ERP, kho, CRM). Toàn bộ API cần vai trò ADMIN.
+    Mỗi lượt giao là POST JSON `{id, type, createdAt, data}` kèm header `X-Webhook-Id`, `X-Webhook-Delivery`,
+    `X-Webhook-Event`, `X-Webhook-Timestamp`, `X-Webhook-Signature` (HMAC-SHA256 trên timestamp và body) và
+    `X-Hub-Signature-256` (dạng cũ). Bên nhận trả 2xx để xác nhận; lỗi thì được gửi lại với backoff, quá số lần thì DEAD.
+servers:
+  - url: https://api.congthanh.vn
+  - url: http://localhost:9080
+security:
+  - keycloak: []
+tags:
+  - name: webhook
+  - name: delivery
+paths:
+  /api/ecommerce/webhooks/events:
+    get:
+      operationId: listWebhookEvents
+      summary: Các loại sự kiện có thể theo dõi
+      tags: [webhook]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - properties:
+                      data: {type: array, items: {$ref: '#/components/schemas/EventType'}}
+        '403': {$ref: '#/components/responses/Error'}
+  /api/ecommerce/webhooks/:
+    get:
+      operationId: listWebhooks
+      summary: Danh sách webhook (không trả secret)
+      tags: [webhook]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - properties:
+                      data: {type: array, items: {$ref: '#/components/schemas/Webhook'}}
+        '403': {$ref: '#/components/responses/Error'}
+    post:
+      operationId: createWebhook
+      summary: Tạo webhook
+      description: Secret chỉ trả về một lần trong phản hồi này; bỏ trống thì hệ thống tự sinh.
+      tags: [webhook]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/WebhookInput'}
+      responses:
+        '201': {$ref: '#/components/responses/Webhook'}
+        '400': {$ref: '#/components/responses/Error'}
+        '403': {$ref: '#/components/responses/Error'}
+  /api/ecommerce/webhooks/{id}:
+    parameters:
+      - $ref: '#/components/parameters/Id'
+    get:
+      operationId: getWebhook
+      summary: Chi tiết webhook
+      tags: [webhook]
+      responses:
+        '200': {$ref: '#/components/responses/Webhook'}
+        '404': {$ref: '#/components/responses/Error'}
+    put:
+      operationId: updateWebhook
+      summary: Sửa webhook
+      tags: [webhook]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/WebhookInput'}
+      responses:
+        '200': {$ref: '#/components/responses/Webhook'}
+        '400': {$ref: '#/components/responses/Error'}
+        '404': {$ref: '#/components/responses/Error'}
+    delete:
+      operationId: deleteWebhook
+      summary: Xoá webhook
+      tags: [webhook]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Envelope'}
+        '404': {$ref: '#/components/responses/Error'}
+  /api/ecommerce/webhooks/{id}/ping:
+    post:
+      operationId: pingWebhook
+      summary: Gửi sự kiện thử `ping` (qua hàng đợi, vài giây sau mới gửi)
+      tags: [delivery]
+      parameters:
+        - $ref: '#/components/parameters/Id'
+      responses:
+        '202':
+          description: Ping queued
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - properties:
+                      data: {$ref: '#/components/schemas/Delivery'}
+        '404': {$ref: '#/components/responses/Error'}
+  /api/ecommerce/webhooks/{id}/deliveries:
+    get:
+      operationId: listWebhookDeliveries
+      summary: Lịch sử giao của webhook, mới nhất trước
+      tags: [delivery]
+      parameters:
+        - $ref: '#/components/parameters/Id'
+        - {name: limit, in: query, schema: {type: integer}}
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - properties:
+                      data: {type: array, items: {$ref: '#/components/schemas/Delivery'}}
+        '404': {$ref: '#/components/responses/Error'}
+  /api/ecommerce/webhooks/deliveries/{deliveryId}/retry:
+    post:
+      operationId: retryWebhookDelivery
+      summary: Gửi lại một lượt giao (kể cả đã DEAD)
+      tags: [delivery]
+      parameters:
+        - {name: deliveryId, in: path, required: true, schema: {type: string}}
+      responses:
+        '202':
+          description: Retry queued
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Envelope'}
+        '404': {$ref: '#/components/responses/Error'}
+components:
+  securitySchemes:
+    keycloak:
+      type: openIdConnect
+      openIdConnectUrl: https://auth.congthanh.vn/realms/ecommerce/.well-known/openid-configuration
+  parameters:
+    Id:
+      name: id
+      in: path
+      required: true
+      schema: {type: string}
+  responses:
+    Error:
+      description: Lỗi
+      content:
+        application/json:
+          schema: {$ref: '#/components/schemas/Envelope'}
+    Webhook:
+      description: OK
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/Envelope'
+              - properties:
+                  data: {$ref: '#/components/schemas/Webhook'}
+  schemas:
+    Envelope:
+      type: object
+      properties:
+        message: {type: string}
+        data: {}
+        status: {type: string, enum: [Success, Failed]}
+        errorCode: {type: integer}
+    EventType:
+      type: string
+      enum:
+        - order.created
+        - order.confirmed
+        - order.cancelled
+        - product.updated
+        - product.deleted
+        - shipment.created
+        - shipment.status_changed
+        - payment.authorized
+        - payment.failed
+        - payment.refunded
+        - price.changed
+        - inventory.low_stock
+        - inventory.stockout_risk
+        - checkout.review_requested
+        - checkout.review_decided
+    WebhookInput:
+      type: object
+      required: [name, url, events]
+      properties:
+        name: {type: string}
+        url: {type: string, format: uri, description: Phải là https (http chỉ khi bật cho môi trường dev); chặn địa chỉ nội bộ (SSRF)}
+        secret: {type: string, description: Bỏ trống để hệ thống tự sinh}
+        events: {type: array, items: {$ref: '#/components/schemas/EventType'}}
+        active: {type: boolean, default: true}
+    Webhook:
+      type: object
+      properties:
+        id: {type: string}
+        name: {type: string}
+        url: {type: string, format: uri}
+        secret: {type: string, description: Chỉ có trong phản hồi tạo webhook}
+        events: {type: array, items: {$ref: '#/components/schemas/EventType'}}
+        active: {type: boolean}
+        createdAt: {type: string, format: date-time}
+    Delivery:
+      type: object
+      properties:
+        id: {type: string}
+        webhookId: {type: string}
+        eventId: {type: string}
+        eventType: {type: string}
+        status: {type: string, enum: [PENDING, SUCCEEDED, DEAD]}
+        attempts: {type: integer}
+        nextAttemptAt: {type: string, format: date-time}
+        lastStatusCode: {type: integer}
+        lastError: {type: string}
+        createdAt: {type: string, format: date-time}
+        deliveredAt: {type: string, format: date-time}

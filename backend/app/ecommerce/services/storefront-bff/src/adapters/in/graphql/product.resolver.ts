@@ -4,7 +4,17 @@ import { Args, Context, ID, Int, Parent, Query, ResolveField, ResolveReference, 
 import { StorefrontService } from '../../../application/storefront.service.js';
 import { type GqlCtx, loadersOf } from './loaders.js';
 import { discountPercent, money, stock } from './mappers.js';
-import { CategoryRef, MoneyModel, ProductModel, ProductPageModel, type ProductSource, StockModel } from './types.js';
+import {
+  CategoryRef,
+  type FacetFilterInput,
+  MoneyModel,
+  ProductModel,
+  ProductPageModel,
+  ProductSearchInput,
+  ProductSearchResultModel,
+  type ProductSource,
+  StockModel,
+} from './types.js';
 
 const MAX_PAGE_SIZE = 100;
 
@@ -54,12 +64,45 @@ export class ProductResolver {
     };
   }
 
-  @Query(() => [ProductModel], { description: 'Tìm theo từ khoá (tên sản phẩm)' })
+  @Query(() => [ProductModel], { description: 'Tìm theo từ khoá (tên, SKU, thuộc tính tìm được) qua search-service' })
   @Public()
-  async searchProducts(@Context() ctx: GqlCtx, @Args('keyword') keyword: string): Promise<ProductSource[]> {
+  async searchProducts(@Args('keyword') keyword: string): Promise<ProductSource[]> {
     const k = keyword.trim();
     if (k.length < 2) return [];
-    return this.prime(ctx, (await this.svc.products.search(k.slice(0, 100))).slice(0, MAX_PAGE_SIZE));
+    const res = await this.svc.search.search({ text: k.slice(0, 100), size: MAX_PAGE_SIZE });
+    return res.hits.map((h) => ({ id: h.id }));
+  }
+
+  @Query(() => ProductSearchResultModel, {
+    description: 'Tìm kiếm có lọc thuộc tính/option/thương hiệu và facet (ADR 0030)',
+  })
+  @Public()
+  async searchCatalog(@Args('input') input: ProductSearchInput): Promise<ProductSearchResultModel> {
+    const limit = Math.min(Math.max(input.limit, 1), MAX_PAGE_SIZE);
+    const page = Math.max(input.page, 1);
+    const res = await this.svc.search.search({
+      ...(input.text?.trim() ? { text: input.text.trim().slice(0, 200) } : {}),
+      ...(input.categoryId ? { categoryId: input.categoryId } : {}),
+      ...(input.brandIds?.length ? { brandIds: input.brandIds } : {}),
+      attributes: filters(input.attributes),
+      options: filters(input.options),
+      ...(input.currency ? { currency: input.currency } : {}),
+      ...(input.minPrice != null ? { minPrice: input.minPrice } : {}),
+      ...(input.maxPrice != null ? { maxPrice: input.maxPrice } : {}),
+      ...(input.sort ? { sort: input.sort } : {}),
+      page: page - 1,
+      size: limit,
+    });
+    return {
+      items: res.hits.map((h) => ({ id: h.id })),
+      total: res.total,
+      page,
+      limit,
+      categories: res.categories.map((c) => ({ value: c.categoryId, count: c.count })),
+      brands: res.brands ?? [],
+      attributes: res.attributes ?? [],
+      options: res.options ?? [],
+    };
   }
 
   @ResolveReference()
@@ -149,4 +192,15 @@ export class ProductResolver {
     for (const d of list) loaders.detail.prime(d.id, d);
     return list.map((d) => ({ id: d.id }));
   }
+}
+
+/** Gộp bộ lọc trùng key; bỏ bộ lọc rỗng. */
+function filters(list: readonly FacetFilterInput[] | null | undefined): Record<string, string[]> {
+  const out: Record<string, string[]> = {};
+  for (const f of list ?? []) {
+    const values = f.values.map((v) => v.trim()).filter(Boolean);
+    if (!f.key.trim() || values.length === 0) continue;
+    out[f.key.trim()] = [...(out[f.key.trim()] ?? []), ...values];
+  }
+  return out;
 }

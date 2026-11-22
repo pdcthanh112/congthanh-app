@@ -1,4 +1,3 @@
-// Package app: use case báo giá, tạo vận đơn từ đơn hàng, in nhãn qua hãng vận chuyển và cập nhật hành trình.
 package app
 
 import (
@@ -9,7 +8,6 @@ import (
 	"github.com/pdcthanh112/CongThanhApp/backend/app/ecommerce/services/shipping-service/internal/domain"
 )
 
-// StatusChange là sự kiện miền; adapter ghi vào outbox cùng transaction với thay đổi trạng thái.
 type StatusChange struct {
 	From, To domain.Status
 }
@@ -20,13 +18,10 @@ type Repository interface {
 	CreateRate(ctx context.Context, r domain.Rate) (domain.Rate, error)
 	UpdateRate(ctx context.Context, r domain.Rate) error
 	DeleteRate(ctx context.Context, id int64) error
-
-	// CreateShipment bỏ qua nếu đơn đã có vận đơn (event giao lại); trả false khi đã tồn tại.
 	CreateShipment(ctx context.Context, s domain.Shipment) (bool, error)
 	GetShipment(ctx context.Context, id string) (domain.Shipment, error)
 	ShipmentByOrder(ctx context.Context, orderID string) (domain.Shipment, error)
 	ShipmentByTracking(ctx context.Context, tracking string) (domain.Shipment, error)
-	// SaveTransition lưu trạng thái, ghi lịch sử và outbox trong một transaction; khoá lạc quan theo trạng thái cũ.
 	SaveTransition(ctx context.Context, s domain.Shipment, ev domain.Event, ch StatusChange) error
 }
 
@@ -83,7 +78,6 @@ func (s *Service) UpdateRate(ctx context.Context, r domain.Rate) error {
 
 func (s *Service) DeleteRate(ctx context.Context, id int64) error { return s.repo.DeleteRate(ctx, id) }
 
-// OnOrderPlaced tạo vận đơn PENDING (idempotent theo order_id).
 func (s *Service) OnOrderPlaced(ctx context.Context, orderID, customerID string, addr *domain.Address) error {
 	now := s.now().UTC()
 	if addr != nil {

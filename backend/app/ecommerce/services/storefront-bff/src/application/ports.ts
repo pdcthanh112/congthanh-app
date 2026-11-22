@@ -7,13 +7,16 @@ import type {
   ProductClient,
   PromotionClient,
   RecommendationClient,
+  SearchClient,
 } from '@ecommerce/clients';
 
 /**
  * Cổng ra tới các service phía sau. Adapter là các client trong @ecommerce/clients (gRPC/REST); test
  * thay bằng bản giả. Chỉ khai báo phần BFF dùng để test không phải giả cả client.
  */
-export type ProductPort = Pick<ProductClient, 'byIds' | 'detail' | 'bySlug' | 'list' | 'byCategory' | 'search'>;
+export type ProductPort = Pick<ProductClient, 'byIds' | 'detail' | 'bySlug' | 'list' | 'byCategory'>;
+/** Tìm kiếm, lọc, facet cho storefront đi qua search-service (ADR 0030), không qua product-service. */
+export type SearchPort = Pick<SearchClient, 'search'>;
 export type InventoryPort = Pick<InventoryClient, 'levels'>;
 export type CartPort = Pick<
   CartClient,
@@ -33,3 +36,4 @@ export const ORDERS = Symbol('ORDERS');
 export const ADDRESSES = Symbol('ADDRESSES');
 export const CHECKOUTS = Symbol('CHECKOUTS');
 export const RECOMMENDATIONS = Symbol('RECOMMENDATIONS');
+export const SEARCH = Symbol('SEARCH');

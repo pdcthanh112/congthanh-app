@@ -19,6 +19,7 @@ import (
 	productv1 "github.com/pdcthanh112/CongThanhApp/backend/app/ecommerce/libs/go/proto/ecommerce/product/v1"
 	shippingv1 "github.com/pdcthanh112/CongThanhApp/backend/app/ecommerce/libs/go/proto/ecommerce/shipping/v1"
 	streamv1 "github.com/pdcthanh112/CongThanhApp/backend/app/ecommerce/libs/go/proto/ecommerce/stream/v1"
+	"github.com/pdcthanh112/CongThanhApp/backend/app/ecommerce/services/webhook-service/internal/app"
 	"github.com/pdcthanh112/CongThanhApp/backend/app/ecommerce/services/webhook-service/internal/domain"
 )
 
@@ -59,12 +60,15 @@ func publish(m proto.Message) bool {
 }
 
 type FanOut interface {
-	FanOutTx(ctx context.Context, tx pgx.Tx, eventID, event string, at time.Time, data json.RawMessage) error
+	FanOut(ctx context.Context, scope app.DeliveryScope, eventID, event string, at time.Time, data json.RawMessage) error
 }
+
+// ScopeFactory gắn transaction của consumer vào port của app; main nối nó với repository.
+type ScopeFactory func(tx pgx.Tx) app.DeliveryScope
 
 var marshal = protojson.MarshalOptions{EmitUnpopulated: false}
 
-func Handler(f FanOut) func(ctx context.Context, tx pgx.Tx, env *commonv1.EventEnvelope) error {
+func Handler(f FanOut, scope ScopeFactory) func(ctx context.Context, tx pgx.Tx, env *commonv1.EventEnvelope) error {
 	return func(ctx context.Context, tx pgx.Tx, env *commonv1.EventEnvelope) error {
 		pe, ok := publicEvent[env.GetType()]
 		if !ok {
@@ -87,7 +91,7 @@ func Handler(f FanOut) func(ctx context.Context, tx pgx.Tx, env *commonv1.EventE
 		if env.GetOccurredAt() != nil {
 			at = env.GetOccurredAt().AsTime()
 		}
-		return f.FanOutTx(ctx, tx, env.GetId(), pe.event, at, data)
+		return f.FanOut(ctx, scope(tx), env.GetId(), pe.event, at, data)
 	}
 }
 

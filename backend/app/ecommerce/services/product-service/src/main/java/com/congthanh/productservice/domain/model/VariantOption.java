@@ -1,27 +1,14 @@
 package com.congthanh.productservice.domain.model;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+import com.congthanh.commonservice.exception.BadRequestException;
 
-@Entity
-@Getter
-@Setter
-@NoArgsConstructor
-@AllArgsConstructor
-@Builder
-@Table(name = "variant_option")
-public class VariantOption {
+/** Trục variant dùng chung cho cả catalog (Color, Size, Capacity). Tên unique không phân biệt hoa thường (ở DB). */
+public record VariantOption(long id, String name) {
 
-    @Id
-    private Long id;
-
-    @Column(nullable = false)
-    private String name;
+    public VariantOption {
+        if (name == null || name.isBlank()) {
+            throw new BadRequestException("name is required");
+        }
+        name = name.strip();
+    }
 }

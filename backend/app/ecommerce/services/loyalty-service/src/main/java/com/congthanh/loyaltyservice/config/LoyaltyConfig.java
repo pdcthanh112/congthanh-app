@@ -28,7 +28,6 @@ import org.springframework.util.backoff.ExponentialBackOff;
 @EnableScheduling
 class LoyaltyConfig {
 
-    /** Snowflake dùng chung trong common-core (BIGINT, node theo NODE_ID). */
     @Bean
     Ids ids() {
         return Snowflake::nextString;

@@ -8,7 +8,6 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
 
-/** Resource server: token do Keycloak phát, APISIX đã kiểm tra một lớp ở gateway. Chỉ khách (CUSTOMER) checkout. */
 @Configuration
 class SecurityConfig {
 

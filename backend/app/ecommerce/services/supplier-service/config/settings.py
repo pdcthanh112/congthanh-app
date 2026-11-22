@@ -37,8 +37,9 @@ USE_TZ = True
 TIME_ZONE = "UTC"
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
-# API thuần: không admin/session/template; xác thực bằng JWT Keycloak (suppliers.auth).
-INSTALLED_APPS = ["django.contrib.contenttypes", "rest_framework", "suppliers"]
+# API thuần: không admin/session; xác thực bằng JWT Keycloak (suppliers.auth). Template chỉ dùng cho Swagger UI.
+INSTALLED_APPS = ["django.contrib.contenttypes", "rest_framework", "drf_spectacular", "suppliers"]
+TEMPLATES = [{"BACKEND": "django.template.backends.django.DjangoTemplates", "APP_DIRS": True}]
 MIDDLEWARE = ["django.middleware.security.SecurityMiddleware", "django.middleware.common.CommonMiddleware"]
 
 DATABASES = {
@@ -54,6 +55,19 @@ REST_FRAMEWORK = {
     "DEFAULT_PARSER_CLASSES": ["rest_framework.parsers.JSONParser"],
     "EXCEPTION_HANDLER": "suppliers.envelope.exception_handler",
     "UNAUTHENTICATED_USER": None,
+    "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
+}
+
+SPECTACULAR_SETTINGS = {
+    "TITLE": "supplier-service",
+    "DESCRIPTION": "Gian hàng của người bán: đăng ký, sửa, duyệt/khoá (vòng đời PENDING → ACTIVE ⇄ SUSPENDED → CLOSED).",
+    "VERSION": "1.0.0",
+    "SERVE_INCLUDE_SCHEMA": False,
+    "COMPONENT_SPLIT_REQUEST": True,
+    "ENUM_NAME_OVERRIDES": {
+        "SupplierStatusEnum": "suppliers.domain.SupplierStatus",
+        "EnvelopeStatusEnum": ["Success", "Failed"],
+    },
 }
 
 LOGGING_CONFIG = None

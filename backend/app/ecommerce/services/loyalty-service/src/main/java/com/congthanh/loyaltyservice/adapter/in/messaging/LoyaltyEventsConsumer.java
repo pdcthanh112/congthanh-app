@@ -18,7 +18,6 @@ import org.springframework.transaction.support.TransactionTemplate;
 import java.math.BigDecimal;
 import java.time.Instant;
 
-/** Tích điểm khi đơn xác nhận, hẹn ngày xác nhận khi giao, đảo khi hoàn tiền/huỷ. Chỉ tính đơn dùng đơn vị tiền của chương trình điểm (cấu hình loyalty.currency). */
 @Component
 @RequiredArgsConstructor
 class LoyaltyEventsConsumer {
@@ -48,7 +47,6 @@ class LoyaltyEventsConsumer {
                         e.getAmount().getCurrencyCode(), "RETURN " + e.getReturnId())));
     }
 
-    // Use case tự mở transaction; processed_events dùng transaction riêng bọc ngoài (lồng nhau cùng transaction).
     private void once(EventEnvelope env, Runnable work) {
         tx.executeWithoutResult(s -> {
             if (processed.markProcessed(env.getId(), CONSUMER)) {

@@ -1,11 +1,11 @@
-import type { Database } from '@ecommerce/platform';
-import { and, count, desc, eq, inArray, lt, ne, sql } from 'drizzle-orm';
-import type { AddressRepository, SearchHistoryRepository, WishlistRepository } from '../../../application/ports.js';
-import type { ShippingAddressProps } from '../../../domain/shipping-address.js';
-import type * as schema from './schema.js';
-import { searchHistory, shippingAddresses, wishlistItems } from './schema.js';
+import type { Database } from "@ecommerce/platform";
+import { and, count, desc, eq, inArray, lt, ne, sql } from "drizzle-orm";
+import type { AddressRepository, SearchHistoryRepository, WishlistRepository } from "../../../application/ports.js";
+import type { ShippingAddressProps } from "../../../domain/shipping-address.js";
+import type * as schema from "./schema.js";
+import { searchHistory, shippingAddresses, wishlistItems } from "./schema.js";
 
-export type Conn = Pick<Database<typeof schema>, 'select' | 'insert' | 'update' | 'delete' | 'execute'>;
+export type Conn = Pick<Database<typeof schema>, "select" | "insert" | "update" | "delete" | "execute">;
 
 export class DrizzleAddressRepository implements AddressRepository {
   constructor(private readonly db: Conn) {}
@@ -35,10 +35,7 @@ export class DrizzleAddressRepository implements AddressRepository {
   }
 
   async count(customerId: string) {
-    const [row] = await this.db
-      .select({ n: count() })
-      .from(shippingAddresses)
-      .where(eq(shippingAddresses.customerId, customerId));
+    const [row] = await this.db.select({ n: count() }).from(shippingAddresses).where(eq(shippingAddresses.customerId, customerId));
     return row?.n ?? 0;
   }
 
@@ -63,17 +60,10 @@ export class DrizzleAddressRepository implements AddressRepository {
   }
 
   async setDefault(customerId: string, id: string) {
-    // Bỏ mặc định cũ trước rồi mới đặt mới, để không vi phạm unique index một-mặc-định.
     await this.db
       .update(shippingAddresses)
       .set({ isDefault: false })
-      .where(
-        and(
-          eq(shippingAddresses.customerId, customerId),
-          eq(shippingAddresses.isDefault, true),
-          ne(shippingAddresses.id, id),
-        ),
-      );
+      .where(and(eq(shippingAddresses.customerId, customerId), eq(shippingAddresses.isDefault, true), ne(shippingAddresses.id, id)));
     await this.db
       .update(shippingAddresses)
       .set({ isDefault: true })
@@ -81,7 +71,6 @@ export class DrizzleAddressRepository implements AddressRepository {
   }
 
   async lockCustomer(customerId: string) {
-    // Khoá tư vấn theo khách trong transaction: tuần tự hoá thao tác địa chỉ của cùng một người.
     await this.db.execute(sql`select pg_advisory_xact_lock(hashtextextended(${`address:${customerId}`}, 0))`);
   }
 }
@@ -113,19 +102,12 @@ export class DrizzleWishlistRepository implements WishlistRepository {
   }
 
   async count(customerId: string) {
-    const [row] = await this.db
-      .select({ n: count() })
-      .from(wishlistItems)
-      .where(eq(wishlistItems.customerId, customerId));
+    const [row] = await this.db.select({ n: count() }).from(wishlistItems).where(eq(wishlistItems.customerId, customerId));
     return row?.n ?? 0;
   }
 
   async add(customerId: string, productId: string, at: Date) {
-    const rows = await this.db
-      .insert(wishlistItems)
-      .values({ customerId, productId, addedAt: at })
-      .onConflictDoNothing()
-      .returning({ productId: wishlistItems.productId });
+    const rows = await this.db.insert(wishlistItems).values({ customerId, productId, addedAt: at }).onConflictDoNothing().returning({ productId: wishlistItems.productId });
     return rows.length > 0;
   }
 
@@ -164,16 +146,12 @@ export class DrizzleSearchHistoryRepository implements SearchHistoryRepository {
       .offset(keep - 1)
       .limit(1);
     if (cutoff) {
-      await this.db
-        .delete(searchHistory)
-        .where(and(eq(searchHistory.userId, userId), lt(searchHistory.searchedAt, cutoff.at)));
+      await this.db.delete(searchHistory).where(and(eq(searchHistory.userId, userId), lt(searchHistory.searchedAt, cutoff.at)));
     }
   }
 
   async remove(userId: string, keyword: string) {
-    await this.db
-      .delete(searchHistory)
-      .where(and(eq(searchHistory.userId, userId), eq(searchHistory.keyword, keyword)));
+    await this.db.delete(searchHistory).where(and(eq(searchHistory.userId, userId), eq(searchHistory.keyword, keyword)));
   }
 
   async clear(userId: string) {

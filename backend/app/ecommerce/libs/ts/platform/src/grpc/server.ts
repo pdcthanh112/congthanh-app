@@ -1,8 +1,8 @@
-import { createServer, type Http2Server } from 'node:http2';
-import { Code, ConnectError, type ConnectRouter, type Interceptor } from '@connectrpc/connect';
-import { connectNodeAdapter } from '@connectrpc/connect-node';
-import { Logger, type OnApplicationBootstrap, type OnApplicationShutdown } from '@nestjs/common';
-import { DomainError, type DomainErrorKind } from '../errors/domain-error.js';
+import { Code, ConnectError, type ConnectRouter, type Interceptor } from "@connectrpc/connect";
+import { connectNodeAdapter } from "@connectrpc/connect-node";
+import { Logger, type OnApplicationBootstrap, type OnApplicationShutdown } from "@nestjs/common";
+import { createServer, type Http2Server } from "node:http2";
+import { DomainError, type DomainErrorKind } from "../errors/domain-error.js";
 
 const GRPC_CODE: Record<DomainErrorKind, Code> = {
   INVALID: Code.InvalidArgument,
@@ -13,22 +13,17 @@ const GRPC_CODE: Record<DomainErrorKind, Code> = {
   UNAVAILABLE: Code.Unavailable,
 };
 
-/** DomainError → mã gRPC chuẩn; lỗi khác → Internal (không lộ chi tiết). */
 export const domainErrorInterceptor: Interceptor = (next) => async (req) => {
   try {
     return await next(req);
   } catch (e) {
     if (e instanceof ConnectError) throw e;
     if (e instanceof DomainError) throw new ConnectError(e.message, GRPC_CODE[e.kind]);
-    new Logger('GrpcServer').error(e);
-    throw new ConnectError('internal error', Code.Internal);
+    new Logger("GrpcServer").error(e);
+    throw new ConnectError("internal error", Code.Internal);
   }
 };
 
-/**
- * Server gRPC thật (HTTP/2 cleartext, giao thức gRPC) bằng Connect-ES, để service Java/Go gọi vào như mọi
- * server gRPC khác. Chạy trên cổng riêng (GRPC_PORT), tách khỏi HTTP/GraphQL.
- */
 export class GrpcServer implements OnApplicationBootstrap, OnApplicationShutdown {
   private readonly log = new Logger(GrpcServer.name);
   private server?: Http2Server;

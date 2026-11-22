@@ -10,7 +10,8 @@ func TestQueryNormalize(t *testing.T) {
 	if q, _ := (Query{Size: 1000}).Normalize(); q.Size != MaxSize {
 		t.Fatalf("size cap: %d", q.Size)
 	}
-	for _, bad := range []Query{{Sort: "foo"}, {MinPrice: 10, MaxPrice: 5}, {Page: 500, Size: 100}} {
+	for _, bad := range []Query{{Sort: "foo"}, {MinPrice: 10, MaxPrice: 5, Currency: "USD"}, {Page: 500, Size: 100},
+		{MinPrice: 10}, {Attributes: map[string][]string{"ram": {}}}} {
 		if _, err := bad.Normalize(); err == nil {
 			t.Fatalf("%+v must fail", bad)
 		}

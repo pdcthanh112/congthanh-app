@@ -94,6 +94,7 @@ class MongoProductReadModelStore implements ProductReadModelStore {
                 .set("images", d.getImages())
                 .set("attributes", d.getAttributes())
                 .set("variants", d.getVariants())
+                .set("optionGroups", d.getOptionGroups())
                 .set("basePrice", d.getBasePrice())
                 .set("currency", d.getCurrency())
                 .set("coreVersion", version)

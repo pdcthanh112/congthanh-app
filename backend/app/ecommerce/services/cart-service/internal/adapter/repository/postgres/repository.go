@@ -32,7 +32,6 @@ var (
 
 func (r *Repository) Ping(ctx context.Context) error { return r.pool.Ping(ctx) }
 
-// pendingRetention: đơn treo quá lâu (mất OrderConfirmed/OrderCancelled) thì bỏ, để bảng không phình.
 const pendingRetention = "7 days"
 
 func (r *Repository) RememberOrder(ctx context.Context, orderID, customerID string, productIDs []string) error {

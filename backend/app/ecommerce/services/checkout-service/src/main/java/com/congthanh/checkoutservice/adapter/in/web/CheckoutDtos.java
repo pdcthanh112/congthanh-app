@@ -15,7 +15,6 @@ import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
 
-/** DTO HTTP. Client chỉ gửi productId + số lượng: giá luôn do pricing-service quyết định. */
 final class CheckoutDtos {
 
     private CheckoutDtos() {

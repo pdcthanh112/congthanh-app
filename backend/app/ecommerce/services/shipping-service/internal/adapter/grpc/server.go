@@ -1,4 +1,3 @@
-// Package grpc là driving adapter gRPC (ecommerce.shipping.v1.ShippingService) cho order-service.
 package grpc
 
 import (
@@ -39,7 +38,6 @@ func (s *Server) QuoteShipping(ctx context.Context, req *pb.QuoteShippingRequest
 }
 
 func (s *Server) GetShipment(ctx context.Context, req *pb.GetShipmentRequest) (*pb.GetShipmentResponse, error) {
-	// Gọi nội bộ giữa service: không lọc theo chủ sở hữu (order-service đã kiểm quyền với đơn hàng).
 	sh, err := s.svc.ForOrder(ctx, req.GetOrderId(), "", true)
 	if err != nil {
 		return nil, apperr.ToGRPC(err)

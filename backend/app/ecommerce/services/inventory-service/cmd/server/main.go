@@ -72,7 +72,6 @@ func run() error {
 		return err
 	}
 
-	// --- driven adapters ---
 	repo := postgres.New(pool, ids)
 	var (
 		flash  app.FlashSaleStore
@@ -121,7 +120,6 @@ func run() error {
 		bg = append(bg, flashSweeper(svc))
 	}
 
-	// --- driving adapters ---
 	grpcSrv, health := server.NewGRPCServer(verifier)
 	pb.RegisterInventoryServiceServer(grpcSrv, grpcadapter.New(svc))
 	health.SetServingStatus("", healthpb.HealthCheckResponse_SERVING)

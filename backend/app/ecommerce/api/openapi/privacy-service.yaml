@@ -1,0 +1,243 @@
+openapi: 3.1.0
+info:
+  title: privacy-service
+  version: 1.0.0
+  description: |
+    Đồng ý xử lý dữ liệu (consent) và yêu cầu quyền riêng tư của khách (ACCESS, DELETE, OPT_OUT) theo CCPA và luật
+    các bang Mỹ. Header `Sec-GPC: 1` (Global Privacy Control) được coi là từ chối bán/chia sẻ và quảng cáo theo hành vi.
+    API quản trị cần vai trò ADMIN hoặc PRIVACY.
+servers:
+  - url: https://api.congthanh.vn
+  - url: http://localhost:9080
+security:
+  - keycloak: []
+tags:
+  - name: consent
+  - name: privacy-request
+  - name: privacy-admin
+paths:
+  /api/ecommerce/privacy/consents:
+    get:
+      operationId: listConsents
+      summary: Trạng thái đồng ý của tôi theo từng mục đích
+      tags: [consent]
+      parameters:
+        - {name: Sec-GPC, in: header, schema: {type: string, enum: ['1']}}
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - properties:
+                      data: {type: array, items: {$ref: '#/components/schemas/Consent'}}
+        '401': {$ref: '#/components/responses/Error'}
+  /api/ecommerce/privacy/consents/{purpose}:
+    put:
+      operationId: setConsent
+      summary: Ghi nhận đồng ý hoặc rút đồng ý
+      tags: [consent]
+      parameters:
+        - {name: purpose, in: path, required: true, schema: {$ref: '#/components/schemas/Purpose'}}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [granted]
+              properties:
+                granted: {type: boolean}
+                source: {$ref: '#/components/schemas/Source'}
+      responses:
+        '200':
+          description: Consent recorded
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - properties:
+                      data: {$ref: '#/components/schemas/Consent'}
+        '400': {$ref: '#/components/responses/Error'}
+        '401': {$ref: '#/components/responses/Error'}
+  /api/ecommerce/privacy/requests:
+    get:
+      operationId: listMyPrivacyRequests
+      summary: Yêu cầu quyền riêng tư của tôi
+      tags: [privacy-request]
+      responses:
+        '200': {$ref: '#/components/responses/Requests'}
+        '401': {$ref: '#/components/responses/Error'}
+    post:
+      operationId: openPrivacyRequest
+      summary: Mở yêu cầu quyền riêng tư
+      tags: [privacy-request]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [type]
+              properties:
+                type: {$ref: '#/components/schemas/RequestType'}
+                email: {type: string, format: email, description: Chỉ lưu dạng băm SHA-256}
+      responses:
+        '201': {$ref: '#/components/responses/Request'}
+        '400': {$ref: '#/components/responses/Error'}
+        '401': {$ref: '#/components/responses/Error'}
+        '409': {$ref: '#/components/responses/Error'}
+  /api/ecommerce/privacy/requests/{id}:
+    get:
+      operationId: getPrivacyRequest
+      summary: Chi tiết yêu cầu (chủ yêu cầu hoặc ADMIN/PRIVACY)
+      tags: [privacy-request]
+      parameters:
+        - $ref: '#/components/parameters/Id'
+      responses:
+        '200': {$ref: '#/components/responses/Request'}
+        '403': {$ref: '#/components/responses/Error'}
+        '404': {$ref: '#/components/responses/Error'}
+  /api/ecommerce/privacy/admin/requests:
+    get:
+      operationId: listPrivacyRequestsByStatus
+      summary: Yêu cầu theo trạng thái (ADMIN/PRIVACY)
+      tags: [privacy-admin]
+      parameters:
+        - {name: status, in: query, schema: {allOf: [{$ref: '#/components/schemas/RequestStatus'}], default: IN_PROGRESS}}
+        - {name: limit, in: query, schema: {type: integer, default: 100}}
+      responses:
+        '200': {$ref: '#/components/responses/Requests'}
+        '403': {$ref: '#/components/responses/Error'}
+  /api/ecommerce/privacy/admin/requests/{id}/extend:
+    post:
+      operationId: extendPrivacyRequest
+      summary: Gia hạn thời hạn xử lý (một lần, phải nêu lý do)
+      tags: [privacy-admin]
+      parameters:
+        - $ref: '#/components/parameters/Id'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [reason]
+              properties:
+                reason: {type: string}
+      responses:
+        '200': {$ref: '#/components/responses/Request'}
+        '403': {$ref: '#/components/responses/Error'}
+        '404': {$ref: '#/components/responses/Error'}
+        '409': {$ref: '#/components/responses/Error'}
+  /api/ecommerce/privacy/admin/requests/{id}/tasks/{processor}/complete:
+    post:
+      operationId: completePrivacyTask
+      summary: Đánh dấu xong tay phần việc của một hệ thống xử lý dữ liệu
+      tags: [privacy-admin]
+      parameters:
+        - $ref: '#/components/parameters/Id'
+        - {name: processor, in: path, required: true, schema: {type: string, example: order-service}}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                retained: {type: boolean, description: Có giữ lại một phần dữ liệu theo luật không}
+                reason: {type: string, description: Lý do giữ lại (bắt buộc khi retained)}
+      responses:
+        '204': {description: Đã ghi nhận}
+        '400': {$ref: '#/components/responses/Error'}
+        '403': {$ref: '#/components/responses/Error'}
+        '404': {$ref: '#/components/responses/Error'}
+components:
+  securitySchemes:
+    keycloak:
+      type: openIdConnect
+      openIdConnectUrl: https://auth.congthanh.vn/realms/ecommerce/.well-known/openid-configuration
+  parameters:
+    Id:
+      name: id
+      in: path
+      required: true
+      schema: {type: string}
+  responses:
+    Error:
+      description: Lỗi
+      content:
+        application/json:
+          schema: {$ref: '#/components/schemas/Envelope'}
+    Request:
+      description: OK
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/Envelope'
+              - properties:
+                  data: {$ref: '#/components/schemas/PrivacyRequest'}
+    Requests:
+      description: OK
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/Envelope'
+              - properties:
+                  data: {type: array, items: {$ref: '#/components/schemas/PrivacyRequest'}}
+  schemas:
+    Envelope:
+      type: object
+      properties:
+        message: {type: string}
+        data: {}
+        status: {type: string, enum: [Success, Failed]}
+        errorCode: {type: integer}
+    Purpose:
+      type: string
+      enum: [SALE_SHARING, TARGETED_ADS, MARKETING_EMAIL, MARKETING_SMS, ANALYTICS]
+    Source:
+      type: string
+      enum: [BANNER, SETTINGS, GPC, SUPPORT, REQUEST]
+    RequestType:
+      type: string
+      enum: [ACCESS, DELETE, OPT_OUT]
+    RequestStatus:
+      type: string
+      enum: [IN_PROGRESS, COMPLETED, PARTIALLY_COMPLETED, REJECTED]
+    Consent:
+      type: object
+      properties:
+        subjectId: {type: string}
+        purpose: {$ref: '#/components/schemas/Purpose'}
+        granted: {type: boolean}
+        source: {$ref: '#/components/schemas/Source'}
+        policyVersion: {type: string}
+        recordedAt: {type: string, format: date-time}
+    PrivacyRequest:
+      type: object
+      properties:
+        id: {type: string}
+        subjectId: {type: string}
+        type: {$ref: '#/components/schemas/RequestType'}
+        status: {$ref: '#/components/schemas/RequestStatus'}
+        dueAt: {type: string, format: date-time}
+        extended: {type: boolean}
+        extensionReason: {type: string}
+        createdAt: {type: string, format: date-time}
+        completedAt: {type: string, format: date-time}
+        tasks:
+          type: array
+          items:
+            type: object
+            properties:
+              processor: {type: string}
+              status: {type: string, enum: [PENDING, COMPLETED, RETAINED]}
+              retentionReason: {type: string}
+              objectKey: {type: string, description: Vị trí file export (yêu cầu ACCESS)}
+              completedAt: {type: string, format: date-time}

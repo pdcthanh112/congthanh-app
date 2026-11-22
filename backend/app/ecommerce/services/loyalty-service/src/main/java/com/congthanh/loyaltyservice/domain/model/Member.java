@@ -14,22 +14,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
-/**
- * Thành viên chương trình và các lô điểm còn hiệu lực. Quy tắc:
- * <ul>
- *   <li>Tích: floor(tổng đơn (theo đơn vị tiền của chương trình) × % theo hạng / 100) điểm, lô PENDING.</li>
- *   <li>Lô thành AVAILABLE khi qua hạn trả hàng (giao + {@link Rules#returnWindow()}); không có ngày giao thì sau
- *       {@link Rules#fallbackConfirm()} từ lúc tích. Hết hạn sau {@link Rules#lotLifetime()} kể từ lúc khả dụng.</li>
- *   <li>Đổi: giữ chỗ FIFO theo lô sắp hết hạn; xác nhận khi đơn xong, trả lại khi saga bù trừ.</li>
- *   <li>Trả hàng: đảo điểm theo tỷ lệ tiền hoàn / tổng đơn, trên lô của đúng đơn đó, không quá phần còn lại.</li>
- * </ul>
- */
 public final class Member {
 
-    /**
-     * @param currency   đơn vị tiền của chương trình điểm (ISO 4217); mọi giá trị quy đổi đều theo đơn vị này
-     * @param pointValue giá trị một điểm theo {@code currency}
-     */
     public record Rules(Duration returnWindow, Duration fallbackConfirm, Duration lotLifetime, String currency,
                         BigDecimal pointValue, long minRedeem) {
         public Rules {
@@ -38,7 +24,6 @@ public final class Member {
         }
     }
 
-    /** Phần điểm lấy từ một lô cho một lần đổi (để trả lại đúng lô). */
     public record Allocation(String lotId, long points) {
     }
 
@@ -74,7 +59,6 @@ public final class Member {
                 ? l.withConfirmAt(deliveredAt.plus(rules.returnWindow())) : l);
     }
 
-    /** Chuyển các lô đã qua hạn trả hàng sang AVAILABLE. */
     public void confirmDue(Instant now, Rules rules) {
         for (Lot l : List.copyOf(lots.values())) {
             if (l.status() != Lot.Status.PENDING || l.remaining() == 0) {
@@ -97,7 +81,6 @@ public final class Member {
         }
     }
 
-    /** Đảo điểm khi trả hàng/huỷ đơn. @return số điểm đã đảo */
     public long reverse(String orderId, BigDecimal refunded, String reason) {
         long total = 0;
         for (Lot l : List.copyOf(lots.values())) {
@@ -128,7 +111,6 @@ public final class Member {
         return lots.values().stream().filter(l -> l.status() == Lot.Status.PENDING).mapToLong(Lot::remaining).sum();
     }
 
-    /** Giữ chỗ điểm cho một đơn: lấy từ lô sắp hết hạn trước. */
     public List<Allocation> reserve(long points, Rules rules) {
         if (points < rules.minRedeem()) {
             throw LoyaltyException.invalid("redeem at least " + rules.minRedeem() + " points");
@@ -152,7 +134,6 @@ public final class Member {
         return out;
     }
 
-    /** Trả lại phần đã giữ (saga bù trừ). Lô đã hết hạn trong lúc giữ thì phần trả về hết hạn luôn. */
     public void release(List<Allocation> allocations, Instant now) {
         for (Allocation a : allocations) {
             Lot l = lots.get(a.lotId());
@@ -172,7 +153,6 @@ public final class Member {
         events.add(new LoyaltyEvent.Redeemed(customerId, redemptionId, orderId, points));
     }
 
-    /** Chi tiêu 12 tháng = tổng tiền các đơn có lô đã qua hạn trả hàng (AVAILABLE hoặc đã hết hạn). */
     public BigDecimal spend12m(Instant now) {
         Instant from = now.minus(Duration.ofDays(365));
         return lots.values().stream()

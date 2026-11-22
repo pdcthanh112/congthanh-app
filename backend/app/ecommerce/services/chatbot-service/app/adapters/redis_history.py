@@ -1,5 +1,3 @@
-"""History trên Redis: mỗi phiên một list JSON, giữ N lượt gần nhất, hết hạn sau TTL."""
-
 from __future__ import annotations
 
 import json

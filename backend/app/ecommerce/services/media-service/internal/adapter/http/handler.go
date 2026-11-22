@@ -1,5 +1,3 @@
-// Package http là driving adapter REST của media-service dưới /api/ecommerce/media (cần đăng nhập,
-// trừ GET /{id} để hiển thị file đã READY).
 package http
 
 import (
@@ -38,7 +36,6 @@ func (h *Handler) Mount(r chi.Router) {
 	})
 }
 
-// who: khi tắt xác thực (dev) dùng header X-User-Id để thử.
 func (h *Handler) who(r *http.Request) (string, bool, bool) {
 	if h.verifier == nil {
 		return r.Header.Get("X-User-Id"), true, true

@@ -46,3 +46,44 @@ func TestHandler(t *testing.T) {
 		t.Fatalf("%+v", r)
 	}
 }
+
+func TestVariantEventIsNotIndexedSeparately(t *testing.T) {
+	r := &rec{}
+	up, _ := anypb.New(&productv1.ProductUpserted{ProductId: "v1", ParentId: "p1", Status: "ACTIVE"})
+	if err := Handler(r)(context.Background(), nil, &commonv1.EventEnvelope{Type: upsertedType, Payload: up}); err != nil {
+		t.Fatal(err)
+	}
+	if len(r.applied) != 0 || len(r.removed) != 1 || r.removed[0] != "v1" {
+		t.Fatalf("%+v", r)
+	}
+}
+
+func TestToProductFoldsVariantsAttributesAndOptions(t *testing.T) {
+	n := 225.0
+	vnd := func(u int64) *commonv1.Money { return &commonv1.Money{CurrencyCode: "VND", Units: u} }
+	black := &productv1.OptionValue{OptionName: "Color", Value: "Black"}
+	p := ToProduct(&productv1.ProductUpserted{
+		ProductId: "p1", Name: "Iphone", BrandId: 7, CategoryIds: []string{"c1", "c2"}, CategoryId: "c1", HasVariant: true,
+		Attributes: []*productv1.AttributeValue{
+			{Code: "pages", Name: "Pages", Value: "225", Number: &n, Filterable: true},
+			{Code: "author", Name: "Author", Value: "Paulo Coelho", Filterable: true, Searchable: true},
+			{Code: "", Name: "Note", Value: "x", Filterable: true}, // không có code: không lọc được
+		},
+		Variants: []*productv1.VariantSummary{
+			{ProductId: "v1", Sku: "A", Status: "ACTIVE", Price: vnd(25_000_000), Options: []*productv1.OptionValue{black, {OptionName: "Capacity", Value: "128 GB"}}},
+			{ProductId: "v2", Sku: "B", Status: "ACTIVE", Price: vnd(35_000_000), Options: []*productv1.OptionValue{black, {OptionName: "Capacity", Value: "256 GB"}}},
+			{ProductId: "v3", Sku: "C", Status: "INACTIVE", Price: vnd(1), Options: []*productv1.OptionValue{{OptionName: "Color", Value: "Pink"}}},
+			{ProductId: "v4", Sku: "D", Status: "ACTIVE", Price: &commonv1.Money{CurrencyCode: "USD", Units: 999}},
+		},
+	})
+	if p.BrandID != "7" || len(p.CategoryIDs) != 2 || p.Currency != "VND" || p.Price != 25_000_000 || p.PriceMax != 35_000_000 {
+		t.Fatalf("price/brand: %+v", p)
+	}
+	if len(p.SKUs) != 3 || p.SearchText != "Paulo Coelho" || len(p.Attributes) != 2 || *p.Attributes[0].Number != 225 {
+		t.Fatalf("skus/attrs: %+v", p)
+	}
+	// Black chỉ một lần; Pink thuộc variant ngừng bán nên không vào facet.
+	if len(p.Options) != 3 || p.Options[0] != (domain.Option{Name: "Color", Value: "Black"}) {
+		t.Fatalf("options: %+v", p.Options)
+	}
+}

@@ -174,6 +174,12 @@ channels:
     messages:
       ProductUpserted:
         $ref: '#/components/messages/product.ProductUpserted'
+      AttributeValue:
+        $ref: '#/components/messages/product.AttributeValue'
+      OptionValue:
+        $ref: '#/components/messages/product.OptionValue'
+      VariantSummary:
+        $ref: '#/components/messages/product.VariantSummary'
       ProductDeleted:
         $ref: '#/components/messages/product.ProductDeleted'
     description: 'Event của product-service; DLQ: ecommerce.product.events.dlq'
@@ -1141,6 +1147,51 @@ components:
           ce_type:
             type: string
             const: ecommerce.product.v1.ProductUpserted
+          traceparent:
+            type: string
+    product.AttributeValue:
+      name: AttributeValue
+      title: ecommerce.product.v1.AttributeValue
+      payload:
+        schemaFormat: application/vnd.google.protobuf;version=3
+        schema:
+          $ref: ../../api/proto/ecommerce/product/v1/product_events.proto
+      headers:
+        type: object
+        properties:
+          ce_type:
+            type: string
+            const: ecommerce.product.v1.AttributeValue
+          traceparent:
+            type: string
+    product.OptionValue:
+      name: OptionValue
+      title: ecommerce.product.v1.OptionValue
+      payload:
+        schemaFormat: application/vnd.google.protobuf;version=3
+        schema:
+          $ref: ../../api/proto/ecommerce/product/v1/product_events.proto
+      headers:
+        type: object
+        properties:
+          ce_type:
+            type: string
+            const: ecommerce.product.v1.OptionValue
+          traceparent:
+            type: string
+    product.VariantSummary:
+      name: VariantSummary
+      title: ecommerce.product.v1.VariantSummary
+      payload:
+        schemaFormat: application/vnd.google.protobuf;version=3
+        schema:
+          $ref: ../../api/proto/ecommerce/product/v1/product_events.proto
+      headers:
+        type: object
+        properties:
+          ce_type:
+            type: string
+            const: ecommerce.product.v1.VariantSummary
           traceparent:
             type: string
     product.ProductDeleted:

@@ -1,5 +1,3 @@
-# Helm temporalio/temporal: điều phối saga checkout (order → inventory → payment → shipping).
-# Worker chạy trong order-service (Java SDK) — xem đợt 2.
 server:
   replicaCount: 3
   config:
@@ -23,16 +21,16 @@ server:
           user: temporal
           existingSecret: temporal-db-app
   metrics:
-    serviceMonitor: {enabled: true}
-cassandra: {enabled: false}
-mysql: {enabled: false}
-postgresql: {enabled: false}
-elasticsearch: {enabled: false}
-prometheus: {enabled: false}
-grafana: {enabled: false}
+    serviceMonitor: { enabled: true }
+cassandra: { enabled: false }
+mysql: { enabled: false }
+postgresql: { enabled: false }
+elasticsearch: { enabled: false }
+prometheus: { enabled: false }
+grafana: { enabled: false }
 web:
   enabled: true
   additionalEnv:
-    - {name: TEMPORAL_AUTH_ENABLED, value: "true"}
-    - {name: TEMPORAL_AUTH_PROVIDER_URL, value: https://auth.congthanh.vn/realms/ecommerce}
-    - {name: TEMPORAL_AUTH_CLIENT_ID, value: temporal-ui}
+    - { name: TEMPORAL_AUTH_ENABLED, value: "true" }
+    - { name: TEMPORAL_AUTH_PROVIDER_URL, value: https://auth.congthanh.vn/realms/ecommerce }
+    - { name: TEMPORAL_AUTH_CLIENT_ID, value: temporal-ui }

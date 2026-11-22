@@ -1,4 +1,3 @@
-// Package postgres là driven adapter Repository của media-service.
 package postgres
 
 import (

@@ -40,10 +40,11 @@ class ProductCatalogGrpcAdapter implements ProductCatalog {
                 // Giá bán cuối cùng do product-service tính; client không bao giờ gửi giá.
                 // Đơn vị tiền đi kèm giá từ product-service; thiếu thì không dựng được giá nên bỏ sản phẩm này
                 // (đơn sẽ báo sản phẩm không mua được) thay vì đoán một currency.
-                if (p.getCurrency().isBlank()) {
+                if (!p.hasSellingPriceMoney() || p.getSellingPriceMoney().getCurrencyCode().isBlank()) {
                     continue;
                 }
-                Money price = new Money(BigDecimal.valueOf(p.getSellingPrice()), p.getCurrency());
+                var m = p.getSellingPriceMoney();
+                Money price = new Money(BigDecimal.valueOf(m.getUnits()).add(BigDecimal.valueOf(m.getNanos(), 9)), m.getCurrencyCode());
                 out.put(p.getProductId(), new ProductSnapshot(p.getProductId(), p.getSku(), p.getName(), price,
                         purchasable, p.getMaxQuantityPerOrder()));
             }

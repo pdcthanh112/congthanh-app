@@ -1,6 +1,3 @@
-// Package integration_test chạy use case thật trên Postgres, thay gRPC client bằng fake port.
-//
-//	go test ./internal/integration/...   (tự bật container Postgres; hoặc đặt TEST_DATABASE_URL)
 package integration_test
 
 import (
@@ -152,7 +149,6 @@ func TestCartLifecycle(t *testing.T) {
 		t.Fatal("cart should be deleted")
 	}
 
-	// Outbox: 3 lần thêm thành công (a, a, b) + clear b + clear khi xoá giỏ.
 	var added, cleared int
 	if err := pool.QueryRow(ctx, `SELECT count(*) FILTER (WHERE type = 'ecommerce.cart.v1.CartItemAdded'),
 		count(*) FILTER (WHERE type = 'ecommerce.cart.v1.CartCleared') FROM outbox WHERE aggregatetype = 'cart'`).Scan(&added, &cleared); err != nil {
@@ -163,7 +159,6 @@ func TestCartLifecycle(t *testing.T) {
 	}
 }
 
-// OrderPlaced chưa đụng giỏ; OrderConfirmed mới bỏ sản phẩm đã đặt; OrderCancelled giữ nguyên giỏ.
 func TestOrderConfirmedClearsDefaultCart(t *testing.T) {
 	svc, _ := setup(t, &fakeProducts{}, fakeStock{})
 	ctx := context.Background()
@@ -198,10 +193,9 @@ func TestOrderConfirmedClearsDefaultCart(t *testing.T) {
 	if len(got.Items) != 1 || got.Items[0].ProductID != "b" {
 		t.Fatalf("items after confirm = %+v", got.Items)
 	}
-	// Giao lại OrderConfirmed: không lỗi, không xoá thêm.
+
 	send("ecommerce.order.v1.OrderConfirmed", &orderv1.OrderConfirmed{OrderId: "o1"})
 
-	// Đơn bị huỷ: giỏ còn nguyên, confirm muộn (nếu có) cũng không xoá gì.
 	send("ecommerce.order.v1.OrderPlaced", &orderv1.OrderPlaced{OrderId: "o2", CustomerId: "u9", Lines: []*orderv1.OrderLine{{ProductId: "b"}}})
 	send("ecommerce.order.v1.OrderCancelled", &orderv1.OrderCancelled{OrderId: "o2", Reason: "payment failed"})
 	send("ecommerce.order.v1.OrderConfirmed", &orderv1.OrderConfirmed{OrderId: "o2"})
@@ -209,12 +203,10 @@ func TestOrderConfirmedClearsDefaultCart(t *testing.T) {
 		t.Fatalf("cancelled order must keep cart, items=%d", items())
 	}
 
-	// Khách không có giỏ: bỏ qua, không lỗi.
 	send("ecommerce.order.v1.OrderPlaced", &orderv1.OrderPlaced{OrderId: "o3", CustomerId: "nobody", Lines: []*orderv1.OrderLine{{ProductId: "a"}}})
 	send("ecommerce.order.v1.OrderConfirmed", &orderv1.OrderConfirmed{OrderId: "o3"})
 }
 
-// Hai consumer group khác nhau cùng đánh dấu một event: không đụng khoá chính.
 func TestProcessedEventsKeyedByConsumer(t *testing.T) {
 	_, pool := setup(t, &fakeProducts{}, fakeStock{})
 	ctx := context.Background()

@@ -1,0 +1,162 @@
+openapi: 3.1.0
+info:
+  title: media-service
+  version: 1.0.0
+  description: |
+    Tải file lên object storage bằng presigned URL: xin URL (POST /uploads), PUT file thẳng lên storage, rồi báo
+    hoàn tất (POST /{id}/complete). Giới hạn theo mục đích: PRODUCT_IMAGE 10 MB (chỉ SELLER/ADMIN), REVIEW 50 MB
+    (ảnh, mp4, webm), AVATAR 5 MB, CHAT 20 MB (ảnh, pdf).
+servers:
+  - url: https://api.congthanh.vn
+  - url: http://localhost:9080
+security:
+  - keycloak: []
+tags:
+  - name: media
+paths:
+  /api/ecommerce/media/uploads:
+    post:
+      operationId: requestMediaUpload
+      summary: Xin presigned URL để tải file
+      tags: [media]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [purpose, fileName, contentType, sizeBytes]
+              properties:
+                purpose: {$ref: '#/components/schemas/Purpose'}
+                fileName: {type: string}
+                contentType: {type: string, example: image/jpeg}
+                sizeBytes: {type: integer, format: int64}
+      responses:
+        '201':
+          description: Upload URL created
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - properties:
+                      data:
+                        type: object
+                        properties:
+                          media: {$ref: '#/components/schemas/Media'}
+                          uploadUrl: {type: string, format: uri}
+                          headers:
+                            type: object
+                            additionalProperties: {type: string}
+                            description: Header phải gửi kèm khi PUT file lên uploadUrl
+                          expiresAt: {type: string, format: date-time}
+        '400': {$ref: '#/components/responses/Error'}
+        '401': {$ref: '#/components/responses/Error'}
+        '403': {$ref: '#/components/responses/Error'}
+  /api/ecommerce/media/{id}/complete:
+    parameters:
+      - $ref: '#/components/parameters/Id'
+    post:
+      operationId: completeMediaUpload
+      summary: Báo đã tải xong (chủ file hoặc ADMIN)
+      tags: [media]
+      responses:
+        '200': {$ref: '#/components/responses/Media'}
+        '403': {$ref: '#/components/responses/Error'}
+        '404': {$ref: '#/components/responses/Error'}
+        '409': {$ref: '#/components/responses/Error'}
+  /api/ecommerce/media/{id}:
+    parameters:
+      - $ref: '#/components/parameters/Id'
+    get:
+      operationId: getMedia
+      summary: Thông tin file (công khai)
+      tags: [media]
+      security:
+        - {}
+        - keycloak: []
+      responses:
+        '200': {$ref: '#/components/responses/Media'}
+        '404': {$ref: '#/components/responses/Error'}
+    delete:
+      operationId: deleteMedia
+      summary: Xoá file (chủ file hoặc ADMIN)
+      tags: [media]
+      responses:
+        '200': {$ref: '#/components/responses/Empty'}
+        '403': {$ref: '#/components/responses/Error'}
+        '404': {$ref: '#/components/responses/Error'}
+  /api/ecommerce/media/:
+    get:
+      operationId: listMyMedia
+      summary: File của tôi, mới nhất trước
+      tags: [media]
+      parameters:
+        - {name: limit, in: query, schema: {type: integer, minimum: 1, maximum: 100, default: 50}}
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - properties:
+                      data: {type: array, items: {$ref: '#/components/schemas/Media'}}
+        '401': {$ref: '#/components/responses/Error'}
+components:
+  securitySchemes:
+    keycloak:
+      type: openIdConnect
+      openIdConnectUrl: https://auth.congthanh.vn/realms/ecommerce/.well-known/openid-configuration
+  parameters:
+    Id:
+      name: id
+      in: path
+      required: true
+      schema: {type: string, description: Id Snowflake}
+  responses:
+    Error:
+      description: Lỗi
+      content:
+        application/json:
+          schema: {$ref: '#/components/schemas/Envelope'}
+    Empty:
+      description: OK
+      content:
+        application/json:
+          schema: {$ref: '#/components/schemas/Envelope'}
+    Media:
+      description: OK
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/Envelope'
+              - properties:
+                  data: {$ref: '#/components/schemas/Media'}
+  schemas:
+    Envelope:
+      type: object
+      properties:
+        message: {type: string}
+        data: {}
+        status: {type: string, enum: [Success, Failed]}
+        errorCode: {type: integer}
+    Purpose:
+      type: string
+      enum: [PRODUCT_IMAGE, REVIEW, AVATAR, CHAT]
+    Media:
+      type: object
+      properties:
+        id: {type: string}
+        ownerId: {type: string}
+        purpose: {$ref: '#/components/schemas/Purpose'}
+        objectKey: {type: string}
+        fileName: {type: string}
+        contentType: {type: string}
+        sizeBytes: {type: integer, format: int64}
+        status: {type: string, enum: [PENDING, READY]}
+        createdAt: {type: string, format: date-time}
+        completedAt: {type: string, format: date-time}
+        url: {type: string, format: uri, description: 'URL công khai (CDN), chỉ có khi READY'}

@@ -1,17 +1,8 @@
 package com.congthanh.productservice.application.dto.viewmodel;
 
-import com.congthanh.productservice.domain.model.VariantOptionCombination;
-
+/** Một giá trị option đang được ít nhất một variant dùng. {@code id} là id của variant_option_value. */
 public record ProductOptionCombinationGetVm(Long id,
                                             Long productOptionId,
                                             String productOptionValue,
                                             String productOptionName) {
-    public static ProductOptionCombinationGetVm fromModel(VariantOptionCombination productOptionCombination) {
-        return new ProductOptionCombinationGetVm(
-                productOptionCombination.getId(),
-                productOptionCombination.getVariantOption().getId(),
-                productOptionCombination.getValue(),
-                productOptionCombination.getVariantOption().getName()
-        );
-    }
 }

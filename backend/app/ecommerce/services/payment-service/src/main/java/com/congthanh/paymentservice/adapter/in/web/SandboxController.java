@@ -13,7 +13,6 @@ import org.springframework.web.util.HtmlUtils;
 
 import java.util.Map;
 
-/** Trang "cổng thanh toán" giả cho local/e2e. Chỉ tồn tại khi payment.sandbox.enabled=true. */
 @RestController
 @RequestMapping("/api/ecommerce/payment/sandbox")
 @ConditionalOnBooleanProperty("payment.sandbox.enabled")
@@ -44,7 +43,6 @@ public class SandboxController {
                 + (out.success() ? "paid" : "failed") + "</p>";
     }
 
-    /** Cổng phụ để controller không phụ thuộc trực tiếp vào adapter provider. */
     public interface SandboxSigner {
         String sign(String ref, String purpose);
 

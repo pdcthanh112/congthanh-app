@@ -12,8 +12,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/jackc/pgx/v5"
-
 	"github.com/pdcthanh112/CongThanhApp/backend/app/ecommerce/libs/go/platform/apperr"
 	"github.com/pdcthanh112/CongThanhApp/backend/app/ecommerce/services/webhook-service/internal/domain"
 )
@@ -24,9 +22,6 @@ type Repository interface {
 	List(ctx context.Context) ([]domain.Webhook, error)
 	Update(ctx context.Context, w domain.Webhook) error
 	Delete(ctx context.Context, id string) error
-	// SubscribersTx trả webhook đang bật theo dõi loại sự kiện (trong transaction của consumer).
-	SubscribersTx(ctx context.Context, tx pgx.Tx, event string) ([]domain.Webhook, error)
-	EnqueueTx(ctx context.Context, tx pgx.Tx, d domain.Delivery) error
 	Enqueue(ctx context.Context, d domain.Delivery) error
 	// ClaimDue lấy các lượt giao đến hạn (FOR UPDATE SKIP LOCKED) và dời next_attempt_at thêm lease:
 	// nhiều pod chạy song song không gửi trùng, pod chết giữa chừng thì hết lease lượt giao tự quay lại.
@@ -35,6 +30,15 @@ type Repository interface {
 	Deliveries(ctx context.Context, webhookID string, limit int) ([]domain.Delivery, error)
 	GetDelivery(ctx context.Context, id string) (domain.Delivery, error)
 	Retry(ctx context.Context, id string) error
+}
+
+// DeliveryScope là các thao tác chạy trong transaction của consumer, cùng transaction với processed_events,
+// nên Kafka giao lại một sự kiện cũng không tạo lượt giao trùng.
+type DeliveryScope interface {
+	// Subscribers trả webhook đang bật theo dõi loại sự kiện.
+	Subscribers(ctx context.Context, event string) ([]domain.Webhook, error)
+	// Enqueue thêm lượt giao; bỏ qua nếu cặp (webhook, sự kiện) đã có.
+	Enqueue(ctx context.Context, d domain.Delivery) error
 }
 
 // Result của một lần gửi HTTP.
@@ -137,10 +141,9 @@ type Envelope struct {
 	Data      json.RawMessage `json:"data"`
 }
 
-// FanOutTx tạo lượt giao cho mọi webhook theo dõi sự kiện, trong transaction của consumer
-// (cùng transaction với processed_events nên không tạo trùng khi Kafka giao lại).
-func (s *Service) FanOutTx(ctx context.Context, tx pgx.Tx, eventID, event string, at time.Time, data json.RawMessage) error {
-	subs, err := s.repo.SubscribersTx(ctx, tx, event)
+// FanOut tạo lượt giao cho mọi webhook theo dõi sự kiện, qua scope là transaction của consumer.
+func (s *Service) FanOut(ctx context.Context, scope DeliveryScope, eventID, event string, at time.Time, data json.RawMessage) error {
+	subs, err := scope.Subscribers(ctx, event)
 	if err != nil || len(subs) == 0 {
 		return err
 	}
@@ -152,7 +155,7 @@ func (s *Service) FanOutTx(ctx context.Context, tx pgx.Tx, eventID, event string
 	for _, w := range subs {
 		d := domain.Delivery{ID: s.ids.NewID(), WebhookID: w.ID, EventID: eventID, EventType: event, Payload: body,
 			Status: domain.DeliveryPending, NextAttemptAt: now, CreatedAt: now}
-		if err := s.repo.EnqueueTx(ctx, tx, d); err != nil {
+		if err := scope.Enqueue(ctx, d); err != nil {
 			return err
 		}
 	}

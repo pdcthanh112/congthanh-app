@@ -1,71 +1,96 @@
+"""Use case của supplier-service: đăng ký, sửa, duyệt/khoá gian hàng; chỉ biết domain và port SupplierRepository."""
+
 from __future__ import annotations
 
-from django.db import IntegrityError, transaction
-from django.db.models import F, Q, QuerySet
-from django.utils.text import slugify
+from collections.abc import Callable
+from datetime import UTC, datetime
 
-from .models import Supplier
+from .domain import RESERVED_SLUGS, Actor, Supplier, SupplierError, SupplierStatus, slugify
+from .ports import SupplierRepository
 
-
-class Conflict(Exception):
-    pass
-
-
-def make_slug(name: str) -> str:
-    base = slugify(name.replace("đ", "d").replace("Đ", "D"))[:200] or "supplier"
-    slug, n = base, 1
-    while Supplier.objects.filter(slug=slug).exists():
-        n += 1
-        slug = f"{base}-{n}"
-    return slug
+# Id Snowflake tối đa 19 chữ số; khoá dài hơn chắc chắn là slug.
+MAX_ID_DIGITS = 19
 
 
-def find(key: str) -> Supplier | None:
-    """Tìm theo id (Snowflake) hoặc slug."""
-    if key.isdigit() and len(key) <= 19:
-        found = Supplier.objects.filter(id=int(key)).first()
-        if found:
-            return found
-    return Supplier.objects.filter(slug=key).first()
+class SupplierService:
+    def __init__(self, repo: SupplierRepository, clock: Callable[[], datetime] = lambda: datetime.now(UTC)) -> None:
+        self._repo = repo
+        self._clock = clock
 
+    def find(self, key: str) -> Supplier | None:
+        """Tìm theo id (Snowflake) hoặc slug; None nếu không có."""
+        if key.isdigit() and len(key) <= MAX_ID_DIGITS:
+            found = self._repo.find_by_id(int(key))
+            if found:
+                return found
+        return self._repo.find_by_slug(key)
 
-def search(q: str | None, status: str | None) -> QuerySet[Supplier]:
-    qs = Supplier.objects.all()
-    if status:
-        qs = qs.filter(status=status)
-    if q:
-        qs = qs.filter(Q(name__icontains=q) | Q(slug__icontains=q))
-    return qs.order_by("-created_at", "-id")
+    def get_visible(self, key: str, actor: Actor | None) -> Supplier:
+        """Gian hàng chưa duyệt hoặc bị khoá báo NOT_FOUND với người ngoài, để không lộ là có tồn tại."""
+        supplier = self.find(key)
+        if supplier is None or not supplier.is_visible_to(actor):
+            raise SupplierError.not_found(f"supplier {key} not found")
+        return supplier
 
+    def mine(self, owner_id: str) -> Supplier:
+        supplier = self._repo.find_by_owner(owner_id)
+        if supplier is None:
+            raise SupplierError.not_found("this account has no supplier")
+        return supplier
 
-def create(owner_id: str, data: dict) -> Supplier:
-    if Supplier.objects.filter(owner_id=owner_id).exists():
-        raise Conflict("this account already has a supplier")
-    try:
-        with transaction.atomic():
-            return Supplier.objects.create(
-                owner_id=owner_id, slug=data.pop("slug", None) or make_slug(data["name"]), **data
-            )
-    except IntegrityError as e:
-        raise Conflict("supplier slug or owner already exists") from e
+    def search(self, query: str | None, status: str | None, page: int, size: int) -> tuple[list[Supplier], int]:
+        return self._repo.search(query, status, (page - 1) * size, size)
 
+    def register(self, actor: Actor, profile: dict) -> Supplier:
+        """Mỗi tài khoản chỉ có một gian hàng; slug bỏ trống thì sinh từ tên và thêm hậu tố khi trùng."""
+        if self._repo.find_by_owner(actor.id):
+            raise SupplierError.conflict("this account already has a supplier")
+        fields = dict(profile)
+        slug = fields.pop("slug", None)
+        if slug and self._slug_unavailable(slug):
+            raise SupplierError.conflict(f"supplier slug {slug} already exists")
+        supplier = Supplier.register(
+            self._repo.next_id(), actor.id, slug or self.unique_slug(fields.get("name", "")), fields, self._clock()
+        )
+        return self._repo.add(supplier)
 
-def update(s: Supplier, data: dict) -> Supplier:
-    expected = data.pop("version", None)
-    if "slug" in data and not data["slug"]:
-        data.pop("slug")
-    try:
-        with transaction.atomic():
-            qs = Supplier.objects.filter(pk=s.pk)
-            if expected is not None:
-                qs = qs.filter(version=expected)
-            if not qs.update(**data, version=F("version") + 1):
-                raise Conflict("supplier was modified by someone else, reload and retry")
-    except IntegrityError as e:
-        raise Conflict("supplier slug already exists") from e
-    s.refresh_from_db()
-    return s
+    def edit(self, actor: Actor, key: str, changes: dict) -> Supplier:
+        """Không gửi version thì so với version vừa đọc; version lệch thì CONFLICT."""
+        supplier = self.find(key)
+        if supplier is None:
+            raise SupplierError.not_found(f"supplier {key} not found")
+        supplier.require_manageable_by(actor)
+        fields = dict(changes)
+        expected = fields.pop("version", None)
+        expected = supplier.version if expected is None else expected
+        slug = fields.pop("slug", None)
+        if slug and slug != supplier.slug and self._slug_unavailable(slug):
+            raise SupplierError.conflict(f"supplier slug {slug} already exists")
+        supplier.edit(fields, slug, self._clock())
+        return self._save(supplier, expected)
 
+    def change_status(self, key: str, status: SupplierStatus) -> Supplier:
+        """Admin duyệt/khoá/đóng gian hàng; chuyển sang đúng trạng thái hiện tại thì không đổi gì."""
+        supplier = self.find(key)
+        if supplier is None:
+            raise SupplierError.not_found(f"supplier {key} not found")
+        if not supplier.change_status(status, self._clock()):
+            return supplier
+        return self._save(supplier, supplier.version)
 
-def set_status(s: Supplier, status: str) -> Supplier:
-    return update(s, {"status": status})
+    def unique_slug(self, name: str) -> str:
+        base = slugify(name)
+        slug, n = base, 1
+        while self._slug_unavailable(slug):
+            n += 1
+            slug = f"{base}-{n}"
+        return slug
+
+    def _slug_unavailable(self, slug: str) -> bool:
+        return slug in RESERVED_SLUGS or self._repo.slug_taken(slug)
+
+    def _save(self, supplier: Supplier, expected_version: int) -> Supplier:
+        if not self._repo.update(supplier, expected_version):
+            raise SupplierError.conflict("supplier was modified by someone else, reload and retry")
+        supplier.version = expected_version + 1
+        return supplier

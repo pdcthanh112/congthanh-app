@@ -1,0 +1,306 @@
+openapi: 3.1.0
+info:
+  title: tax-service
+  version: 1.0.0
+  description: Loại thuế, thuế suất theo địa chỉ (quốc gia/vùng/mã bưu chính) và tính thuế cho dòng hàng.
+servers:
+  - url: https://api.congthanh.vn
+  - url: http://localhost:9080
+security:
+  - {}
+  - keycloak: []
+tags:
+  - name: tax-class
+  - name: tax-rate
+  - name: tax
+paths:
+  /api/ecommerce/tax/classes:
+    get:
+      operationId: listTaxClasses
+      summary: Danh sách loại thuế
+      tags: [tax-class]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - properties:
+                      data: {type: array, items: {$ref: '#/components/schemas/TaxClass'}}
+    post:
+      operationId: createTaxClass
+      summary: Tạo loại thuế (ADMIN)
+      tags: [tax-class]
+      security: [{keycloak: []}]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/TaxClassInput'}
+      responses:
+        '201': {$ref: '#/components/responses/TaxClass'}
+        '400': {$ref: '#/components/responses/Error'}
+        '401': {$ref: '#/components/responses/Error'}
+        '403': {$ref: '#/components/responses/Error'}
+        '409': {$ref: '#/components/responses/Error'}
+  /api/ecommerce/tax/classes/{id}:
+    parameters:
+      - $ref: '#/components/parameters/Id'
+    get:
+      operationId: getTaxClass
+      summary: Chi tiết loại thuế
+      tags: [tax-class]
+      responses:
+        '200': {$ref: '#/components/responses/TaxClass'}
+        '400': {$ref: '#/components/responses/Error'}
+        '404': {$ref: '#/components/responses/Error'}
+    put:
+      operationId: updateTaxClass
+      summary: Đổi tên loại thuế (ADMIN)
+      tags: [tax-class]
+      security: [{keycloak: []}]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/TaxClassInput'}
+      responses:
+        '200': {$ref: '#/components/responses/TaxClass'}
+        '400': {$ref: '#/components/responses/Error'}
+        '403': {$ref: '#/components/responses/Error'}
+        '404': {$ref: '#/components/responses/Error'}
+    delete:
+      operationId: deleteTaxClass
+      summary: Xoá loại thuế (ADMIN)
+      tags: [tax-class]
+      security: [{keycloak: []}]
+      responses:
+        '200': {$ref: '#/components/responses/Empty'}
+        '403': {$ref: '#/components/responses/Error'}
+        '404': {$ref: '#/components/responses/Error'}
+        '409': {$ref: '#/components/responses/Error'}
+  /api/ecommerce/tax/rates:
+    get:
+      operationId: listTaxRates
+      summary: Danh sách thuế suất (phân trang)
+      tags: [tax-rate]
+      parameters:
+        - {name: page, in: query, schema: {type: integer, minimum: 0, default: 0}}
+        - {name: size, in: query, schema: {type: integer, minimum: 1, maximum: 100, default: 20}}
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - properties:
+                      data:
+                        allOf:
+                          - $ref: '#/components/schemas/Page'
+                          - properties:
+                              items: {type: array, items: {$ref: '#/components/schemas/TaxRate'}}
+    post:
+      operationId: createTaxRate
+      summary: Tạo thuế suất (ADMIN)
+      tags: [tax-rate]
+      security: [{keycloak: []}]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/TaxRate'}
+      responses:
+        '201': {$ref: '#/components/responses/TaxRate'}
+        '400': {$ref: '#/components/responses/Error'}
+        '403': {$ref: '#/components/responses/Error'}
+        '409': {$ref: '#/components/responses/Error'}
+  /api/ecommerce/tax/rates/{id}:
+    parameters:
+      - $ref: '#/components/parameters/Id'
+    get:
+      operationId: getTaxRate
+      summary: Chi tiết thuế suất
+      tags: [tax-rate]
+      responses:
+        '200': {$ref: '#/components/responses/TaxRate'}
+        '404': {$ref: '#/components/responses/Error'}
+    put:
+      operationId: updateTaxRate
+      summary: Sửa thuế suất (ADMIN)
+      tags: [tax-rate]
+      security: [{keycloak: []}]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/TaxRate'}
+      responses:
+        '200': {$ref: '#/components/responses/TaxRate'}
+        '400': {$ref: '#/components/responses/Error'}
+        '403': {$ref: '#/components/responses/Error'}
+        '404': {$ref: '#/components/responses/Error'}
+    delete:
+      operationId: deleteTaxRate
+      summary: Xoá thuế suất (ADMIN)
+      tags: [tax-rate]
+      security: [{keycloak: []}]
+      responses:
+        '200': {$ref: '#/components/responses/Empty'}
+        '403': {$ref: '#/components/responses/Error'}
+        '404': {$ref: '#/components/responses/Error'}
+  /api/ecommerce/tax/lookup:
+    get:
+      operationId: lookupTaxRates
+      summary: Thuế suất áp dụng cho các loại thuế tại một địa chỉ
+      tags: [tax]
+      parameters:
+        - name: taxClassIds
+          in: query
+          description: Danh sách id loại thuế, cách nhau bởi dấu phẩy
+          schema: {type: string, example: '1,2'}
+        - {name: country, in: query, required: true, schema: {type: string, example: US}}
+        - {name: region, in: query, schema: {type: string, example: CA}}
+        - {name: postalCode, in: query, schema: {type: string, example: '94105'}}
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - properties:
+                      data: {type: array, items: {$ref: '#/components/schemas/TaxRate'}}
+        '400': {$ref: '#/components/responses/Error'}
+  /api/ecommerce/tax/calculate:
+    post:
+      operationId: calculateTax
+      summary: Tính thuế cho các dòng hàng
+      description: Số tiền là số thập phân theo đơn vị chính của currency (19.99 USD, 1500 JPY), làm tròn HALF_UP.
+      tags: [tax]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [address, currency, lines]
+              properties:
+                address: {$ref: '#/components/schemas/Address'}
+                currency: {type: string, description: ISO 4217, example: USD}
+                lines:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      lineId: {type: string}
+                      taxClassId: {type: integer, format: int64}
+                      taxableAmount: {type: number, example: 19.99}
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - properties:
+                      data:
+                        type: object
+                        properties:
+                          currency: {type: string}
+                          totalTax: {type: number}
+                          lines:
+                            type: array
+                            items:
+                              type: object
+                              properties:
+                                lineId: {type: string}
+                                ratePercent: {type: number}
+                                tax: {type: number}
+        '400': {$ref: '#/components/responses/Error'}
+components:
+  securitySchemes:
+    keycloak:
+      type: openIdConnect
+      openIdConnectUrl: https://auth.congthanh.vn/realms/ecommerce/.well-known/openid-configuration
+  parameters:
+    Id:
+      name: id
+      in: path
+      required: true
+      schema: {type: integer, format: int64}
+  responses:
+    Error:
+      description: Lỗi
+      content:
+        application/json:
+          schema: {$ref: '#/components/schemas/Envelope'}
+    Empty:
+      description: OK
+      content:
+        application/json:
+          schema: {$ref: '#/components/schemas/Envelope'}
+    TaxClass:
+      description: OK
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/Envelope'
+              - properties:
+                  data: {$ref: '#/components/schemas/TaxClass'}
+    TaxRate:
+      description: OK
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/Envelope'
+              - properties:
+                  data: {$ref: '#/components/schemas/TaxRate'}
+  schemas:
+    Envelope:
+      type: object
+      properties:
+        message: {type: string}
+        data: {}
+        status: {type: string, enum: [Success, Failed]}
+        errorCode: {type: integer}
+    Page:
+      type: object
+      properties:
+        items: {type: array, items: {}}
+        page: {type: integer}
+        size: {type: integer}
+        totalItems: {type: integer}
+    TaxClassInput:
+      type: object
+      required: [name]
+      properties:
+        name: {type: string}
+    TaxClass:
+      type: object
+      properties:
+        id: {type: integer, format: int64}
+        name: {type: string}
+    TaxRate:
+      type: object
+      required: [taxClassId, countryCode, ratePercent]
+      properties:
+        id: {type: integer, format: int64, readOnly: true}
+        taxClassId: {type: integer, format: int64}
+        countryCode: {type: string, example: US}
+        regionCode: {type: string, example: CA}
+        postalCode: {type: string}
+        ratePercent: {type: number, example: 7.25}
+    Address:
+      type: object
+      properties:
+        countryCode: {type: string}
+        regionCode: {type: string}
+        postalCode: {type: string}

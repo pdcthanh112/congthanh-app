@@ -13,11 +13,6 @@ import java.util.Set;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
-/**
- * Luật cho phương thức trả góp (ADR 0016): đối tác nào đang bật, tiền tệ nào, khoảng số tiền cho phép
- * và authorization của đối tác giữ được bao lâu. Số liệu đến từ cấu hình {@code payment.installments}.
- * Không tính lịch trả hay APR: đối tác hiển thị điều khoản (quy định quảng cáo Reg Z).
- */
 public final class InstallmentPolicy {
 
     public record Limit(BigDecimal minAmount, BigDecimal maxAmount, Duration authorizationTtl) {

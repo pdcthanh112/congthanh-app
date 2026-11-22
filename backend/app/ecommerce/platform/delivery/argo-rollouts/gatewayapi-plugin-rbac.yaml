@@ -1,15 +1,14 @@
-# Quyền cho plugin argoproj-labs/gatewayAPI (chạy trong controller Argo Rollouts) đổi weight HTTPRoute/GRPCRoute.
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
   name: argo-rollouts-gateway-api-plugin
 rules:
-- apiGroups: [""]
-  resources: [services]
-  verbs: [get]
-- apiGroups: [gateway.networking.k8s.io]
-  resources: [httproutes, grpcroutes]
-  verbs: [get, list, update, patch]
+  - apiGroups: [""]
+    resources: [services]
+    verbs: [get]
+  - apiGroups: [gateway.networking.k8s.io]
+    resources: [httproutes, grpcroutes]
+    verbs: [get, list, update, patch]
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
@@ -20,6 +19,6 @@ roleRef:
   kind: ClusterRole
   name: argo-rollouts-gateway-api-plugin
 subjects:
-- kind: ServiceAccount
-  name: argo-rollouts
-  namespace: argo-rollouts
+  - kind: ServiceAccount
+    name: argo-rollouts
+    namespace: argo-rollouts

@@ -24,7 +24,7 @@ func Load() Config {
 		HTTPAddr:              c.String("HTTP_ADDR", ":5013"),
 		GRPCAddr:              c.String("GRPC_ADDR", ":9098"),
 		ElasticsearchURL:      c.String("ELASTICSEARCH_URL", "http://localhost:9200"),
-		ElasticsearchIndex:    c.String("ELASTICSEARCH_INDEX", "products"),
+		ElasticsearchIndex:    c.String("ELASTICSEARCH_INDEX", "products-v2"),
 		ElasticsearchUser:     c.String("ELASTICSEARCH_USERNAME", ""),
 		ElasticsearchPassword: c.String("ELASTICSEARCH_PASSWORD", ""),
 		ElasticsearchAPIKey:   c.String("ELASTICSEARCH_API_KEY", ""),

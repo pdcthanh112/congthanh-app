@@ -1,52 +1,59 @@
 package com.congthanh.productservice.application.service;
 
-import com.congthanh.productservice.domain.model.ProductImage;
-import com.congthanh.productservice.application.dto.ProductImageDTO;
-import com.congthanh.productservice.domain.model.Product;
+import com.congthanh.commonservice.exception.BadRequestException;
 import com.congthanh.commonservice.exception.NotFoundException;
-import com.congthanh.productservice.application.mapper.ProductImageMapper;
-import com.congthanh.productservice.application.port.out.product.ProductRepository;
-import com.congthanh.productservice.application.port.out.productImage.ProductImageRepository;
+import com.congthanh.productservice.application.dto.ProductImageDTO;
 import com.congthanh.productservice.application.port.in.ProductImageService;
+import com.congthanh.productservice.application.port.out.ProductQueries;
+import com.congthanh.productservice.application.port.out.ProductRepository;
+import com.congthanh.productservice.domain.model.Product;
+import com.congthanh.productservice.domain.model.ProductImage;
 import lombok.RequiredArgsConstructor;
-import org.springframework.context.ApplicationEventPublisher;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
-import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 @Service
 @RequiredArgsConstructor
 public class ProductImageServiceImpl implements ProductImageService {
 
-    private final ProductRepository productRepository;
-
-    private final ProductImageRepository productImageRepository;
-
-    private final ApplicationEventPublisher events;
+    private final ProductRepository products;
+    private final ProductQueries queries;
 
     @Override
     public List<ProductImageDTO> getImageByProduct(String productId) {
-        List<ProductImage> data = productRepository.getImageByProduct(productId);
-        List<ProductImageDTO> result = new ArrayList<>();
-        for (ProductImage item : data) {
-            ProductImageDTO imageDTO = ProductImageMapper.mapProductImageEntityToDTO(item);
-            result.add(imageDTO);
-        }
-        return result;
+        return queries.images(productId);
     }
 
     @Override
     @Transactional
-    public ProductImageDTO addProductImage(ProductImageDTO productImageDTO) {
-        Product product = productRepository.findById(productImageDTO.getProduct()).orElseThrow(() -> new NotFoundException(("not found")));
-        ProductImage image = ProductImage.builder()
-                .product(product)
-                .imagePath(productImageDTO.getImagePath())
-                .build();
-        ProductImage result = productImageRepository.save(image);
-        events.publishEvent(ProductServiceImpl.changed(product)); // outbox + read model trang sản phẩm
-        return ProductImageMapper.mapProductImageEntityToDTO(result);
+    public ProductImageDTO addProductImage(ProductImageDTO dto) {
+        if (dto.getId() == null) {
+            throw new BadRequestException("id (media id from media-service) is required");
+        }
+        if (dto.getProduct() == null || dto.getProduct().isBlank()) {
+            throw new BadRequestException("product is required");
+        }
+        Product product = requireProduct(dto.getProduct());
+        product.addImage(new ProductImage(dto.getId(), dto.getImagePath(), dto.getDisplayOrder()), dto.isDefault());
+        products.save(product);
+        return queries.images(product.id()).stream()
+                .filter(i -> Objects.equals(i.getId(), dto.getId()))
+                .findFirst()
+                .orElseThrow(() -> new IllegalStateException("image " + dto.getId() + " was not saved"));
+    }
+
+    @Override
+    @Transactional
+    public void deleteProductImage(String productId, Long imageId) {
+        Product product = requireProduct(productId);
+        product.removeImage(imageId);
+        products.save(product);
+    }
+
+    private Product requireProduct(String id) {
+        return products.findById(id).orElseThrow(() -> new NotFoundException("product not found: " + id));
     }
 }

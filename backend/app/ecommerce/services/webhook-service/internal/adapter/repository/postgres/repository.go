@@ -10,6 +10,7 @@ import (
 
 	"github.com/pdcthanh112/CongThanhApp/backend/app/ecommerce/libs/go/platform/apperr"
 	"github.com/pdcthanh112/CongThanhApp/backend/app/ecommerce/libs/go/platform/idgen"
+	"github.com/pdcthanh112/CongThanhApp/backend/app/ecommerce/services/webhook-service/internal/app"
 	"github.com/pdcthanh112/CongThanhApp/backend/app/ecommerce/services/webhook-service/internal/domain"
 )
 
@@ -64,16 +65,21 @@ func (r *Repository) Delete(ctx context.Context, id string) error {
 	return err
 }
 
-func (r *Repository) SubscribersTx(ctx context.Context, tx pgx.Tx, event string) ([]domain.Webhook, error) {
-	rows, _ := tx.Query(ctx, `SELECT `+hookCols+` FROM webhooks WHERE active AND events @> ARRAY[$1]::text[]`, event)
+// InTx trả app.DeliveryScope chạy trên transaction tx của consumer.
+func (r *Repository) InTx(tx pgx.Tx) app.DeliveryScope { return txScope{tx: tx} }
+
+type txScope struct{ tx pgx.Tx }
+
+func (s txScope) Subscribers(ctx context.Context, event string) ([]domain.Webhook, error) {
+	rows, _ := s.tx.Query(ctx, `SELECT `+hookCols+` FROM webhooks WHERE active AND events @> ARRAY[$1]::text[]`, event)
 	return pgx.CollectRows(rows, scanHook)
 }
 
 const enqueueSQL = `INSERT INTO deliveries (id, webhook_id, event_id, event_type, payload, status, next_attempt_at, created_at)
 	VALUES ($1,$2,$3,$4,$5,$6,$7,$8) ON CONFLICT (webhook_id, event_id) DO NOTHING`
 
-func (r *Repository) EnqueueTx(ctx context.Context, tx pgx.Tx, d domain.Delivery) error {
-	_, err := tx.Exec(ctx, enqueueSQL, d.ID, d.WebhookID, d.EventID, d.EventType, d.Payload, d.Status, d.NextAttemptAt, d.CreatedAt)
+func (s txScope) Enqueue(ctx context.Context, d domain.Delivery) error {
+	_, err := s.tx.Exec(ctx, enqueueSQL, d.ID, d.WebhookID, d.EventID, d.EventType, d.Payload, d.Status, d.NextAttemptAt, d.CreatedAt)
 	return err
 }
 

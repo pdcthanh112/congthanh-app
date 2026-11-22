@@ -1,4 +1,3 @@
-// Package domain: báo giá phí giao hàng và vòng đời vận đơn (máy trạng thái).
 package domain
 
 import (
@@ -59,7 +58,7 @@ func (r Rate) Validate() error {
 
 type Parcel struct {
 	WeightGrams   int
-	DeclaredValue int64 // đơn vị nhỏ nhất
+	DeclaredValue int64 
 	Currency      string
 }
 
@@ -162,7 +161,6 @@ type Event struct {
 	OccurredAt time.Time `json:"occurredAt"`
 }
 
-// Transition kiểm tra bước chuyển trạng thái hợp lệ.
 func (s *Shipment) Transition(to Status) error {
 	if s.Status == to {
 		return apperr.Conflict("shipment is already %s", to)

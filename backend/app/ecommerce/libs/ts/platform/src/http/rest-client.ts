@@ -1,44 +1,25 @@
-import {
-  ConsecutiveBreaker,
-  circuitBreaker,
-  ExponentialBackoff,
-  handleWhen,
-  type IPolicy,
-  retry,
-  TimeoutStrategy,
-  timeout,
-  wrap,
-} from 'cockatiel';
-import { z } from 'zod';
-import { DomainError } from '../errors/domain-error.js';
+import { circuitBreaker, ConsecutiveBreaker, ExponentialBackoff, handleWhen, type IPolicy, retry, timeout, TimeoutStrategy, wrap } from "cockatiel";
+import { z } from "zod";
+import { DomainError } from "../errors/domain-error.js";
 
-/** Lỗi HTTP tạm thời (đáng thử lại): 502/503/504, 429, lỗi mạng. */
 class TransientHttpError extends Error {}
 
 export interface RestClientOptions {
   baseUrl: string;
-  /** Tên service đích để ghi vào thông báo lỗi. */
   name: string;
   timeoutMs?: number;
   retries?: number;
 }
 
 export interface RestCall {
-  method?: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE';
+  method?: "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
   query?: Record<string, string | number | boolean | undefined>;
   body?: unknown;
-  /** Token người dùng chuyển tiếp xuống (token relay). */
   token?: string | undefined;
   headers?: Record<string, string>;
-  /** Chỉ thử lại cho lệnh an toàn (GET) hoặc có Idempotency-Key. */
   idempotent?: boolean;
 }
 
-/**
- * Client REST tới service Java/Go: timeout, retry (chỉ khi idempotent), circuit breaker, đổi lỗi HTTP
- * (gồm Problem Details RFC 9457 và envelope {data,status,message} cũ) sang DomainError, kiểm tra kiểu
- * dữ liệu trả về bằng zod (sai hợp đồng thì báo lỗi rõ thay vì lỗi undefined ở resolver).
- */
 export class RestClient {
   private readonly safe: IPolicy;
   private readonly unsafe: IPolicy;
@@ -59,8 +40,8 @@ export class RestClient {
   }
 
   async call<S extends z.ZodType>(path: string, schema: S, c: RestCall = {}): Promise<z.infer<S>> {
-    const method = c.method ?? 'GET';
-    const policy = (c.idempotent ?? method === 'GET') ? this.safe : this.unsafe;
+    const method = c.method ?? "GET";
+    const policy = (c.idempotent ?? method === "GET") ? this.safe : this.unsafe;
     let raw: unknown;
     try {
       raw = await policy.execute(({ signal }) => this.send(path, method, c, signal));
@@ -71,9 +52,7 @@ export class RestClient {
     }
     const parsed = schema.safeParse(raw);
     if (!parsed.success) {
-      throw DomainError.unavailable(
-        `${this.opts.name} returned an unexpected payload: ${parsed.error.issues[0]?.message}`,
-      );
+      throw DomainError.unavailable(`${this.opts.name} returned an unexpected payload: ${parsed.error.issues[0]?.message}`);
     }
     return parsed.data;
   }
@@ -87,9 +66,9 @@ export class RestClient {
   private async send(path: string, method: string, c: RestCall, signal: AbortSignal): Promise<unknown> {
     const url = new URL(path, this.opts.baseUrl);
     for (const [k, v] of Object.entries(c.query ?? {})) if (v !== undefined) url.searchParams.set(k, String(v));
-    const headers: Record<string, string> = { accept: 'application/json', ...c.headers };
+    const headers: Record<string, string> = { accept: "application/json", ...c.headers };
     if (c.token) headers.authorization = `Bearer ${c.token}`;
-    if (c.body !== undefined) headers['content-type'] = 'application/json';
+    if (c.body !== undefined) headers["content-type"] = "application/json";
     let res: Response;
     try {
       res = await fetch(url, {
@@ -119,12 +98,10 @@ function safeJson(text: string): unknown {
 }
 
 function toDomainError(status: number, body: unknown, name: string): DomainError {
-  const b = (typeof body === 'object' && body) || {};
-  const detail = String(
-    (b as { detail?: unknown }).detail ?? (b as { message?: unknown }).message ?? `${name} ${status}`,
-  );
+  const b = (typeof body === "object" && body) || {};
+  const detail = String((b as { detail?: unknown }).detail ?? (b as { message?: unknown }).message ?? `${name} ${status}`);
   const code = (b as { code?: unknown }).code;
-  const reason = typeof code === 'string' ? code : undefined;
+  const reason = typeof code === "string" ? code : undefined;
   switch (status) {
     case 400:
     case 422:

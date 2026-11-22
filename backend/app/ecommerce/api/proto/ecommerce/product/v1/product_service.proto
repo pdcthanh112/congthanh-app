@@ -2,6 +2,8 @@ syntax = "proto3";
 
 package ecommerce.product.v1;
 
+import "ecommerce/common/v1/money.proto";
+
 option java_multiple_files = true;
 option java_package = "com.congthanh.productservice.grpc";
 
@@ -33,8 +35,9 @@ message ProductDetail {
   string product_id = 1;
   string sku = 2;
   string name = 3;
-  double original_price = 4;
-  double selling_price = 5; // Final price after discounts
+  // Không dùng: tiền không được là số thực. Dùng original_price_money / selling_price_money.
+  double original_price = 4 [deprecated = true];
+  double selling_price = 5 [deprecated = true];
   bool is_active = 6;
   bool is_deleted = 7;
   string seller_id = 8;
@@ -44,7 +47,10 @@ message ProductDetail {
   string preorder_end_date = 12;
   string variant_id = 13;
   map<string, string> attributes = 14;
-  string currency = 15; 
+  string currency = 15;
+  // Giá niêm yết gốc và giá bán cuối cùng, kèm currency (ADR 0029). Thiếu khi sản phẩm chưa có giá.
+  ecommerce.common.v1.Money original_price_money = 16;
+  ecommerce.common.v1.Money selling_price_money = 17;
 }
 
 message ValidateProductRequest {
@@ -93,7 +99,7 @@ message ProductVariant {
   double price = 3;
   string sku = 4;
   int32 stock_quantity = 5;
-  map<string, string> attributes = 6; // e.g., "size": "L", "color": "red"
+  map<string, string> attributes = 6;
 }
 
 message ProductMeta {
@@ -114,12 +120,12 @@ message Dimensions {
 message UpdateProductStockRequest {
   repeated StockUpdate updates = 1;
   string reason = 2;
-  string reference_id = 3; // Order ID, Return ID, etc.
+  string reference_id = 3; 
 }
 
 message StockUpdate {
   string product_id = 1;
-  int32 quantity_change = 2; // Có thể âm (giảm) hoặc dương (tăng)
+  int32 quantity_change = 2; 
   StockOperation operation = 3;
 
   enum StockOperation {
@@ -161,6 +167,6 @@ message GetProductsForOrderRequest {
 
 message GetProductsForOrderResponse {
   repeated ProductDetail products = 1;
-  string error_code = 2; // empty when every product can be ordered
+  string error_code = 2; 
   string error_message = 3;
 }

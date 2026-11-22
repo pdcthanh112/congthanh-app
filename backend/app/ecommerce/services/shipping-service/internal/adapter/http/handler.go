@@ -1,4 +1,3 @@
-// Package http là driving adapter REST của shipping-service dưới /api/ecommerce/shipping.
 package http
 
 import (

@@ -6,6 +6,13 @@ from rest_framework.renderers import JSONRenderer
 from rest_framework.response import Response
 from rest_framework.views import exception_handler as drf_handler
 
+from .domain import ErrorKind, SupplierError
+
+
+class Conflict(exceptions.APIException):
+    status_code = 409
+    default_detail = "Conflict"
+
 
 class EnvelopeRenderer(JSONRenderer):
     def render(self, data, accepted_media_type=None, renderer_context=None):
@@ -28,7 +35,22 @@ def _message(detail) -> str:
     return str(detail)
 
 
+def _from_domain(exc: SupplierError) -> Exception:
+    """Đổi lỗi nghiệp vụ sang exception DRF tương ứng (status HTTP theo Kind)."""
+    match exc.kind:
+        case ErrorKind.NOT_FOUND:
+            return Http404(str(exc))
+        case ErrorKind.FORBIDDEN:
+            return exceptions.PermissionDenied(str(exc))
+        case ErrorKind.CONFLICT:
+            return Conflict(str(exc))
+        case _:
+            return exceptions.ValidationError(str(exc))
+
+
 def exception_handler(exc, context):
+    if isinstance(exc, SupplierError):
+        exc = _from_domain(exc)
     response = drf_handler(exc, context)
     if response is None:
         return None  # lỗi không lường trước: Django trả 500 và ghi log

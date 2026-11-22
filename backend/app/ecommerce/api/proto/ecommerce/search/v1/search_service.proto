@@ -20,6 +20,8 @@ message SearchProductsRequest {
   string sort = 5;
   int32 page = 6;
   int32 page_size = 7;
+  // ISO 4217; bắt buộc khi lọc theo min_price/max_price (giá khác currency không so được).
+  string currency = 8;
 }
 
 message ProductHit {

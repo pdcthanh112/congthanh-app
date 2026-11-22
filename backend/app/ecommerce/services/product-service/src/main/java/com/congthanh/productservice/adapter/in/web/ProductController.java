@@ -1,313 +1,152 @@
 package com.congthanh.productservice.adapter.in.web;
 
-import com.congthanh.commonservice.constants.ResponseStatus;
+import com.congthanh.commonservice.model.response.Response;
+import com.congthanh.productservice.application.dto.ProductCategoryDTO;
 import com.congthanh.productservice.application.dto.ProductDTO;
 import com.congthanh.productservice.application.dto.request.CreateProductRequest;
-import com.congthanh.productservice.application.dto.response.OptionValue;
-import com.congthanh.commonservice.model.response.Response;
+import com.congthanh.productservice.application.dto.request.UpdateProductRequest;
 import com.congthanh.productservice.application.dto.response.ResponseWithPagination;
-import com.congthanh.productservice.domain.model.Product;
 import com.congthanh.productservice.application.dto.response.VariantValueResponse;
 import com.congthanh.productservice.application.dto.viewmodel.*;
-import com.congthanh.productservice.application.port.out.product.ProductRepository;
+import com.congthanh.productservice.application.port.in.ProductCategoryService;
 import com.congthanh.productservice.application.port.in.ProductService;
 import com.congthanh.productservice.application.port.in.VariantOptionService;
+import com.congthanh.productservice.domain.model.enums.ProductStatus;
 import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.media.ArraySchema;
-import io.swagger.v3.oas.annotations.media.Content;
-import io.swagger.v3.oas.annotations.media.Schema;
-import io.swagger.v3.oas.annotations.responses.ApiResponse;
-import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import jakarta.annotation.security.PermitAll;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.graphql.data.method.annotation.QueryMapping;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
-import java.util.stream.Collectors;
+
+import static com.congthanh.productservice.adapter.in.web.ProductAttributeController.ok;
 
 @RestController
 @RequestMapping("/api/ecommerce/products")
 @Tag(name = "Product API", description = "Product API in CongThanhApp - Ecommerce")
 @RequiredArgsConstructor
-@Slf4j
 public class ProductController {
 
-    private final ProductRepository productRepository;
-
     private final ProductService productService;
-
     private final VariantOptionService variantOptionService;
+    private final ProductCategoryService productCategoryService;
+
+    record ChangeStatusRequest(@NotNull ProductStatus status) {
+    }
 
     @GetMapping("")
-    @PermitAll
-    public ResponseEntity<Response<ResponseWithPagination<ProductDTO>>> getAllProduct(@RequestParam(name = "page", required = false, defaultValue = "1") int page, @RequestParam(name = "limit", required = false, defaultValue = "10") int limit) {
-        ResponseWithPagination<ProductDTO> data = productService.getAllProduct(page, limit);
-        Response<ResponseWithPagination<ProductDTO>> response = new Response<>();
-        response.setData(data);
-        response.setStatus(ResponseStatus.STATUS_SUCCESS);
-        response.setMessage("Get all successfully");
-        return ResponseEntity.ok().body(response);
+    public ResponseEntity<Response<ResponseWithPagination<ProductDTO>>> getAllProduct(
+            @RequestParam(name = "page", defaultValue = "1") int page, @RequestParam(name = "limit", defaultValue = "10") int limit) {
+        return ResponseEntity.ok(ok(productService.getAllProduct(page, limit), "Get all successfully"));
     }
 
     @GetMapping("/{id}")
-    @PermitAll
     public ResponseEntity<Response<ProductDTO>> getProductById(@PathVariable("id") String id) {
-        ProductDTO data = productService.getProductById(id);
-        Response<ProductDTO> response = new Response<>();
-        response.setData(data);
-        response.setStatus(ResponseStatus.STATUS_SUCCESS);
-        response.setMessage("Get by id successfully");
-        return ResponseEntity.ok().body(response);
+        return ResponseEntity.ok(ok(productService.getProductById(id), "Get by id successfully"));
     }
 
     @GetMapping("/{id}/detail")
-    @PermitAll
-    @Operation(
-            summary = "Get product detail by Id",
-            description = "Get product detail by id with full attribute",
-            tags = {"product", "get", "detail"})
-    @ApiResponses({
-            @ApiResponse(responseCode = "200", content = {@Content(schema = @Schema())}),
-            @ApiResponse(responseCode = "404", content = {@Content(schema = @Schema())}),
-            @ApiResponse(responseCode = "500", content = {@Content(schema = @Schema())})})
+    @Operation(summary = "Get product detail by id", description = "Product with categories, images and attributes (write model)")
     public ResponseEntity<Response<ProductDTO>> getProductDetailById(@PathVariable("id") String id) {
-        ProductDTO data = productService.getProductDetailById(id);
-        Response<ProductDTO> response = new Response<>();
-        response.setData(data);
-        response.setStatus(ResponseStatus.STATUS_SUCCESS);
-        response.setMessage("Get detail by id successfully");
-        return ResponseEntity.ok().body(response);
+        return ResponseEntity.ok(ok(productService.getProductDetailById(id), "Get detail by id successfully"));
     }
 
     @GetMapping("/back-office/slug/{slug}")
-    @PermitAll
     public ResponseEntity<Response<ProductDTO>> getProductDTOBySlug(@PathVariable("slug") String slug) {
-        ProductDTO data = productService.getProductDTOBySlug(slug);
-        Response<ProductDTO> response = new Response<>();
-        response.setData(data);
-        response.setStatus(ResponseStatus.STATUS_SUCCESS);
-        response.setMessage("Get by slug successfully");
-        return ResponseEntity.ok().body(response);
+        return ResponseEntity.ok(ok(productService.getProductDTOBySlug(slug), "Get by slug successfully"));
     }
 
     @GetMapping("/store-front/slug/{slug}")
-    @PermitAll
     public ResponseEntity<Response<ProductVm>> getProductVmBySlug(@PathVariable("slug") String slug) {
-        ProductVm data = productService.getProductVmBySlug(slug);
-        Response<ProductVm> response = new Response<>();
-        response.setData(data);
-        response.setStatus(ResponseStatus.STATUS_SUCCESS);
-        response.setMessage("Get by slug successfully");
-        return ResponseEntity.ok().body(response);
+        return ResponseEntity.ok(ok(productService.getProductVmBySlug(slug), "Get by slug successfully"));
     }
 
     @GetMapping("/store-front/slug/{slug}/detail")
-    @PermitAll
     public ResponseEntity<Response<ProductDetailVm>> getProductDetailVmBySlug(@PathVariable("slug") String slug) {
-        System.out.println("TTTTTTTTTTTTTTTTTTTTTTTTTTTT");
-        ProductDetailVm data = productService.getProductDetailBySlug(slug);
-        Response<ProductDetailVm> response = new Response<>();
-        response.setData(data);
-        response.setStatus(ResponseStatus.STATUS_SUCCESS);
-        response.setMessage("Get by slug successfully");
-        return ResponseEntity.ok().body(response);
+        return ResponseEntity.ok(ok(productService.getProductDetailBySlug(slug), "Get by slug successfully"));
     }
 
-    @PostMapping("/create")
-    @PermitAll
-    public ResponseEntity<Response<ProductDTO>> createProduct(@RequestBody @Validated CreateProductRequest request) {
-        ProductDTO data = productService.createProduct(request);
-        Response<ProductDTO> response = new Response<>();
-        response.setData(data);
-        response.setStatus(ResponseStatus.STATUS_SUCCESS);
-        response.setMessage("Created successfully");
-        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    @PostMapping("")
+    public ResponseEntity<Response<ProductDTO>> createProduct(@RequestBody @Valid CreateProductRequest request) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(ok(productService.createProduct(request), "Created successfully"));
     }
 
-    @PutMapping("/update")
-    public ResponseEntity<String> updateProduct(@RequestBody ProductDTO productDTO) {
-        Product product = productService.updateProduct(productDTO);
-        return ResponseEntity.ok().body("Update successfully");
+    @PutMapping("")
+    public ResponseEntity<Response<ProductDTO>> updateProduct(@RequestBody @Valid UpdateProductRequest request) {
+        return ResponseEntity.ok(ok(productService.updateProduct(request), "Updated successfully"));
+    }
+
+    @PatchMapping("/{id}/status")
+    public ResponseEntity<Response<ProductDTO>> changeStatus(@PathVariable("id") String id,
+                                                             @RequestBody @Valid ChangeStatusRequest request) {
+        return ResponseEntity.ok(ok(productService.changeStatus(id, request.status()), "Updated successfully"));
     }
 
     @DeleteMapping("/delete/{id}")
-    public ResponseEntity<String> deleteProduct(@PathVariable("id") String id) {
-        boolean result = productService.deleteProduct(id);
-        return ResponseEntity.ok().body("Delete successfully");
+    public ResponseEntity<Void> deleteProduct(@PathVariable("id") String id) {
+        productService.deleteProduct(id);
+        return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/{id}/categories/{categoryId}")
+    public ResponseEntity<Response<List<ProductCategoryDTO>>> addCategory(@PathVariable("id") String id,
+                                                                          @PathVariable("categoryId") String categoryId) {
+        return ResponseEntity.ok(ok(productCategoryService.addCategoryToProduct(id, categoryId), "Updated successfully"));
+    }
+
+    @DeleteMapping("/{id}/categories/{categoryId}")
+    public ResponseEntity<Response<List<ProductCategoryDTO>>> removeCategory(@PathVariable("id") String id,
+                                                                             @PathVariable("categoryId") String categoryId) {
+        return ResponseEntity.ok(ok(productCategoryService.removeCategoryFromProduct(id, categoryId), "Updated successfully"));
     }
 
     @GetMapping("/store-front/categories/{categoryId}/products")
-    public ResponseEntity<Response<ResponseWithPagination<ProductDTO>>> getProductByCategory(@PathVariable("categoryId") String categoryId, @RequestParam(defaultValue = "1") int page, @RequestParam(defaultValue = "10") int limit) {
-        ResponseWithPagination<ProductDTO> data = productService.getProductByCategoryId(categoryId, page, limit);
-        Response<ResponseWithPagination<ProductDTO>> response = new Response<>();
-        response.setData(data);
-        response.setStatus(ResponseStatus.STATUS_SUCCESS);
-        response.setMessage("Get successfully");
-        return ResponseEntity.ok().body(response);
+    public ResponseEntity<Response<ResponseWithPagination<ProductDTO>>> getProductByCategory(
+            @PathVariable("categoryId") String categoryId, @RequestParam(defaultValue = "1") int page, @RequestParam(defaultValue = "10") int limit) {
+        return ResponseEntity.ok(ok(productService.getProductByCategoryId(categoryId, page, limit), "Get successfully"));
     }
 
     @GetMapping("/store-front/categories/slug/{slug}/products")
-    public ResponseEntity<Response<ResponseWithPagination<ProductDTO>>> getProductByCategorySlug(@PathVariable("slug") String slug, @RequestParam(defaultValue = "1") int page, @RequestParam(defaultValue = "10") int limit) {
-        ResponseWithPagination<ProductDTO> data = productService.getProductByCategorySlug(slug, page, limit);
-        Response<ResponseWithPagination<ProductDTO>> response = new Response<>();
-        response.setData(data);
-        response.setStatus(ResponseStatus.STATUS_SUCCESS);
-        response.setMessage("Get successfully");
-        return ResponseEntity.ok().body(response);
+    public ResponseEntity<Response<ResponseWithPagination<ProductDTO>>> getProductByCategorySlug(
+            @PathVariable("slug") String slug, @RequestParam(defaultValue = "1") int page, @RequestParam(defaultValue = "10") int limit) {
+        return ResponseEntity.ok(ok(productService.getProductByCategorySlug(slug, page, limit), "Get successfully"));
     }
 
     @GetMapping("/storefront/products/featured")
-    public ResponseEntity<Response<List<?>>> getFeaturedProducts(
-            @RequestParam(value = "page", defaultValue = "0", required = false) int page,
-            @RequestParam(value = "limit", defaultValue = "10", required = false) int limit
-    ) {
-//        ResponseWithPagination<?> data = productService.getListFeaturedProducts(page, limit);
-//        Response<ResponseWithPagination<ProductDTO>> response = new Response<>();
-//        response.setData(data);
-//        response.setStatus(ResponseStatus.STATUS_SUCCESS);
-//        response.setMessage("Get successfully");
-//        return ResponseEntity.ok().body(response);
-        return null;
+    public ResponseEntity<Response<ResponseWithPagination<ProductDTO>>> getFeaturedProducts(
+            @RequestParam(value = "page", defaultValue = "1") int page, @RequestParam(value = "limit", defaultValue = "10") int limit) {
+        return ResponseEntity.ok(ok(productService.getFeaturedProducts(page, limit), "Get successfully"));
     }
 
+    /** Tra cứu theo tên/SKU (back-office). Storefront tìm kiếm, lọc, facet qua search-service. */
     @GetMapping("/search")
     public ResponseEntity<Response<List<ProductDTO>>> searchProduct(@RequestParam String search) {
-        List<ProductDTO> result = productService.searchProduct(search);
-        Response<List<ProductDTO>> response = new Response<>();
-        response.setData(result);
-        response.setStatus(ResponseStatus.STATUS_SUCCESS);
-        response.setMessage("Get successfully");
-        return ResponseEntity.ok().body(response);
+        return ResponseEntity.ok(ok(productService.searchProduct(search), "Get successfully"));
     }
 
-    @GetMapping("/sold/{id}")
-    public ResponseEntity<Response<Long>> getSoldByProduct(@PathVariable("id") String productId) {
-        Long result = productService.getSoldByProduct(productId);
-        Response<Long> response = new Response<>();
-        response.setData(result);
-        response.setStatus(ResponseStatus.STATUS_SUCCESS);
-        response.setMessage("Get successfully");
-        return ResponseEntity.ok().body(response);
-    }
-
-//    @GetMapping("/get-variant-attribute")
-//    public ResponseEntity<Response<List<ProductVariantAttributeValueDTO>>> getVariantAttributeValueByProduct(@RequestParam("product") String productId) {
-//        List<ProductVariantAttributeValueDTO> result = productService.getVariantAttributeValueByProduct(productId);
-//        Response<List<ProductVariantAttributeValueDTO>> response = new Response<>();
-//        response.setData(result);
-//        response.setStatus(ResponseStatus.STATUS_SUCCESS);
-//        response.setMessage("Get successfully");
-//        return ResponseEntity.ok().body(response);
-//    }
-
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "Get product variations by parent id successfully",
-                    content = @Content(mediaType = "application/json",
-                            array = @ArraySchema(schema = @Schema(implementation = ProductVariantVm.class)))),
-            @ApiResponse(responseCode = "400", description = "Bad request",
-                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = Error.class))),
-            @ApiResponse(responseCode = "404", description = "Not found",
-                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = Error.class)))
-    })
     @GetMapping({"/storefront/product-variations/{parentId}", "/backoffice/product-variations/{parentId}"})
     public ResponseEntity<List<ProductVariantVm>> getProductVariationsByParentId(@PathVariable("parentId") String parentId) {
         return ResponseEntity.ok(productService.getProductVariationsByParentId(parentId));
     }
 
+    /** Các trục variant và giá trị đang bán (đọc từ read model). */
     @GetMapping("/{id}/variants/attributes/detail")
     public ResponseEntity<Response<List<VariantValueResponse>>> getVariantAttributeValueDetail(@PathVariable("id") String productId) {
-//        List<VariantValueResponse> result = productService.getVariantAttributeValueByProduct(productId);
-        List<VariantValueResponse> result = new ArrayList<>();
-
-        List<OptionValue> options = new ArrayList<>();
-        options.add(new OptionValue("Đen", "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRGzIvyt_xy57h1p6OstQpVbRZs6OtDDKpiOw&s", 1));
-        options.add(new OptionValue("Trắng", "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSc0wRIkUneSueNY53rOkf0DskgaL7i8bzThQ&s", 2));
-        options.add(new OptionValue("Xám", "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSc0wRIkUneSueNY53rOkf0DskgaL7i8bzThQ&s", 3));
-        options.add(new OptionValue("Vàng", "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSc0wRIkUneSueNY53rOkf0DskgaL7i8bzThQ&s", 4));
-        options.add(new OptionValue("Hồng", "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSc0wRIkUneSueNY53rOkf0DskgaL7i8bzThQ&s", 5));
-
-        VariantValueResponse variantValueResponse = new VariantValueResponse("Màu sắc", options);
-
-        List<OptionValue> options1 = new ArrayList<>();
-        options1.add(new OptionValue("128GB", null, 1));
-        options1.add(new OptionValue("256GB", null, 2));
-        options1.add(new OptionValue("512GB", null, 3));
-        options1.add(new OptionValue("1TB", null, 4));
-
-        VariantValueResponse variantValueResponse1 = new VariantValueResponse("Dung lượng", options1);
-
-        result.add(variantValueResponse);
-        result.add(variantValueResponse1);
-
-        Response<List<VariantValueResponse>> response = new Response<>();
-        response.setData(result);
-        response.setStatus(ResponseStatus.STATUS_SUCCESS);
-        response.setMessage("Get successfully");
-        return ResponseEntity.ok().body(response);
+        return ResponseEntity.ok(ok(productService.getVariantOptionGroups(productId), "Get successfully"));
     }
 
-    @GetMapping({"/storefront/product-option-combinations/{productId}/values"})
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "OK",
-                    content = @Content(schema = @Schema(implementation = ProductOptionCombinationGetVm.class))),
-            @ApiResponse(responseCode = "404", description = "Not found",
-                    content = @Content(schema = @Schema(implementation = Error.class))),
-    })
-    public ResponseEntity<Response<List<ProductOptionCombinationGetVm>>> listProductOptionCombinationOfProduct(@PathVariable("productId") String productId) {
-        List<ProductOptionCombinationGetVm> result = variantOptionService.getVariantOptionCombinationByProduct(productId);
-        Response<List<ProductOptionCombinationGetVm>> response = new Response<>();
-        response.setData(result);
-        response.setStatus(ResponseStatus.STATUS_SUCCESS);
-        response.setMessage("Get successfully");
-        return ResponseEntity.ok().body(response);
+    @GetMapping("/storefront/product-option-combinations/{productId}/values")
+    public ResponseEntity<Response<List<ProductOptionCombinationGetVm>>> listProductOptionCombinationOfProduct(
+            @PathVariable("productId") String productId) {
+        return ResponseEntity.ok(ok(variantOptionService.getVariantOptionCombinationByProduct(productId), "Get successfully"));
     }
 
     @GetMapping("/storefront/product-option-values/{productId}")
-    @ApiResponses(value = {
-            @ApiResponse(responseCode = "200", description = "OK",
-                    content = @Content(schema = @Schema(
-                            implementation = ProductOptionValueGetVm.class))),
-            @ApiResponse(responseCode = "404", description = "Not found",
-                    content = @Content(schema = @Schema(implementation = Error.class))),
-    })
     public ResponseEntity<Response<List<ProductOptionValueGetVm>>> listProductOptionValueOfProduct(@PathVariable("productId") String productId) {
-        List<ProductOptionValueGetVm> result = variantOptionService.getVariantOptionValueByProduct(productId);
-        Response<List<ProductOptionValueGetVm>> response = new Response<>();
-        response.setData(result);
-        response.setStatus(ResponseStatus.STATUS_SUCCESS);
-        response.setMessage("Get successfully");
-        return ResponseEntity.ok().body(response);
-    }
-
-    @GetMapping("/filter")
-    public ResponseEntity<Response<ResponseWithPagination<ProductDTO>>> getProductWithFilter(
-            @RequestParam(value = "page", defaultValue = "0", required = false) int page,
-            @RequestParam(value = "limit", defaultValue = "5", required = false) int limit,
-            @RequestParam(value = "productName", defaultValue = "", required = false) String productName,
-            @RequestParam(value = "category", defaultValue = "", required = false) String category,
-            @RequestParam(value = "brand", defaultValue = "", required = false) String brand,
-            @RequestParam(value = "rating", defaultValue = "", required = false) int rating,
-            @RequestParam(value = "startPrice", defaultValue = "", required = false) Double startPrice,
-            @RequestParam(value = "endPrice", defaultValue = "", required = false) Double endPrice
-    ) {
-        ResponseWithPagination<ProductDTO> result = productService.getProductWithFilter(page, limit, productName, category, brand, rating, startPrice, endPrice);
-        Response<ResponseWithPagination<ProductDTO>> response = new Response<>();
-        response.setData(result);
-        response.setStatus(ResponseStatus.STATUS_SUCCESS);
-        response.setMessage("Get successfully");
-        return ResponseEntity.ok().body(response);
-    }
-
-    @QueryMapping(value = "product")
-    List<Product> products() {
-        return productRepository.findAll();
+        return ResponseEntity.ok(ok(variantOptionService.getVariantOptionValueByProduct(productId), "Get successfully"));
     }
 }

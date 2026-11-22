@@ -1,21 +1,6 @@
 import { platformTables, snowflakeId } from "@ecommerce/platform";
 import { sql } from "drizzle-orm";
-import {
-  type AnyPgColumn,
-  bigint,
-  boolean,
-  char,
-  check,
-  index,
-  integer,
-  pgSchema,
-  primaryKey,
-  smallint,
-  text,
-  timestamp,
-  uniqueIndex,
-  varchar,
-} from "drizzle-orm/pg-core";
+import { type AnyPgColumn, bigint, boolean, char, check, index, integer, pgSchema, primaryKey, smallint, text, timestamp, uniqueIndex, varchar } from "drizzle-orm/pg-core";
 
 export const catalogSchema = pgSchema("catalog_service");
 

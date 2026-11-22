@@ -1,4 +1,3 @@
-// Package domain là lõi nghiệp vụ giỏ hàng: không phụ thuộc DB, HTTP, gRPC hay Kafka.
 package domain
 
 import (
@@ -15,7 +14,6 @@ const (
 	KindUnavailable // service phụ thuộc không phản hồi
 )
 
-// Error là lỗi nghiệp vụ; adapter đổi sang HTTP status / gRPC code tương ứng.
 type Error struct {
 	Kind Kind
 	Msg  string
@@ -30,7 +28,6 @@ func Unavailable(format string, a ...any) error {
 	return &Error{KindUnavailable, fmt.Sprintf(format, a...)}
 }
 
-// KindOf trả Kind của lỗi nghiệp vụ, 0 nếu là lỗi hạ tầng.
 func KindOf(err error) Kind {
 	var de *Error
 	if errors.As(err, &de) {

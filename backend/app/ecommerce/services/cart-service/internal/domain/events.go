@@ -2,7 +2,6 @@ package domain
 
 import "strconv"
 
-// Event là domain event; adapter messaging đổi sang protobuf và ghi outbox.
 type Event interface{ AggregateID() string }
 
 type CartItemAdded struct {

@@ -114,6 +114,25 @@ A date-time string at UTC, such as 2019-12-03T09:54:33Z, compliant with the date
 """
 scalar DateTime
 
+type FacetBucket {
+  count: Int!
+  value: String!
+}
+
+"""
+Một bộ lọc: key là code thuộc tính hoặc tên trục variant; các giá trị là OR
+"""
+input FacetFilterInput {
+  key: String!
+  values: [String!]!
+}
+
+type FacetGroup {
+  """Code thuộc tính hoặc tên trục variant"""
+  key: String!
+  values: [FacetBucket!]!
+}
+
 type Money {
   amount: Float!
   """ISO 4217"""
@@ -280,6 +299,43 @@ type ProductPage {
   totalPages: Int!
 }
 
+input ProductSearchInput {
+  """Lọc theo thuộc tính (key = code)"""
+  attributes: [FacetFilterInput!]
+  brandIds: [ID!]
+  categoryId: ID
+  """ISO 4217; bắt buộc khi lọc theo giá"""
+  currency: String
+  limit: Int! = 20
+  maxPrice: Float
+  minPrice: Float
+  """Lọc theo trục variant (key = tên trục)"""
+  options: [FacetFilterInput!]
+  page: Int! = 1
+  sort: ProductSort
+  text: String
+}
+
+type ProductSearchResult {
+  attributes: [FacetGroup!]!
+  """value = id thương hiệu"""
+  brands: [FacetBucket!]!
+  """value = id danh mục"""
+  categories: [FacetBucket!]!
+  items: [Product!]!
+  limit: Int!
+  options: [FacetGroup!]!
+  page: Int!
+  total: Int!
+}
+
+enum ProductSort {
+  NEWEST
+  PRICE_ASC
+  PRICE_DESC
+  RELEVANCE
+}
+
 type PromotionQuote {
   discount: Money
   reason: String
@@ -304,7 +360,9 @@ type Query {
   quotePromotion(code: String!): PromotionQuote!
   """Gợi ý cho riêng khách (vãng lai: theo phiên, hoặc xu hướng)"""
   recommendedForYou(limit: Int! = 12): [Recommendation!]!
-  """Tìm theo từ khoá (tên sản phẩm)"""
+  """Tìm kiếm có lọc thuộc tính/option/thương hiệu và facet (ADR 0030)"""
+  searchCatalog(input: ProductSearchInput!): ProductSearchResult!
+  """Tìm theo từ khoá (tên, SKU, thuộc tính tìm được) qua search-service"""
   searchProducts(keyword: String!): [Product!]!
   """Sản phẩm đang được quan tâm (7 ngày gần đây)"""
   trendingProducts(categoryId: ID, limit: Int! = 12): [Recommendation!]!

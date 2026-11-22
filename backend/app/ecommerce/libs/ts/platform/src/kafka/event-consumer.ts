@@ -1,16 +1,15 @@
-import { type DescMessage, fromBinary, type MessageShape } from '@bufbuild/protobuf';
-import { anyUnpack } from '@bufbuild/protobuf/wkt';
-import { KafkaJS } from '@confluentinc/kafka-javascript';
-import { type EventEnvelope, EventEnvelopeSchema } from '@ecommerce/proto/ecommerce/common/v1/event_envelope_pb';
-import { Logger, type OnApplicationBootstrap, type OnApplicationShutdown } from '@nestjs/common';
-import { context, propagation, SpanKind, SpanStatusCode, trace } from '@opentelemetry/api';
+import { type DescMessage, fromBinary, type MessageShape } from "@bufbuild/protobuf";
+import { anyUnpack } from "@bufbuild/protobuf/wkt";
+import { KafkaJS } from "@confluentinc/kafka-javascript";
+import { type EventEnvelope, EventEnvelopeSchema } from "@ecommerce/proto/ecommerce/common/v1/event_envelope_pb";
+import { Logger, type OnApplicationBootstrap, type OnApplicationShutdown } from "@nestjs/common";
+import { context, propagation, SpanKind, SpanStatusCode, trace } from "@opentelemetry/api";
 
 export interface ConsumerOptions {
   brokers: string[];
   clientId: string;
   groupId: string;
   topics: string[];
-  /** Số lần thử lại trong tiến trình trước khi đẩy sang <topic>.dlq. */
   maxAttempts?: number;
 }
 
@@ -21,27 +20,19 @@ interface Registration {
   handle: (event: unknown, envelope: EventEnvelope) => Promise<void>;
 }
 
-/**
- * Consumer Kafka cho event dạng EventEnvelope (protobuf) do Debezium đẩy từ outbox của mọi service.
- * - Đăng ký handler theo kiểu event: `consumer.on(OrderPlacedSchema, async (e, env) => ...)`; kiểu lạ bị bỏ qua.
- * - Commit offset thủ công sau khi handler xong; lỗi thì thử lại có backoff, quá số lần thì đẩy sang DLQ.
- * - Handler phải idempotent (dùng markProcessed với env.id) vì Kafka giao ít nhất một lần.
- * - Trace nối tiếp từ producer qua header traceparent.
- * Không có KAFKA_BROKERS thì không chạy (local không cần broker).
- */
 export class KafkaEventConsumer implements OnApplicationBootstrap, OnApplicationShutdown {
   private readonly log = new Logger(KafkaEventConsumer.name);
   private readonly handlers = new Map<string, Registration>();
   private consumer?: KafkaJS.Consumer;
   private producer?: KafkaJS.Producer;
-  private readonly tracer = trace.getTracer('@ecommerce/platform/kafka');
+  private readonly tracer = trace.getTracer("@ecommerce/platform/kafka");
 
   constructor(private readonly opts: ConsumerOptions) {}
 
   on<D extends DescMessage>(schema: D, handle: EventHandler<D>): this {
     this.handlers.set(schema.typeName, {
       schema,
-      handle: handle as Registration['handle'],
+      handle: handle as Registration["handle"],
     });
     return this;
   }
@@ -69,7 +60,7 @@ export class KafkaEventConsumer implements OnApplicationBootstrap, OnApplication
         await this.consumer?.commitOffsets([{ topic, partition, offset: (BigInt(message.offset) + 1n).toString() }]);
       },
     });
-    this.log.log(`consuming ${this.opts.topics.join(', ')} as ${this.opts.groupId}`);
+    this.log.log(`consuming ${this.opts.topics.join(", ")} as ${this.opts.groupId}`);
   }
 
   async onApplicationShutdown(): Promise<void> {
@@ -77,7 +68,6 @@ export class KafkaEventConsumer implements OnApplicationBootstrap, OnApplication
     await this.producer?.disconnect();
   }
 
-  /** Xử lý một record (public để test không cần broker). */
   async process(topic: string, message: KafkaJS.KafkaMessage): Promise<void> {
     if (!message.value) return;
     let envelope: EventEnvelope;
@@ -97,7 +87,7 @@ export class KafkaEventConsumer implements OnApplicationBootstrap, OnApplication
     }
 
     const parent = propagation.extract(context.active(), {
-      traceparent: envelope.traceparent || headerOf(message, 'traceparent'),
+      traceparent: envelope.traceparent || headerOf(message, "traceparent"),
     });
     await context.with(parent, () =>
       this.tracer.startActiveSpan(
@@ -105,11 +95,11 @@ export class KafkaEventConsumer implements OnApplicationBootstrap, OnApplication
         {
           kind: SpanKind.CONSUMER,
           attributes: {
-            'messaging.system': 'kafka',
-            'messaging.destination.name': topic,
-            'messaging.consumer.group.name': this.opts.groupId,
-            'messaging.message.id': envelope.id,
-            'event.type': envelope.type,
+            "messaging.system": "kafka",
+            "messaging.destination.name": topic,
+            "messaging.consumer.group.name": this.opts.groupId,
+            "messaging.message.id": envelope.id,
+            "event.type": envelope.type,
           },
         },
         async (span) => {
@@ -122,9 +112,7 @@ export class KafkaEventConsumer implements OnApplicationBootstrap, OnApplication
               } catch (e) {
                 if (attempt >= max) throw e;
                 const delay = Math.min(200 * 2 ** (attempt - 1), 5_000);
-                this.log.warn(
-                  `handler for ${envelope.type} failed (attempt ${attempt}/${max}): ${(e as Error).message}`,
-                );
+                this.log.warn(`handler for ${envelope.type} failed (attempt ${attempt}/${max}): ${(e as Error).message}`);
                 await new Promise((r) => setTimeout(r, delay));
               }
             }
@@ -151,9 +139,9 @@ export class KafkaEventConsumer implements OnApplicationBootstrap, OnApplication
           value: message.value ?? null,
           headers: {
             ...(message.headers ?? {}),
-            'x-dlq-error': error.message.slice(0, 1000),
-            'x-dlq-consumer': this.opts.groupId,
-            'x-dlq-offset': message.offset,
+            "x-dlq-error": error.message.slice(0, 1000),
+            "x-dlq-consumer": this.opts.groupId,
+            "x-dlq-offset": message.offset,
           },
         },
       ],

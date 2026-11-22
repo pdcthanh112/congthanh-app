@@ -1,5 +1,3 @@
-// Package app: use case tải file trực tiếp lên object storage bằng URL ký sẵn (presigned PUT).
-// Trình duyệt không gửi file qua service: xin URL → PUT lên storage → gọi complete để service xác minh.
 package app
 
 import (
@@ -34,8 +32,8 @@ type Storage interface {
 type IDs interface{ NewID() string }
 
 type Options struct {
-	UploadTTL  time.Duration // hạn của URL ký sẵn
-	PendingTTL time.Duration // PENDING quá hạn này bị dọn
+	UploadTTL  time.Duration 
+	PendingTTL time.Duration 
 }
 
 type Service struct {
@@ -84,7 +82,6 @@ func (s *Service) RequestUpload(ctx context.Context, r domain.UploadRequest) (Up
 	return Upload{Media: m, UploadURL: url, Headers: headers, ExpiresAt: now.Add(s.opt.UploadTTL)}, nil
 }
 
-// Complete xác minh object đã có trên storage, đúng dung lượng và loại đã khai báo, rồi chuyển READY.
 func (s *Service) Complete(ctx context.Context, id, subject string, admin bool) (domain.Media, error) {
 	m, err := s.repo.Get(ctx, id)
 	if err != nil {
@@ -159,7 +156,6 @@ func (s *Service) Delete(ctx context.Context, id, subject string, admin bool) er
 	return s.repo.Delete(ctx, id)
 }
 
-// CleanupPending xoá file tải dở (PENDING quá hạn) cả trên storage lẫn DB; trả số bản ghi đã dọn.
 func (s *Service) CleanupPending(ctx context.Context) (int, error) {
 	stale, err := s.repo.StalePending(ctx, s.now().Add(-s.opt.PendingTTL), 500)
 	if err != nil {

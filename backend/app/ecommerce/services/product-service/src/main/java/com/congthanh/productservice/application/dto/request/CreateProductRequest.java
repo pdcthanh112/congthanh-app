@@ -1,47 +1,45 @@
 package com.congthanh.productservice.application.dto.request;
 
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
-import org.springframework.web.multipart.MultipartFile;
+import jakarta.validation.constraints.Size;
 
 import java.math.BigDecimal;
 import java.util.List;
 
-@Data
-@NoArgsConstructor
-@AllArgsConstructor
-@Builder
-public class CreateProductRequest {
+/**
+ * Tạo sản phẩm gốc, có thể kèm thuộc tính, ảnh và variant trong cùng một transaction. Ảnh là id media đã tải lên
+ * media-service (không nhận file ở đây). {@code slug} bỏ trống thì sinh từ tên.
+ */
+public record CreateProductRequest(@NotBlank @Size(max = 255) String name,
+                                   @Size(max = 255) String slug,
+                                   @Size(max = 64) String sku,
+                                   @Size(max = 14) String gtin,
+                                   BigDecimal price,
+                                   String currency,
+                                   String description,
+                                   @Size(max = 255) String supplier,
+                                   Long brandId,
+                                   boolean featured,
+                                   String status,
+                                   @NotEmpty List<@NotBlank String> categoryIds,
+                                   List<@Valid ImageRequest> images,
+                                   Long thumbnailId,
+                                   List<@Valid AttributeRequest> attributes,
+                                   List<@Valid CreateVariantRequest> variants) {
 
-    @NotNull
-    private String name;
-    @NotNull
-    private List<String> category;
-    @NotNull
-    private String slug;
-    private String sku;
-    private String gtin;
-    private BigDecimal price;
-    private String currency;
-    private String description;
-    private String supplier;
-    private String brand;
-    @NotNull
-    private MultipartFile thumbnail;
-    private List<MultipartFile> image;
-    private List<ProductAttributeRequest> attribute;
-    private List<ProductVariantRequest> variant;
-    private Boolean isFeatured;
-    private MetadataRequest metadata;
-
-
-    record ProductAttributeRequest(@NotNull String attribute, @NotNull String value) {
+    public CreateProductRequest {
+        images = images == null ? List.of() : images;
+        attributes = attributes == null ? List.of() : attributes;
+        variants = variants == null ? List.of() : variants;
     }
 
-    record ProductVariantRequest(@NotNull String sku, @NotNull String gtin, @NotNull BigDecimal price,
-                                 @NotNull String currency) {
+    /** Ảnh đã có trên media-service. */
+    public record ImageRequest(@NotNull Long mediaId, @NotBlank @Size(max = 1024) String url, int displayOrder) {
+    }
+
+    public record AttributeRequest(@NotNull Long attributeId, @NotBlank String value) {
     }
 }

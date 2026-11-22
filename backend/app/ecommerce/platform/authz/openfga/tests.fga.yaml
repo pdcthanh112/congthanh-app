@@ -1,35 +1,34 @@
-# Chạy: fga model test --tests platform/authz/openfga/tests.fga.yaml
 model_file: ./model.fga
 tuples:
-  - {user: platform:main, relation: platform, object: order:o1}
-  - {user: user:bob, relation: support, object: platform:main}
-  - {user: user:alice, relation: buyer, object: order:o1}
-  - {user: store:s1, relation: store, object: order:o1}
-  - {user: user:seller, relation: owner, object: store:s1}
+  - { user: platform:main, relation: platform, object: order:o1 }
+  - { user: user:bob, relation: support, object: platform:main }
+  - { user: user:alice, relation: buyer, object: order:o1 }
+  - { user: store:s1, relation: store, object: order:o1 }
+  - { user: user:seller, relation: owner, object: store:s1 }
 tests:
   - name: order-permissions
     check:
       - user: user:alice
         object: order:o1
-        assertions: {can_view: true, can_cancel: true, can_refund: false}
+        assertions: { can_view: true, can_cancel: true, can_refund: false }
       - user: user:seller
         object: order:o1
-        assertions: {can_view: true, can_cancel: false}
+        assertions: { can_view: true, can_cancel: false }
       - user: user:bob
         object: order:o1
-        assertions: {can_view: true, can_refund: false}
-  # commerce-mcp-service gửi quan hệ sở hữu dạng contextual tuple (lấy từ cart-service/order-service).
+        assertions: { can_view: true, can_refund: false }
+
   - name: cart-permissions-for-agents
     tuples:
-      - {user: platform:main, relation: platform, object: cart:c1}
-      - {user: user:alice, relation: owner, object: cart:c1}
+      - { user: platform:main, relation: platform, object: cart:c1 }
+      - { user: user:alice, relation: owner, object: cart:c1 }
     check:
       - user: user:alice
         object: cart:c1
-        assertions: {can_view: true, can_edit: true}
+        assertions: { can_view: true, can_edit: true }
       - user: user:bob
         object: cart:c1
-        assertions: {can_view: true, can_edit: false}
+        assertions: { can_view: true, can_edit: false }
       - user: user:seller
         object: cart:c1
-        assertions: {can_view: false, can_edit: false}
+        assertions: { can_view: false, can_edit: false }

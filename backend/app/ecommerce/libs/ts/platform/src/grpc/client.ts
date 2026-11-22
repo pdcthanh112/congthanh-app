@@ -1,35 +1,18 @@
-import type { DescService } from '@bufbuild/protobuf';
-import { type CallOptions, type Client, Code, ConnectError, createClient, type Interceptor } from '@connectrpc/connect';
-import { createGrpcTransport } from '@connectrpc/connect-node';
-import {
-  ConsecutiveBreaker,
-  circuitBreaker,
-  ExponentialBackoff,
-  handleWhen,
-  type IPolicy,
-  retry,
-  TimeoutStrategy,
-  timeout,
-  wrap,
-} from 'cockatiel';
-import { DomainError } from '../errors/domain-error.js';
+import type { DescService } from "@bufbuild/protobuf";
+import { type CallOptions, type Client, Code, ConnectError, createClient, type Interceptor } from "@connectrpc/connect";
+import { createGrpcTransport } from "@connectrpc/connect-node";
+import { circuitBreaker, ConsecutiveBreaker, ExponentialBackoff, handleWhen, type IPolicy, retry, timeout, TimeoutStrategy, wrap } from "cockatiel";
+import { DomainError } from "../errors/domain-error.js";
 
-/** Lỗi tạm thời đáng thử lại; lỗi nghiệp vụ (NotFound, InvalidArgument...) thì không. */
-export const isTransient = (e: unknown): boolean =>
-  e instanceof ConnectError &&
-  [Code.Unavailable, Code.DeadlineExceeded, Code.ResourceExhausted, Code.Aborted].includes(e.code);
+export const isTransient = (e: unknown): boolean => e instanceof ConnectError && [Code.Unavailable, Code.DeadlineExceeded, Code.ResourceExhausted, Code.Aborted].includes(e.code);
 
 export interface ResilienceOptions {
-  /** Timeout mỗi lần gọi (ms). */
   timeoutMs?: number;
   retries?: number;
-  /** Số lỗi liên tiếp để mở mạch. */
   breakerThreshold?: number;
-  /** Thời gian mạch mở trước khi thử lại (ms). */
   halfOpenAfterMs?: number;
 }
 
-/** Timeout + retry có backoff + circuit breaker (tương đương Resilience4j bên Java). */
 export function resiliencePolicy(opts: ResilienceOptions = {}): IPolicy {
   const transient = handleWhen(isTransient);
   return wrap(
@@ -46,26 +29,22 @@ export function resiliencePolicy(opts: ResilienceOptions = {}): IPolicy {
 }
 
 export interface GrpcClientOptions {
-  /** host:port hoặc http://host:port */
   address: string;
   interceptors?: Interceptor[];
 }
 
-/** Client gRPC (HTTP/2) tới service Java/Go. */
 export function grpcClient<T extends DescService>(service: T, opts: GrpcClientOptions): Client<T> {
-  const baseUrl = opts.address.startsWith('http') ? opts.address : `http://${opts.address}`;
+  const baseUrl = opts.address.startsWith("http") ? opts.address : `http://${opts.address}`;
   return createClient(service, createGrpcTransport({ baseUrl, interceptors: opts.interceptors ?? [] }));
 }
 
-/** Header chuyển tiếp token người dùng (token relay) cho lời gọi xuống service phía sau. */
 export function bearer(token: string | undefined, extra: CallOptions = {}): CallOptions {
   if (!token) return extra;
   const headers = new Headers(extra.headers);
-  headers.set('authorization', `Bearer ${token}`);
+  headers.set("authorization", `Bearer ${token}`);
   return { ...extra, headers };
 }
 
-/** Dịch lỗi gRPC sang DomainError để resolver/handler trả lỗi đúng loại. */
 export function fromGrpcError(e: unknown, what: string): DomainError {
   if (e instanceof DomainError) return e;
   if (e instanceof ConnectError) {

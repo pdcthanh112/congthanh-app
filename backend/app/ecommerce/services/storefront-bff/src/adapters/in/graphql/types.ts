@@ -250,3 +250,60 @@ export class OrderSummaryModel {
   @Field(() => Int) itemCount!: number;
   @Field(() => GraphQLISODateTime) placedAt!: Date;
 }
+
+export enum ProductSortGql {
+  RELEVANCE = 'relevance',
+  PRICE_ASC = 'price_asc',
+  PRICE_DESC = 'price_desc',
+  NEWEST = 'newest',
+}
+registerEnumType(ProductSortGql, { name: 'ProductSort' });
+
+@InputType('FacetFilterInput', {
+  description: 'Một bộ lọc: key là code thuộc tính hoặc tên trục variant; các giá trị là OR',
+})
+export class FacetFilterInput {
+  @Field() key!: string;
+  @Field(() => [String]) values!: string[];
+}
+
+@InputType('ProductSearchInput')
+export class ProductSearchInput {
+  @Field(() => String, { nullable: true }) text?: string | null;
+  @Field(() => ID, { nullable: true }) categoryId?: string | null;
+  @Field(() => [ID], { nullable: true }) brandIds?: string[] | null;
+  @Field(() => [FacetFilterInput], { nullable: true, description: 'Lọc theo thuộc tính (key = code)' })
+  attributes?: FacetFilterInput[] | null;
+  @Field(() => [FacetFilterInput], { nullable: true, description: 'Lọc theo trục variant (key = tên trục)' })
+  options?: FacetFilterInput[] | null;
+  @Field(() => String, { nullable: true, description: 'ISO 4217; bắt buộc khi lọc theo giá' }) currency?: string | null;
+  @Field(() => Float, { nullable: true }) minPrice?: number | null;
+  @Field(() => Float, { nullable: true }) maxPrice?: number | null;
+  @Field(() => ProductSortGql, { nullable: true }) sort?: ProductSortGql | null;
+  @Field(() => Int, { defaultValue: 1 }) page!: number;
+  @Field(() => Int, { defaultValue: 20 }) limit!: number;
+}
+
+@ObjectType('FacetBucket')
+export class FacetBucketModel {
+  @Field() value!: string;
+  @Field(() => Int) count!: number;
+}
+
+@ObjectType('FacetGroup')
+export class FacetGroupModel {
+  @Field({ description: 'Code thuộc tính hoặc tên trục variant' }) key!: string;
+  @Field(() => [FacetBucketModel]) values!: FacetBucketModel[];
+}
+
+@ObjectType('ProductSearchResult')
+export class ProductSearchResultModel {
+  @Field(() => [ProductModel]) items!: ProductSource[];
+  @Field(() => Int) total!: number;
+  @Field(() => Int) page!: number;
+  @Field(() => Int) limit!: number;
+  @Field(() => [FacetBucketModel], { description: 'value = id danh mục' }) categories!: FacetBucketModel[];
+  @Field(() => [FacetBucketModel], { description: 'value = id thương hiệu' }) brands!: FacetBucketModel[];
+  @Field(() => [FacetGroupModel]) attributes!: FacetGroupModel[];
+  @Field(() => [FacetGroupModel]) options!: FacetGroupModel[];
+}

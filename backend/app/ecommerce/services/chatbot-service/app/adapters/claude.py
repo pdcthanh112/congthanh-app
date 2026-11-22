@@ -19,7 +19,6 @@ class ClaudeLLM:
 
     async def stream(self, system: str, messages: list[Message]) -> AsyncIterator[str]:
         try:
-            # fallbacks="default": khi bộ lọc an toàn từ chối, API tự chạy lại trên model dự phòng.
             async with self.client.beta.messages.stream(
                 model=self.model,
                 max_tokens=self.max_tokens,

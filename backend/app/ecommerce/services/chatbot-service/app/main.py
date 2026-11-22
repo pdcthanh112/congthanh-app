@@ -1,5 +1,3 @@
-"""chatbot-service: trợ lý mua sắm (thay bản Java Spring AI). SSE: POST /api/ecommerce/chatbot/chat."""
-
 from __future__ import annotations
 
 import json

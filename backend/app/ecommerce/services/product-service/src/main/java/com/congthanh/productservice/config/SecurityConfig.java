@@ -19,10 +19,11 @@ class SecurityConfig {
                 .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(a -> a
                         .requestMatchers("/actuator/health/**", "/actuator/prometheus", "/actuator/info").permitAll()
-                        .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html", "/graphiql/**").permitAll()
+                        .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
                         .requestMatchers("/api/ecommerce/products/read-model/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.GET, "/api/ecommerce/**").permitAll()
-                        .requestMatchers("/graphql").permitAll()
+                        // Định nghĩa thuộc tính và trục variant dùng chung cho cả catalog: chỉ ADMIN sửa.
+                        .requestMatchers("/api/ecommerce/product-attribute/**", "/api/ecommerce/variant-options/**").hasRole("ADMIN")
                         .requestMatchers("/api/ecommerce/**").hasAnyRole("SELLER", "ADMIN")
                         .anyRequest().denyAll())
                 .oauth2ResourceServer(o -> o.jwt(j -> j.jwtAuthenticationConverter(new KeycloakJwtRoles())))

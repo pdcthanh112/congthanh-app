@@ -1,4 +1,3 @@
-// Package messaging đổi domain event sang protobuf (outbox) và tiêu thụ event từ Kafka.
 package messaging
 
 import (
@@ -13,7 +12,7 @@ import (
 
 const (
 	Source        = "cart-service"
-	AggregateType = "cart" // Debezium route → topic ecommerce.cart.events
+	AggregateType = "cart" 
 )
 
 func ToOutbox(e domain.Event) (outbox.Message, error) {

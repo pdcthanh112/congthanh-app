@@ -33,10 +33,6 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 
-/**
- * Điều phối phiên checkout: báo giá từ pricing/promotion/shipping/tax, kiểm tra gian lận rồi tạo đơn ở
- * order-service. Saga sau khi có đơn (giữ hàng, thanh toán, xác nhận) là workflow Temporal của service này.
- */
 public class CheckoutService implements CheckoutUseCase, com.congthanh.checkoutservice.application.port.in.SubscriptionOrders {
 
     private static final Logger log = LoggerFactory.getLogger(CheckoutService.class);

@@ -47,7 +47,7 @@ func TestWebhookDelivery(t *testing.T) {
 
 	for range 2 {
 		tx, _ := pool.Begin(ctx)
-		if err := svc.FanOutTx(ctx, tx, "evt-1", domain.EventOrderCreated, time.Now(), json.RawMessage(`{"orderId":"o1"}`)); err != nil {
+		if err := svc.FanOut(ctx, repo.InTx(tx), "evt-1", domain.EventOrderCreated, time.Now(), json.RawMessage(`{"orderId":"o1"}`)); err != nil {
 			t.Fatal(err)
 		}
 		_ = tx.Commit(ctx)

@@ -4,6 +4,7 @@ package http
 import (
 	"net/http"
 	"strconv"
+	"strings"
 
 	"github.com/go-chi/chi/v5"
 
@@ -38,7 +39,8 @@ func num(r *http.Request, k string) (float64, error) {
 	return f, nil
 }
 
-// search: GET /products?q=&categoryId=&minPrice=&maxPrice=&sort=&page=&size=
+// search: GET /products?q=&categoryId=&brand=1,2&attr.<code>=v1,v2&opt.<trục>=v&currency=&minPrice=&maxPrice=&sort=&page=&size=
+// Nhiều giá trị của một bộ lọc cách nhau bằng dấu phẩy hoặc lặp tham số (OR); các bộ lọc khác nhau là AND.
 func (h *Handler) search(w http.ResponseWriter, r *http.Request) error {
 	q := r.URL.Query()
 	minP, err := num(r, "minPrice")
@@ -51,15 +53,38 @@ func (h *Handler) search(w http.ResponseWriter, r *http.Request) error {
 	}
 	page, _ := strconv.Atoi(q.Get("page"))
 	size, _ := strconv.Atoi(q.Get("size"))
-	res, err := h.svc.Search(r.Context(), domain.Query{
-		Text: q.Get("q"), CategoryID: q.Get("categoryId"), MinPrice: minP, MaxPrice: maxP,
+	query := domain.Query{
+		Text: q.Get("q"), CategoryID: q.Get("categoryId"), MinPrice: minP, MaxPrice: maxP, Currency: q.Get("currency"),
+		BrandIDs: values(q["brand"]), Attributes: map[string][]string{}, Options: map[string][]string{},
 		Sort: domain.Sort(q.Get("sort")), Page: page, Size: size,
-	})
+	}
+	for k, vs := range q {
+		switch {
+		case strings.HasPrefix(k, "attr."):
+			query.Attributes[strings.TrimPrefix(k, "attr.")] = values(vs)
+		case strings.HasPrefix(k, "opt."):
+			query.Options[strings.TrimPrefix(k, "opt.")] = values(vs)
+		}
+	}
+	res, err := h.svc.Search(r.Context(), query)
 	if err != nil {
 		return err
 	}
 	httpx.OK(w, http.StatusOK, "Search products successfully", res)
 	return nil
+}
+
+// values tách "a,b" và tham số lặp thành danh sách, bỏ phần rỗng.
+func values(raw []string) []string {
+	var out []string
+	for _, r := range raw {
+		for _, v := range strings.Split(r, ",") {
+			if v = strings.TrimSpace(v); v != "" {
+				out = append(out, v)
+			}
+		}
+	}
+	return out
 }
 
 func (h *Handler) suggest(w http.ResponseWriter, r *http.Request) error {

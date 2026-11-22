@@ -303,6 +303,34 @@ spec:
 apiVersion: security.istio.io/v1
 kind: AuthorizationPolicy
 metadata:
+  name: allow-search-service
+  namespace: ecommerce
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: search-service
+  action: ALLOW
+  rules:
+  - from:
+    - source:
+        principals:
+        - cluster.local/ns/ecommerce/sa/storefront-bff
+        - cluster.local/ns/ecommerce/sa/chatbot-service
+        - cluster.local/ns/ecommerce/sa/commerce-mcp-service
+        - cluster.local/ns/gateway/sa/apisix
+  - from:
+    - source:
+        namespaces:
+        - observability
+    to:
+    - operation:
+        ports:
+        - '9464'
+        - '8080'
+---
+apiVersion: security.istio.io/v1
+kind: AuthorizationPolicy
+metadata:
   name: allow-shipping-service
   namespace: ecommerce
 spec:

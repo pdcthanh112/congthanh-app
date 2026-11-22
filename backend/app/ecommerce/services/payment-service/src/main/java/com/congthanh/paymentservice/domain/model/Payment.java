@@ -30,7 +30,6 @@ public final class Payment {
     private String failureReason;
     private Instant authorizationExpiresAt;
     private Instant updatedAt;
-    /** Tổng đã hoàn qua các lần hoàn một phần (0 nếu chưa hoàn). */
     private BigDecimal refundedAmount;
 
     private final List<PaymentEvent> events = new ArrayList<>();
@@ -85,9 +84,6 @@ public final class Payment {
         authorized(providerRef, now, null);
     }
 
-    /**
-     * @param expiresAt hạn chót phải capture (authorization của đối tác trả góp hết hạn sớm hơn thẻ); null nếu không rõ
-     */
     public void authorized(String providerRef, Instant now, Instant expiresAt) {
         if (status == PaymentStatus.AUTHORIZED || status == PaymentStatus.CAPTURED) {
             return;

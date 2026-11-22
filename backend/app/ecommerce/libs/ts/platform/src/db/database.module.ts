@@ -1,15 +1,13 @@
-import { type DynamicModule, Global, Inject, Module, type OnApplicationShutdown } from '@nestjs/common';
-import { drizzle } from 'drizzle-orm/node-postgres';
-import type pg from 'pg';
-import { createPool, type DatabaseOptions, DB, PG_POOL, runMigrations } from './database.js';
-import { type JanitorOptions, PlatformTableJanitor } from './janitor.js';
+import { type DynamicModule, Global, Inject, Module, type OnApplicationShutdown } from "@nestjs/common";
+import { drizzle } from "drizzle-orm/node-postgres";
+import type pg from "pg";
+import { createPool, type DatabaseOptions, DB, PG_POOL, runMigrations } from "./database.js";
+import { type JanitorOptions, PlatformTableJanitor } from "./janitor.js";
 
 export interface DatabaseModuleOptions extends DatabaseOptions {
-  // biome-ignore lint/suspicious/noExplicitAny: schema Drizzle của service
   drizzleSchema: Record<string, any>;
   migrateOnStart: boolean;
   migrationsFolder: string;
-  /** Dọn outbox/processed_events quá hạn; false để tắt. */
   janitor?: JanitorOptions | false;
 }
 
@@ -48,7 +46,7 @@ export class PlatformDatabaseModule implements OnApplicationShutdown {
         {
           provide: DB,
           inject: [PG_POOL],
-          useFactory: (pool: pg.Pool) => drizzle(pool, { schema: opts.drizzleSchema, casing: 'snake_case' }),
+          useFactory: (pool: pg.Pool) => drizzle(pool, { schema: opts.drizzleSchema, casing: "snake_case" }),
         },
       ],
       exports: [PG_POOL, DB],

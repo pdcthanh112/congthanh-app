@@ -1,0 +1,297 @@
+openapi: 3.1.0
+info:
+  title: shipping-service
+  version: 1.0.0
+  description: |
+    Báo giá vận chuyển, vận đơn, nhãn gửi hàng và hành trình. Số tiền là số nguyên đơn vị nhỏ nhất (hậu tố Minor),
+    luôn kèm currency (ADR 0029). Hãng vận chuyển cập nhật hành trình bằng vai trò SHIPPER.
+servers:
+  - url: https://api.congthanh.vn
+  - url: http://localhost:9080
+security:
+  - keycloak: []
+tags:
+  - name: quote
+  - name: shipment
+  - name: shipping-rate
+paths:
+  /api/ecommerce/shipping/quotes:
+    post:
+      operationId: quoteShipping
+      summary: Báo giá các dịch vụ vận chuyển cho một kiện hàng (công khai)
+      tags: [quote]
+      security:
+        - {}
+        - keycloak: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [destination, weightGrams, currency]
+              properties:
+                destination: {$ref: '#/components/schemas/Address'}
+                weightGrams: {type: integer, minimum: 1}
+                declaredValueMinor: {type: integer, format: int64, description: 'Giá trị hàng, dùng cho ngưỡng miễn phí vận chuyển'}
+                currency: {type: string, example: USD}
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - properties:
+                      data:
+                        type: array
+                        items:
+                          type: object
+                          properties:
+                            carrier: {type: string}
+                            serviceCode: {type: string}
+                            serviceName: {type: string}
+                            feeMinor: {type: integer, format: int64}
+                            currency: {type: string}
+                            daysMin: {type: integer}
+                            daysMax: {type: integer}
+        '400': {$ref: '#/components/responses/Error'}
+  /api/ecommerce/shipping/track/{tracking}:
+    get:
+      operationId: trackShipment
+      summary: Tra hành trình theo mã vận đơn (công khai, không trả địa chỉ)
+      tags: [shipment]
+      security:
+        - {}
+        - keycloak: []
+      parameters:
+        - {name: tracking, in: path, required: true, schema: {type: string}}
+      responses:
+        '200': {$ref: '#/components/responses/Shipment'}
+        '404': {$ref: '#/components/responses/Error'}
+  /api/ecommerce/shipping/shipments/order/{orderId}:
+    get:
+      operationId: getShipmentForOrder
+      summary: Vận đơn của một đơn hàng (chủ đơn hoặc ADMIN)
+      tags: [shipment]
+      parameters:
+        - {name: orderId, in: path, required: true, schema: {type: string}}
+      responses:
+        '200': {$ref: '#/components/responses/Shipment'}
+        '403': {$ref: '#/components/responses/Error'}
+        '404': {$ref: '#/components/responses/Error'}
+  /api/ecommerce/shipping/shipments/{id}:
+    get:
+      operationId: getShipment
+      summary: Chi tiết vận đơn (ADMIN, SHIPPER)
+      tags: [shipment]
+      parameters:
+        - $ref: '#/components/parameters/ShipmentId'
+      responses:
+        '200': {$ref: '#/components/responses/Shipment'}
+        '403': {$ref: '#/components/responses/Error'}
+        '404': {$ref: '#/components/responses/Error'}
+  /api/ecommerce/shipping/shipments/{id}/status:
+    post:
+      operationId: updateShipmentStatus
+      summary: Cập nhật hành trình (ADMIN, SHIPPER)
+      tags: [shipment]
+      parameters:
+        - $ref: '#/components/parameters/ShipmentId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [status]
+              properties:
+                status: {$ref: '#/components/schemas/ShipmentStatus'}
+                note: {type: string}
+                location: {type: string}
+      responses:
+        '200': {$ref: '#/components/responses/Shipment'}
+        '400': {$ref: '#/components/responses/Error'}
+        '403': {$ref: '#/components/responses/Error'}
+        '404': {$ref: '#/components/responses/Error'}
+        '409': {$ref: '#/components/responses/Error'}
+  /api/ecommerce/shipping/shipments/{id}/label:
+    post:
+      operationId: createShippingLabel
+      summary: Tạo nhãn gửi hàng với hãng vận chuyển (ADMIN)
+      tags: [shipment]
+      parameters:
+        - $ref: '#/components/parameters/ShipmentId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [carrier, serviceCode]
+              properties:
+                carrier: {type: string, example: UPS}
+                serviceCode: {type: string, example: GROUND}
+      responses:
+        '200': {$ref: '#/components/responses/Shipment'}
+        '400': {$ref: '#/components/responses/Error'}
+        '403': {$ref: '#/components/responses/Error'}
+        '409': {$ref: '#/components/responses/Error'}
+  /api/ecommerce/shipping/rates:
+    get:
+      operationId: listShippingRates
+      summary: Bảng phí vận chuyển (ADMIN)
+      tags: [shipping-rate]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Envelope'
+                  - properties:
+                      data: {type: array, items: {$ref: '#/components/schemas/Rate'}}
+        '403': {$ref: '#/components/responses/Error'}
+    post:
+      operationId: createShippingRate
+      summary: Thêm phí vận chuyển (ADMIN)
+      tags: [shipping-rate]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/Rate'}
+      responses:
+        '201': {$ref: '#/components/responses/Rate'}
+        '400': {$ref: '#/components/responses/Error'}
+        '403': {$ref: '#/components/responses/Error'}
+        '409': {$ref: '#/components/responses/Error'}
+  /api/ecommerce/shipping/rates/{id}:
+    parameters:
+      - {name: id, in: path, required: true, schema: {type: integer, format: int64}}
+    put:
+      operationId: updateShippingRate
+      summary: Sửa phí vận chuyển (ADMIN)
+      tags: [shipping-rate]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/Rate'}
+      responses:
+        '200': {$ref: '#/components/responses/Rate'}
+        '400': {$ref: '#/components/responses/Error'}
+        '403': {$ref: '#/components/responses/Error'}
+        '404': {$ref: '#/components/responses/Error'}
+    delete:
+      operationId: deleteShippingRate
+      summary: Xoá phí vận chuyển (ADMIN)
+      tags: [shipping-rate]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/Envelope'}
+        '403': {$ref: '#/components/responses/Error'}
+        '404': {$ref: '#/components/responses/Error'}
+components:
+  securitySchemes:
+    keycloak:
+      type: openIdConnect
+      openIdConnectUrl: https://auth.congthanh.vn/realms/ecommerce/.well-known/openid-configuration
+  parameters:
+    ShipmentId:
+      name: id
+      in: path
+      required: true
+      schema: {type: string}
+  responses:
+    Error:
+      description: Lỗi
+      content:
+        application/json:
+          schema: {$ref: '#/components/schemas/Envelope'}
+    Shipment:
+      description: OK
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/Envelope'
+              - properties:
+                  data: {$ref: '#/components/schemas/Shipment'}
+    Rate:
+      description: OK
+      content:
+        application/json:
+          schema:
+            allOf:
+              - $ref: '#/components/schemas/Envelope'
+              - properties:
+                  data: {$ref: '#/components/schemas/Rate'}
+  schemas:
+    Envelope:
+      type: object
+      properties:
+        message: {type: string}
+        data: {}
+        status: {type: string, enum: [Success, Failed]}
+        errorCode: {type: integer}
+    ShipmentStatus:
+      type: string
+      enum: [PENDING, LABEL_CREATED, PICKED_UP, IN_TRANSIT, OUT_FOR_DELIVERY, DELIVERED, FAILED, RETURNED, CANCELLED]
+    Address:
+      type: object
+      required: [countryCode]
+      properties:
+        recipientName: {type: string}
+        phone: {type: string}
+        line1: {type: string}
+        line2: {type: string}
+        ward: {type: string}
+        district: {type: string}
+        regionCode: {type: string}
+        postalCode: {type: string}
+        countryCode: {type: string, example: US}
+    Rate:
+      type: object
+      required: [carrier, serviceCode, serviceName, countryCode, currency]
+      properties:
+        id: {type: integer, format: int64, readOnly: true}
+        carrier: {type: string}
+        serviceCode: {type: string}
+        serviceName: {type: string}
+        countryCode: {type: string}
+        regionCode: {type: string, description: Rỗng là áp dụng cho cả quốc gia}
+        currency: {type: string}
+        baseFeeMinor: {type: integer, format: int64}
+        perKgFeeMinor: {type: integer, format: int64}
+        freeOverMinor: {type: integer, format: int64, description: Miễn phí khi giá trị hàng từ mức này}
+        daysMin: {type: integer}
+        daysMax: {type: integer}
+        active: {type: boolean}
+    Shipment:
+      type: object
+      properties:
+        id: {type: string}
+        orderId: {type: string}
+        customerId: {type: string}
+        carrier: {type: string}
+        serviceCode: {type: string}
+        trackingNumber: {type: string}
+        status: {$ref: '#/components/schemas/ShipmentStatus'}
+        address: {$ref: '#/components/schemas/Address'}
+        createdAt: {type: string, format: date-time}
+        updatedAt: {type: string, format: date-time}
+        events:
+          type: array
+          items:
+            type: object
+            properties:
+              status: {$ref: '#/components/schemas/ShipmentStatus'}
+              note: {type: string}
+              location: {type: string}
+              occurredAt: {type: string, format: date-time}

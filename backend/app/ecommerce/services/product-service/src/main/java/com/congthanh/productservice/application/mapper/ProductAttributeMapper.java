@@ -2,25 +2,22 @@ package com.congthanh.productservice.application.mapper;
 
 import com.congthanh.productservice.application.dto.ProductAttributeDTO;
 import com.congthanh.productservice.domain.model.ProductAttribute;
-import jakarta.annotation.PostConstruct;
-import org.modelmapper.ModelMapper;
-import org.springframework.stereotype.Component;
 
-@Component
-public class ProductAttributeMapper {
+public final class ProductAttributeMapper {
 
-    private static final ModelMapper modelMapper = new ModelMapper();
-
-    @PostConstruct
-    private void configureModelMapper() {
-
+    private ProductAttributeMapper() {
     }
 
-    public static ProductAttribute mapProductAttributeDTOToEntity(ProductAttributeDTO productAttributeDTO) {
-        return modelMapper.map(productAttributeDTO, ProductAttribute.class);
-    }
-
-    public static ProductAttributeDTO mapProductAttributeEntityToDTO(ProductAttribute productAttribute) {
-        return modelMapper.map(productAttribute, ProductAttributeDTO.class);
+    public static ProductAttributeDTO toDto(ProductAttribute a) {
+        return ProductAttributeDTO.builder()
+                .id(a.id())
+                .code(a.code())
+                .name(a.name())
+                .dataType(a.dataType())
+                .unit(a.unit())
+                .filterable(a.filterable())
+                .searchable(a.searchable())
+                .displayOrder(a.displayOrder())
+                .build();
     }
 }

@@ -97,7 +97,6 @@ func pgCode(err error) string {
 	return ""
 }
 
-// tx hiện thực app.Tx trên một pgx.Tx.
 type tx struct {
 	t   pgx.Tx
 	ids *idgen.Generator

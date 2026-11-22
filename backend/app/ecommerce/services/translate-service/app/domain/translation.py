@@ -6,7 +6,6 @@ import hashlib
 from dataclasses import dataclass
 from enum import StrEnum
 
-# BCP 47 → tên dùng trong prompt.
 LANGUAGES: dict[str, str] = {
     "en": "English",
     "es": "Spanish",
@@ -22,7 +21,7 @@ LANGUAGES: dict[str, str] = {
 
 class Format(StrEnum):
     TEXT = "text"
-    HTML = "html"  # giữ nguyên thẻ HTML, chỉ dịch nội dung chữ
+    HTML = "html" 
 
 
 class InvalidRequest(ValueError):

@@ -96,7 +96,7 @@ func run() error {
 			return err
 		}
 		bg = append(bg, cons.Run)
-		// Yêu cầu xoá dữ liệu từ privacy-service: xoá giỏ và hàng chờ dọn giỏ của khách (ADR 0027).
+
 		privacyCons, err := kafka.NewConsumer(kafka.ConsumerConfig{
 			Brokers: cfg.KafkaBrokers, Group: cfg.KafkaGroup + "-privacy", Topics: []string{privacy.Topic},
 		}, pool, privacy.Handler("cart-service", "cart-service", eraseCustomer))

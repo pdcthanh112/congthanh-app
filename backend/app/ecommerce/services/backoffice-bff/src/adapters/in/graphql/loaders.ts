@@ -1,9 +1,8 @@
-import type { ProductDetail, ProductSummary, StockLevel } from '@ecommerce/clients';
-import type { Principal } from '@ecommerce/platform';
-import DataLoader from 'dataloader';
-import type { BackofficeService } from '../../../application/backoffice.service.js';
+import type { ProductDetail, ProductSummary, StockLevel } from "@ecommerce/clients";
+import type { Principal } from "@ecommerce/platform";
+import DataLoader from "dataloader";
+import type { BackofficeService } from "../../../application/backoffice.service.js";
 
-/** DataLoader theo request: gom Product/tồn kho trong một truy vấn thành một lần gọi mỗi service. */
 export class Loaders {
   readonly summary: DataLoader<string, ProductSummary | null>;
   readonly detail: DataLoader<string, ProductDetail>;
@@ -14,10 +13,7 @@ export class Loaders {
       const map = await svc.products.byIds(ids, true);
       return ids.map((id) => map.get(id) ?? null);
     });
-    this.detail = new DataLoader(
-      (ids) => Promise.all(ids.map((id) => svc.products.detail(id).catch((e: unknown) => e as Error))),
-      { maxBatchSize: 20 },
-    );
+    this.detail = new DataLoader((ids) => Promise.all(ids.map((id) => svc.products.detail(id).catch((e: unknown) => e as Error))), { maxBatchSize: 20 });
     this.stock = new DataLoader(async (ids) => {
       const map = await svc.inventory.levels(ids, principal?.token);
       return ids.map((id) => map.get(id) ?? null);

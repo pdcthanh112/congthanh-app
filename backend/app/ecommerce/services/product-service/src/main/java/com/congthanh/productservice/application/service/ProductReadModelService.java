@@ -2,13 +2,13 @@ package com.congthanh.productservice.application.service;
 
 import com.congthanh.productservice.application.port.in.ProductReadModelUseCase;
 import com.congthanh.productservice.application.port.out.ProductReadModelStore;
-import com.congthanh.productservice.application.port.out.product.ProductRepository;
+import com.congthanh.productservice.application.port.out.ProductRepository;
+import com.congthanh.productservice.application.port.out.ProductSnapshot;
+import com.congthanh.productservice.application.port.out.ProductSnapshots;
 import com.congthanh.productservice.application.readmodel.ProductDocument;
 import com.congthanh.commonservice.exception.NotFoundException;
-import com.congthanh.productservice.domain.model.Product;
 import com.congthanh.productservice.domain.model.enums.ProductStatus;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.domain.Limit;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.TransactionDefinition;
@@ -26,13 +26,15 @@ public class ProductReadModelService implements ProductReadModelUseCase {
 
     private static final int REBUILD_BATCH = 200;
 
+    private final ProductSnapshots snapshots;
     private final ProductRepository products;
     private final ProductReadModelStore store;
     private final ProductDocumentAssembler assembler;
     private final TransactionTemplate snapshotTx;
 
-    public ProductReadModelService(ProductRepository products, ProductReadModelStore store,
+    public ProductReadModelService(ProductSnapshots snapshots, ProductRepository products, ProductReadModelStore store,
                                    ProductDocumentAssembler assembler, PlatformTransactionManager txManager) {
+        this.snapshots = snapshots;
         this.products = products;
         this.store = store;
         this.assembler = assembler;
@@ -45,18 +47,18 @@ public class ProductReadModelService implements ProductReadModelUseCase {
 
     @Override
     public ProductDocument getById(String id) {
-        return read(store.findById(id), r -> r.findById(id));
+        return read(store.findById(id), r -> r.byId(id));
     }
 
     @Override
     public ProductDocument getBySlug(String slug) {
-        return read(store.findBySlug(slug), r -> r.findProductBySlug(slug));
+        return read(store.findBySlug(slug), r -> r.bySlug(slug));
     }
 
-    private ProductDocument read(Optional<ProductDocument> cached, Function<ProductRepository, Optional<Product>> load) {
+    private ProductDocument read(Optional<ProductDocument> cached, Function<ProductSnapshots, Optional<ProductSnapshot>> load) {
         ProductDocument doc = cached.orElseGet(() -> snapshotTx.execute(s -> {
-            long version = products.snapshotMicros();
-            return load.apply(products).map(p -> assembler.assemble(p, version)).orElse(null);
+            long version = snapshots.snapshotMicros();
+            return load.apply(snapshots).map(p -> assembler.assemble(p, version)).orElse(null);
         }));
         if (doc == null || doc.getStatus() == ProductStatus.DELETED) {
             throw new NotFoundException("Product not found");
@@ -75,8 +77,8 @@ public class ProductReadModelService implements ProductReadModelUseCase {
     /** @return id sản phẩm cha nếu đây là variant (document cha nhúng danh sách variant). */
     private String refreshOne(String productId) {
         ProductDocument doc = snapshotTx.execute(s -> {
-            long version = products.snapshotMicros();
-            return products.findById(productId).map(p -> assembler.assemble(p, version)).orElse(null);
+            long version = snapshots.snapshotMicros();
+            return snapshots.byId(productId).map(p -> assembler.assemble(p, version)).orElse(null);
         });
         if (doc == null) {
             store.delete(productId);
@@ -119,7 +121,7 @@ public class ProductReadModelService implements ProductReadModelUseCase {
         int failed = 0;
         String after = "0"; // id Snowflake luôn > 0
         while (true) {
-            List<String> ids = products.findIdsAfter(after, Limit.of(REBUILD_BATCH));
+            List<String> ids = products.idsAfter(after, REBUILD_BATCH);
             if (ids.isEmpty()) {
                 break;
             }

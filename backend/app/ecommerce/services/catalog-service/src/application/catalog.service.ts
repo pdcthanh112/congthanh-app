@@ -25,8 +25,6 @@ export class CatalogService {
     @Inject(ID_GENERATOR) private readonly ids: IdGenerator,
   ) {}
 
-  // ---------- danh mục ----------
-
   createCategory(draft: CategoryDraft): Promise<Category> {
     return this.uow.run(async (tx) => {
       const now = this.clock.now();
@@ -54,7 +52,6 @@ export class CatalogService {
     });
   }
 
-  /** Ẩn danh mục; chặn khi còn danh mục con đang hoạt động (phải ẩn hoặc chuyển con trước). */
   deactivateCategory(id: string, version: number): Promise<Category> {
     return this.mutateCategory(id, version, async (category, tx) => {
       if ((await tx.categories.countChildren(id, true)) > 0) {
@@ -68,15 +65,12 @@ export class CatalogService {
     return this.mutateCategory(id, version, async (category) => category.activate(this.clock.now()));
   }
 
-  /** Kiểm tra danh sách id (product-service gọi khi gán danh mục cho sản phẩm). */
   async validateCategories(ids: readonly string[]): Promise<string[]> {
     const unique = [...new Set(ids)];
     const found = await this.read.categories.findByIds(unique);
     const active = new Set(found.filter((c) => c.status === "ACTIVE").map((c) => c.id));
     return unique.filter((id) => !active.has(id));
   }
-
-  // ---------- thương hiệu ----------
 
   createBrand(draft: BrandDraft): Promise<BrandProps> {
     return this.uow.run(async (tx) => {
@@ -100,8 +94,6 @@ export class CatalogService {
       return brand;
     });
   }
-
-  // ---------- tag ----------
 
   tags(page: number, size: number, status?: TagStatus): Promise<Page<TagProps>> {
     const limit = Math.min(Math.max(size, 1), 100);
@@ -135,7 +127,6 @@ export class CatalogService {
     });
   }
 
-  /** Gán toàn bộ tag cho sản phẩm (thay thế danh sách cũ). */
   setProductTags(productId: string, tagIds: readonly number[]): Promise<number[]> {
     return this.uow.run(async (tx) => {
       const unique = [...new Set(tagIds)];
@@ -150,8 +141,6 @@ export class CatalogService {
       return unique;
     });
   }
-
-  // ---------- nội bộ ----------
 
   private mutateCategory(id: string, version: number, change: (category: Category, tx: TransactionScope) => Promise<void>): Promise<Category> {
     return this.uow.run(async (tx) => {

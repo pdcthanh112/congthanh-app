@@ -1,9 +1,8 @@
 package com.congthanh.productservice.adapter.in.web;
 
-import com.congthanh.commonservice.constants.ResponseStatus;
+import com.congthanh.commonservice.model.response.Response;
 import com.congthanh.productservice.application.dto.ProductAttributeValueDTO;
 import com.congthanh.productservice.application.dto.request.ProductAttributeValueRequest;
-import com.congthanh.commonservice.model.response.Response;
 import com.congthanh.productservice.application.port.in.ProductAttributeValueService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -12,6 +11,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+
+import static com.congthanh.productservice.adapter.in.web.ProductAttributeController.ok;
 
 @RestController
 @RequestMapping("/api/ecommerce/attribute-value")
@@ -22,31 +23,24 @@ public class ProductAttributeValueController {
 
     @GetMapping("/getByProduct")
     public ResponseEntity<Response<List<ProductAttributeValueDTO>>> getAttributeByProduct(@RequestParam("product") String productId) {
-        List<ProductAttributeValueDTO> data = productAttributeValueService.getAttributeByProduct(productId);
-        Response<List<ProductAttributeValueDTO>> response = new Response<>();
-        response.setData(data);
-        response.setStatus(ResponseStatus.STATUS_SUCCESS);
-        response.setMessage("get successfully");
-        return ResponseEntity.ok().body(response);
+        return ResponseEntity.ok(ok(productAttributeValueService.getAttributeByProduct(productId), "get successfully"));
     }
 
     @PostMapping("/create")
     public ResponseEntity<Response<ProductAttributeValueDTO>> createAttributeValue(@RequestBody @Valid ProductAttributeValueRequest request) {
-        ProductAttributeValueDTO result = productAttributeValueService.createAttributeValue(request);
-        Response<ProductAttributeValueDTO> response = new Response<>();
-        response.setData(result);
-        response.setStatus(ResponseStatus.STATUS_SUCCESS);
-        response.setMessage("Created successfully");
-        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(ok(productAttributeValueService.createAttributeValue(request), "Created successfully"));
     }
 
+    @PutMapping("/update")
     public ResponseEntity<Response<ProductAttributeValueDTO>> updateAttributeValue(@RequestBody @Valid ProductAttributeValueRequest request) {
-        ProductAttributeValueDTO result = productAttributeValueService.updateAttributeValue(request);
-        Response<ProductAttributeValueDTO> response = new Response<>();
-        response.setData(result);
-        response.setStatus(ResponseStatus.STATUS_SUCCESS);
-        response.setMessage("updated successfully");
-        return ResponseEntity.ok().body(response);
+        return ResponseEntity.ok(ok(productAttributeValueService.updateAttributeValue(request), "updated successfully"));
     }
 
+    @DeleteMapping("/{productId}/{attributeId}")
+    public ResponseEntity<Void> deleteAttributeValue(@PathVariable("productId") String productId,
+                                                     @PathVariable("attributeId") Long attributeId) {
+        productAttributeValueService.deleteAttributeValue(productId, attributeId);
+        return ResponseEntity.noContent().build();
+    }
 }

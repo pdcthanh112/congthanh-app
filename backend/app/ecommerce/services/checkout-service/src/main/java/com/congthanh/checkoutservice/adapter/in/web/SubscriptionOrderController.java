@@ -15,10 +15,6 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 
-/**
- * Chỉ gọi nội bộ từ subscription-service: không có route ở APISIX, Istio AuthorizationPolicy chỉ mở cho
- * service account subscription-service.
- */
 @RestController
 @RequestMapping("/internal/checkout")
 class SubscriptionOrderController {

@@ -1,3 +1,5 @@
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import {
   CartClient,
   CheckoutClient,
@@ -7,23 +9,22 @@ import {
   ProductClient,
   PromotionClient,
   RecommendationClient,
-} from "@ecommerce/clients";
-import { PlatformAuthModule, PlatformHealthModule, PlatformLoggerModule, subgraphConfig } from "@ecommerce/platform";
-import { type DynamicModule, Module } from "@nestjs/common";
-import { GraphQLModule } from "@nestjs/graphql";
-import { dirname, join } from "node:path";
-import { fileURLToPath } from "node:url";
-import { CartResolver } from "./adapters/in/graphql/cart.resolver.js";
-import { OrderResolver } from "./adapters/in/graphql/order.resolver.js";
-import { ProductResolver } from "./adapters/in/graphql/product.resolver.js";
-import { RecommendationResolver } from "./adapters/in/graphql/recommendation.resolver.js";
-import { CategoryRef } from "./adapters/in/graphql/types.js";
+  SearchClient,
+} from '@ecommerce/clients';
+import { PlatformAuthModule, PlatformHealthModule, PlatformLoggerModule, subgraphConfig } from '@ecommerce/platform';
+import { type DynamicModule, Module } from '@nestjs/common';
+import { GraphQLModule } from '@nestjs/graphql';
+import { CartResolver } from './adapters/in/graphql/cart.resolver.js';
+import { OrderResolver } from './adapters/in/graphql/order.resolver.js';
+import { ProductResolver } from './adapters/in/graphql/product.resolver.js';
+import { RecommendationResolver } from './adapters/in/graphql/recommendation.resolver.js';
+import { CategoryRef } from './adapters/in/graphql/types.js';
 import {
   ADDRESSES,
   type AddressPort,
   CARTS,
-  CHECKOUTS,
   type CartPort,
+  CHECKOUTS,
   type CheckoutPort,
   INVENTORY,
   type InventoryPort,
@@ -35,9 +36,11 @@ import {
   type PromotionPort,
   RECOMMENDATIONS,
   type RecommendationPort,
-} from "./application/ports.js";
-import { StorefrontService } from "./application/storefront.service.js";
-import type { Env } from "./config/env.js";
+  SEARCH,
+  type SearchPort,
+} from './application/ports.js';
+import { StorefrontService } from './application/storefront.service.js';
+import type { Env } from './config/env.js';
 
 export interface Backends {
   products: ProductPort;
@@ -48,6 +51,7 @@ export interface Backends {
   addresses: AddressPort;
   checkouts: CheckoutPort;
   recommendations: RecommendationPort;
+  search: SearchPort;
 }
 
 export function realBackends(env: Env): Backends {
@@ -63,10 +67,11 @@ export function realBackends(env: Env): Backends {
     addresses: new CustomerClient(env.CUSTOMER_GRPC_ADDR),
     checkouts: new CheckoutClient(env.CHECKOUT_REST_URL),
     recommendations: new RecommendationClient(env.RECOMMENDATION_REST_URL),
+    search: new SearchClient(env.SEARCH_REST_URL),
   };
 }
 
-const serviceDir = join(dirname(fileURLToPath(import.meta.url)), "..");
+const serviceDir = join(dirname(fileURLToPath(import.meta.url)), '..');
 
 @Module({})
 export class AppModule {
@@ -89,7 +94,7 @@ export class AppModule {
         GraphQLModule.forRoot(
           subgraphConfig({
             serviceDir,
-            production: env.NODE_ENV === "production",
+            production: env.NODE_ENV === 'production',
             extra: { buildSchemaOptions: { orphanedTypes: [CategoryRef] } },
           }),
         ),
@@ -108,6 +113,7 @@ export class AppModule {
         { provide: ADDRESSES, useFactory: () => b().addresses },
         { provide: CHECKOUTS, useFactory: () => b().checkouts },
         { provide: RECOMMENDATIONS, useFactory: () => b().recommendations },
+        { provide: SEARCH, useFactory: () => b().search },
       ],
     };
   }

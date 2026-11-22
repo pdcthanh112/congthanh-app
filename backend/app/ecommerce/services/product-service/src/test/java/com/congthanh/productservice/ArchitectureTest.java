@@ -15,6 +15,6 @@ class ArchitectureTest {
         JavaClasses classes = new ClassFileImporter()
                 .withImportOption(ImportOption.Predefined.DO_NOT_INCLUDE_TESTS)
                 .importPackages(BASE);
-        HexagonalArchitecture.pragmatic(BASE).forEach(rule -> rule.check(classes));
+        HexagonalArchitecture.strict(BASE).forEach(rule -> rule.check(classes));
     }
 }

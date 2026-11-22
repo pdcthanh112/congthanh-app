@@ -9,9 +9,6 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-data-mongodb")
     implementation("org.springframework.boot:spring-boot-starter-data-redis")
     implementation("org.springframework.boot:spring-boot-starter-kafka")
-    implementation("org.springframework.boot:spring-boot-starter-graphql")
-    implementation(libs.commons.collections4)
-    implementation(libs.modelmapper)
 
-    testImplementation("org.springframework.graphql:spring-graphql-test")
+    testImplementation("org.springframework.boot:spring-boot-data-jpa-test")
 }

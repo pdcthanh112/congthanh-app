@@ -1,4 +1,3 @@
-// Package domain: quy tắc file tải lên theo mục đích (loại, dung lượng) và vòng đời PENDING → READY.
 package domain
 
 import (
@@ -30,7 +29,6 @@ const (
 type Rule struct {
 	MaxBytes int64
 	Types    map[string]bool
-	// AdminOnly: chỉ ADMIN/SELLER được tải (ảnh sản phẩm).
 	SellerOnly bool
 }
 
@@ -77,7 +75,6 @@ type UploadRequest struct {
 	SizeBytes   int64
 }
 
-// Validate kiểm tra loại file và dung lượng theo mục đích.
 func (r UploadRequest) Validate() error {
 	rule, ok := Rules[r.Purpose]
 	if !ok {
@@ -103,13 +100,10 @@ var extByType = map[string]string{
 	"video/mp4": ".mp4", "video/webm": ".webm", "application/pdf": ".pdf",
 }
 
-// ObjectKey: <purpose>/<yyyy>/<mm>/<id><ext>. Tên gốc của người dùng không nằm trong key
-// (tránh path traversal và lộ thông tin); phần mở rộng lấy theo content type.
 func ObjectKey(p Purpose, id, contentType string, at time.Time) string {
 	return fmt.Sprintf("%s/%04d/%02d/%s%s", strings.ToLower(string(p)), at.Year(), at.Month(), id, extByType[strings.ToLower(contentType)])
 }
 
-// SafeFileName chỉ giữ tên file (bỏ thư mục) và ký tự in được, dùng cho Content-Disposition.
 func SafeFileName(name string) string {
 	name = path.Base(strings.ReplaceAll(name, "\\", "/"))
 	return strings.Map(func(r rune) rune {
@@ -120,5 +114,4 @@ func SafeFileName(name string) string {
 	}, name)
 }
 
-// CanManage: chủ file hoặc ADMIN.
 func (m Media) CanManage(subject string, admin bool) bool { return admin || m.OwnerID == subject }

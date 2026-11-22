@@ -25,7 +25,7 @@ _sym_db = _symbol_database.Default()
 from ecommerce.common.v1 import money_pb2 as ecommerce_dot_common_dot_v1_dot_money__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n)ecommerce/product/v1/product_events.proto\x12\x14\x65\x63ommerce.product.v1\x1a\x1f\x65\x63ommerce/common/v1/money.proto\"\x9e\x01\n\x0fProductUpserted\x12\x12\n\nproduct_id\x18\x01 \x01(\t\x12\x0b\n\x03sku\x18\x02 \x01(\t\x12\x0c\n\x04name\x18\x03 \x01(\t\x12\x0c\n\x04slug\x18\x04 \x01(\t\x12\x13\n\x0b\x63\x61tegory_id\x18\x05 \x01(\t\x12)\n\x05price\x18\x06 \x01(\x0b\x32\x1a.ecommerce.common.v1.Money\x12\x0e\n\x06status\x18\x07 \x01(\t\"$\n\x0eProductDeleted\x12\x12\n\nproduct_id\x18\x01 \x01(\tB%\n!com.congthanh.productservice.grpcP\x01\x62\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n)ecommerce/product/v1/product_events.proto\x12\x14\x65\x63ommerce.product.v1\x1a\x1f\x65\x63ommerce/common/v1/money.proto\"\xa6\x03\n\x0fProductUpserted\x12\x12\n\nproduct_id\x18\x01 \x01(\t\x12\x0b\n\x03sku\x18\x02 \x01(\t\x12\x0c\n\x04name\x18\x03 \x01(\t\x12\x0c\n\x04slug\x18\x04 \x01(\t\x12\x13\n\x0b\x63\x61tegory_id\x18\x05 \x01(\t\x12)\n\x05price\x18\x06 \x01(\x0b\x32\x1a.ecommerce.common.v1.Money\x12\x0e\n\x06status\x18\x07 \x01(\t\x12\x11\n\tparent_id\x18\x08 \x01(\t\x12\x13\n\x0bhas_variant\x18\t \x01(\x08\x12\x10\n\x08\x62rand_id\x18\n \x01(\x03\x12\x14\n\x0c\x63\x61tegory_ids\x18\x0b \x03(\t\x12\x38\n\nattributes\x18\x0c \x03(\x0b\x32$.ecommerce.product.v1.AttributeValue\x12\x36\n\x08variants\x18\r \x03(\x0b\x32$.ecommerce.product.v1.VariantSummary\x12\x32\n\x07options\x18\x0e \x03(\x0b\x32!.ecommerce.product.v1.OptionValue\x12\x10\n\x08\x66\x65\x61tured\x18\x0f \x01(\x08\"\x91\x01\n\x0e\x41ttributeValue\x12\x0c\n\x04\x63ode\x18\x01 \x01(\t\x12\x0c\n\x04name\x18\x02 \x01(\t\x12\r\n\x05value\x18\x03 \x01(\t\x12\x13\n\x06number\x18\x04 \x01(\x01H\x00\x88\x01\x01\x12\x0c\n\x04unit\x18\x05 \x01(\t\x12\x12\n\nfilterable\x18\x06 \x01(\x08\x12\x12\n\nsearchable\x18\x07 \x01(\x08\x42\t\n\x07_number\"V\n\x0bOptionValue\x12\x11\n\toption_id\x18\x01 \x01(\x03\x12\x13\n\x0boption_name\x18\x02 \x01(\t\x12\x10\n\x08value_id\x18\x03 \x01(\x03\x12\r\n\x05value\x18\x04 \x01(\t\"\xa0\x01\n\x0eVariantSummary\x12\x12\n\nproduct_id\x18\x01 \x01(\t\x12\x0b\n\x03sku\x18\x02 \x01(\t\x12)\n\x05price\x18\x03 \x01(\x0b\x32\x1a.ecommerce.common.v1.Money\x12\x0e\n\x06status\x18\x04 \x01(\t\x12\x32\n\x07options\x18\x05 \x03(\x0b\x32!.ecommerce.product.v1.OptionValue\"$\n\x0eProductDeleted\x12\x12\n\nproduct_id\x18\x01 \x01(\tB%\n!com.congthanh.productservice.grpcP\x01\x62\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -34,7 +34,13 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['DESCRIPTOR']._loaded_options = None
   _globals['DESCRIPTOR']._serialized_options = b'\n!com.congthanh.productservice.grpcP\001'
   _globals['_PRODUCTUPSERTED']._serialized_start=101
-  _globals['_PRODUCTUPSERTED']._serialized_end=259
-  _globals['_PRODUCTDELETED']._serialized_start=261
-  _globals['_PRODUCTDELETED']._serialized_end=297
+  _globals['_PRODUCTUPSERTED']._serialized_end=523
+  _globals['_ATTRIBUTEVALUE']._serialized_start=526
+  _globals['_ATTRIBUTEVALUE']._serialized_end=671
+  _globals['_OPTIONVALUE']._serialized_start=673
+  _globals['_OPTIONVALUE']._serialized_end=759
+  _globals['_VARIANTSUMMARY']._serialized_start=762
+  _globals['_VARIANTSUMMARY']._serialized_end=922
+  _globals['_PRODUCTDELETED']._serialized_start=924
+  _globals['_PRODUCTDELETED']._serialized_end=960
 # @@protoc_insertion_point(module_scope)

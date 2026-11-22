@@ -9,6 +9,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -38,7 +39,9 @@ func New(cfg Config) *Index {
 }
 
 // Mapping: tên sản phẩm phân tích có bỏ dấu (asciifolding) để "cafe" khớp "Café";
-// name.ac dùng edge n-gram cho gợi ý khi đang gõ.
+// name.ac dùng edge n-gram cho gợi ý khi đang gõ. attributes/options là nested để bộ lọc "code=ram, value=8 GB"
+// khớp trên cùng một phần tử (ADR 0030). Mapping strict: đổi mapping thì tạo chỉ mục mới (đổi ELASTICSEARCH_INDEX)
+// rồi dựng lại từ product-service.
 var mapping = map[string]any{
 	"settings": map[string]any{
 		"analysis": map[string]any{
@@ -64,11 +67,28 @@ var mapping = map[string]any{
 					"raw": map[string]any{"type": "keyword", "ignore_above": 256},
 				},
 			},
-			"categoryId": map[string]any{"type": "keyword"},
-			"price":      map[string]any{"type": "scaled_float", "scaling_factor": 100},
+			"skus":        map[string]any{"type": "keyword"},
+			"categoryId":  map[string]any{"type": "keyword"},
+			"categoryIds": map[string]any{"type": "keyword"},
+			"brandId":     map[string]any{"type": "keyword"},
+			// scaling_factor 10000: đủ cho đơn vị tiền 3 chữ số lẻ (BHD, KWD).
+			"price":      map[string]any{"type": "scaled_float", "scaling_factor": 10000},
+			"priceMax":   map[string]any{"type": "scaled_float", "scaling_factor": 10000},
 			"currency":   map[string]any{"type": "keyword"},
 			"status":     map[string]any{"type": "keyword"},
-			"updatedAt":  map[string]any{"type": "date"},
+			"featured":   map[string]any{"type": "boolean"},
+			"searchText": map[string]any{"type": "text", "analyzer": "folded"},
+			"attributes": map[string]any{"type": "nested", "properties": map[string]any{
+				"code":   map[string]any{"type": "keyword"},
+				"name":   map[string]any{"type": "keyword", "index": false},
+				"value":  map[string]any{"type": "keyword"},
+				"number": map[string]any{"type": "double"},
+			}},
+			"options": map[string]any{"type": "nested", "properties": map[string]any{
+				"name":  map[string]any{"type": "keyword"},
+				"value": map[string]any{"type": "keyword"},
+			}},
+			"updatedAt": map[string]any{"type": "date"},
 		},
 	},
 }
@@ -125,45 +145,120 @@ func (x *Index) Delete(ctx context.Context, id string, version int64) error {
 }
 
 // BuildSearch dựng truy vấn Elasticsearch. Lọc danh mục nằm ở post_filter để facet danh mục vẫn đếm
-// trên toàn bộ kết quả của từ khoá (người dùng thấy các danh mục khác còn bao nhiêu sản phẩm).
+// trên toàn bộ kết quả của từ khoá (người dùng thấy các danh mục khác còn bao nhiêu sản phẩm). Các bộ lọc khác
+// (thương hiệu, thuộc tính, option, giá) thu hẹp cả kết quả lẫn facet.
 func BuildSearch(q domain.Query) map[string]any {
 	var must any = map[string]any{"match_all": map[string]any{}}
 	if q.Text != "" {
 		must = map[string]any{"multi_match": map[string]any{
-			"query": q.Text, "fields": []string{"name^3", "name.ac", "sku^5"},
+			"query": q.Text, "fields": []string{"name^3", "name.ac", "sku^5", "skus^5", "searchText"},
 			"type": "best_fields", "operator": "and", "fuzziness": "AUTO",
 		}}
 	}
 	filters := []any{}
+	if q.Currency != "" {
+		filters = append(filters, map[string]any{"term": map[string]any{"currency": q.Currency}})
+	}
 	if q.MinPrice > 0 || q.MaxPrice > 0 {
-		r := map[string]any{}
+		// Sản phẩm có variant khớp khi khoảng giá [price, priceMax] giao với khoảng lọc.
 		if q.MinPrice > 0 {
-			r["gte"] = q.MinPrice
+			filters = append(filters, map[string]any{"range": map[string]any{"priceMax": map[string]any{"gte": q.MinPrice}}})
 		}
 		if q.MaxPrice > 0 {
-			r["lte"] = q.MaxPrice
+			filters = append(filters, map[string]any{"range": map[string]any{"price": map[string]any{"lte": q.MaxPrice}}})
 		}
-		filters = append(filters, map[string]any{"range": map[string]any{"price": r}})
+	}
+	if len(q.BrandIDs) > 0 {
+		filters = append(filters, map[string]any{"terms": map[string]any{"brandId": q.BrandIDs}})
+	}
+	for _, k := range sortedKeys(q.Attributes) {
+		filters = append(filters, nestedTerms("attributes", "code", k, q.Attributes[k]))
+	}
+	for _, k := range sortedKeys(q.Options) {
+		filters = append(filters, nestedTerms("options", "name", k, q.Options[k]))
 	}
 	body := map[string]any{
 		"query":            map[string]any{"bool": map[string]any{"must": must, "filter": filters}},
 		"from":             q.Page * q.Size,
 		"size":             q.Size,
 		"track_total_hits": true,
-		"aggs":             map[string]any{"categories": map[string]any{"terms": map[string]any{"field": "categoryId", "size": 30}}},
+		"aggs": map[string]any{
+			"categories": map[string]any{"terms": map[string]any{"field": "categoryIds", "size": 30}},
+			"brands":     map[string]any{"terms": map[string]any{"field": "brandId", "size": 30}},
+			"attributes": nestedFacet("attributes", "code"),
+			"options":    nestedFacet("options", "name"),
+		},
 	}
 	if q.CategoryID != "" {
-		body["post_filter"] = map[string]any{"term": map[string]any{"categoryId": q.CategoryID}}
+		body["post_filter"] = map[string]any{"term": map[string]any{"categoryIds": q.CategoryID}}
 	}
 	switch q.Sort {
 	case domain.SortPriceAsc:
 		body["sort"] = []any{map[string]any{"price": "asc"}, "_score"}
 	case domain.SortPriceDesc:
-		body["sort"] = []any{map[string]any{"price": "desc"}, "_score"}
+		body["sort"] = []any{map[string]any{"priceMax": "desc"}, "_score"}
 	case domain.SortNewest:
 		body["sort"] = []any{map[string]any{"updatedAt": "desc"}, "_score"}
 	}
 	return body
+}
+
+// nestedTerms: một phần tử của mảng nested có key = k và value thuộc vs (OR các giá trị).
+func nestedTerms(path, keyField, k string, vs []string) map[string]any {
+	return map[string]any{"nested": map[string]any{
+		"path": path,
+		"query": map[string]any{"bool": map[string]any{"filter": []any{
+			map[string]any{"term": map[string]any{path + "." + keyField: k}},
+			map[string]any{"terms": map[string]any{path + ".value": vs}},
+		}}},
+	}}
+}
+
+func nestedFacet(path, keyField string) map[string]any {
+	return map[string]any{
+		"nested": map[string]any{"path": path},
+		"aggs": map[string]any{"keys": map[string]any{
+			"terms": map[string]any{"field": path + "." + keyField, "size": 30},
+			"aggs":  map[string]any{"values": map[string]any{"terms": map[string]any{"field": path + ".value", "size": 50}}},
+		}},
+	}
+}
+
+func sortedKeys(m map[string][]string) []string {
+	keys := make([]string, 0, len(m))
+	for k := range m {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+	return keys
+}
+
+type bucket struct {
+	Key      string `json:"key"`
+	DocCount int64  `json:"doc_count"`
+}
+
+type nestedAgg struct {
+	Keys struct {
+		Buckets []struct {
+			bucket
+			Values struct {
+				Buckets []bucket `json:"buckets"`
+			} `json:"values"`
+		} `json:"buckets"`
+	} `json:"keys"`
+}
+
+func (n nestedAgg) groups() []domain.FacetGroup {
+	out := []domain.FacetGroup{}
+	for _, k := range n.Keys.Buckets {
+		g := domain.FacetGroup{Key: k.Key, Values: make([]domain.Bucket, 0, len(k.Values.Buckets))}
+		for _, v := range k.Values.Buckets {
+			g.Values = append(g.Values, domain.Bucket{Value: v.Key, Count: v.DocCount})
+		}
+		out = append(out, g)
+	}
+	return out
 }
 
 type searchResp struct {
@@ -178,11 +273,13 @@ type searchResp struct {
 	} `json:"hits"`
 	Aggregations struct {
 		Categories struct {
-			Buckets []struct {
-				Key      string `json:"key"`
-				DocCount int64  `json:"doc_count"`
-			} `json:"buckets"`
+			Buckets []bucket `json:"buckets"`
 		} `json:"categories"`
+		Brands struct {
+			Buckets []bucket `json:"buckets"`
+		} `json:"brands"`
+		Attributes nestedAgg `json:"attributes"`
+		Options    nestedAgg `json:"options"`
 	} `json:"aggregations"`
 }
 
@@ -209,6 +306,12 @@ func (x *Index) Search(ctx context.Context, q domain.Query) (domain.Result, erro
 	for _, b := range r.Aggregations.Categories.Buckets {
 		out.Categories = append(out.Categories, domain.Facet{CategoryID: b.Key, Count: b.DocCount})
 	}
+	out.Brands = []domain.Bucket{}
+	for _, b := range r.Aggregations.Brands.Buckets {
+		out.Brands = append(out.Brands, domain.Bucket{Value: b.Key, Count: b.DocCount})
+	}
+	out.Attributes = r.Aggregations.Attributes.groups()
+	out.Options = r.Aggregations.Options.groups()
 	return out, nil
 }
 

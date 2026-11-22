@@ -26,15 +26,6 @@ import org.springframework.stereotype.Component;
 import java.util.Map;
 import java.util.Set;
 
-/**
- * Stripe PaymentIntent với capture thủ công: authorize giữ tiền, capture sau khi kho commit,
- * cancel để giải phóng. Frontend dùng Payment Element (thẻ, Apple Pay, Google Pay, Link) và gửi lên
- * ConfirmationToken {@code ctoken_...}; token PaymentMethod {@code pm_...} cũ vẫn nhận để tương thích. Mọi request có Idempotency-Key theo orderId nên retry của Temporal an toàn.
- * <p>
- * Trả góp (ADR 0016): Affirm, Klarna, Afterpay cũng là PaymentMethod của Stripe nhưng luôn redirect sang trang
- * đối tác, nên bắt buộc có returnUrl và chỉ nhận ConfirmationToken. Loại phương thức trong token phải khớp method
- * khách chọn, để fraud và báo cáo không bị sai khi client gửi CARD nhưng trả bằng Klarna.
- */
 @Component
 @ConditionalOnProperty("payment.stripe.api-key")
 class StripeProvider implements PaymentProvider {
@@ -95,7 +86,6 @@ class StripeProvider implements PaymentProvider {
         if (paymentToken.startsWith("ctoken_")) {
             params.setConfirmationToken(paymentToken);
         } else if (offSession) {
-            // Gia hạn subscription (ADR 0027): phương thức đã lưu qua SetupIntent, khách không có mặt.
             String[] parts = paymentToken.split(":", 2);
             params.setCustomer(parts[0]).setPaymentMethod(parts[1]).setOffSession(true);
         } else {
@@ -108,7 +98,6 @@ class StripeProvider implements PaymentProvider {
             PaymentIntent pi = PaymentIntent.create(params.build(), options("authorize-" + payment.orderId()));
             return switch (pi.getStatus()) {
                 case "requires_capture", "succeeded" -> new ProviderResult.Authorized(pi.getId());
-                // Off-session không có ai để xác thực 3-D Secure: coi như bị từ chối, subscription sẽ nhắc khách cập nhật thẻ.
                 case "requires_action" -> offSession ? new ProviderResult.Declined("authentication_required")
                         : new ProviderResult.ActionRequired(pi.getId(),
                         pi.getNextAction() != null && pi.getNextAction().getRedirectToUrl() != null
@@ -122,12 +111,10 @@ class StripeProvider implements PaymentProvider {
         }
     }
 
-    /** {@code cus_...:pm_...}: PaymentMethod đã gắn với Stripe Customer, dùng charge off-session. */
     static boolean isSavedMethod(String token) {
         return token != null && token.matches("cus_[A-Za-z0-9]+:pm_[A-Za-z0-9_]+");
     }
 
-    /** null nếu token hợp lệ cho method; Declined nếu thiếu dữ liệu đối tác cần; ném INVALID nếu sai loại. */
     private ProviderResult checkConfirmationToken(PaymentMethod method, String token) {
         ConfirmationToken ct;
         try {
@@ -143,7 +130,6 @@ class StripeProvider implements PaymentProvider {
             throw PaymentException.invalid("confirmation token is for " + type + ", not " + method);
         }
         if (method == PaymentMethod.AFTERPAY && ct.getShipping() == null) {
-            // Afterpay bắt buộc địa chỉ giao hàng; frontend truyền shipping khi tạo ConfirmationToken.
             return new ProviderResult.Declined("AFTERPAY requires a shipping address");
         }
         return null;
@@ -194,7 +180,6 @@ class StripeProvider implements PaymentProvider {
         }
     }
 
-    /** Webhook (3-D Secure xong): params gồm payload và chữ ký header Stripe-Signature. */
     @Override
     public CallbackResult verifyCallback(Map<String, String> params) {
         Event event;

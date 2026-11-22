@@ -33,3 +33,5 @@ Không sửa ADR đã "Accepted"; muốn đổi thì viết ADR mới và đánh
 | 0027 | [Nối các service mới: checkout, gia hạn, kiểm duyệt, xoá dữ liệu](0027-wiring-new-services.md) | Proposed |
 | 0028 | [Id thực thể dùng Snowflake (BIGINT) thay UUIDv7](0028-snowflake-ids.md) | Proposed |
 | 0029 | [Mọi khoản tiền phải mang đơn vị tiền của giao dịch, không mặc định USD](0029-currency-required.md) | Proposed |
+| 0030 | [Lưu product/attribute/variant có ràng buộc ở Postgres; lọc và facet ở Elasticsearch](0030-catalog-attributes-variants-search.md) | Proposed |
+| 0031 | [Quy ước Domain-Driven Design cho các service](0031-ddd-conventions.md) | Proposed |

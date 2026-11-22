@@ -21,7 +21,6 @@ final class Hmac {
         }
     }
 
-    /** So sánh thời gian hằng, chống timing attack khi kiểm tra chữ ký. */
     static boolean equalsConstantTime(String a, String b) {
         if (a == null || b == null) {
             return false;

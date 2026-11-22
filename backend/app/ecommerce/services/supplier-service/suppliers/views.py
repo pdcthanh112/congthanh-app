@@ -1,32 +1,64 @@
-from django.http import Http404
-from rest_framework import exceptions
+"""Adapter vào (REST): parse request, kiểm vai trò, gọi SupplierService; SupplierError đổi sang HTTP ở envelope.py."""
+
+from __future__ import annotations
+
+from drf_spectacular.types import OpenApiTypes
+from drf_spectacular.utils import OpenApiParameter, extend_schema, inline_serializer
+from rest_framework import exceptions, serializers
 from rest_framework.decorators import api_view
 from rest_framework.request import Request
 
-from . import service
+from .container import supplier_service
+from .domain import Actor, SupplierStatus
 from .envelope import ok
-from .models import Supplier
 from .serializers import PublicSupplierSerializer, StatusSerializer, SupplierSerializer, UpdateSerializer
 
 MAX_SIZE = 100
+TAGS = ["supplier"]
 
 
-def _user(request: Request):
-    if not getattr(request.user, "is_authenticated", False):
+def _envelope(name: str, data: serializers.Field) -> serializers.Serializer:
+    """Schema phong bì {message, data, status, errorCode} cho tài liệu OpenAPI."""
+    return inline_serializer(
+        name=name,
+        fields={
+            "message": serializers.CharField(),
+            "data": data,
+            "status": serializers.ChoiceField(choices=["Success", "Failed"]),
+            "errorCode": serializers.IntegerField(),
+        },
+    )
+
+
+SUPPLIER = _envelope("SupplierEnvelope", SupplierSerializer())
+ERROR = _envelope("ErrorEnvelope", serializers.JSONField(allow_null=True))
+PAGE = _envelope(
+    "SupplierPageEnvelope",
+    inline_serializer(
+        name="SupplierPage",
+        fields={
+            "items": SupplierSerializer(many=True),
+            "totalItems": serializers.IntegerField(),
+            "page": serializers.IntegerField(),
+            "size": serializers.IntegerField(),
+        },
+    ),
+)
+KEY = OpenApiParameter("key", OpenApiTypes.STR, OpenApiParameter.PATH, description="Id (Snowflake) hoặc slug")
+
+
+def _actor(request: Request) -> Actor | None:
+    user = request.user
+    if not getattr(user, "is_authenticated", False):
+        return None
+    return Actor(id=user.id, is_admin=user.has_role("ADMIN"))
+
+
+def _require_actor(request: Request) -> Actor:
+    actor = _actor(request)
+    if actor is None:
         raise exceptions.NotAuthenticated("Authentication required")
-    return request.user
-
-
-def _can_manage(request: Request, s: Supplier) -> bool:
-    u = request.user
-    return bool(getattr(u, "is_authenticated", False) and (u.id == s.owner_id or u.has_role("ADMIN")))
-
-
-def _get(key: str) -> Supplier:
-    s = service.find(key)
-    if s is None:
-        raise Http404
-    return s
+    return actor
 
 
 def _int(v: str | None, default: int, lo: int, hi: int) -> int:
@@ -36,28 +68,46 @@ def _int(v: str | None, default: int, lo: int, hi: int) -> int:
         raise exceptions.ValidationError({"page": "must be a number"}) from e
 
 
+@extend_schema(
+    methods=["GET"],
+    operation_id="listSuppliers",
+    tags=TAGS,
+    summary="Danh sách gian hàng (khách chỉ thấy ACTIVE và trường công khai)",
+    parameters=[
+        OpenApiParameter("q", OpenApiTypes.STR, description="Tìm trong tên/slug"),
+        OpenApiParameter("status", OpenApiTypes.STR, enum=[s.value for s in SupplierStatus], description="Chỉ ADMIN"),
+        OpenApiParameter("page", OpenApiTypes.INT, default=1),
+        OpenApiParameter("size", OpenApiTypes.INT, default=20),
+    ],
+    responses={200: PAGE},
+)
+@extend_schema(
+    methods=["POST"],
+    operation_id="registerSupplier",
+    tags=TAGS,
+    summary="Đăng ký gian hàng (SELLER, ADMIN); mỗi tài khoản một gian hàng",
+    request=SupplierSerializer,
+    responses={201: SUPPLIER, 400: ERROR, 401: ERROR, 403: ERROR, 409: ERROR},
+)
 @api_view(["GET", "POST"])
 def collection(request: Request):
+    svc = supplier_service()
     if request.method == "POST":
-        u = _user(request)
-        if not u.has_role("SELLER", "ADMIN"):
+        actor = _require_actor(request)
+        if not request.user.has_role("SELLER", "ADMIN"):
             raise exceptions.PermissionDenied("requires one of roles: SELLER, ADMIN")
         ser = SupplierSerializer(data=request.data)
         ser.is_valid(raise_exception=True)
-        try:
-            s = service.create(u.id, dict(ser.validated_data))
-        except service.Conflict as e:
-            raise _conflict(str(e)) from e
-        return ok(SupplierSerializer(s).data, "Create supplier successfully", 201)
+        supplier = svc.register(actor, dict(ser.validated_data))
+        return ok(SupplierSerializer(supplier).data, "Create supplier successfully", 201)
 
-    is_admin = getattr(request.user, "is_authenticated", False) and request.user.has_role("ADMIN")
+    actor = _actor(request)
+    is_admin = actor is not None and actor.is_admin
     # Khách chỉ thấy gian hàng đang hoạt động; admin lọc theo trạng thái bất kỳ.
-    status = request.query_params.get("status") if is_admin else Supplier.Status.ACTIVE
+    status = request.query_params.get("status") if is_admin else SupplierStatus.ACTIVE
     page = _int(request.query_params.get("page"), 1, 1, 10_000)
     size = _int(request.query_params.get("size"), 20, 1, MAX_SIZE)
-    qs = service.search(request.query_params.get("q"), status)
-    total = qs.count()
-    items = qs[(page - 1) * size : page * size]
+    items, total = svc.search(request.query_params.get("q"), status, page, size)
     ser = SupplierSerializer if is_admin else PublicSupplierSerializer
     return ok(
         {"items": ser(items, many=True).data, "totalItems": total, "page": page, "size": size},
@@ -65,49 +115,63 @@ def collection(request: Request):
     )
 
 
+@extend_schema(
+    operation_id="getMySupplier",
+    tags=TAGS,
+    summary="Gian hàng của tôi",
+    responses={200: SUPPLIER, 401: ERROR, 404: ERROR},
+)
 @api_view(["GET"])
 def mine(request: Request):
-    s = Supplier.objects.filter(owner_id=_user(request).id).first()
-    if s is None:
-        raise Http404
-    return ok(SupplierSerializer(s).data, "Get supplier successfully")
+    supplier = supplier_service().mine(_require_actor(request).id)
+    return ok(SupplierSerializer(supplier).data, "Get supplier successfully")
 
 
+@extend_schema(
+    methods=["GET"],
+    operation_id="getSupplier",
+    tags=TAGS,
+    summary="Chi tiết gian hàng (chưa ACTIVE thì chỉ chủ và ADMIN thấy)",
+    parameters=[KEY],
+    responses={200: SUPPLIER, 404: ERROR},
+)
+@extend_schema(
+    methods=["PATCH"],
+    operation_id="editSupplier",
+    tags=TAGS,
+    summary="Sửa gian hàng (chủ hoặc ADMIN); gửi version để khoá lạc quan",
+    parameters=[KEY],
+    request=UpdateSerializer,
+    responses={200: SUPPLIER, 400: ERROR, 401: ERROR, 403: ERROR, 404: ERROR, 409: ERROR},
+)
 @api_view(["GET", "PATCH"])
 def detail(request: Request, key: str):
-    s = _get(key)
-    manage = _can_manage(request, s)
+    svc = supplier_service()
     if request.method == "PATCH":
-        if not manage:
-            _user(request)
-            raise exceptions.PermissionDenied("only the owner or an admin can edit this supplier")
-        ser = UpdateSerializer(s, data=request.data, partial=True)
+        actor = _require_actor(request)
+        ser = UpdateSerializer(data=request.data, partial=True)
         ser.is_valid(raise_exception=True)
-        try:
-            s = service.update(s, dict(ser.validated_data))
-        except service.Conflict as e:
-            raise _conflict(str(e)) from e
-        return ok(SupplierSerializer(s).data, "Update supplier successfully")
-    if s.status != Supplier.Status.ACTIVE and not manage:
-        raise Http404  # gian hàng chưa duyệt/bị khoá: không lộ là có tồn tại
-    return ok((SupplierSerializer if manage else PublicSupplierSerializer)(s).data, "Get supplier successfully")
+        supplier = svc.edit(actor, key, dict(ser.validated_data))
+        return ok(SupplierSerializer(supplier).data, "Update supplier successfully")
+    actor = _actor(request)
+    supplier = svc.get_visible(key, actor)
+    ser = SupplierSerializer if supplier.can_be_managed_by(actor) else PublicSupplierSerializer
+    return ok(ser(supplier).data, "Get supplier successfully")
 
 
+@extend_schema(
+    operation_id="changeSupplierStatus",
+    tags=TAGS,
+    summary="Duyệt, khoá hoặc đóng gian hàng (ADMIN)",
+    parameters=[KEY],
+    request=StatusSerializer,
+    responses={200: SUPPLIER, 401: ERROR, 403: ERROR, 404: ERROR, 409: ERROR},
+)
 @api_view(["PUT"])
 def status(request: Request, key: str):
-    if not _user(request).has_role("ADMIN"):
+    if not _require_actor(request).is_admin:
         raise exceptions.PermissionDenied("requires one of roles: ADMIN")
-    s = _get(key)
     ser = StatusSerializer(data=request.data)
     ser.is_valid(raise_exception=True)
-    s = service.set_status(s, ser.validated_data["status"])
-    return ok(SupplierSerializer(s).data, "Update supplier status successfully")
-
-
-class _Conflict(exceptions.APIException):
-    status_code = 409
-    default_detail = "Conflict"
-
-
-def _conflict(msg: str) -> exceptions.APIException:
-    return _Conflict(msg)
+    supplier = supplier_service().change_status(key, SupplierStatus(ser.validated_data["status"]))
+    return ok(SupplierSerializer(supplier).data, "Update supplier status successfully")

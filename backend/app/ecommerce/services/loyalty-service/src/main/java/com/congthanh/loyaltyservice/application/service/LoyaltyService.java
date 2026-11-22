@@ -40,7 +40,6 @@ public class LoyaltyService implements LoyaltyUseCases {
             return;
         }
         if (!rules.currency().equals(currency)) {
-            // Tỷ lệ tích điểm chỉ định nghĩa cho đơn vị tiền của chương trình; không quy đổi ngầm sang đơn vị khác.
             log.info("order {} in {} earns no points (programme currency is {})", orderId, currency, rules.currency());
             return;
         }
@@ -64,7 +63,7 @@ public class LoyaltyService implements LoyaltyUseCases {
     @Override
     public void refunded(String orderId, BigDecimal amount, String currency, String reason) {
         if (!rules.currency().equals(currency)) {
-            return; // đơn khác đơn vị tiền chưa từng tích điểm
+            return; 
         }
         repo.customerOfOrder(orderId).ifPresent(c -> tx.executeWithoutResult(s -> {
             Member m = repo.lock(c);

@@ -1,5 +1,3 @@
-"""Port (cổng ra) của chatbot; adapter cụ thể nằm trong app/adapters."""
-
 from collections.abc import AsyncIterator
 from typing import Protocol
 

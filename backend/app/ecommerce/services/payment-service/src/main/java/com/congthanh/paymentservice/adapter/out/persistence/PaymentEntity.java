@@ -15,7 +15,7 @@ import java.time.Instant;
 @Table(name = "payments")
 public class PaymentEntity {
 
-    @JdbcTypeCode(SqlTypes.BIGINT) // Snowflake: cột BIGINT, code giữ String
+    @JdbcTypeCode(SqlTypes.BIGINT)
     @Id
     String id;
 

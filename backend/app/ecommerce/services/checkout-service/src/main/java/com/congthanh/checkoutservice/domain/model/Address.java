@@ -4,7 +4,6 @@ import com.congthanh.checkoutservice.domain.exception.CheckoutException;
 
 import java.util.Locale;
 
-/** Địa chỉ giao hàng. {@code country} là mã ISO 3166-1 alpha-2, {@code city} là mã tỉnh/thành. */
 public record Address(String fullName, String phone, String line1, String line2, String ward, String district,
                       String city, String country, String postalCode) {
 

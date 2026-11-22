@@ -1,4 +1,3 @@
-# Tạo Temporal namespace bằng Job sau khi server sẵn sàng (retention 7 ngày cho lịch sử workflow).
 apiVersion: batch/v1
 kind: Job
 metadata:
@@ -12,4 +11,9 @@ spec:
       containers:
         - name: tctl
           image: temporalio/admin-tools:1.29.1
-          command: ["sh", "-c", "temporal operator namespace describe ecommerce --address temporal-frontend:7233 || temporal operator namespace create ecommerce --retention 7d --address temporal-frontend:7233"]
+          command:
+            [
+              "sh",
+              "-c",
+              "temporal operator namespace describe ecommerce --address temporal-frontend:7233 || temporal operator namespace create ecommerce --retention 7d --address temporal-frontend:7233",
+            ]

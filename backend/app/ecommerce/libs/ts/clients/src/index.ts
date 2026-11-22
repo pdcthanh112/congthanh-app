@@ -6,3 +6,4 @@ export * from './order.js';
 export * from './product.js';
 export * from './promotion.js';
 export * from './recommendation.js';
+export * from './search.js';

@@ -8,21 +8,14 @@ import java.math.BigDecimal;
 import java.util.List;
 import java.util.Map;
 
-/** Use case của payment-service. Activity Temporal và webhook/IPN đều đi qua đây. */
 public interface PaymentUseCases {
 
-    /** Idempotent theo orderId. Thẻ bị từ chối: PaymentException DECLINED. */
     Authorization authorize(AuthorizeCommand command);
 
     void capture(String orderId);
 
-    /** Bù trừ: void nếu chưa thu, refund nếu đã thu, không làm gì nếu chưa có payment. */
     void refund(String orderId, String reason);
 
-    /**
-     * Hoàn một phần số đã thu (trả hàng). Idempotent theo {@code refundId}: gọi lại trả kết quả cũ.
-     * Vượt số còn hoàn được hoặc payment chưa capture: PaymentException INVALID/CONFLICT.
-     */
     RefundResult refundPartial(PartialRefundCommand command);
 
     record PartialRefundCommand(String orderId, String refundId, BigDecimal amount, String currency, String reason) {
@@ -31,12 +24,10 @@ public interface PaymentUseCases {
     record RefundResult(String refundId, String paymentId, BigDecimal amount, String currency, boolean fullyRefunded) {
     }
 
-    /** Kết quả từ cổng (return PayPal, webhook Stripe, sandbox). Idempotent. */
     CallbackOutcome handleCallback(PaymentMethod method, Map<String, String> params);
 
     Payment getByOrder(String orderId);
 
-    /** Đối tác trả góp dùng được cho số tiền này (đang bật, đúng khoảng, có cổng). Không có lịch trả. */
     List<InstallmentPolicy.Option> installmentOptions(BigDecimal amount, String currency);
 
     record AuthorizeCommand(String orderId, String customerId, BigDecimal amount, String currency,
@@ -46,7 +37,6 @@ public interface PaymentUseCases {
     record Authorization(String paymentId, boolean actionRequired, String redirectUrl) {
     }
 
-    /** @param acknowledged cổng có cần nhận phản hồi "đã nhận" không (chữ ký đúng, đơn tồn tại) */
     record CallbackOutcome(boolean acknowledged, String orderId, boolean success, String message) {
     }
 }

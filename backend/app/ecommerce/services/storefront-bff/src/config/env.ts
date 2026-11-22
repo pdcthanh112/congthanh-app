@@ -13,6 +13,7 @@ export const envSchema = baseEnv.extend({
   ORDER_REST_URL: z.url().default('http://localhost:5006'),
   CHECKOUT_REST_URL: z.url().default('http://localhost:5027'),
   RECOMMENDATION_REST_URL: z.url().default('http://localhost:5028'),
+  SEARCH_REST_URL: z.url().default('http://localhost:5013'),
   CUSTOMER_GRPC_ADDR: z.string().default('localhost:19094'),
 });
 export type Env = z.infer<typeof envSchema>;

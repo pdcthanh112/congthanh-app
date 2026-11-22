@@ -21,7 +21,6 @@ type Handler struct {
 
 func New(svc *app.Service, v *auth.Verifier) *Handler { return &Handler{svc: svc, verifier: v} }
 
-// H bọc handler: lỗi nghiệp vụ (domain.Error) được đổi sang HTTP status.
 type H func(w http.ResponseWriter, r *http.Request) error
 
 func (h H) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -58,7 +57,6 @@ func forwardToken(next http.Handler) http.Handler {
 	})
 }
 
-// authorize: khi bật xác thực, chỉ chủ giỏ (sub của token) hoặc ADMIN được truy cập.
 func (h *Handler) authorize(ctx context.Context, customerID string) error {
 	if h.verifier == nil {
 		return nil
@@ -88,7 +86,6 @@ func idParam(r *http.Request, name string) (int64, error) {
 	return v, nil
 }
 
-// ownedCart đọc cartId từ URL, tải giỏ và kiểm tra quyền.
 func (h *Handler) ownedCart(r *http.Request) (domain.Cart, error) {
 	id, err := idParam(r, "cartId")
 	if err != nil {
@@ -237,7 +234,6 @@ func (h *Handler) addItem(w http.ResponseWriter, r *http.Request) error {
 	return nil
 }
 
-// updateItem: PUT /{cartId}/items/{itemId}?quantity=N (giống bản Java).
 func (h *Handler) updateItem(w http.ResponseWriter, r *http.Request) error {
 	c, err := h.ownedCart(r)
 	if err != nil {

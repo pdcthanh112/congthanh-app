@@ -11,10 +11,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
-/**
- * Aggregate phiên checkout: giữ giỏ hàng đã chốt, báo giá mới nhất (giá, giảm giá, phí giao, thuế) và kết quả
- * kiểm tra gian lận. Order id được cấp ngay khi mở phiên nên tạo đơn ở order-service là idempotent.
- */
 public final class CheckoutSession {
 
     public static final int MAX_LINES = 100;

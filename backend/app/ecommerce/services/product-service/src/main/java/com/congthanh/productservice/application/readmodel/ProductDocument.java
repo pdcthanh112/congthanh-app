@@ -36,6 +36,8 @@ public class ProductDocument {
     private List<Image> images = new ArrayList<>();
     private List<Attribute> attributes = new ArrayList<>();
     private List<Variant> variants = new ArrayList<>();
+    /** Các trục variant của sản phẩm gốc kèm giá trị được phép (bộ chọn Màu/Dung lượng ở trang chi tiết). */
+    private List<OptionGroup> optionGroups = new ArrayList<>();
     private BigDecimal basePrice;
     private String currency;
 
@@ -58,10 +60,17 @@ public class ProductDocument {
     public record Image(Long id, String url, int order) {
     }
 
-    public record Attribute(String name, String value) {
+    /** {@code number} chỉ có với thuộc tính kiểu NUMBER; {@code code} rỗng nếu thuộc tính chưa có code. */
+    public record Attribute(String code, String name, String value, BigDecimal number, String unit) {
     }
 
-    public record VariantOption(Long optionId, String name, String value) {
+    public record VariantOption(Long optionId, String name, Long valueId, String value) {
+    }
+
+    public record OptionChoice(Long valueId, String value, int order) {
+    }
+
+    public record OptionGroup(Long optionId, String name, List<OptionChoice> values) {
     }
 
     public record Variant(String id, String name, String slug, String sku, String gtin, BigDecimal price, String currency,

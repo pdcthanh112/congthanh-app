@@ -13,15 +13,6 @@ import java.util.EnumSet;
 import java.util.Map;
 import java.util.Set;
 
-/**
- * Cổng giả cho local/dev/e2e (payment.sandbox.enabled=true), KHÔNG bao giờ bật ở prod.
- * <ul>
- *   <li>token {@code tok_decline}: bị từ chối (để thử nhánh bù trừ của saga)</li>
- *   <li>PAYPAL, trả góp (AFFIRM/KLARNA/AFTERPAY) hoặc token {@code tok_redirect}: phải sang trang sandbox để bấm Trả/Huỷ</li>
- *   <li>còn lại: authorize ngay</li>
- * </ul>
- * Link trang sandbox có chữ ký HMAC nên không ai tự "trả hộ" bằng cách đoán URL.
- */
 @Component
 @ConditionalOnBooleanProperty("payment.sandbox.enabled")
 public class SandboxProvider implements PaymentProvider {

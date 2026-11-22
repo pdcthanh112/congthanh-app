@@ -46,7 +46,12 @@ routes:
   - {name: fraud,        service: fraud-service,        port: 5026, auth: required, paths: [/api/ecommerce/fraud]}
   - {name: recommendation, service: recommendation-service, port: 5028, paths: [/api/ecommerce/recommendations]}
   - {name: media,        service: media-service,        port: 5007, paths: [/api/ecommerce/media]}
-  - {name: product,      service: product-service,      port: 5008, paths: [/api/ecommerce/products]}
+  # product-service: đọc công khai; ghi cần SELLER/ADMIN, định nghĩa thuộc tính/trục variant chỉ ADMIN (service tự kiểm).
+  - name: product
+    service: product-service
+    port: 5008
+    paths: [/api/ecommerce/products, /api/ecommerce/product-attribute, /api/ecommerce/attribute-value,
+            /api/ecommerce/product-image, /api/ecommerce/product-view, /api/ecommerce/variant-options]
   - {name: payment,      service: payment-service,      port: 5018, paths: [/api/ecommerce/payment]}
   - {name: promotion,    service: promotion-service,    port: 5009, paths: [/api/ecommerce/promotions]}
   - {name: search,       service: search-service,       port: 5013, paths: [/api/ecommerce/search]}

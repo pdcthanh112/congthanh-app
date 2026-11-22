@@ -94,6 +94,22 @@ describe('storefront-bff GraphQL', () => {
     expect((await gql(`{ product { id } }`)).errors?.[0]?.extensions?.code).toBe('BAD_USER_INPUT');
   });
 
+  it('tìm kiếm qua search-service: từ khoá và searchCatalog trả sản phẩm kèm facet', async () => {
+    expect((await gql(`{ searchProducts(keyword: "jeans") { id name } }`)).data?.searchProducts).toEqual([
+      { id: 'p2', name: 'Slim Jeans' },
+    ]);
+    const r = await gql(
+      `query($i: ProductSearchInput!) { searchCatalog(input: $i) { total page items { id name } options { key } } }`,
+      { i: { text: 'shirt', options: [{ key: 'Color', values: ['Black'] }], limit: 5 } },
+    );
+    expect(r.data?.searchCatalog).toEqual({
+      total: 1,
+      page: 1,
+      items: [{ id: 'p1', name: 'Cotton T-Shirt' }],
+      options: [],
+    });
+  });
+
   it('router Federation lấy Product qua _entities', async () => {
     const r = await gql(
       `query($r: [_Any!]!) { _entities(representations: $r) { ... on Product { id name price { amount } } } }`,

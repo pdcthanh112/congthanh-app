@@ -1,135 +1,102 @@
 package com.congthanh.productservice.application.service;
 
+import com.congthanh.commonservice.exception.NotFoundException;
 import com.congthanh.productservice.application.port.out.CategoryCatalog;
 import com.congthanh.productservice.application.port.out.ProductReadModelStore;
-import com.congthanh.productservice.application.port.out.product.ProductRepository;
-import com.congthanh.productservice.application.port.out.variantOptionCombination.VariantOptionCombinationRepository;
+import com.congthanh.productservice.application.port.out.ProductRepository;
+import com.congthanh.productservice.application.port.out.ProductSnapshot;
+import com.congthanh.productservice.application.port.out.ProductSnapshots;
 import com.congthanh.productservice.application.readmodel.ProductDocument;
-import com.congthanh.commonservice.exception.NotFoundException;
 import com.congthanh.productservice.domain.model.Product;
-import com.congthanh.productservice.domain.model.ProductCategory;
-import com.congthanh.productservice.domain.model.ProductImage;
-import com.congthanh.productservice.domain.model.VariantOption;
-import com.congthanh.productservice.domain.model.VariantOptionCombination;
 import com.congthanh.productservice.domain.model.enums.ProductStatus;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.ArgumentCaptor;
-import org.springframework.data.domain.Limit;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.TransactionDefinition;
+import org.springframework.transaction.TransactionStatus;
 import org.springframework.transaction.support.SimpleTransactionStatus;
 
 import java.math.BigDecimal;
+import java.time.Clock;
+import java.time.Instant;
+import java.time.ZoneOffset;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyList;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 
 class ProductReadModelServiceTest {
 
-    ProductRepository products = mock(ProductRepository.class);
-    ProductReadModelStore store = mock(ProductReadModelStore.class);
-    CategoryCatalog catalog = mock(CategoryCatalog.class);
-    VariantOptionCombinationRepository combos = mock(VariantOptionCombinationRepository.class);
-    PlatformTransactionManager tm = mock(PlatformTransactionManager.class);
-    ProductReadModelService service;
-
-    @BeforeEach
-    void setUp() {
-        when(tm.getTransaction(any())).thenReturn(new SimpleTransactionStatus());
-        when(products.snapshotMicros()).thenReturn(1_000L, 2_000L, 3_000L);
-        when(store.upsertCore(any())).thenReturn(true);
-        service = new ProductReadModelService(products, store, new ProductDocumentAssembler(catalog, combos), tm);
-    }
+    final FakeSnapshots snapshots = new FakeSnapshots();
+    final FakeStore store = new FakeStore();
+    final FakeCatalog catalog = new FakeCatalog();
+    final FakeTx tx = new FakeTx();
+    final ProductReadModelService service = new ProductReadModelService(snapshots, new FakeIds(snapshots), store,
+            new ProductDocumentAssembler(catalog, Clock.fixed(Instant.parse("2026-11-22T00:00:00Z"), ZoneOffset.UTC)), tx);
 
     @Test
     void refreshReadsOneRepeatableReadSnapshotAndBuildsFullDocument() {
-        Product p = product("p1", "shirt", null);
-        p.setThumbnail(11L);
-        p.setImage(Set.of(image(10L, "a.jpg", 1, p), image(11L, "b.jpg", 2, p)));
-        p.setCategory(new ArrayList<>(List.of(category("c2", 2, p), category("c1", 1, p))));
-        when(catalog.byIds(List.of("c1", "c2"))).thenReturn(List.of(
-                new CategoryCatalog.CategoryRef("c2", "Áo", "ao"), new CategoryCatalog.CategoryRef("c1", "Nam", "nam")));
-        Product red = product("p1-red", "shirt-red", p);
-        Product gone = product("p1-old", "shirt-old", p);
-        gone.setStatus(ProductStatus.INACTIVE);
-        p.setVariant(List.of(red, gone));
-        VariantOption color = new VariantOption();
-        color.setId(5L);
-        color.setName("Màu");
-        VariantOptionCombination combo = new VariantOptionCombination();
-        combo.setVariantOption(color);
-        combo.setValue("Đỏ");
-        when(combos.findAllByProduct(red)).thenReturn(List.of(combo));
-        when(products.findById("p1")).thenReturn(Optional.of(p));
+        var red = snapshot("p1-red", null, "p1", ProductStatus.ACTIVE, List.of(),
+                List.of(new ProductSnapshot.Option(5L, "Màu", 7L, "Đỏ", 1, 1)), List.of());
+        var gone = snapshot("p1-old", null, "p1", ProductStatus.INACTIVE, List.of(),
+                List.of(new ProductSnapshot.Option(5L, "Màu", 8L, "Xanh", 2, 1)), List.of());
+        snapshots.put(snapshot("p1", "shirt", null, ProductStatus.ACTIVE,
+                List.of(new ProductSnapshot.Image(11L, "b.jpg", 2), new ProductSnapshot.Image(10L, "a.jpg", 1)),
+                List.of(), List.of(red, gone)), 11L, List.of("c1", "c2"));
+        catalog.categories.put("c1", new CategoryCatalog.CategoryRef("c1", "Nam", "nam"));
+        catalog.categories.put("c2", new CategoryCatalog.CategoryRef("c2", "Áo", "ao"));
 
         service.refresh("p1");
 
-        var tx = ArgumentCaptor.forClass(TransactionDefinition.class);
-        verify(tm).getTransaction(tx.capture());
-        assertThat(tx.getValue().getIsolationLevel()).isEqualTo(TransactionDefinition.ISOLATION_REPEATABLE_READ);
-        assertThat(tx.getValue().isReadOnly()).isTrue();
-
-        var doc = ArgumentCaptor.forClass(ProductDocument.class);
-        verify(store).upsertCore(doc.capture());
-        ProductDocument d = doc.getValue();
+        assertThat(tx.definitions).singleElement().satisfies(d -> {
+            assertThat(d.getIsolationLevel()).isEqualTo(TransactionDefinition.ISOLATION_REPEATABLE_READ);
+            assertThat(d.isReadOnly()).isTrue();
+        });
+        ProductDocument d = store.upserts.getFirst();
         assertThat(d.getCoreVersion()).isEqualTo(1_000L);
         assertThat(d.getThumbnail()).isEqualTo("b.jpg");
         assertThat(d.getImages()).extracting(ProductDocument.Image::url).containsExactly("a.jpg", "b.jpg");
         assertThat(d.getCategories()).containsExactly(new ProductDocument.Category("c1", "Nam", "nam"),
                 new ProductDocument.Category("c2", "Áo", "ao"));
+        // Chỉ variant đang bán; bộ chọn option chỉ gồm giá trị của variant đang bán.
         assertThat(d.getVariants()).singleElement().satisfies(v -> {
             assertThat(v.id()).isEqualTo("p1-red");
-            assertThat(v.options()).containsExactly(new ProductDocument.VariantOption(5L, "Màu", "Đỏ"));
+            assertThat(v.options()).containsExactly(new ProductDocument.VariantOption(5L, "Màu", 7L, "Đỏ"));
         });
+        assertThat(d.getOptionGroups()).containsExactly(new ProductDocument.OptionGroup(5L, "Màu",
+                List.of(new ProductDocument.OptionChoice(7L, "Đỏ", 1))));
         assertThat(d.getCurrency()).isEqualTo("USD");
     }
 
     @Test
     void refreshingAVariantAlsoRefreshesItsParent() {
-        Product parent = product("p1", "shirt", null);
-        Product red = product("p1-red", "shirt-red", parent);
-        when(products.findById("p1-red")).thenReturn(Optional.of(red));
-        when(products.findById("p1")).thenReturn(Optional.of(parent));
+        snapshots.put(snapshot("p1", "shirt", null, ProductStatus.ACTIVE, List.of(), List.of(), List.of()));
+        snapshots.put(snapshot("p1-red", null, "p1", ProductStatus.ACTIVE, List.of(), List.of(), List.of()));
 
         service.refresh("p1-red");
 
-        verify(products).findById("p1-red");
-        verify(products).findById("p1");
-        verify(store, times(2)).upsertCore(any());
+        assertThat(store.upserts).extracting(ProductDocument::getId).containsExactly("p1-red", "p1");
     }
 
     @Test
     void productGoneFromPostgresIsRemovedFromReadModel() {
-        when(products.findById("p9")).thenReturn(Optional.empty());
-
         service.refresh("p9");
 
-        verify(store).delete("p9");
-        verify(store, never()).upsertCore(any());
+        assertThat(store.deleted).containsExactly("p9");
+        assertThat(store.upserts).isEmpty();
     }
 
     @Test
     void readFallsBackToPostgresWithoutWritingWhenDocumentMissing() {
-        when(store.findBySlug("shirt")).thenReturn(Optional.empty());
-        when(products.findProductBySlug("shirt")).thenReturn(Optional.of(product("p1", "shirt", null)));
+        snapshots.put(snapshot("p1", "shirt", null, ProductStatus.ACTIVE, List.of(), List.of(), List.of()));
 
         ProductDocument d = service.getBySlug("shirt");
 
         assertThat(d.getId()).isEqualTo("p1");
-        verify(store, never()).upsertCore(any());
+        assertThat(store.upserts).isEmpty();
     }
 
     @Test
@@ -137,51 +104,213 @@ class ProductReadModelServiceTest {
         ProductDocument deleted = new ProductDocument();
         deleted.setStatus(ProductStatus.DELETED);
         deleted.setCoreVersion(1L);
-        when(store.findBySlug("old")).thenReturn(Optional.of(deleted));
+        store.bySlug.put("old", deleted);
 
         assertThatThrownBy(() -> service.getBySlug("old")).isInstanceOf(NotFoundException.class);
     }
 
     @Test
     void rebuildPagesThroughIdsAndCountsFailures() {
-        when(products.findIdsAfter(eq("0"), any(Limit.class))).thenReturn(List.of("a", "b"));
-        when(products.findIdsAfter(eq("b"), any(Limit.class))).thenReturn(List.of());
-        when(products.findById("a")).thenReturn(Optional.of(product("a", "a", null)));
-        when(products.findById("b")).thenThrow(new IllegalStateException("boom"));
+        snapshots.put(snapshot("a", "a", null, ProductStatus.ACTIVE, List.of(), List.of(), List.of()));
+        snapshots.failing.add("b");
 
         var result = service.rebuildAll();
 
         assertThat(result.refreshed()).isEqualTo(1);
         assertThat(result.failed()).isEqualTo(1);
-        verify(catalog, never()).byIds(anyList());
+        assertThat(catalog.calls).isZero();
     }
 
-    private static Product product(String id, String slug, Product parent) {
-        Product p = new Product();
-        p.setId(id);
-        p.setName(id);
-        p.setSlug(slug);
-        p.setStatus(ProductStatus.ACTIVE);
-        p.setPrice(new BigDecimal("10.00"));
-        p.setCurrency("USD");
-        p.setParent(parent);
-        return p;
+    private static ProductSnapshot snapshot(String id, String slug, String parentId, ProductStatus status,
+                                            List<ProductSnapshot.Image> images, List<ProductSnapshot.Option> options,
+                                            List<ProductSnapshot> variants) {
+        return new ProductSnapshot(id, parentId, id, slug, null, null, null, status, false, !variants.isEmpty(), null, null,
+                new BigDecimal("10.00"), "USD", null, images, List.of(), List.of(), options, variants);
     }
 
-    private static ProductImage image(Long id, String path, int order, Product p) {
-        ProductImage i = new ProductImage();
-        i.setId(id);
-        i.setImagePath(path);
-        i.setDisplayOrder(order);
-        i.setProduct(p);
-        return i;
+    /** Bản chụp đọc từ "Postgres" giả; id được ghi theo thứ tự thêm để rebuild quét theo lô. */
+    static final class FakeSnapshots implements ProductSnapshots {
+        final Map<String, ProductSnapshot> byId = new HashMap<>();
+        final List<String> ids = new ArrayList<>();
+        final List<String> failing = new ArrayList<>();
+        private long clock = 0;
+
+        void put(ProductSnapshot s) {
+            byId.put(s.id(), s);
+            ids.add(s.id());
+        }
+
+        void put(ProductSnapshot s, Long thumbnailId, List<String> categoryIds) {
+            put(new ProductSnapshot(s.id(), s.parentId(), s.name(), s.slug(), s.sku(), s.gtin(), s.description(), s.status(),
+                    s.featured(), s.hasVariant(), s.supplier(), s.brandId(), s.price(), s.currency(), thumbnailId, s.images(),
+                    categoryIds, s.attributes(), s.options(), s.variants()));
+        }
+
+        @Override
+        public long snapshotMicros() {
+            clock += 1_000L;
+            return clock;
+        }
+
+        @Override
+        public Optional<ProductSnapshot> byId(String id) {
+            if (failing.contains(id)) {
+                throw new IllegalStateException("boom");
+            }
+            return Optional.ofNullable(byId.get(id));
+        }
+
+        @Override
+        public Optional<ProductSnapshot> bySlug(String slug) {
+            return byId.values().stream().filter(s -> slug.equals(s.slug())).findFirst();
+        }
     }
 
-    private static ProductCategory category(String id, int order, Product p) {
-        ProductCategory c = new ProductCategory();
-        c.setCategoryId(id);
-        c.setDisplayOrder(order);
-        c.setProduct(p);
-        return c;
+    /** Chỉ phần quét id của ProductRepository được read model dùng. */
+    static final class FakeIds implements ProductRepository {
+        private final FakeSnapshots snapshots;
+
+        FakeIds(FakeSnapshots snapshots) {
+            this.snapshots = snapshots;
+        }
+
+        @Override
+        public List<String> idsAfter(String after, int limit) {
+            List<String> all = new ArrayList<>(snapshots.ids);
+            all.addAll(snapshots.failing);
+            int from = "0".equals(after) ? 0 : all.indexOf(after) + 1;
+            return all.subList(from, Math.min(all.size(), from + limit));
+        }
+
+        @Override
+        public Optional<Product> findById(String id) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public List<Product> findVariants(String parentId) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public void save(Product product) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public boolean existsSkuOnOther(String sku, String productId) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public boolean existsSlugOnOther(String slug, String productId) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public boolean existsGtinOnOther(String gtin, String productId) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public boolean existsLiveVariantKey(String parentId, String variantKey) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public void republish(String productId) {
+            throw new UnsupportedOperationException();
+        }
+    }
+
+    static final class FakeStore implements ProductReadModelStore {
+        final List<ProductDocument> upserts = new ArrayList<>();
+        final List<String> deleted = new ArrayList<>();
+        final Map<String, ProductDocument> bySlug = new HashMap<>();
+
+        @Override
+        public Optional<ProductDocument> findById(String id) {
+            return Optional.empty();
+        }
+
+        @Override
+        public Optional<ProductDocument> findBySlug(String slug) {
+            return Optional.ofNullable(bySlug.get(slug));
+        }
+
+        @Override
+        public boolean upsertCore(ProductDocument core) {
+            upserts.add(core);
+            return true;
+        }
+
+        @Override
+        public void delete(String id) {
+            deleted.add(id);
+        }
+
+        @Override
+        public void applyPrice(String productId, String priceList, BigDecimal amount, String currency, Instant at) {
+        }
+
+        @Override
+        public void applyRating(String productId, double average, long count, List<Long> stars, Instant at) {
+        }
+
+        @Override
+        public void applyStock(String productId, String warehouseId, int available, Instant at) {
+        }
+
+        @Override
+        public void applyCategory(String categoryId, String name, String slug, Instant at) {
+        }
+
+        @Override
+        public void applyBrand(long brandId, String name, String slug, Instant at) {
+        }
+    }
+
+    static final class FakeCatalog implements CategoryCatalog {
+        final Map<String, CategoryRef> categories = new HashMap<>();
+        int calls;
+
+        @Override
+        public CategoryRef byId(String categoryId) {
+            return categories.get(categoryId);
+        }
+
+        @Override
+        public CategoryRef bySlug(String slug) {
+            throw new UnsupportedOperationException();
+        }
+
+        @Override
+        public List<CategoryRef> byIds(List<String> categoryIds) {
+            calls++;
+            return categoryIds.stream().map(categories::get).filter(c -> c != null).toList();
+        }
+
+        @Override
+        public void validate(List<String> categoryIds) {
+        }
+    }
+
+    /** Ghi lại định nghĩa transaction để kiểm REPEATABLE READ + read-only. */
+    static final class FakeTx implements PlatformTransactionManager {
+        final List<TransactionDefinition> definitions = new ArrayList<>();
+
+        @Override
+        public TransactionStatus getTransaction(TransactionDefinition definition) {
+            definitions.add(definition);
+            return new SimpleTransactionStatus();
+        }
+
+        @Override
+        public void commit(TransactionStatus status) {
+        }
+
+        @Override
+        public void rollback(TransactionStatus status) {
+        }
     }
 }

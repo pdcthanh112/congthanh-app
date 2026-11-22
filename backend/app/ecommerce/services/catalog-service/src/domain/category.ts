@@ -65,10 +65,6 @@ export class Category {
     };
   }
 
-  /**
-   * Chuyển sang cha mới. `ancestorsOfNewParent` là đường dẫn từ gốc tới cha mới (gồm cả cha mới),
-   * dùng để chặn vòng (đưa danh mục vào nhánh con của chính nó) và giới hạn độ sâu.
-   */
   moveTo(newParentId: string | null, ancestorsOfNewParent: readonly string[], now: Date): void {
     if (newParentId === this.props.id || ancestorsOfNewParent.includes(this.props.id)) {
       throw DomainError.invalid("a category cannot be moved under itself or its descendants", "CATEGORY_CYCLE");

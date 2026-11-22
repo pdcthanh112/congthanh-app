@@ -21,11 +21,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-/**
- * PayPal Orders API v2 (intent AUTHORIZE), gọi bằng RestClient thay cho SDK v1 đã ngừng hỗ trợ.
- * providerRef = PayPal order id; id của authorization/capture luôn đọc lại từ order nên không phải lưu thêm.
- * Mọi POST có header PayPal-Request-Id theo orderId để PayPal tự chống trùng.
- */
 @Component
 @ConditionalOnProperty("payment.paypal.client-id")
 class PayPalProvider implements PaymentProvider {
@@ -86,7 +81,6 @@ class PayPalProvider implements PaymentProvider {
         return new ProviderResult.ActionRequired(order.path("id").asString(), approve);
     }
 
-    /** Khách quay về return_url: authorize order trên PayPal rồi báo kết quả. */
     @Override
     public CallbackResult verifyCallback(Map<String, String> params) {
         String orderId = params.get("orderId");

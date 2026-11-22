@@ -9,7 +9,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
-/** Lỗi riêng của checkout; lỗi nghiệp vụ (CheckoutException) và lỗi chung do common-core xử lý. */
 @RestControllerAdvice
 @Order(0)
 class ProblemHandler {
@@ -20,7 +19,6 @@ class ProblemHandler {
         this.problems = problems;
     }
 
-    /** Pod đang xử lý đủ số lượt đặt đơn đồng thời: client đợi rồi gửi lại (cùng Idempotency-Key). */
     @ExceptionHandler(PlaceLimiter.Busy.class)
     ResponseEntity<ProblemDetail> busy(PlaceLimiter.Busy e) {
         ProblemDetail p = problems.of(HttpStatus.SERVICE_UNAVAILABLE, "CHECKOUT_BUSY", e.getMessage());

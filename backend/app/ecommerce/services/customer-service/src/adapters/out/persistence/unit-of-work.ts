@@ -1,20 +1,12 @@
-import { create } from '@bufbuild/protobuf';
-import { timestampFromDate } from '@bufbuild/protobuf/wkt';
-import { type Database, DB, OutboxWriter } from '@ecommerce/platform';
-import {
-  WishlistItemAddedSchema,
-  WishlistItemRemovedSchema,
-} from '@ecommerce/proto/ecommerce/customer/v1/customer_events_pb';
-import { Inject, Injectable } from '@nestjs/common';
-import type { CustomerEvents, ReadRepositories, TransactionScope, UnitOfWork } from '../../../application/ports.js';
-import {
-  type Conn,
-  DrizzleAddressRepository,
-  DrizzleSearchHistoryRepository,
-  DrizzleWishlistRepository,
-} from './repositories.js';
-import type * as schema from './schema.js';
-import { outbox } from './schema.js';
+import { create } from "@bufbuild/protobuf";
+import { timestampFromDate } from "@bufbuild/protobuf/wkt";
+import { type Database, DB, OutboxWriter } from "@ecommerce/platform";
+import { WishlistItemAddedSchema, WishlistItemRemovedSchema } from "@ecommerce/proto/ecommerce/customer/v1/customer_events_pb";
+import { Inject, Injectable } from "@nestjs/common";
+import type { CustomerEvents, ReadRepositories, TransactionScope, UnitOfWork } from "../../../application/ports.js";
+import { type Conn, DrizzleAddressRepository, DrizzleSearchHistoryRepository, DrizzleWishlistRepository } from "./repositories.js";
+import type * as schema from "./schema.js";
+import { outbox } from "./schema.js";
 
 class OutboxCustomerEvents implements CustomerEvents {
   constructor(
@@ -24,7 +16,7 @@ class OutboxCustomerEvents implements CustomerEvents {
 
   async wishlistItemAdded(customerId: string, productId: string, at: Date) {
     await this.writer.write(this.tx, {
-      aggregateType: 'customer',
+      aggregateType: "customer",
       aggregateId: customerId,
       schema: WishlistItemAddedSchema,
       payload: create(WishlistItemAddedSchema, { customerId, productId, addedAt: timestampFromDate(at) }),
@@ -33,7 +25,7 @@ class OutboxCustomerEvents implements CustomerEvents {
 
   async wishlistItemRemoved(customerId: string, productId: string) {
     await this.writer.write(this.tx, {
-      aggregateType: 'customer',
+      aggregateType: "customer",
       aggregateId: customerId,
       schema: WishlistItemRemovedSchema,
       payload: create(WishlistItemRemovedSchema, { customerId, productId }),
@@ -43,7 +35,7 @@ class OutboxCustomerEvents implements CustomerEvents {
 
 @Injectable()
 export class DrizzleUnitOfWork implements UnitOfWork {
-  private readonly writer = new OutboxWriter('customer-service', outbox);
+  private readonly writer = new OutboxWriter("customer-service", outbox);
 
   constructor(@Inject(DB) private readonly db: Database<typeof schema>) {}
 

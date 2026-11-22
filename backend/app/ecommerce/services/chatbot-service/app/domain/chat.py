@@ -1,5 +1,3 @@
-"""Domain thuần của chatbot: tin nhắn, sản phẩm làm ngữ cảnh, prompt hệ thống."""
-
 from __future__ import annotations
 
 import re
@@ -41,7 +39,6 @@ def validate(text: str, session_id: str | None, max_chars: int) -> str:
 
 
 def history_key(subject: str | None, session_id: str) -> str:
-    # Khách vãng lai và người đăng nhập dùng không gian khoá khác nhau: không đoán được lịch sử của người khác.
     return f"chatbot:history:{subject or 'anon'}:{session_id}"
 
 

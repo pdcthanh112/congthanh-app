@@ -1,5 +1,3 @@
-// media-service: cấp URL ký sẵn để tải file thẳng lên S3/R2/MinIO, xác minh và lưu metadata
-// (thay file-service Java nhận file qua service).
 package main
 
 import (

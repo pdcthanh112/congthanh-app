@@ -1,14 +1,16 @@
 package com.congthanh.productservice.application.service;
 
+import com.congthanh.commonservice.exception.BadRequestException;
 import com.congthanh.commonservice.exception.NotFoundException;
-import com.congthanh.productservice.application.port.out.CategoryCatalog;
-import com.congthanh.productservice.domain.model.Product;
-import com.congthanh.productservice.domain.model.ProductCategory;
-import com.congthanh.productservice.application.port.out.productCategory.ProductCategoryRepository;
+import com.congthanh.productservice.application.dto.ProductCategoryDTO;
 import com.congthanh.productservice.application.port.in.ProductCategoryService;
-import com.congthanh.productservice.domain.support.SnowflakeIdGenerator;
+import com.congthanh.productservice.application.port.out.CategoryCatalog;
+import com.congthanh.productservice.application.port.out.ProductQueries;
+import com.congthanh.productservice.application.port.out.ProductRepository;
+import com.congthanh.productservice.domain.model.Product;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
@@ -16,48 +18,38 @@ import java.util.List;
 @RequiredArgsConstructor
 public class ProductCategoryServiceImpl implements ProductCategoryService {
 
-    private final ProductCategoryRepository productCategoryRepository;
-
+    private final ProductRepository products;
+    private final ProductQueries queries;
     private final CategoryCatalog categoryCatalog;
 
-    private final SnowflakeIdGenerator snowflakeIdGenerator;
-
     @Override
-    public void addCategoryToProduct(String categoryId, String productId) {
-        CategoryCatalog.CategoryRef checkCategory = categoryCatalog.byId(categoryId);
-        if (checkCategory == null) {
-            throw new NotFoundException("Category not exist");
+    @Transactional
+    public List<ProductCategoryDTO> addCategoryToProduct(String productId, String categoryId) {
+        Product product = requireProduct(productId);
+        try {
+            categoryCatalog.validate(List.of(categoryId));
+        } catch (IllegalArgumentException e) {
+            throw new BadRequestException(e.getMessage());
         }
-        ProductCategory productCategory = productCategoryRepository.findProductCategoriesByCategoryIdAndProductId(categoryId, productId);
-        if (productCategory != null) {
-            throw new RuntimeException("Category already exits");
-        }
-
-        ProductCategory newProductCategory = ProductCategory.builder()
-                .id(snowflakeIdGenerator.nextId())
-                .categoryId(categoryId)
-                .product(Product.builder().id(productId).build())
-                .build();
-
-        productCategoryRepository.save(newProductCategory);
+        product.assignCategory(categoryId);
+        products.save(product);
+        return categories(productId);
     }
 
     @Override
-    public void addCategoryToProduct(List<String> categoryIds, String productId) {
-        for (int i = 0; i < categoryIds.size(); i++) {
-            ProductCategory productCategory = productCategoryRepository.findProductCategoriesByCategoryIdAndProductId(categoryIds.get(i), productId);
-            if (productCategory != null) {
-                throw new RuntimeException("Category already exits");
-            }
+    @Transactional
+    public List<ProductCategoryDTO> removeCategoryFromProduct(String productId, String categoryId) {
+        Product product = requireProduct(productId);
+        product.removeCategory(categoryId);
+        products.save(product);
+        return categories(productId);
+    }
 
-            ProductCategory newProductCategory = ProductCategory.builder()
-                    .id(snowflakeIdGenerator.nextId())
-                    .categoryId(categoryIds.get(i))
-                    .product(Product.builder().id(productId).build())
-                    .displayOrder(i)
-                    .build();
+    private List<ProductCategoryDTO> categories(String productId) {
+        return queries.detail(productId).map(d -> d.getCategory()).orElse(List.of());
+    }
 
-            productCategoryRepository.save(newProductCategory);
-        }
+    private Product requireProduct(String id) {
+        return products.findById(id).orElseThrow(() -> new NotFoundException("product not found: " + id));
     }
 }

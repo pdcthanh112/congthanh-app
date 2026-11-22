@@ -1,4 +1,3 @@
-// tax-service: loại thuế, thuế suất theo vùng và tính thuế cho đơn hàng (thay bản Java).
 package main
 
 import (

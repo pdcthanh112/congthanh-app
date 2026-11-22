@@ -89,7 +89,7 @@ func run() error {
 	}
 	bg := []func(context.Context) error{worker}
 	if len(cfg.KafkaBrokers) > 0 {
-		cons, err := kafka.NewConsumer(kafka.ConsumerConfig{Brokers: cfg.KafkaBrokers, Group: cfg.KafkaGroup, Topics: messaging.Topics}, pool, messaging.Handler(svc))
+		cons, err := kafka.NewConsumer(kafka.ConsumerConfig{Brokers: cfg.KafkaBrokers, Group: cfg.KafkaGroup, Topics: messaging.Topics}, pool, messaging.Handler(svc, repo.InTx))
 		if err != nil {
 			return err
 		}

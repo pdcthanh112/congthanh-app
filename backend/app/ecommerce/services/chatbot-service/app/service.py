@@ -1,5 +1,3 @@
-"""Use case: một lượt chat. Tìm sản phẩm liên quan, ghép lịch sử, stream câu trả lời rồi lưu lịch sử."""
-
 from __future__ import annotations
 
 import logging
@@ -14,8 +12,6 @@ log = logging.getLogger(__name__)
 
 @dataclass(frozen=True)
 class Event:
-    """Sự kiện gửi về client qua SSE: products (một lần, đầu tiên), delta (nhiều lần), done | error."""
-
     type: str
     data: object
 
@@ -40,7 +36,6 @@ class ChatService:
         try:
             return await self.search.search(text, self.context_size)
         except Exception:
-            # Thiếu ngữ cảnh sản phẩm vẫn trả lời được câu hỏi chung (đổi trả, vận chuyển...).
             log.warning("product search failed", exc_info=True)
             return []
 
@@ -54,7 +49,6 @@ class ChatService:
             return []
 
     def prepare(self, text: str, session_id: str | None) -> str:
-        """Kiểm đầu vào trước khi mở stream (lỗi ở đây trả 400 thay vì sự kiện error)."""
         return validate(text, session_id, self.max_chars)
 
     async def chat(self, text: str, session_id: str | None, subject: str | None) -> AsyncIterator[Event]:

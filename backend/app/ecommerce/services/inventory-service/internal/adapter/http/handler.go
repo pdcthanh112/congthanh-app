@@ -20,7 +20,6 @@ type Handler struct {
 
 func New(svc *app.Service, v *auth.Verifier) *Handler { return &Handler{svc: svc, verifier: v} }
 
-// H bọc handler: lỗi nghiệp vụ (domain.Error) được đổi sang HTTP status.
 type H func(w http.ResponseWriter, r *http.Request) error
 
 func (h H) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -32,13 +31,11 @@ func (h *Handler) Mount(r chi.Router) {
 		r.Use(auth.Middleware(h.verifier))
 
 		r.Route("/inventory", func(r chi.Router) {
-			// Đọc tồn kho: công khai (storefront cần hiển thị còn hàng).
 			r.Method(http.MethodGet, "/{sku}", H(h.getBySKU))
 			r.Method(http.MethodGet, "/{sku}/in-stock", H(h.inStock))
 			r.Method(http.MethodPost, "/availability", H(h.availability))
 			r.Method(http.MethodGet, "/levels", H(h.levels))
 
-			// Ghi tồn kho và giữ/nhả/chốt hàng: chỉ ADMIN (vận hành). Saga đặt hàng gọi qua gRPC nội bộ, không qua đây.
 			r.Group(func(r chi.Router) {
 				r.Use(auth.RequireRole(h.verifier, "ADMIN"))
 				r.Method(http.MethodPost, "/", H(h.upsert))
@@ -80,7 +77,6 @@ func actor(r *http.Request) string {
 	return ""
 }
 
-// SKUView là dạng trả về của GET /inventory/{sku}: tổng hợp mọi kho.
 type SKUView struct {
 	SKU       string         `json:"sku"`
 	ProductID string         `json:"productId"`
@@ -175,7 +171,6 @@ func (h *Handler) upsert(w http.ResponseWriter, r *http.Request) error {
 	return nil
 }
 
-// updateQuantity: PUT /inventory/{sku}?quantity=&warehouseId= (giữ tham số như bản Java).
 func (h *Handler) updateQuantity(w http.ResponseWriter, r *http.Request) error {
 	q, err := strconv.Atoi(r.URL.Query().Get("quantity"))
 	if err != nil || q < 0 {
