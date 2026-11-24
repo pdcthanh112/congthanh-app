@@ -55,11 +55,11 @@
     "cockatiel": "^4.0.0",
     "drizzle-orm": "^0.45.4",
     "express": "^5.3.0",
-    "graphql": "^16.15.0",
+    "graphql": "^17.1.0",
     "graphql-ws": "^6.4.1",
     "helmet": "^8.3.0",
     "ioredis": "^6.0.0",
-    "jose": "^6.2.16",
+    "jose": "^6.2.17",
     "nestjs-pino": "^5.3.1",
     "pg": "^8.23.1",
     "pino": "^10.4.0",
@@ -67,7 +67,7 @@
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.2",
     "uuid": "^14.0.3",
-    "ws": "^8.22.0",
+    "ws": "^8.22.2",
     "zod": "^4.6.7"
   },
   "devDependencies": {
