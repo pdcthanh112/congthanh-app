@@ -1,6 +1,6 @@
 [versions]
 jdk = "25"
-spring-boot = "4.1.2"
+spring-boot = "4.2.0"
 temporal = "1.40.0"
 resilience4j = "2.4.0"
 archunit = "1.5.1"
