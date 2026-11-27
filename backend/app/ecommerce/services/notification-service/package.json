@@ -22,13 +22,13 @@
     "@nestjs/core": "^12.4.2",
     "@nestjs/graphql": "^14.2.0",
     "drizzle-orm": "^0.45.4",
-    "firebase-admin": "^14.5.0",
-    "graphql": "^16.15.0",
+    "firebase-admin": "^14.5.1",
+    "graphql": "^17.1.0",
     "ioredis": "^6.0.0",
-    "nodemailer": "^10.2.1",
+    "nodemailer": "^10.5.0",
     "reflect-metadata": "^0.2.2",
     "uuid": "^14.0.3",
-    "web-push": "^3.6.7",
+    "web-push": "^4.0.0",
     "zod": "^4.6.7"
   },
   "devDependencies": {
