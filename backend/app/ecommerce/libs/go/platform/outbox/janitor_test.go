@@ -58,3 +58,40 @@ func TestJanitorPurgesOnlyExpiredRows(t *testing.T) {
 		t.Fatalf("outbox=%d processed=%d, want 2 and 1", outbox, processed)
 	}
 }
+
+func TestJanitorCallsMaintainPartitionsWhenSchemaHasIt(t *testing.T) {
+	url := testkit.PostgresURL(t)
+	ctx := context.Background()
+	schema := fmt.Sprintf("janitor_part_test_%d", time.Now().UnixNano())
+	cfg, err := pgxpool.ParseConfig(url)
+	if err != nil {
+		t.Fatal(err)
+	}
+	cfg.ConnConfig.RuntimeParams["search_path"] = schema
+	pool, err := pgxpool.NewWithConfig(ctx, cfg)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() {
+		_, _ = pool.Exec(context.Background(), "DROP SCHEMA "+schema+" CASCADE")
+		pool.Close()
+	})
+	if _, err := pool.Exec(ctx, "CREATE SCHEMA "+schema); err != nil {
+		t.Fatal(err)
+	}
+	// Schema chưa có hàm: janitor bỏ qua, không lỗi.
+	NewJanitor(pool, JanitorConfig{}).PurgeOnce(ctx)
+	if _, err := pool.Exec(ctx, `CREATE TABLE maintenance_calls (called_at TIMESTAMPTZ NOT NULL DEFAULT now());
+		CREATE FUNCTION maintain_partitions() RETURNS int LANGUAGE sql AS
+		$$ INSERT INTO maintenance_calls DEFAULT VALUES RETURNING 1 $$`); err != nil {
+		t.Fatal(err)
+	}
+
+	NewJanitor(pool, JanitorConfig{}).PurgeOnce(ctx)
+
+	var calls int
+	_ = pool.QueryRow(ctx, `SELECT count(*) FROM maintenance_calls`).Scan(&calls)
+	if calls != 1 {
+		t.Fatalf("maintain_partitions called %d times, want 1", calls)
+	}
+}

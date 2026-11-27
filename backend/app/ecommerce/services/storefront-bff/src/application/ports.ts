@@ -14,14 +14,11 @@ import type {
  * Cổng ra tới các service phía sau. Adapter là các client trong @ecommerce/clients (gRPC/REST); test
  * thay bằng bản giả. Chỉ khai báo phần BFF dùng để test không phải giả cả client.
  */
-export type ProductPort = Pick<ProductClient, 'byIds' | 'detail' | 'bySlug' | 'list' | 'byCategory'>;
+export type ProductPort = Pick<ProductClient, 'byIds' | 'detail' | 'bySlug' | 'list' | 'byCategory' | 'variants' | 'optionValues'>;
 /** Tìm kiếm, lọc, facet cho storefront đi qua search-service (ADR 0030), không qua product-service. */
 export type SearchPort = Pick<SearchClient, 'search'>;
 export type InventoryPort = Pick<InventoryClient, 'levels'>;
-export type CartPort = Pick<
-  CartClient,
-  'defaultCart' | 'ensureDefault' | 'addItem' | 'updateItem' | 'removeItem' | 'clear'
->;
+export type CartPort = Pick<CartClient, 'defaultCart' | 'ensureDefault' | 'addItem' | 'updateItem' | 'removeItem' | 'clear'>;
 export type PromotionPort = Pick<PromotionClient, 'quote'>;
 export type OrderPort = Pick<OrderClient, 'get' | 'history' | 'progress' | 'cancel'>;
 export type CheckoutPort = Pick<CheckoutClient, 'open' | 'place' | 'get'>;

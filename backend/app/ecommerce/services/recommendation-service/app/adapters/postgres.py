@@ -202,6 +202,10 @@ class PostgresStore:
         await self.pool.execute("DELETE FROM product_pairs WHERE count = 1 AND last_at < $1", before)
         return int(r.split()[-1])
 
+    async def maintain_partitions(self) -> int:
+        # Hàm do migration 004 tạo trong schema của service.
+        return int(await self.pool.fetchval("SELECT maintain_partitions()"))
+
     async def once(self, c: asyncpg.Connection, event_id: str) -> bool:
         r = await c.execute(
             "INSERT INTO processed_events (event_id, consumer) VALUES ($1,$2) ON CONFLICT DO NOTHING",

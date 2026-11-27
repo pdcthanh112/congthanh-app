@@ -1,6 +1,7 @@
 package com.congthanh.productservice.application.port.in;
 
 import com.congthanh.productservice.application.dto.ProductDTO;
+import com.congthanh.productservice.application.dto.request.ChangeSpecificationsRequest;
 import com.congthanh.productservice.application.dto.request.CreateProductRequest;
 import com.congthanh.productservice.application.dto.request.UpdateProductRequest;
 import com.congthanh.productservice.application.dto.response.ResponseWithPagination;
@@ -29,11 +30,17 @@ public interface ProductService {
 
     ProductDetailVm getProductDetailBySlug(String slug);
 
-    /** Tạo sản phẩm gốc kèm danh mục, ảnh, thuộc tính, variant trong một transaction; trùng slug/SKU/GTIN thì 409. */
-    ProductDTO createProduct(CreateProductRequest request);
+    /**
+     * Tạo sản phẩm gốc kèm danh mục, ảnh, thuộc tính, variant trong một transaction; trùng slug/SKU/GTIN thì 409.
+     * {@code ownerId}: subject của SELLER sở hữu, {@code null} là sản phẩm của sàn.
+     */
+    ProductDTO createProduct(CreateProductRequest request, String ownerId);
 
     /** Sửa từng phần; version lệch thì 409. */
     ProductDTO updateProduct(UpdateProductRequest request);
+
+    /** Thay toàn bộ thông số tự do của sản phẩm gốc (ADR 0033); version cũ thì 409, sản phẩm là biến thể thì 400. */
+    ProductDTO changeSpecifications(String id, ChangeSpecificationsRequest request);
 
     /** Bật/tắt bán. Bật bán cần có giá (hoặc có variant đang bán có giá). Không dùng để xoá. */
     ProductDTO changeStatus(String id, ProductStatus status);

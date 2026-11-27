@@ -627,6 +627,37 @@ spec:
         - '9464'
         - '8080'
 ---
+# Router GraphQL storefront: web đi qua APISIX; chatbot-service gọi thẳng để chạy tool bằng token của khách.
+apiVersion: security.istio.io/v1
+kind: AuthorizationPolicy
+metadata:
+  name: allow-graphql-router
+  namespace: ecommerce
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: graphql-router
+  action: ALLOW
+  rules:
+  - from:
+    - source:
+        principals:
+        - cluster.local/ns/gateway/sa/apisix
+        - cluster.local/ns/ecommerce/sa/chatbot-service
+    to:
+    - operation:
+        ports:
+        - '4000'
+  - from:
+    - source:
+        namespaces:
+        - observability
+    to:
+    - operation:
+        ports:
+        - '9464'
+        - '8080'
+---
 # ADR 0027: checkout-service đọc sổ địa chỉ (gRPC) khi đặt đơn gia hạn subscription.
 # Chỉ mở thêm đường này; các đường gọi customer-service khác (router GraphQL) khai ở policy riêng khi cần.
 apiVersion: security.istio.io/v1

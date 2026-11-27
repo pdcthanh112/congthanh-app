@@ -42,4 +42,18 @@ class ProductAttributeEntity extends BaseEntity {
     @Column(name = "display_order", nullable = false)
     private int displayOrder;
 
+    @Column(name = "group_id")
+    private Long groupId;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "group_id", insertable = false, updatable = false)
+    @ToString.Exclude
+    private AttributeGroupEntity group;
+
+    @OneToMany(mappedBy = "attribute", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OrderBy("displayOrder ASC")
+    @Builder.Default
+    @ToString.Exclude
+    private List<ProductAttributeOptionEntity> options = new ArrayList<>();
+
 }

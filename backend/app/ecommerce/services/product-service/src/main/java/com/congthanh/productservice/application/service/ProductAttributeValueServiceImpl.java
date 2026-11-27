@@ -30,22 +30,22 @@ public class ProductAttributeValueServiceImpl implements ProductAttributeValueSe
 
     @Override
     @Transactional
-    public ProductAttributeValueDTO createAttributeValue(ProductAttributeValueRequest request) {
+    public List<ProductAttributeValueDTO> createAttributeValue(ProductAttributeValueRequest request) {
         ProductAttribute attribute = requireAttribute(request.getAttribute());
         Product product = requireProduct(request.getProduct());
-        product.addAttribute(attribute.valueOf(request.getValue()));
+        product.addAttribute(attribute.valuesOf(request.rawValues()));
         products.save(product);
-        return valueOf(product.id(), attribute.id());
+        return valuesOf(product.id(), attribute.id());
     }
 
     @Override
     @Transactional
-    public ProductAttributeValueDTO updateAttributeValue(ProductAttributeValueRequest request) {
+    public List<ProductAttributeValueDTO> updateAttributeValue(ProductAttributeValueRequest request) {
         ProductAttribute attribute = requireAttribute(request.getAttribute());
         Product product = requireProduct(request.getProduct());
-        product.changeAttribute(attribute.valueOf(request.getValue()));
+        product.changeAttribute(attribute.valuesOf(request.rawValues()));
         products.save(product);
-        return valueOf(product.id(), attribute.id());
+        return valuesOf(product.id(), attribute.id());
     }
 
     @Override
@@ -56,11 +56,10 @@ public class ProductAttributeValueServiceImpl implements ProductAttributeValueSe
         products.save(product);
     }
 
-    private ProductAttributeValueDTO valueOf(String productId, long attributeId) {
+    private List<ProductAttributeValueDTO> valuesOf(String productId, long attributeId) {
         return queries.attributeValues(productId).stream()
                 .filter(v -> v.getAttributeId() == attributeId)
-                .findFirst()
-                .orElseThrow(() -> new IllegalStateException("attribute value " + attributeId + " was not saved"));
+                .toList();
     }
 
     private ProductAttribute requireAttribute(Long id) {

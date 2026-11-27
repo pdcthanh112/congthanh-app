@@ -1,5 +1,3 @@
-/** Kiểu dữ liệu khớp supergraph storefront (platform/graphql/storefront/supergraph.graphql). */
-
 export type ID = string;
 export type DateTime = string;
 
@@ -28,6 +26,39 @@ export type ProductCard = {
   inWishlist: boolean;
 };
 
+export type Stock = {
+  available: number;
+  status: StockStatus;
+};
+
+/** Thông số hiển thị; group là nhóm ("Màn hình"), null = không nhóm; nhiều giá trị đã nối bằng ", ". */
+export type ProductAttribute = {
+  group: string | null;
+  name: string;
+  value: string;
+};
+
+/** Nhóm thông số tự do chỉ để hiển thị (ADR 0033); name null = nhóm không tiêu đề. */
+export type ProductSpecificationGroup = { name: string | null; items: { name: string; value: string }[] };
+
+export type ProductOption = {
+  id: ID;
+  name: string;
+  values: string[];
+};
+
+export type ProductVariant = {
+  id: ID;
+  name: string;
+  slug: string | null;
+  sku: string | null;
+  price: Money | null;
+  thumbnail: string | null;
+  images: string[];
+  options: { optionId: ID; name: string; value: string }[];
+  stock: Stock | null;
+};
+
 export type Product = ProductCard & {
   sku: string;
   description: string | null;
@@ -35,13 +66,32 @@ export type Product = ProductCard & {
   brandName: string | null;
   sellerId: ID;
   active: boolean;
-  stock: { available: number; status: StockStatus } | null;
+  stock: Stock | null;
   categories: CategoryRef[];
   tags: { id: number; name: string }[];
   ratingSummary: RatingSummary;
 };
 
-export type ProductPage = { items: ProductCard[]; page: number; limit: number; totalItems: number; totalPages: number };
+export type ProductDetail = Product & {
+  parentId: ID | null;
+  hasVariant: boolean;
+  attributes: ProductAttribute[];
+  specifications: ProductSpecificationGroup[];
+  options: ProductOption[];
+  variants: ProductVariant[];
+};
+
+export type RecommendationKind = 'BOUGHT_TOGETHER' | 'SIMILAR';
+
+export type Recommendation = { score: number; reason: string; product: ProductCard };
+
+export type ProductPage = {
+  items: ProductCard[];
+  page: number;
+  limit: number;
+  totalItems: number;
+  totalPages: number;
+};
 
 export type CartLine = {
   id: ID;
@@ -52,9 +102,11 @@ export type CartLine = {
   lineTotal: Money | null;
   product: Pick<ProductCard, 'id' | 'name' | 'slug' | 'thumbnail'> | null;
 };
+
 export type Cart = { id: ID | null; itemCount: number; checkoutReady: boolean; subtotal: Money; lines: CartLine[] };
 
 export type AddressLabel = 'HOME' | 'OFFICE' | 'OTHER';
+
 export type ShippingAddress = {
   id: ID;
   label: AddressLabel;
@@ -68,6 +120,7 @@ export type ShippingAddress = {
   countryCode: string;
   isDefault: boolean;
 };
+
 export type AddressInput = {
   label?: AddressLabel;
   fullName: string;
@@ -83,6 +136,7 @@ export type AddressInput = {
 export type WishlistPage = { total: number; items: { addedAt: DateTime; product: ProductCard }[] };
 
 export type ReviewSort = 'HELPFUL' | 'NEWEST' | 'RATING_HIGH' | 'RATING_LOW';
+
 export type Review = {
   id: ID;
   rating: number;
@@ -95,10 +149,15 @@ export type Review = {
   sellerReply: string | null;
   createdAt: DateTime;
 };
-export type ReviewPage = { total: number; items: Review[] };
+
+export type ReviewPage = {
+  total: number;
+  items: Review[];
+};
 
 export type NotificationCategory =
   'INVENTORY' | 'MESSAGE' | 'ORDER' | 'PAYMENT' | 'PROMOTION' | 'REVIEW' | 'SYSTEM' | 'WISHLIST';
+
 export type Notification = {
   id: ID;
   type: string;
@@ -112,6 +171,7 @@ export type Notification = {
 export type NotificationPage = { total: number; items: Notification[] };
 
 export type OrderSummary = { orderCode: string; status: string; itemCount: number; total: Money; placedAt: DateTime };
+
 export type Order = {
   orderId: ID;
   orderCode: string;
@@ -146,6 +206,7 @@ export type Order = {
 };
 
 export type PaymentMethod = 'CASH_ON_DELIVERY' | 'CREDIT_CARD' | 'MOMO' | 'PAYPAL' | 'STRIPE' | 'VN_PAY';
+
 export type CheckoutInput = {
   idempotencyKey: string;
   paymentMethod: PaymentMethod;
@@ -155,6 +216,7 @@ export type CheckoutInput = {
   returnUrl?: string | null;
   paymentToken?: string | null;
 };
+
 export type CheckoutResult = {
   orderId: ID;
   orderCode: string;
@@ -163,6 +225,7 @@ export type CheckoutResult = {
   discount: Money;
   checkoutUrl: string;
 };
+
 export type CheckoutProgress = {
   orderCode: string;
   orderStatus: string;
@@ -170,6 +233,7 @@ export type CheckoutProgress = {
   failureReason: string | null;
   paymentRedirectUrl: string | null;
 };
+
 export type PromotionQuote = {
   valid: boolean;
   reason: string | null;
@@ -177,4 +241,5 @@ export type PromotionQuote = {
   discount: Money | null;
   total: Money;
 };
+
 export type SearchEntry = { keyword: string; searchedAt: DateTime };

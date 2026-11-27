@@ -101,6 +101,14 @@ public class PlatformAutoConfiguration {
             } catch (RuntimeException e) {
                 log.warn("outbox janitor failed: {}", e.toString());
             }
+            try {
+                int created = janitor.getObject().maintainPartitions();
+                if (created > 0) {
+                    log.info("created {} partitions", created);
+                }
+            } catch (RuntimeException e) {
+                log.warn("partition maintenance failed: {}", e.toString());
+            }
         }
     }
 

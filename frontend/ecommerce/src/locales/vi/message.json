@@ -4,6 +4,7 @@
     "description": "CongThanhApp - Ecommerce"
   },
   "common": {
+    "home": "Trang chủ",
     "title": "CongThanh Ecommerce",
     "hello": "Xin chào",
     "welcome": "Chào mừng đến",
@@ -16,8 +17,6 @@
     "manage_profile": "Quản lý hồ sơ",
     "category": "danh mục",
     "Category": "Danh mục",
-    "subcategory": "subcategory",
-    "Subcategory": "Subcategory",
     "available": "có sẵn",
     "sold_out": "Hết hàng",
     "checkout": "Thanh toán",
@@ -45,7 +44,7 @@
     "country": "Quốc gia",
     "dob": "Ngày sinh",
     "edit": "Chỉnh sửa",
-    "home": "Trang chủ",
+    "save": "Lưu",
     "product": "Sản phẩm",
     "loading": "Đang tải...",
     "load_more": "Xem thêm",
@@ -70,7 +69,24 @@
     "next_page": "Trang sau",
     "banner": "Khuyến mãi",
     "go_to_slide": "Tới slide {index}",
-    "wishlist": "Yêu thích"
+    "wishlist": "Yêu thích",
+    "subcategory": "subcategory",
+    "Subcategory": "Subcategory"
+  },
+  "manage": {
+    "profile": "Hồ sơ",
+    "change_password": "Đổi mật khẩu",
+    "banking": "Tài khoản ngân hàng",
+    "address": "Địa chỉ",
+    "cart": "Giỏ hàng",
+    "order": "Đơn hàng",
+    "wishlist": "Yêu thích",
+    "account_menu": "Menu tài khoản",
+    "profile_title": "Hồ sơ của tôi",
+    "profile_subtitle": "Quản lý thông tin hồ sơ để bảo mật tài khoản",
+    "name": "Họ tên",
+    "phone": "Số điện thoại",
+    "dob": "Ngày sinh"
   },
   "header": {
     "your_shopping": "Mua sắm",
@@ -133,6 +149,12 @@
       "field_invalid": "{field} không hợp lệ",
       "not_match": "Mật khẩu không trùng khớp"
     },
+    "change_password": {
+      "current_password": "Mật khẩu hiện tại",
+      "new_password": "Mật khẩu mới",
+      "confirm_password": "Xác nhận mật khẩu",
+      "title": "Đổi mật khẩu"
+    },
     "login_intro": "Đăng nhập bằng tài khoản CongThanhApp. Tài khoản được quản lý an toàn bởi dịch vụ định danh.",
     "register_intro": "Tạo tài khoản CongThanhApp trong vài bước, hoặc đăng ký nhanh bằng Google, Facebook, Apple.",
     "continue_with_account": "Tiếp tục với tài khoản CongThanhApp",
@@ -141,10 +163,7 @@
     "go_to_login": "Đến trang đăng nhập",
     "change_password_intro": "Bạn sẽ được yêu cầu nhập mật khẩu hiện tại rồi đặt mật khẩu mới.",
     "close": "Đóng",
-    "or": "hoặc",
-    "change_password": {
-      "title": "Đổi mật khẩu"
-    }
+    "or": "hoặc"
   },
   "product": {
     "rating": "đánh giá",
@@ -154,10 +173,10 @@
     "sold": "đã bán",
     "Sold": "Đã bán",
     "product_detail": "chi tiết sản phẩm",
+    "product_attribute": "thuộc tính sản phẩm",
     "product_description": "mô tả sản phẩm",
     "price": "Giá",
     "product_name": "Tên sản phẩm",
-    "product_attribute": "thuộc tính sản phẩm",
     "product_review": "Đánh giá sản phẩm",
     "out_of_5": "{value}/5 sao",
     "ratings_count": "{count} đánh giá",
@@ -189,16 +208,22 @@
     "rating_filter": "Đánh giá",
     "star_up": "Từ {count} sao",
     "load_more": "Xem thêm",
-    "loading_more": "Đang tải..."
+    "loading_more": "Đang tải...",
+    "related_products": "Sản phẩm tương tự",
+    "choose_options": "Vui lòng chọn đủ phân loại hàng",
+    "stock_left": "Còn {count} sản phẩm",
+    "sku": "Mã SKU"
   },
   "cart": {
-    "create_new_cart": "Tạo giỏ hàng mới",
     "your_cart": "Giỏ hàng của bạn",
     "this_cart_have_no_item": "Không có sản phẩm trong giỏ hàng",
     "view_cart": "Xem giỏ hàng",
     "subtotal": "Tạm tính",
     "please_signin_to_view_your_cart": "Vui lòng đăng nhập để xem giỏ hàng",
     "cart_empty": "Giỏ hàng trống",
+    "create_new_cart": "Tạo giỏ hàng mới",
+    "create_new_cart_successfully": "Tạo giỏ hàng mới thành công",
+    "delete_cart_successfully": "Xoá giỏ hàng thành công",
     "add_item_to_cart_successfully": "Đã thêm vào giỏ hàng",
     "add_item_to_cart_failed": "Thêm vào giỏ hàng thất bại",
     "remove_item_from_cart_successfully": "Đã xoá sản phẩm khỏi giỏ",
@@ -215,16 +240,28 @@
     "add_item_successfully": "Đã thêm vào giỏ hàng"
   },
   "wishlist": {
+    "add_item_to_wishlist_successfully": "Đã thêm vào danh sách yêu thích",
+    "add_item_to_wishlist_failed": "Thêm vào danh sách yêu thích thất bại",
+    "remove_item_from_wishlist_successfully": "Đã xoá khỏi danh sách yêu thích",
+    "remove_item_from_wishlist_failed": "Xoá khỏi danh sách yêu thích thất bại",
+    "item_already_exists_in_wishlist": "Sản phẩm đã tồn tại trong danh sách yêu thích",
+    "confirm_remove": "Xoá sản phẩm này khỏi danh sách yêu thích?",
+    "empty": "Danh sách yêu thích đang trống",
     "add_item_successfully": "Thêm sản phẩm thành công",
     "add_item_failed": "Thêm sản phẩm thất bạn",
     "remove_item_successfully": "Xoá sản phẩm thành công",
-    "remove_item_failed": "Xoá sản phẩm thất bại",
-    "item_already_exists_in_wishlist": "Sản phẩm đã tồn tại trong danh sách yêu thích",
-    "confirm_remove": "Xoá sản phẩm này khỏi danh sách yêu thích?",
-    "empty": "Danh sách yêu thích đang trống"
+    "remove_item_failed": "Xoá sản phẩm thất bại"
+  },
+  "store": {
+    "view_store": "Xem shop"
   },
   "placeholder": {
     "input_field": "Nhập {field} của bạn"
+  },
+  "payment": {
+    "add_card": {
+      "cvv": "CVV"
+    }
   },
   "error": {
     "generic": "Đã có lỗi xảy ra. Vui lòng thử lại.",
@@ -234,21 +271,6 @@
     "bad_input": "Một số thông tin không hợp lệ. Vui lòng kiểm tra lại.",
     "unavailable": "Dịch vụ tạm thời gián đoạn. Vui lòng thử lại sau.",
     "network": "Không kết nối được tới máy chủ. Kiểm tra lại kết nối mạng."
-  },
-  "manage": {
-    "profile": "Hồ sơ",
-    "change_password": "Đổi mật khẩu",
-    "banking": "Tài khoản ngân hàng",
-    "address": "Địa chỉ",
-    "cart": "Giỏ hàng",
-    "order": "Đơn hàng",
-    "wishlist": "Yêu thích",
-    "account_menu": "Menu tài khoản",
-    "profile_title": "Hồ sơ của tôi",
-    "profile_subtitle": "Quản lý thông tin hồ sơ để bảo mật tài khoản",
-    "name": "Họ tên",
-    "phone": "Số điện thoại",
-    "dob": "Ngày sinh"
   },
   "address": {
     "title": "Địa chỉ của bạn",
@@ -393,5 +415,23 @@
   "supplier": {
     "products": "Sản phẩm",
     "products_coming_soon": "Danh sách sản phẩm của gian hàng chưa sẵn sàng."
+  },
+  "chat": {
+    "open": "Mở trợ lý mua sắm",
+    "close": "Đóng trợ lý",
+    "title": "Trợ lý mua sắm",
+    "greeting": "Xin chào! Mình có thể giúp bạn tìm sản phẩm, gợi ý theo nhu cầu, thêm vào giỏ hoặc xem đơn hàng.",
+    "placeholder": "Hỏi về sản phẩm, giỏ hàng, đơn hàng...",
+    "send": "Gửi",
+    "new_chat": "Cuộc trò chuyện mới",
+    "thinking": "Đang suy nghĩ...",
+    "error_generic": "Trợ lý đang gặp sự cố, bạn thử lại sau nhé.",
+    "error_rate_limited": "Bạn gửi hơi nhanh, vui lòng đợi một chút rồi thử lại.",
+    "tool_search": "Đang tìm sản phẩm...",
+    "tool_product": "Đang xem chi tiết sản phẩm...",
+    "tool_recommend": "Đang tìm gợi ý...",
+    "tool_cart": "Đang cập nhật giỏ hàng...",
+    "tool_orders": "Đang xem đơn hàng...",
+    "disclaimer": "Trợ lý AI có thể nhầm. Hãy kiểm tra giá và tồn kho trên trang sản phẩm."
   }
 }

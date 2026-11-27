@@ -125,7 +125,7 @@ class ProductReadModelServiceTest {
                                             List<ProductSnapshot.Image> images, List<ProductSnapshot.Option> options,
                                             List<ProductSnapshot> variants) {
         return new ProductSnapshot(id, parentId, id, slug, null, null, null, status, false, !variants.isEmpty(), null, null,
-                new BigDecimal("10.00"), "USD", null, images, List.of(), List.of(), options, variants);
+                new BigDecimal("10.00"), "USD", null, images, List.of(), List.of(), options, variants, null);
     }
 
     /** Bản chụp đọc từ "Postgres" giả; id được ghi theo thứ tự thêm để rebuild quét theo lô. */
@@ -143,7 +143,7 @@ class ProductReadModelServiceTest {
         void put(ProductSnapshot s, Long thumbnailId, List<String> categoryIds) {
             put(new ProductSnapshot(s.id(), s.parentId(), s.name(), s.slug(), s.sku(), s.gtin(), s.description(), s.status(),
                     s.featured(), s.hasVariant(), s.supplier(), s.brandId(), s.price(), s.currency(), thumbnailId, s.images(),
-                    categoryIds, s.attributes(), s.options(), s.variants()));
+                    categoryIds, s.attributes(), s.options(), s.variants(), s.specifications()));
         }
 
         @Override

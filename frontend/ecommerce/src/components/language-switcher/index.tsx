@@ -46,7 +46,7 @@ export default function LanguageSwitcher() {
                 lang={code}
                 aria-current={code === locale ? 'true' : undefined}
                 onClick={() => change(code)}
-                className={cn('w-full text-left rounded px-3 py-3 hover:bg-gray-200', code === locale && 'bg-red-200')}
+                className={cn('w-full text-start rounded px-3 py-3 hover:bg-gray-200', code === locale && 'bg-red-200')}
               >
                 {localeNames[code]}
               </button>

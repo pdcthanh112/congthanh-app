@@ -2,7 +2,23 @@ import { createNavigation } from 'next-intl/navigation';
 import { defineRouting } from 'next-intl/routing';
 
 /** Nguồn sự thật duy nhất cho danh sách ngôn ngữ (mỗi locale có src/locales/<locale>/message.json). */
-export const locales = ['en', 'vi', 'es', 'de', 'fr', 'it', 'ko', 'ru', 'zh'] as const;
+export const locales = [
+  'en',
+  'vi',
+  'es',
+  'de',
+  'fr',
+  'it',
+  'ko',
+  'ru',
+  'zh',
+  'ja',
+  'ar',
+  'pt',
+  'nl',
+  'nb',
+  'tr',
+] as const;
 export type Locale = (typeof locales)[number];
 export const defaultLocale: Locale = 'en';
 

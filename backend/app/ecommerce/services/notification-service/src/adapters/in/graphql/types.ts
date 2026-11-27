@@ -88,3 +88,74 @@ export class SendNotificationInput {
   @Field(() => String, { nullable: true }) link?: string | null;
   @Field(() => [ChannelGql], { defaultValue: [ChannelGql.IN_APP] }) channels!: ChannelGql[];
 }
+
+// ---------- gửi hàng loạt (ADR 0034) ----------
+
+export enum BroadcastStatusGql {
+  SCHEDULED = 'SCHEDULED',
+  EXPANDING = 'EXPANDING',
+  SENDING = 'SENDING',
+  COMPLETED = 'COMPLETED',
+  CANCELLED = 'CANCELLED',
+}
+export enum BroadcastAudienceKindGql {
+  ALL_USERS = 'ALL_USERS',
+  ROLE = 'ROLE',
+}
+registerEnumType(BroadcastStatusGql, { name: 'BroadcastStatus' });
+registerEnumType(BroadcastAudienceKindGql, { name: 'BroadcastAudienceKind' });
+
+@InputType()
+export class BroadcastAudienceInput {
+  @Field(() => BroadcastAudienceKindGql) kind!: BroadcastAudienceKindGql;
+  @Field(() => String, { nullable: true, description: 'Realm role khi kind = ROLE' }) role?: string | null;
+}
+
+@InputType()
+export class CreateBroadcastInput {
+  @Field(() => CategoryGql, { defaultValue: CategoryGql.PROMOTION, description: 'PROMOTION hoặc SYSTEM' })
+  category!: CategoryGql;
+  @Field() title!: string;
+  @Field() body!: string;
+  @Field(() => String, { nullable: true, description: 'Đường dẫn trong app, bắt đầu bằng /' }) link?: string | null;
+  @Field(() => [ChannelGql]) channels!: ChannelGql[];
+  @Field(() => BroadcastAudienceInput, { nullable: true, description: 'Bỏ trống = mọi người dùng' })
+  audience?: BroadcastAudienceInput | null;
+  @Field(() => Date, { nullable: true, description: 'Hẹn giờ gửi (UTC); bỏ trống = gửi ngay' })
+  scheduledAt?: Date | null;
+}
+
+@ObjectType('BroadcastChannelProgress')
+export class BroadcastChannelProgressModel {
+  @Field(() => ChannelGql) channel!: ChannelGql;
+  @Field(() => Int) pending!: number;
+  @Field(() => Int) sent!: number;
+  @Field(() => Int) failed!: number;
+  @Field(() => Int) skipped!: number;
+}
+
+@ObjectType('Broadcast')
+export class BroadcastModel {
+  @Field(() => ID) id!: string;
+  @Field(() => CategoryGql) category!: CategoryGql;
+  @Field() title!: string;
+  @Field() body!: string;
+  @Field(() => String, { nullable: true }) link!: string | null;
+  @Field(() => [ChannelGql]) channels!: ChannelGql[];
+  @Field(() => BroadcastAudienceKindGql) audienceKind!: BroadcastAudienceKindGql;
+  @Field(() => String, { nullable: true }) audienceRole!: string | null;
+  @Field(() => BroadcastStatusGql) status!: BroadcastStatusGql;
+  @Field() scheduledAt!: Date;
+  @Field(() => Int, { description: 'Số người dùng đã duyệt qua trong danh sách người nhận' }) audienceScanned!: number;
+  @Field(() => Int, { description: 'Số thông báo đã tạo (đã trừ người tắt nhóm này)' }) recipients!: number;
+  @Field() createdBy!: string;
+  @Field() createdAt!: Date;
+  @Field(() => Date, { nullable: true }) completedAt!: Date | null;
+  @Field(() => Date, { nullable: true }) cancelledAt!: Date | null;
+}
+
+@ObjectType('BroadcastPage')
+export class BroadcastPageModel {
+  @Field(() => [BroadcastModel]) items!: BroadcastModel[];
+  @Field(() => Int) total!: number;
+}

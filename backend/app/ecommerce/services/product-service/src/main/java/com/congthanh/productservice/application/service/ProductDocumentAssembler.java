@@ -34,6 +34,7 @@ class ProductDocumentAssembler {
         d.setSku(p.sku());
         d.setGtin(p.gtin());
         d.setDescription(p.description());
+        d.setSpecifications(p.specifications().groups());
         d.setStatus(p.status());
         d.setFeatured(p.featured());
         d.setHasVariant(p.hasVariant());
@@ -44,10 +45,13 @@ class ProductDocumentAssembler {
         List<ProductDocument.Image> images = images(p.images());
         d.setImages(images);
         d.setThumbnail(thumbnail(p.thumbnailId(), images));
+        // Thứ tự hiển thị: nhóm (không nhóm xếp cuối), thứ tự thuộc tính, tên; sort ổn định giữ thứ tự giá trị MULTI_SELECT.
         d.setAttributes(p.attributes().stream()
-                .sorted(Comparator.comparingInt(ProductSnapshot.Attribute::displayOrder)
+                .sorted(Comparator.comparing(ProductSnapshot.Attribute::groupOrder, Comparator.nullsLast(Comparator.naturalOrder()))
+                        .thenComparing(ProductSnapshot.Attribute::group, Comparator.nullsLast(String::compareTo))
+                        .thenComparingInt(ProductSnapshot.Attribute::displayOrder)
                         .thenComparing(ProductSnapshot.Attribute::name, Comparator.nullsLast(String::compareTo)))
-                .map(a -> new ProductDocument.Attribute(a.code(), a.name(), a.value(), a.number(), a.unit()))
+                .map(a -> new ProductDocument.Attribute(a.code(), a.name(), a.value(), a.number(), a.unit(), a.group()))
                 .toList());
         List<ProductSnapshot> active = p.variants().stream()
                 .filter(v -> v.status() == ProductStatus.ACTIVE)

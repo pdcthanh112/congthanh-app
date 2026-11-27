@@ -16,11 +16,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-/**
- * Sản phẩm gốc ({@code parent == null}) hoặc variant (đúng một cấp dưới sản phẩm gốc). Variant là một sản phẩm đầy
- * đủ (SKU, giá, ảnh, tồn kho riêng); tổ hợp giá trị option của nó nằm ở {@link VariantOptionCombinationEntity} và được
- * tóm vào {@link #variantKey} để DB chặn hai variant trùng tổ hợp (ADR 0030).
- */
 @Entity
 @Getter
 @Setter
@@ -76,6 +71,10 @@ class ProductEntity {
     private List<ProductCategoryEntity> category = new ArrayList<>();
 
     private String supplier;
+
+    /** Subject của SELLER sở hữu; {@code null} là sản phẩm của sàn. */
+    @Column(name = "owner_id", length = 64)
+    private String ownerId;
 
     private Long brand;
 

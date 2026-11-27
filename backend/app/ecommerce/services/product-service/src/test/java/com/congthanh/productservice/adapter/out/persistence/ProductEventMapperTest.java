@@ -19,8 +19,8 @@ class ProductEventMapperTest {
         var variant = snapshot("v1", "p1", "SKU-1", new BigDecimal("25000000.5"), "VND", List.of(), List.of(black), List.of());
         var parent = new ProductSnapshot("p1", null, "Iphone", "iphone", null, null, null, ProductStatus.ACTIVE, false, true,
                 null, 7L, null, null, null, List.of(), List.of("c1", "c2"),
-                List.of(new ProductSnapshot.Attribute("pages", "Pages", "225", new BigDecimal("225"), null, true, false, 0)),
-                List.of(), List.of(variant));
+                List.of(new ProductSnapshot.Attribute("pages", "Pages", "225", new BigDecimal("225"), null, true, false, 0, null, null)),
+                List.of(), List.of(variant), null);
 
         ProductUpserted e = ProductEventMapper.toProto(parent);
 
@@ -46,6 +46,6 @@ class ProductEventMapperTest {
                                             List<String> categories, List<ProductSnapshot.Option> options,
                                             List<ProductSnapshot> variants) {
         return new ProductSnapshot(id, parentId, id, null, sku, null, null, ProductStatus.ACTIVE, false, false, null, null,
-                price, currency, null, List.of(), categories, List.of(), options, variants);
+                price, currency, null, List.of(), categories, List.of(), options, variants, null);
     }
 }

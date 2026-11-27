@@ -5,6 +5,7 @@ import com.congthanh.commonservice.exception.ConflictException;
 import com.congthanh.platform.outbox.OutboxWriter;
 import com.congthanh.productservice.application.dto.ProductCategoryDTO;
 import com.congthanh.productservice.application.dto.ProductDTO;
+import com.congthanh.productservice.application.dto.request.ChangeSpecificationsRequest;
 import com.congthanh.productservice.application.dto.request.CreateProductRequest;
 import com.congthanh.productservice.application.dto.request.CreateVariantRequest;
 import com.congthanh.productservice.application.dto.request.CreateVariantRequest.OptionSelection;
@@ -15,6 +16,7 @@ import com.congthanh.productservice.application.service.ProductCategoryServiceIm
 import com.congthanh.productservice.application.service.ProductImageServiceImpl;
 import com.congthanh.productservice.application.service.ProductServiceImpl;
 import com.congthanh.productservice.application.service.VariantOptionServiceImpl;
+import com.congthanh.productservice.domain.model.Specifications;
 import com.congthanh.productservice.domain.model.enums.ProductStatus;
 import com.congthanh.productservice.grpc.ProductUpserted;
 import com.google.protobuf.Any;
@@ -63,7 +65,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
         "spring.jpa.hibernate.ddl-auto=validate",
         "spring.liquibase.contexts=seed"
 })
-@Import({ProductPersistenceAdapter.class, ProductSnapshotReader.class, ProductQueryAdapter.class,
+@Import({ProductPersistenceAdapter.class, ProductSnapshotReader.class, ProductQueryAdapter.class, ProductSpecificationsStore.class,
         ProductAttributePersistenceAdapter.class, VariantOptionPersistenceAdapter.class,
         ProductServiceImpl.class, VariantOptionServiceImpl.class, ProductCategoryServiceImpl.class, ProductImageServiceImpl.class,
         CatalogSchemaIntegrationTest.Fakes.class})
@@ -189,7 +191,7 @@ class CatalogSchemaIntegrationTest {
                 new BigDecimal("1000"), "usd", "mô tả", null, 7L, true, null, List.of("c1", "c2"),
                 List.of(new CreateProductRequest.ImageRequest(900L, "https://img/a.jpg", 1),
                         new CreateProductRequest.ImageRequest(901L, "https://img/b.jpg", 2)),
-                901L, List.of(new CreateProductRequest.AttributeRequest(PAGES, "320")), List.of()));
+                901L, List.of(new CreateProductRequest.AttributeRequest(PAGES, "320", null)), List.of()), null);
 
         assertThat(created.getSlug()).isEqualTo("dong-ho-test");
         assertThat(created.getStatus()).isEqualTo(ProductStatus.ACTIVE);
@@ -199,13 +201,13 @@ class CatalogSchemaIntegrationTest {
         assertThat(created.getAttribute()).singleElement().satisfies(a -> assertThat(a.getValueNumber()).isEqualByComparingTo("320"));
         assertThat(lastUpserted(created.getId()).getStatus()).isEqualTo("ACTIVE");
 
-        assertThatThrownBy(() -> productService.createProduct(minimal("x", null, "watch-1", List.of("c1"))))
+        assertThatThrownBy(() -> productService.createProduct(minimal("x", null, "watch-1", List.of("c1")), null))
                 .isInstanceOf(ConflictException.class).hasMessageContaining("sku");
-        assertThatThrownBy(() -> productService.createProduct(minimal("y", "dong-ho-test", null, List.of("c1"))))
+        assertThatThrownBy(() -> productService.createProduct(minimal("y", "dong-ho-test", null, List.of("c1")), null))
                 .isInstanceOf(ConflictException.class).hasMessageContaining("slug");
-        assertThatThrownBy(() -> productService.createProduct(minimal("z", null, null, List.of("missing"))))
+        assertThatThrownBy(() -> productService.createProduct(minimal("z", null, null, List.of("missing")), null))
                 .isInstanceOf(BadRequestException.class);
-        assertThat(productService.createProduct(minimal("Đồng hồ Test", null, null, List.of("c1"))).getSlug())
+        assertThat(productService.createProduct(minimal("Đồng hồ Test", null, null, List.of("c1")), null).getSlug())
                 .startsWith("dong-ho-test-");
 
         var updated = productService.updateProduct(new UpdateProductRequest(created.getId(), created.getVersion(), "Đồng hồ Mới",
@@ -227,13 +229,13 @@ class CatalogSchemaIntegrationTest {
         assertThat(productService.changeStatus(created.getId(), ProductStatus.INACTIVE).getStatus()).isEqualTo(ProductStatus.INACTIVE);
         productService.deleteProduct(created.getId());
         assertThat(products.findById(created.getId()).orElseThrow().getStatus()).isEqualTo(ProductStatus.DELETED);
-        assertThat(productService.createProduct(minimal("x", "dong-ho-test", null, List.of("c1"))).getSlug()).isEqualTo("dong-ho-test");
+        assertThat(productService.createProduct(minimal("x", "dong-ho-test", null, List.of("c1")), null).getSlug()).isEqualTo("dong-ho-test");
     }
 
     @Test
     void activatingRequiresPriceAndDeletingParentDeletesVariants() {
         var noPrice = productService.createProduct(new CreateProductRequest("No price", null, null, null, null, null, null,
-                null, null, false, "INACTIVE", List.of("c1"), null, null, null, null));
+                null, null, false, "INACTIVE", List.of("c1"), null, null, null, null), null);
         assertThatThrownBy(() -> productService.changeStatus(noPrice.getId(), ProductStatus.ACTIVE))
                 .isInstanceOf(BadRequestException.class);
 
@@ -253,6 +255,65 @@ class CatalogSchemaIntegrationTest {
         assertThatThrownBy(() -> jdbc.update("INSERT INTO products (id, name, parent_id, variant_key) VALUES (3, 'x', ?, ?)",
                 Long.parseLong(IPHONE), key))
                 .isInstanceOf(DataIntegrityViolationException.class);
+    }
+
+    @Test
+    void specificationsRoundTripAndBumpVersion() {
+        var before = productService.getProductDetailById(IPHONE);
+        var groups = List.of(new ChangeSpecificationsRequest.Group("Màn hình",
+                List.of(new ChangeSpecificationsRequest.Item("Kích thước", "6.9 inch"))));
+
+        var after = productService.changeSpecifications(IPHONE, new ChangeSpecificationsRequest(before.getVersion(), groups));
+
+        assertThat(after.getSpecifications()).containsExactly(new Specifications.Group("Màn hình",
+                List.of(new Specifications.Item("Kích thước", "6.9 inch"))));
+        assertThat(after.getVersion()).isGreaterThan(before.getVersion());
+        assertThatThrownBy(() -> productService.changeSpecifications(IPHONE,
+                new ChangeSpecificationsRequest(before.getVersion(), List.of())))
+                .isInstanceOf(ConflictException.class);
+    }
+
+    @Test
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
+    void databaseRejectsInvalidSpecifications() {
+        assertThatThrownBy(() -> jdbc.update("UPDATE products SET specifications = '{}'::jsonb WHERE id = ?", Long.parseLong(IPHONE)))
+                .isInstanceOf(DataIntegrityViolationException.class);
+        assertThatThrownBy(() -> jdbc.update("""
+                UPDATE products SET specifications = '[{"name":null,"items":[]}]'::jsonb WHERE id = 772266622382519"""))
+                .isInstanceOf(DataIntegrityViolationException.class);
+    }
+
+    @Test
+    @Transactional(propagation = Propagation.NOT_SUPPORTED)
+    void databaseEnforcesSingleValueAndAllowedOptionsForAttributes() {
+        // ADR 0033: thuộc tính không phải MULTI_SELECT chỉ một giá trị mỗi sản phẩm; có danh sách cho phép thì giá trị
+        // phải nằm trong đó. Trigger kiểm lúc commit nên mỗi lệnh autocommit được kiểm ngay.
+        jdbc.update("""
+                INSERT INTO product_attribute (id, name, data_type, created_at, created_by, updated_at, updated_by)
+                VALUES (91, 'Phong cách test', 'MULTI_SELECT', now(), 't', now(), 't')""");
+        jdbc.update("INSERT INTO product_attribute_option (id, product_attribute_id, value) VALUES (92, 91, 'Thể thao'), (93, 91, 'Hàn Quốc')");
+        try {
+            jdbc.update("INSERT INTO product_attribute_value (id, product_id, product_attribute_id, value) VALUES (94, ?, 91, 'Thể thao')",
+                    Long.parseLong(IPHONE));
+            jdbc.update("INSERT INTO product_attribute_value (id, product_id, product_attribute_id, value) VALUES (95, ?, 91, 'Hàn Quốc')",
+                    Long.parseLong(IPHONE));
+            assertThatThrownBy(() -> jdbc.update("""
+                    INSERT INTO product_attribute_value (id, product_id, product_attribute_id, value) VALUES (96, ?, 91, 'Cổ điển')""",
+                    Long.parseLong(IPHONE)))
+                    .isInstanceOf(DataIntegrityViolationException.class);
+            assertThatThrownBy(() -> jdbc.update("UPDATE product_attribute SET data_type = 'TEXT' WHERE id = 91"))
+                    .isInstanceOf(DataIntegrityViolationException.class);
+
+            jdbc.update("INSERT INTO product_attribute_value (id, product_id, product_attribute_id, value) VALUES (97, ?, ?, '100')",
+                    Long.parseLong(IPHONE), PAGES);
+            assertThatThrownBy(() -> jdbc.update("""
+                    INSERT INTO product_attribute_value (id, product_id, product_attribute_id, value) VALUES (98, ?, ?, '200')""",
+                    Long.parseLong(IPHONE), PAGES))
+                    .isInstanceOf(DataIntegrityViolationException.class);
+        } finally {
+            jdbc.update("DELETE FROM product_attribute_value WHERE id IN (94, 95, 96, 97, 98)");
+            jdbc.update("DELETE FROM product_attribute WHERE id = 91");
+        }
     }
 
     private ProductUpserted lastUpserted(String productId) {

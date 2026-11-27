@@ -694,7 +694,8 @@ services:
       HTTP_PORT: "5024"
       LLM_PROVIDER: ${CHATBOT_LLM_PROVIDER:-anthropic}
       OLLAMA_URL: http://ollama:11434
-      SEARCH_URL: http://search-service:5013
+      # Tool của trợ lý gọi router GraphQL storefront (profile apps-node) bằng token của khách.
+      GRAPHQL_URL: http://graphql-router:4000/graphql
       REDIS_URL: redis://redis:6379/6
     depends_on: { redis: { condition: service_healthy } }
   commerce-mcp-service:

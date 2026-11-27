@@ -88,7 +88,7 @@ class CheckoutWorkflowTest {
         assertThat(result.confirmed()).isTrue();
         assertThat(payments.authorizedAmount).isEqualByComparingTo("100.00");
         assertThat(calls).containsExactly("reserveInventory", "loyalty.reserve", "credit.hold", "authorize", "capture",
-                "commitInventory", "credit.capture", "loyalty.commit", "confirmOrder:pay-" + ORDER);
+                "commitInventory", "confirmOrder:pay-" + ORDER, "credit.capture", "loyalty.commit");
     }
 
     @Test
@@ -96,8 +96,20 @@ class CheckoutWorkflowTest {
         CheckoutResult result = stub().run(withTenders("225.00", 0));
 
         assertThat(result.confirmed()).isTrue();
-        assertThat(calls).containsExactly("reserveInventory", "credit.hold", "commitInventory", "credit.capture",
-                "confirmOrder:null");
+        assertThat(calls).containsExactly("reserveInventory", "credit.hold", "commitInventory", "confirmOrder:null",
+                "credit.capture");
+    }
+
+    @Test
+    void rejectedConfirmReleasesStoreCreditAndPointsInsteadOfCapturingThem() {
+        steps.rejectConfirm = true;
+
+        CheckoutResult result = stub().run(withTenders("100.00", 2500));
+
+        assertThat(result.confirmed()).isFalse();
+        assertThat(calls).containsExactly("reserveInventory", "loyalty.reserve", "credit.hold", "authorize", "capture",
+                "commitInventory", "confirmOrder:pay-" + ORDER, "refund", "credit.release", "loyalty.release",
+                "cancelOrder:order is not pending");
     }
 
     @Test

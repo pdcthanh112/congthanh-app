@@ -1,27 +1,33 @@
-# Management
+# Management (backoffice)
 
-This project was generated with [Angular CLI](https://github.com/angular/angular-cli) version 17.3.5.
+Trang quản trị của CongThanh Shop, Angular 17 (standalone component, không SSR vì mọi trang đều sau đăng nhập).
+Hiện có phần quản trị thông số sản phẩm (ADR 0033): thuộc tính và giá trị cho phép, nhóm hiển thị, mẫu theo danh mục,
+thông số tự do của sản phẩm.
 
-## Development server
+## Chạy local
 
-Run `ng serve` for a dev server. Navigate to `http://localhost:4200/`. The application will automatically reload if you change any of the source files.
+Cần stack local đang chạy (gateway APISIX `localhost:9080`, Keycloak `localhost:8180`) và một tài khoản có role `ADMIN`.
 
-## Code scaffolding
+```bash
+npm ci
+npm start
+```
 
-Run `ng generate component component-name` to generate a new component. You can also use `ng generate directive|pipe|service|class|guard|interface|enum|module`.
+Mở http://localhost:3001 (cổng này khớp redirect URI của client Keycloak `backoffice-web`). App chuyển sang trang đăng
+nhập Keycloak (Authorization Code + PKCE). `ng serve` proxy `/api` và `/graphql` sang gateway (`proxy.conf.json`) nên
+gọi API cùng origin. Khi deploy, đặt app sau cùng domain với gateway hoặc bật CORS cho origin của backoffice ở APISIX.
 
-## Build
+Tài khoản không có role `ADMIN` thấy trang "Không có quyền". Đây chỉ là ẩn giao diện: product-service tự kiểm role ở
+mọi API ghi.
 
-Run `ng build` to build the project. The build artifacts will be stored in the `dist/` directory.
+## Kiểm tra
 
-## Running unit tests
+```bash
+npx ng build
+npx ng test --watch=false --browsers=ChromeHeadless
+```
 
-Run `ng test` to execute the unit tests via [Karma](https://karma-runner.github.io).
+## Cấu trúc
 
-## Running end-to-end tests
-
-Run `ng e2e` to execute the end-to-end tests via a platform of your choice. To use this command, you need to first add a package that implements end-to-end testing capabilities.
-
-## Further help
-
-To get more help on the Angular CLI use `ng help` or go check out the [Angular CLI Overview and Command Reference](https://angular.io/cli) page.
+- `src/app/core`: đăng nhập Keycloak (`auth.service.ts`), interceptor gắn token, guard ADMIN, thông báo lỗi.
+- `src/app/catalog`: gọi API product-service (`catalog-api.service.ts`) và các trang quản trị thông số.

@@ -14,15 +14,18 @@ import com.congthanh.productservice.domain.model.Product;
 import com.congthanh.productservice.domain.model.ProductImage;
 import com.congthanh.productservice.domain.model.enums.ProductStatus;
 import com.congthanh.productservice.grpc.ProductDeleted;
+import jakarta.persistence.EntityManager;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Limit;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -41,10 +44,13 @@ class ProductPersistenceAdapter implements ProductRepository {
     private final ProductAttributeJpaRepository attributes;
     private final ProductSnapshotReader snapshots;
     private final OutboxWriter outbox;
+    private final ProductSpecificationsStore specifications;
+    private final EntityManager entityManager;
 
     ProductPersistenceAdapter(ProductJpaRepository products, VariantOptionValueJpaRepository optionValues,
                               VariantOptionCombinationJpaRepository combinations, VariantOptionJpaRepository options,
-                              ProductAttributeJpaRepository attributes, ProductSnapshotReader snapshots, OutboxWriter outbox) {
+                              ProductAttributeJpaRepository attributes, ProductSnapshotReader snapshots, OutboxWriter outbox,
+                              ProductSpecificationsStore specifications, EntityManager entityManager) {
         this.products = products;
         this.optionValues = optionValues;
         this.combinations = combinations;
@@ -52,6 +58,8 @@ class ProductPersistenceAdapter implements ProductRepository {
         this.attributes = attributes;
         this.snapshots = snapshots;
         this.outbox = outbox;
+        this.specifications = specifications;
+        this.entityManager = entityManager;
     }
 
     @Override
@@ -90,6 +98,7 @@ class ProductPersistenceAdapter implements ProductRepository {
                 saveSelections(product, e);
             }
             products.flush();
+            saveSpecifications(product, e);
         } catch (DataIntegrityViolationException ex) {
             // Hai yêu cầu song song cùng slug/SKU/GTIN/tổ hợp: ràng buộc DB là chốt chặn cuối.
             throw new ConflictException("product conflicts with an existing one (slug, sku, gtin, image or options)", ex);
@@ -195,7 +204,21 @@ class ProductPersistenceAdapter implements ProductRepository {
                         .map(a -> new AttributeValue(a.getProductAttribute().getId(), a.getValue(), a.getValueNumber()))
                         .toList(),
                 declared,
-                selections));
+                selections,
+                e.getOwnerId(),
+                specifications.load(e.getId())));
+    }
+
+    /**
+     * Thông số tự do nằm ngoài entity JPA (cột jsonb, ghi bằng JdbcClient). Chỉ ghi khi đổi, kèm tăng version có kiểm
+     * khoá lạc quan; sau đó nạp lại entity để version trong persistence context khớp DB cho các lần ghi sau.
+     */
+    private void saveSpecifications(Product product, ProductEntity e) {
+        if (product.specifications().equals(specifications.load(product.id()))) {
+            return;
+        }
+        specifications.save(product.id(), product.specifications(), e.getVersion());
+        entityManager.refresh(e);
     }
 
     // ------------------------------------------------------------------ domain -> entity
@@ -209,6 +232,7 @@ class ProductPersistenceAdapter implements ProductRepository {
         e.setPrice(p.price() == null ? null : p.price().amount());
         e.setCurrency(p.price() == null ? null : p.price().currency());
         e.setSupplier(p.supplier());
+        e.setOwnerId(p.ownerId());
         e.setBrand(p.brandId());
         e.setFeatured(p.featured());
         e.setStatus(p.status());
@@ -266,26 +290,57 @@ class ProductPersistenceAdapter implements ProductRepository {
         e.getImage().stream().filter(i -> i.getId().equals(p.thumbnailId())).forEach(i -> i.setDefault(true));
     }
 
+    /**
+     * Đồng bộ giá trị thông số (nhiều dòng cho thuộc tính MULTI_SELECT, ADR 0033). Với mỗi thuộc tính: giữ dòng có giá
+     * trị trùng (không phân biệt hoa thường), dùng lại dòng thừa cho giá trị mới (thuộc tính một giá trị đổi giá trị
+     * thì cập nhật tại chỗ), rồi mới thêm/bỏ phần chênh. Trigger ở DB kiểm số giá trị lúc commit.
+     */
     private void applyAttributes(Product p, ProductEntity e) {
-        Map<Long, AttributeValue> wanted = new HashMap<>();
+        Map<Long, List<AttributeValue>> wanted = new LinkedHashMap<>();
         for (AttributeValue a : p.attributes()) {
-            wanted.put(a.attributeId(), a);
+            wanted.computeIfAbsent(a.attributeId(), k -> new ArrayList<>()).add(a);
         }
-        e.getAttribute().removeIf(a -> !wanted.containsKey(a.getProductAttribute().getId()));
-        Set<Long> present = new HashSet<>();
+        Map<Long, List<ProductAttributeValueEntity>> existing = new HashMap<>();
         for (ProductAttributeValueEntity a : e.getAttribute()) {
-            AttributeValue d = wanted.get(a.getProductAttribute().getId());
-            a.setValue(d.value());
-            a.setValueNumber(d.number());
-            present.add(d.attributeId());
+            existing.computeIfAbsent(a.getProductAttribute().getId(), k -> new ArrayList<>()).add(a);
         }
-        for (AttributeValue a : p.attributes()) {
-            if (!present.contains(a.attributeId())) {
-                e.getAttribute().add(ProductAttributeValueEntity.builder()
-                        .id(Snowflake.nextId()).product(e).productAttribute(attributes.getReferenceById(a.attributeId()))
-                        .value(a.value()).valueNumber(a.number()).build());
+        Set<ProductAttributeValueEntity> keep = new HashSet<>();
+        for (Map.Entry<Long, List<AttributeValue>> w : wanted.entrySet()) {
+            List<ProductAttributeValueEntity> rows = new ArrayList<>(existing.getOrDefault(w.getKey(), List.of()));
+            List<AttributeValue> unmatched = new ArrayList<>();
+            for (AttributeValue v : w.getValue()) {
+                ProductAttributeValueEntity row = rows.stream()
+                        .filter(r -> r.getValue().equalsIgnoreCase(v.value()))
+                        .findFirst()
+                        .orElse(null);
+                if (row == null) {
+                    unmatched.add(v);
+                    continue;
+                }
+                rows.remove(row);
+                setValue(row, v);
+                keep.add(row);
+            }
+            for (AttributeValue v : unmatched) {
+                if (!rows.isEmpty()) {
+                    ProductAttributeValueEntity row = rows.removeFirst();
+                    setValue(row, v);
+                    keep.add(row);
+                    continue;
+                }
+                ProductAttributeValueEntity row = ProductAttributeValueEntity.builder()
+                        .id(Snowflake.nextId()).product(e).productAttribute(attributes.getReferenceById(v.attributeId()))
+                        .value(v.value()).valueNumber(v.number()).build();
+                e.getAttribute().add(row);
+                keep.add(row);
             }
         }
+        e.getAttribute().removeIf(a -> !keep.contains(a));
+    }
+
+    private static void setValue(ProductAttributeValueEntity row, AttributeValue v) {
+        row.setValue(v.value());
+        row.setValueNumber(v.number());
     }
 
     /** Giá trị trục chỉ được thêm (variant cũ còn tham chiếu), không sửa hay xoá ở đây. */

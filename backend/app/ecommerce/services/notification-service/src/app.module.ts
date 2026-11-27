@@ -17,6 +17,7 @@ import {
 import type { ApolloFederationDriverConfig } from '@nestjs/apollo';
 import { type DynamicModule, Module } from '@nestjs/common';
 import { GraphQLModule } from '@nestjs/graphql';
+import { BroadcastResolver } from './adapters/in/graphql/broadcast.resolver.js';
 import { NotificationResolver } from './adapters/in/graphql/notification.resolver.js';
 import { domainEventsConsumer } from './adapters/in/kafka/domain-events.consumer.js';
 import { erasureConsumer } from './adapters/in/kafka/privacy-erasure.js';
@@ -28,6 +29,9 @@ import { KeycloakRecipientDirectory } from './adapters/out/keycloak-directory.js
 import * as schema from './adapters/out/persistence/schema.js';
 import { DrizzleUnitOfWork, readRepositories } from './adapters/out/persistence/unit-of-work.js';
 import { RedisRealtimePublisher } from './adapters/out/realtime.publisher.js';
+import { type RatesPerSecond, RedisSendRateLimiter } from './adapters/out/redis-rate-limiter.js';
+import { BroadcastService } from './application/broadcast.service.js';
+import { BROADCAST_WORKER_OPTIONS, BroadcastWorker } from './application/broadcast.worker.js';
 import { DeliveryWorker, WORKER_OPTIONS } from './application/delivery.worker.js';
 import { EventHandlers } from './application/event-handlers.js';
 import { NotificationService } from './application/notification.service.js';
@@ -39,6 +43,7 @@ import {
   READ_REPOSITORIES,
   REALTIME,
   RECIPIENT_DIRECTORY,
+  SEND_RATE_LIMITER,
   UNIT_OF_WORK,
 } from './application/ports.js';
 import type { Env } from './config/env.js';
@@ -62,6 +67,16 @@ function senders(env: Env): ChannelSender[] {
   }
   if (env.FCM_SERVICE_ACCOUNT_JSON) list.push(new FcmSender(env.FCM_SERVICE_ACCOUNT_JSON));
   return list;
+}
+
+/** Hạn mức mỗi giây của từng kênh; kênh không cấu hình thì không giới hạn. */
+function sendRates(env: Env): RatesPerSecond {
+  const rates: RatesPerSecond = {};
+  if (env.EMAIL_RATE_PER_SECOND) rates.EMAIL = env.EMAIL_RATE_PER_SECOND;
+  if (env.SMS_RATE_PER_SECOND) rates.SMS = env.SMS_RATE_PER_SECOND;
+  if (env.WEB_PUSH_RATE_PER_SECOND) rates.WEB_PUSH = env.WEB_PUSH_RATE_PER_SECOND;
+  if (env.FCM_RATE_PER_SECOND) rates.FCM = env.FCM_RATE_PER_SECOND;
+  return rates;
 }
 
 @Module({})
@@ -104,6 +119,9 @@ export class AppModule {
         EventHandlers,
         DeliveryWorker,
         NotificationResolver,
+        BroadcastService,
+        BroadcastWorker,
+        BroadcastResolver,
         { provide: UNIT_OF_WORK, useClass: DrizzleUnitOfWork },
         {
           provide: PRIVACY_CONSUMER,
@@ -133,7 +151,23 @@ export class AppModule {
         { provide: CHANNEL_SENDERS, useFactory: () => senders(env) },
         {
           provide: WORKER_OPTIONS,
-          useValue: { enabled: env.DELIVERY_WORKER_ENABLED, intervalMs: env.DELIVERY_INTERVAL_MS, batchSize: 50 },
+          useValue: {
+            enabled: env.DELIVERY_WORKER_ENABLED,
+            intervalMs: env.DELIVERY_INTERVAL_MS,
+            batchSize: env.DELIVERY_BATCH_SIZE,
+          },
+        },
+        {
+          provide: SEND_RATE_LIMITER,
+          useFactory: () => new RedisSendRateLimiter(env.REDIS_URL, sendRates(env)),
+        },
+        {
+          provide: BROADCAST_WORKER_OPTIONS,
+          useValue: {
+            enabled: env.BROADCAST_WORKER_ENABLED,
+            intervalMs: env.BROADCAST_INTERVAL_MS,
+            pageSize: env.BROADCAST_PAGE_SIZE,
+          },
         },
         {
           provide: KafkaEventConsumer,

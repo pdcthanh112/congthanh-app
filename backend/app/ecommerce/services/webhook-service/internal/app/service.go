@@ -23,13 +23,15 @@ type Repository interface {
 	Update(ctx context.Context, w domain.Webhook) error
 	Delete(ctx context.Context, id string) error
 	Enqueue(ctx context.Context, d domain.Delivery) error
-	// ClaimDue lấy các lượt giao đến hạn (FOR UPDATE SKIP LOCKED) và dời next_attempt_at thêm lease:
+	// ClaimDue lấy các lượt giao đến hạn tại now (FOR UPDATE SKIP LOCKED) và dời next_attempt_at tới now + lease:
 	// nhiều pod chạy song song không gửi trùng, pod chết giữa chừng thì hết lease lượt giao tự quay lại.
-	ClaimDue(ctx context.Context, limit int, lease time.Duration) ([]domain.Delivery, error)
+	// now do app truyền vào vì next_attempt_at cũng do app đặt; so với now() của DB thì lệch giờ làm lượt giao kẹt.
+	ClaimDue(ctx context.Context, now time.Time, limit int, lease time.Duration) ([]domain.Delivery, error)
 	SaveAttempt(ctx context.Context, d domain.Delivery) error
 	Deliveries(ctx context.Context, webhookID string, limit int) ([]domain.Delivery, error)
 	GetDelivery(ctx context.Context, id string) (domain.Delivery, error)
-	Retry(ctx context.Context, id string) error
+	// Retry đưa lượt giao về PENDING, đến hạn ngay tại now.
+	Retry(ctx context.Context, id string, now time.Time) error
 }
 
 // DeliveryScope là các thao tác chạy trong transaction của consumer, cùng transaction với processed_events,
@@ -190,14 +192,14 @@ func (s *Service) Retry(ctx context.Context, deliveryID string) error {
 	if d.Status == domain.DeliverySucceeded {
 		return apperr.Conflict("delivery already succeeded")
 	}
-	return s.repo.Retry(ctx, deliveryID)
+	return s.repo.Retry(ctx, deliveryID, s.now().UTC())
 }
 
 // DeliverDue gửi một lô lượt giao đến hạn (song song tối đa 8), trả số lượt đã xử lý.
 // 2xx = thành công; còn lại thử lại theo backoff, quá MaxAttempts thì DEAD.
 // Webhook bị xoá hoặc tắt: lượt giao chuyển DEAD. HTTP gửi ngoài transaction (nhờ lease).
 func (s *Service) DeliverDue(ctx context.Context, batch int) (int, error) {
-	ds, err := s.repo.ClaimDue(ctx, batch, 2*time.Minute)
+	ds, err := s.repo.ClaimDue(ctx, s.now().UTC(), batch, 2*time.Minute)
 	if err != nil || len(ds) == 0 {
 		return 0, err
 	}

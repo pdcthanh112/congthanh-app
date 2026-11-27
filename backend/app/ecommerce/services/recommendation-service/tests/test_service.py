@@ -10,6 +10,7 @@ NOW = datetime(2026, 11, 10, tzinfo=UTC)
 class FakeStore:
     def __init__(self):
         self.products = {}
+        self.partition_maintenance_runs = 0
         self.events = []
         self.orders = []
         self.embedded = set()
@@ -52,6 +53,10 @@ class FakeStore:
         self.embedded |= set(pids)
 
     async def prune(self, before):
+        return 0
+
+    async def maintain_partitions(self):
+        self.partition_maintenance_runs += 1
         return 0
 
 
@@ -128,6 +133,7 @@ async def test_record_event_and_rebuild():
     assert store.events == [("s:abc12345", "p9", Kind.VIEW, 1.0)]
     store.products["p7"] = ("Running Shoes", "shoes", True)
     assert await svc.rebuild(batch=10) == 1 and "p7" in index.vecs
+    assert store.partition_maintenance_runs == 1
     await svc.on_order_placed("u1", ["p2", "p1", "p2"])
     assert store.orders == [("u1", ["p1", "p2"])]
 

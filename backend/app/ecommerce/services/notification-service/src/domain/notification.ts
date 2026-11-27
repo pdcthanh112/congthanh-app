@@ -22,6 +22,8 @@ export interface Message {
   link: string | null;
   /** HTML cho email; không có thì dựng từ title/body. */
   html?: string;
+  /** Thư tiếp thị (không giao dịch): email gắn List-Unsubscribe trỏ tới trang tuỳ chọn thông báo. */
+  marketing?: boolean;
 }
 
 export interface Notification {
@@ -52,6 +54,15 @@ export interface Delivery {
 }
 
 export const MAX_DELIVERY_ATTEMPTS = 5;
+
+/**
+ * Độ ưu tiên trong hàng đợi gửi (số nhỏ gửi trước, ADR 0034): email đơn hàng không bị kẹt sau một đợt gửi hàng loạt.
+ */
+export const DELIVERY_PRIORITY = { TRANSACTIONAL: 0, DEFAULT: 5, BULK: 9 } as const;
+
+/** Ưu tiên của lượt gửi phát sinh từ event miền theo nhóm thông báo. */
+export const priorityOf = (category: Category): number =>
+  TRANSACTIONAL.has(category) ? DELIVERY_PRIORITY.TRANSACTIONAL : DELIVERY_PRIORITY.DEFAULT;
 
 /** Backoff luỹ thừa có trần: 30s, 2m, 8m, 32m, 2h. */
 export function nextAttemptDelayMs(attempts: number): number {

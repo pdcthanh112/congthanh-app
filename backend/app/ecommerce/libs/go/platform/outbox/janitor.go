@@ -69,7 +69,7 @@ func (j *Janitor) Run(ctx context.Context) error {
 	}
 }
 
-// PurgeOnce xoá outbox và processed_events quá hạn; bảng không tồn tại (service không dùng) thì bỏ qua.
+// PurgeOnce xoá outbox và processed_events quá hạn (bảng không tồn tại thì bỏ qua), rồi bảo trì partition.
 func (j *Janitor) PurgeOnce(ctx context.Context) {
 	now := j.now()
 	for _, p := range []struct {
@@ -89,6 +89,29 @@ func (j *Janitor) PurgeOnce(ctx context.Context) {
 		if n > 0 {
 			slog.InfoContext(ctx, "purged old rows", "table", p.table, "rows", n)
 		}
+	}
+	j.maintainPartitions(ctx)
+}
+
+// maintainPartitions gọi maintain_partitions() mà migration của service tạo khi service có bảng partition theo tháng,
+// để luôn có sẵn partition các tháng tới; schema không có hàm này thì bỏ qua.
+func (j *Janitor) maintainPartitions(ctx context.Context) {
+	var exists bool
+	if err := j.db.QueryRow(ctx, `SELECT to_regprocedure('maintain_partitions()') IS NOT NULL`).Scan(&exists); err != nil || !exists {
+		if err != nil && ctx.Err() == nil {
+			slog.WarnContext(ctx, "partition maintenance check failed", "err", err)
+		}
+		return
+	}
+	var created int
+	if err := j.db.QueryRow(ctx, `SELECT maintain_partitions()`).Scan(&created); err != nil {
+		if ctx.Err() == nil {
+			slog.WarnContext(ctx, "partition maintenance failed", "err", err)
+		}
+		return
+	}
+	if created > 0 {
+		slog.InfoContext(ctx, "created partitions", "partitions", created)
 	}
 }
 

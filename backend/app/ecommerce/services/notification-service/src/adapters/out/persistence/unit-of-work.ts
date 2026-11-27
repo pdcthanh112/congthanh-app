@@ -2,6 +2,7 @@ import { type Database, DB, markProcessed } from '@ecommerce/platform';
 import { Inject, Injectable } from '@nestjs/common';
 import type { ReadRepositories, TransactionScope, UnitOfWork } from '../../../application/ports.js';
 import {
+  DrizzleBroadcastRepository,
   DrizzleDeliveryQueue,
   DrizzleDeviceRepository,
   DrizzleLocalViews,
@@ -21,6 +22,7 @@ export class DrizzleUnitOfWork implements UnitOfWork {
         notifications: new DrizzleNotificationRepository(tx),
         preferences: new DrizzlePreferenceRepository(tx),
         views: new DrizzleLocalViews(tx),
+        broadcasts: new DrizzleBroadcastRepository(tx),
         markProcessed: (eventId, consumer) => markProcessed(tx, processedEvents, eventId, consumer),
       }),
     );
@@ -33,5 +35,6 @@ export function readRepositories(db: Database<typeof schema>): ReadRepositories 
     preferences: new DrizzlePreferenceRepository(db),
     devices: new DrizzleDeviceRepository(db),
     deliveries: new DrizzleDeliveryQueue(db),
+    broadcasts: new DrizzleBroadcastRepository(db),
   };
 }

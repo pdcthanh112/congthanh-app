@@ -1,11 +1,4 @@
-import type {
-  CartView,
-  CheckoutSessionDto,
-  OpenSessionBody,
-  PlaceBody,
-  ProductSummary,
-  StockLevel,
-} from '@ecommerce/clients';
+import type { CartView, CheckoutSessionDto, OpenSessionBody, PlaceBody, ProductSummary, StockLevel } from '@ecommerce/clients';
 import { DomainError } from '@ecommerce/platform';
 import { usd } from '@ecommerce/shared';
 import type { Backends } from '../src/app.module.js';
@@ -17,9 +10,17 @@ export function fakeBackends() {
     ['p2', summary('p2', 'Slim Jeans', 4_500, 4_500)],
     ['p-off', { ...summary('p-off', 'Ngừng bán', 10_000, 10_000), active: false }],
   ]);
+  /** Sản phẩm có biến thể: chỉ tra được theo id/slug, không lẫn vào danh sách, tìm kiếm, gợi ý của các test khác. */
+  const variantProducts = new Map<string, ProductSummary>([
+    ['p-var', summary('p-var', 'Polo Shirt', 2_000, 2_000)],
+    ['p-var-red-m', summary('p-var-red-m', 'Polo Shirt Đỏ M', 2_200, 2_200)],
+    ['p-var-blue-l', summary('p-var-blue-l', 'Polo Shirt Xanh L', 2_000, 2_000)],
+  ]);
+  const known = (id: string) => products.get(id) ?? variantProducts.get(id);
   const stock = new Map<string, StockLevel>([
     ['p1', level('p1', 10)],
     ['p2', level('p2', 1)],
+    ['p-var-red-m', level('p-var-red-m', 4)],
   ]);
   const carts = new Map<string, CartView>();
   let itemSeq = 0;
@@ -39,14 +40,14 @@ export function fakeBackends() {
     products: {
       async byIds(ids) {
         calls.byIds++;
-        return new Map(ids.flatMap((id) => (products.has(id) ? [[id, products.get(id) as ProductSummary]] : [])));
+        return new Map(ids.flatMap((id) => (known(id) ? [[id, known(id) as ProductSummary]] : [])));
       },
       async detail(id) {
         calls.detail++;
-        if (!products.has(id)) throw DomainError.notFound(`product ${id}`);
+        if (!known(id)) throw DomainError.notFound(`product ${id}`);
         return {
           id,
-          name: products.get(id)?.name ?? '',
+          name: known(id)?.name ?? '',
           slug: `slug-${id}`,
           brand: 'Coolmate',
           image: [
@@ -54,18 +55,61 @@ export function fakeBackends() {
             { imagePath: `/${id}/1.jpg`, displayOrder: 1 },
           ],
           category: [{ categoryId: '7', displayOrder: 1 }],
+          hasVariant: id === 'p-var',
+          parentId: id.startsWith('p-var-') ? 'p-var' : null,
+          attribute: [
+            { attribute: 'Chất liệu', attributeId: 1, value: 'Cotton', groupName: 'Chất liệu & kiểu dáng' },
+            { attribute: 'Phong cách', attributeId: 2, value: 'Thể thao', groupName: 'Chất liệu & kiểu dáng' },
+            { attribute: 'Phong cách', attributeId: 2, value: 'Hàn Quốc', groupName: 'Chất liệu & kiểu dáng' },
+            { attribute: 'Khối lượng', attributeId: 3, value: '0.3', valueNumber: 0.3, unit: 'kg' },
+          ],
+          specifications: id === 'p-var' ? [{ name: 'Bảo quản', items: [{ name: 'Giặt', value: 'Nước lạnh' }] }] : [],
         };
+      },
+      async variants(parentId) {
+        if (parentId !== 'p-var') return [];
+        return [
+          {
+            id: 'p-var-red-m',
+            name: 'Polo Shirt Đỏ M',
+            slug: 'slug-p-var-red-m',
+            sku: 'POLO-RED-M',
+            price: 22,
+            currency: 'USD',
+            thumbnail: { imagePath: '/p-var/red.jpg' },
+            image: [{ imagePath: '/p-var/red.jpg' }],
+            options: { '1': 'Đỏ', '2': 'M' },
+          },
+          {
+            id: 'p-var-blue-l',
+            name: 'Polo Shirt Xanh L',
+            slug: 'slug-p-var-blue-l',
+            sku: 'POLO-BLUE-L',
+            price: 20,
+            currency: null,
+            thumbnail: null,
+            image: [],
+            options: { '1': 'Xanh', '2': 'L' },
+          },
+        ];
+      },
+      async optionValues(productId) {
+        if (productId !== 'p-var') return [];
+        return [
+          { id: 11, productOptionId: 1, productOptionName: 'Màu', productOptionValue: 'Đỏ' },
+          { id: 12, productOptionId: 1, productOptionName: 'Màu', productOptionValue: 'Xanh' },
+          { id: 21, productOptionId: 2, productOptionName: 'Size', productOptionValue: 'M' },
+          { id: 22, productOptionId: 2, productOptionName: 'Size', productOptionValue: 'L' },
+        ];
       },
       async bySlug(slug) {
         const id = slug.replace(/^slug-/, '');
-        if (!products.has(id)) throw DomainError.notFound(`product ${slug}`);
+        if (!known(id)) throw DomainError.notFound(`product ${slug}`);
         return backends.products.detail(id);
       },
       async list(page, limit) {
         const all = [...products.keys()];
-        const items = await Promise.all(
-          all.slice((page - 1) * limit, page * limit).map((id) => backends.products.detail(id)),
-        );
+        const items = await Promise.all(all.slice((page - 1) * limit, page * limit).map((id) => backends.products.detail(id)));
         return {
           paginationInfo: { page, limit, totalPage: Math.ceil(all.length / limit), totalElement: all.length },
           responseList: items,
@@ -143,9 +187,7 @@ export function fakeBackends() {
           orderId: 'o-1',
           orderCode: 'ORD-1',
           status: 'CONFIRMED',
-          lines: [
-            { productId: 'p1', sku: 'SKU-p1', name: 'Cotton T-Shirt', quantity: 2, unitPrice: m(15), total: m(30) },
-          ],
+          lines: [{ productId: 'p1', sku: 'SKU-p1', name: 'Cotton T-Shirt', quantity: 2, unitPrice: m(15), total: m(30) }],
           subtotal: m(30),
           discount: m(0),
           total: m(30),
@@ -174,10 +216,7 @@ export function fakeBackends() {
         const prev = [...sessions.values()].find((x) => x.id === `cs-${key}`);
         if (prev) return prev;
         const m = (cents: number) => ({ amount: cents / 100, currency: 'USD' });
-        const subtotal = body.items.reduce(
-          (n, i) => n + (products.get(i.productId)?.price.amountMinor ?? 0) * i.quantity,
-          0,
-        );
+        const subtotal = body.items.reduce((n, i) => n + (products.get(i.productId)?.price.amountMinor ?? 0) * i.quantity, 0);
         const discount = body.promotionCode === 'SAVE10' ? subtotal / 10 : 0;
         const s: CheckoutSessionDto = {
           id: `cs-${key ?? sessions.size}`,
@@ -205,9 +244,7 @@ export function fakeBackends() {
         if (body.expectedTotal != null && Number(body.expectedTotal) !== Number(s.totals.total.amount)) {
           throw DomainError.conflict('the total changed', 'PRICE_CHANGED');
         }
-        const next = flags.fraudReview
-          ? { ...s, status: 'PENDING_REVIEW' }
-          : { ...s, status: 'PLACED', orderId: 'o-1', orderCode: 'ORD-1' };
+        const next = flags.fraudReview ? { ...s, status: 'PENDING_REVIEW' } : { ...s, status: 'PLACED', orderId: 'o-1', orderCode: 'ORD-1' };
         sessions.set(id, next);
         return next;
       },

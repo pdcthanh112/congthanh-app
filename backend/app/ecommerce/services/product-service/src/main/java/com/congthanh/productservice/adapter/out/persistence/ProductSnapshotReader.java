@@ -2,6 +2,7 @@ package com.congthanh.productservice.adapter.out.persistence;
 
 import com.congthanh.productservice.application.port.out.ProductSnapshot;
 import com.congthanh.productservice.application.port.out.ProductSnapshots;
+import com.congthanh.productservice.domain.model.Specifications;
 import com.congthanh.productservice.domain.model.enums.ProductStatus;
 import org.springframework.stereotype.Component;
 
@@ -16,13 +17,15 @@ class ProductSnapshotReader implements ProductSnapshots {
 
     private final ProductJpaRepository products;
     private final ProductAttributeValueJpaRepository attributeValues;
+    private final ProductSpecificationsStore specifications;
     private final VariantOptionCombinationJpaRepository combinations;
 
     ProductSnapshotReader(ProductJpaRepository products, ProductAttributeValueJpaRepository attributeValues,
-                          VariantOptionCombinationJpaRepository combinations) {
+                          VariantOptionCombinationJpaRepository combinations, ProductSpecificationsStore specifications) {
         this.products = products;
         this.attributeValues = attributeValues;
         this.combinations = combinations;
+        this.specifications = specifications;
     }
 
     @Override
@@ -68,8 +71,10 @@ class ProductSnapshotReader implements ProductSnapshots {
         List<ProductSnapshot.Attribute> attributes = attributeValues.findByProduct(p.getId()).stream()
                 .map(v -> {
                     ProductAttributeEntity a = v.getProductAttribute();
+                    AttributeGroupEntity g = a.getGroup();
                     return new ProductSnapshot.Attribute(a.getCode(), a.getName(), v.getValue(), v.getValueNumber(), a.getUnit(),
-                            a.isFilterable(), a.isSearchable(), a.getDisplayOrder());
+                            a.isFilterable(), a.isSearchable(), a.getDisplayOrder(), g == null ? null : g.getName(),
+                            g == null ? null : g.getDisplayOrder());
                 })
                 .toList();
         List<ProductSnapshot.Option> sorted = options.stream()
@@ -77,7 +82,8 @@ class ProductSnapshotReader implements ProductSnapshots {
                 .toList();
         return new ProductSnapshot(p.getId(), p.getParent() == null ? null : p.getParent().getId(), p.getName(), p.getSlug(),
                 p.getSku(), p.getGtin(), p.getDescription(), p.getStatus(), p.isFeatured(), p.isHasVariant(), p.getSupplier(),
-                p.getBrand(), p.getPrice(), p.getCurrency(), p.getThumbnail(), images, categoryIds, attributes, sorted, variants);
+                p.getBrand(), p.getPrice(), p.getCurrency(), p.getThumbnail(), images, categoryIds, attributes, sorted, variants,
+                p.getParent() == null ? specifications.load(p.getId()) : Specifications.EMPTY);
     }
 
     private static ProductSnapshot.Option option(VariantOptionCombinationEntity c) {

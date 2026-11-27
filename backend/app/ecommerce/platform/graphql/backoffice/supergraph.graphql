@@ -99,6 +99,12 @@ type Mutation {
   moderateReview(id: ID!, reason: String, status: ReviewStatus!, version: Int!): Review!
   replyToReview(id: ID!, reply: String!, version: Int!): Review!
   submitReview(input: SubmitReviewInput!): Review!
+  """Huỷ chiến dịch chưa xong; lượt gửi còn chờ bị bỏ"""
+  cancelBroadcast(id: ID!): Broadcast!
+  """
+  Tạo chiến dịch gửi hàng loạt; gọi lại cùng idempotencyKey trả chiến dịch đã tạo
+  """
+  createBroadcast(idempotencyKey: String!, input: CreateBroadcastInput!): Broadcast!
   """Số thông báo vừa đánh dấu đã đọc"""
   markNotificationsRead(
     """Bỏ trống = tất cả"""
@@ -223,6 +229,8 @@ type Query {
   """Sản phẩm đã mua đang chờ khách đánh giá"""
   myPendingReviews(limit: Int! = 20): [PendingReview!]!
   myReviews(page: Int! = 1, size: Int! = 10): ReviewPage!
+  broadcast(id: ID!): Broadcast!
+  broadcasts(page: Int! = 1, size: Int! = 20): BroadcastPage!
   myNotificationPreferences: NotificationPreferences!
   myNotifications(page: Int! = 1, size: Int! = 20, unreadOnly: Boolean! = false): NotificationPage!
   unreadNotificationCount: Int!
@@ -400,6 +408,75 @@ input SubmitReviewInput {
   productId: ID!
   rating: Int!
   title: String
+}
+
+type Broadcast {
+  audienceKind: BroadcastAudienceKind!
+  audienceRole: String
+  """Số người dùng đã duyệt qua trong danh sách người nhận"""
+  audienceScanned: Int!
+  body: String!
+  cancelledAt: DateTime
+  category: NotificationCategory!
+  channels: [NotificationChannel!]!
+  completedAt: DateTime
+  createdAt: DateTime!
+  createdBy: String!
+  id: ID!
+  link: String
+  """Số lượt gửi theo kênh và trạng thái"""
+  progress: [BroadcastChannelProgress!]!
+  """Số thông báo đã tạo (đã trừ người tắt nhóm này)"""
+  recipients: Int!
+  scheduledAt: DateTime!
+  status: BroadcastStatus!
+  title: String!
+}
+
+input BroadcastAudienceInput {
+  kind: BroadcastAudienceKind!
+  """Realm role khi kind = ROLE"""
+  role: String
+}
+
+enum BroadcastAudienceKind {
+  ALL_USERS
+  ROLE
+}
+
+type BroadcastChannelProgress {
+  channel: NotificationChannel!
+  failed: Int!
+  pending: Int!
+  sent: Int!
+  skipped: Int!
+}
+
+type BroadcastPage {
+  items: [Broadcast!]!
+  total: Int!
+}
+
+enum BroadcastStatus {
+  CANCELLED
+  COMPLETED
+  EXPANDING
+  SCHEDULED
+  SENDING
+}
+
+input CreateBroadcastInput {
+  """Bỏ trống = mọi người dùng"""
+  audience: BroadcastAudienceInput
+  body: String!
+  """PROMOTION hoặc SYSTEM"""
+  category: NotificationCategory! = PROMOTION
+  channels: [NotificationChannel!]!
+  """Đường dẫn trong app, bắt đầu bằng /"""
+  link: String
+  """Hẹn giờ gửi (UTC); bỏ trống = gửi ngay"""
+  scheduledAt: DateTime
+  title: String!
 }
 
 type Notification {

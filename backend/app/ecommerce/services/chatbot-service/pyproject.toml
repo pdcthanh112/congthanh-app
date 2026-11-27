@@ -1,7 +1,7 @@
 [project]
 name = "chatbot-service"
 version = "0.1.0"
-description = "Trợ lý mua sắm: hỏi đáp về sản phẩm (RAG trên search-service), Claude hoặc Ollama, trả lời dạng SSE."
+description = "Trợ lý mua sắm: agent Claude gọi tool cửa hàng qua GraphQL storefront (tìm, gợi ý, giỏ, đơn), trả lời dạng SSE."
 requires-python = ">=3.13"
 dependencies = [
   "ecommerce-platform[fastapi]",

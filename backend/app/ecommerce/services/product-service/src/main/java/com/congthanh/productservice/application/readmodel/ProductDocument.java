@@ -1,5 +1,6 @@
 package com.congthanh.productservice.application.readmodel;
 
+import com.congthanh.productservice.domain.model.Specifications;
 import com.congthanh.productservice.domain.model.enums.ProductStatus;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -35,6 +36,8 @@ public class ProductDocument {
     private String thumbnail;
     private List<Image> images = new ArrayList<>();
     private List<Attribute> attributes = new ArrayList<>();
+    /** Thông số tự do chỉ để hiển thị (ADR 0033). */
+    private List<Specifications.Group> specifications = new ArrayList<>();
     private List<Variant> variants = new ArrayList<>();
     /** Các trục variant của sản phẩm gốc kèm giá trị được phép (bộ chọn Màu/Dung lượng ở trang chi tiết). */
     private List<OptionGroup> optionGroups = new ArrayList<>();
@@ -60,8 +63,11 @@ public class ProductDocument {
     public record Image(Long id, String url, int order) {
     }
 
-    /** {@code number} chỉ có với thuộc tính kiểu NUMBER; {@code code} rỗng nếu thuộc tính chưa có code. */
-    public record Attribute(String code, String name, String value, BigDecimal number, String unit) {
+    /**
+     * {@code number} chỉ có với thuộc tính kiểu NUMBER; {@code code} rỗng nếu thuộc tính chưa có code. Thuộc tính
+     * MULTI_SELECT có nhiều phần tử cùng code; {@code group} là tên nhóm hiển thị, null = không nhóm (ADR 0033).
+     */
+    public record Attribute(String code, String name, String value, BigDecimal number, String unit, String group) {
     }
 
     public record VariantOption(Long optionId, String name, Long valueId, String value) {

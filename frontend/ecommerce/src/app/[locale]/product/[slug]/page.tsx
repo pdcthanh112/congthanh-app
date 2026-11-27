@@ -2,34 +2,22 @@ import React, { cache } from 'react';
 import { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
-import {
-  getProductDetailBySlug,
-  getProductOptionValueByProductId,
-  getProductOptionValues,
-  getProductVariationsByParentId,
-} from '@/api/productApi';
+import { getProductById, getProductDetail } from '@/api/productApi';
 import BreadcrumbComponent from '@/components/Breadcrumb';
 import ProductDetail from '@/features/product/component/product-detail';
+import ReviewProduct from '@/features/product/component/product-detail/ReviewProduct';
 import RelatedProduct from '@/features/product/component/RelatedProduct';
+import { toReviewStatistic } from '@/graphql/legacy';
 import { redirect } from '@/i18n/routing';
 import type { Locale } from '@/lib/locales';
 import { sanitizeRichText } from '@/lib/sanitize';
-import { Breadcrumb, ProductOptions, ProductVariant } from '@/models/types';
-import { ReviewStatistic } from '@/models/types/Review';
+import { Breadcrumb } from '@/models/types';
 
 type Params = Promise<{ slug: string; locale: Locale }>;
 type SearchParams = Promise<{ [key: string]: string | string[] | undefined }>;
 
-const MOCK_REVIEW_STATISTIC: ReviewStatistic = {
-  totalReview: 4646,
-  averageRating: 4.7,
-  reviewRating5Star: 868,
-  reviewRating4Star: 615,
-  reviewRating3Star: 486,
-  reviewRating2Star: 15,
-  reviewRating1Star: 49,
-  reviewWithMedia: 1684,
-};
+/** Độ dài mô tả SEO tối đa (Google cắt khoảng 155-160 ký tự). */
+const META_DESCRIPTION_MAX = 160;
 
 /**
  * Dùng chung cho generateMetadata và page trong cùng một request (React.cache) để không gọi API hai lần.
@@ -37,34 +25,33 @@ const MOCK_REVIEW_STATISTIC: ReviewStatistic = {
  */
 const fetchProduct = cache(async (slug: string) => {
   try {
-    const product = (await getProductDetailBySlug(slug)).data;
-    return { ...product, description: sanitizeRichText(product.description) };
+    const product = await getProductDetail(slug);
+    return product && { ...product, description: sanitizeRichText(product.description ?? '') };
   } catch {
     return null;
   }
 });
 
-const fetchAndSortProductVariations = async (productId: string): Promise<ProductVariant[]> => {
-  try {
-    const variations = await getProductVariationsByParentId(productId);
-    return [...variations].sort((a, b) => Object.keys(a.options).length - Object.keys(b.options).length);
-  } catch {
-    return [];
-  }
-};
+const plainText = (html: string) =>
+  html
+    .replace(/<[^>]*>/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, META_DESCRIPTION_MAX);
 
 export async function generateMetadata({ params }: { params: Params }): Promise<Metadata> {
   const { slug } = await params;
   const product = await fetchProduct(slug);
   if (!product) notFound();
+  const description = plainText(product.description) || product.name;
 
   return {
     title: product.name,
-    description: product.metadata.description,
+    description,
     openGraph: {
       title: product.name,
-      description: product.metadata.description,
-      images: product.thumbnail.imagePath ? [{ url: product.thumbnail.imagePath }] : [],
+      description,
+      images: product.thumbnail ? [{ url: product.thumbnail }] : [],
     },
     alternates: {
       canonical: process.env.NEXT_PUBLIC_API_URL + '/product/' + slug,
@@ -72,7 +59,13 @@ export async function generateMetadata({ params }: { params: Params }): Promise<
   };
 }
 
-export default async function ProductDetailPage({ params, searchParams }: { params: Params; searchParams: SearchParams }) {
+export default async function ProductDetailPage({
+  params,
+  searchParams,
+}: {
+  params: Params;
+  searchParams: SearchParams;
+}) {
   const { slug, locale } = await params;
   setRequestLocale(locale);
   const { pvid } = await searchParams;
@@ -80,22 +73,12 @@ export default async function ProductDetailPage({ params, searchParams }: { para
 
   const product = await fetchProduct(slug);
   if (!product) notFound();
-  if (product.parent) redirect({ href: { pathname: `/product/${product.parent}`, query: { pvid: product.id } }, locale });
-
-  const productOptions: ProductOptions[] = [];
-  let productVariant: ProductVariant[] = [];
-
-  if (product.hasVariant) {
-    const optionValues = await getProductOptionValues(product.id).catch(() => []);
-    for (const v of optionValues) {
-      const existing = productOptions.find((o) => o.name === v.productOptionName);
-      if (existing) existing.value.push(v.productOptionValue);
-      else productOptions.push({ id: v.productOptionId, name: v.productOptionName, value: [v.productOptionValue] });
-    }
-    productVariant = await fetchAndSortProductVariations(product.id);
+  // Slug của một biến thể: chuyển về trang sản phẩm cha và chọn sẵn biến thể đó.
+  if (product.parentId) {
+    const parent = await getProductById(product.parentId).catch(() => null);
+    if (!parent) notFound();
+    redirect({ href: { pathname: `/product/${parent.slug}`, query: { pvid: product.id } }, locale });
   }
-
-  const productOptionValue = await getProductOptionValueByProductId(product.id);
 
   const crumb: Breadcrumb[] = [
     { pageName: t('common.home'), url: '/home' },
@@ -106,15 +89,14 @@ export default async function ProductDetailPage({ params, searchParams }: { para
   return (
     <React.Fragment>
       <BreadcrumbComponent items={crumb} />
-      <ProductDetail
-        product={product}
-        pvid={typeof pvid === 'string' ? pvid : null}
-        reviewStatistic={MOCK_REVIEW_STATISTIC}
-        productOption={productOptions}
-        productVariant={productVariant}
-        productOptionValueGet={productOptionValue}
-      />
-      <RelatedProduct />
+      <ProductDetail product={product} pvid={typeof pvid === 'string' ? pvid : null} />
+      <section className="w-full max-w-6xl mx-auto px-4 my-3">
+        <div className="bg-white p-5">
+          <h2 className="bg-yellow-100 px-2 py-1 rounded-sm uppercase">{t('product.product_review')}</h2>
+          <ReviewProduct productId={product.id} reviewStatictis={toReviewStatistic(product.ratingSummary)} />
+        </div>
+      </section>
+      <RelatedProduct productId={product.id} />
     </React.Fragment>
   );
 }

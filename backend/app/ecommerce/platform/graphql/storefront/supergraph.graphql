@@ -185,6 +185,12 @@ type Mutation {
   moderateReview(id: ID!, reason: String, status: ReviewStatus!, version: Int!): Review!
   replyToReview(id: ID!, reply: String!, version: Int!): Review!
   submitReview(input: SubmitReviewInput!): Review!
+  """Huỷ chiến dịch chưa xong; lượt gửi còn chờ bị bỏ"""
+  cancelBroadcast(id: ID!): Broadcast!
+  """
+  Tạo chiến dịch gửi hàng loạt; gọi lại cùng idempotencyKey trả chiến dịch đã tạo
+  """
+  createBroadcast(idempotencyKey: String!, input: CreateBroadcastInput!): Broadcast!
   """Số thông báo vừa đánh dấu đã đọc"""
   markNotificationsRead(
     """Bỏ trống = tất cả"""
@@ -267,28 +273,57 @@ enum PaymentMethod {
 """Sản phẩm (dữ liệu gốc ở product-service)"""
 type Product {
   active: Boolean!
+  attributes: [ProductAttribute!]!
   brandName: String
   categories: [Category!]!
   description: String
   """Phần trăm giảm so với giá gốc (0 nếu không giảm)"""
   discountPercent: Int!
+  hasVariant: Boolean!
   id: ID!
   images: [String!]!
   name: String!
+  """Rỗng khi sản phẩm không có biến thể"""
+  options: [ProductOption!]!
   originalPrice: Money!
+  """Có giá trị khi sản phẩm là một biến thể: id sản phẩm cha"""
+  parentId: ID
   price: Money!
   """Thường mua kèm hoặc sản phẩm tương tự"""
   recommendations(kind: RecommendationKind! = BOUGHT_TOGETHER, limit: Int! = 8): [Recommendation!]!
   sellerId: ID!
   sku: String!
   slug: String
+  """Thông số tự do, hiển thị sau attributes"""
+  specifications: [ProductSpecificationGroup!]!
   """null khi inventory-service tạm không trả lời"""
   stock: Stock
   thumbnail: String
+  """Rỗng khi sản phẩm không có biến thể"""
+  variants: [ProductVariant!]!
   tags: [Tag!]!
   inWishlist: Boolean!
   ratingSummary: RatingSummary!
   reviews(page: Int! = 1, rating: Int, size: Int! = 10, sort: ReviewSort! = HELPFUL, withMedia: Boolean! = false): ReviewPage!
+}
+
+"""Thông số kỹ thuật hiển thị ở trang chi tiết"""
+type ProductAttribute {
+  """Nhóm hiển thị, ví dụ "Màn hình"; null = không nhóm"""
+  group: String
+  name: String!
+  """
+  Giá trị đã ghép đơn vị nếu có ("1.2 kg"); nhiều giá trị nối bằng ", "
+  """
+  value: String!
+}
+
+"""Một trục biến thể (màu, size) và các giá trị đang có biến thể bán"""
+type ProductOption {
+  id: ID!
+  name: String!
+  """Theo thứ tự hiển thị"""
+  values: [String!]!
 }
 
 type ProductPage {
@@ -336,6 +371,33 @@ enum ProductSort {
   RELEVANCE
 }
 
+"""Nhóm thông số tự do chỉ để hiển thị (ADR 0033); không dùng để lọc"""
+type ProductSpecificationGroup {
+  items: [ProductSpecificationItem!]!
+  """null = nhóm không tiêu đề"""
+  name: String
+}
+
+type ProductSpecificationItem {
+  name: String!
+  value: String!
+}
+
+"""Biến thể đang bán; thêm vào giỏ bằng id của biến thể"""
+type ProductVariant {
+  id: ID!
+  images: [String!]!
+  name: String!
+  options: [VariantOptionValue!]!
+  """null khi biến thể chưa có giá kèm đơn vị tiền"""
+  price: Money
+  sku: String
+  slug: String
+  """null khi inventory-service tạm không trả lời"""
+  stock: Stock
+  thumbnail: String
+}
+
 type PromotionQuote {
   discount: Money
   reason: String
@@ -381,6 +443,8 @@ type Query {
   """Sản phẩm đã mua đang chờ khách đánh giá"""
   myPendingReviews(limit: Int! = 20): [PendingReview!]!
   myReviews(page: Int! = 1, size: Int! = 10): ReviewPage!
+  broadcast(id: ID!): Broadcast!
+  broadcasts(page: Int! = 1, size: Int! = 20): BroadcastPage!
   myNotificationPreferences: NotificationPreferences!
   myNotifications(page: Int! = 1, size: Int! = 20, unreadOnly: Boolean! = false): NotificationPage!
   unreadNotificationCount: Int!
@@ -416,6 +480,13 @@ enum StockStatus {
   IN_STOCK
   LOW_STOCK
   OUT_OF_STOCK
+}
+
+type VariantOptionValue {
+  name: String!
+  """id của ProductOption"""
+  optionId: ID!
+  value: String!
 }
 
 type Brand {
@@ -624,6 +695,75 @@ input SubmitReviewInput {
   productId: ID!
   rating: Int!
   title: String
+}
+
+type Broadcast {
+  audienceKind: BroadcastAudienceKind!
+  audienceRole: String
+  """Số người dùng đã duyệt qua trong danh sách người nhận"""
+  audienceScanned: Int!
+  body: String!
+  cancelledAt: DateTime
+  category: NotificationCategory!
+  channels: [NotificationChannel!]!
+  completedAt: DateTime
+  createdAt: DateTime!
+  createdBy: String!
+  id: ID!
+  link: String
+  """Số lượt gửi theo kênh và trạng thái"""
+  progress: [BroadcastChannelProgress!]!
+  """Số thông báo đã tạo (đã trừ người tắt nhóm này)"""
+  recipients: Int!
+  scheduledAt: DateTime!
+  status: BroadcastStatus!
+  title: String!
+}
+
+input BroadcastAudienceInput {
+  kind: BroadcastAudienceKind!
+  """Realm role khi kind = ROLE"""
+  role: String
+}
+
+enum BroadcastAudienceKind {
+  ALL_USERS
+  ROLE
+}
+
+type BroadcastChannelProgress {
+  channel: NotificationChannel!
+  failed: Int!
+  pending: Int!
+  sent: Int!
+  skipped: Int!
+}
+
+type BroadcastPage {
+  items: [Broadcast!]!
+  total: Int!
+}
+
+enum BroadcastStatus {
+  CANCELLED
+  COMPLETED
+  EXPANDING
+  SCHEDULED
+  SENDING
+}
+
+input CreateBroadcastInput {
+  """Bỏ trống = mọi người dùng"""
+  audience: BroadcastAudienceInput
+  body: String!
+  """PROMOTION hoặc SYSTEM"""
+  category: NotificationCategory! = PROMOTION
+  channels: [NotificationChannel!]!
+  """Đường dẫn trong app, bắt đầu bằng /"""
+  link: String
+  """Hẹn giờ gửi (UTC); bỏ trống = gửi ngay"""
+  scheduledAt: DateTime
+  title: String!
 }
 
 type Notification {

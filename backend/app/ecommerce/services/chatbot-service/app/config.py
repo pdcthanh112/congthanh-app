@@ -18,13 +18,15 @@ class Settings(BaseSettings):
     vllm_url: str = "http://shop-assistant-llm-predictor.inference.svc.cluster.local"
     vllm_path: str = "/openai/v1/chat/completions"
     vllm_model: str = "shop-assistant"
-    search_url: str = "http://localhost:5013"
-    product_context_size: int = 5
+    # Router GraphQL storefront (Cosmo). Tool của trợ lý đi qua đây bằng token của khách, như web.
+    graphql_url: str = "http://localhost:4000/graphql"
+    graphql_timeout_seconds: float = 5.0
     redis_url: str = "redis://localhost:6379/6"
-    history_turns: int = 10  # số lượt (hỏi + đáp) gửi kèm làm ngữ cảnh
+    history_turns: int = 10  # số lượt (câu hỏi + mọi bước tool + câu trả lời) gửi kèm làm ngữ cảnh
     history_ttl_seconds: int = 24 * 3600
     max_message_chars: int = 2000
-    max_output_tokens: int = 4000
+    # Gồm cả phần suy luận của model (Opus 5.5 luôn bật adaptive thinking), không chỉ câu trả lời.
+    max_output_tokens: int = 8000
     store_name: str = "CongThanh Shop"
 
 

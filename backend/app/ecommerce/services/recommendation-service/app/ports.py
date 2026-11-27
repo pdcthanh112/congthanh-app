@@ -35,6 +35,10 @@ class Store(Protocol):
 
     async def prune(self, before: datetime) -> int: ...
 
+    async def maintain_partitions(self) -> int:
+        """Tạo sẵn partition tháng tới cho các bảng partition theo thời gian; trả số partition vừa tạo."""
+        ...
+
     async def ping(self) -> None: ...
 
 

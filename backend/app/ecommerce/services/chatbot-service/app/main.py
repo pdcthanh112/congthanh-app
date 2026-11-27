@@ -15,13 +15,14 @@ from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 
 from .adapters.claude import ClaudeLLM
+from .adapters.graphql_shop import GraphqlShop
 from .adapters.ollama import OllamaLLM
 from .adapters.redis_history import RedisHistory
-from .adapters.search import SearchServiceClient
 from .adapters.vllm import VllmLLM
 from .config import settings
 from .domain.chat import InvalidRequest
-from .service import ChatService, Event
+from .service import ChatService, Customer, Event
+from .tools import ToolBox
 
 eplog.setup("chatbot-service")
 auth = Auth(verifier_from_env())
@@ -30,8 +31,8 @@ auth = Auth(verifier_from_env())
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     history = RedisHistory(settings.redis_url)
-    search_http = httpx.AsyncClient(base_url=settings.search_url, timeout=3.0)
-    closers = [history.close, search_http.aclose]
+    graphql_http = httpx.AsyncClient(timeout=httpx.Timeout(settings.graphql_timeout_seconds, connect=2.0))
+    closers = [history.close, graphql_http.aclose]
     if settings.llm_provider == "ollama":
         ollama_http = httpx.AsyncClient(base_url=settings.ollama_url, timeout=httpx.Timeout(120.0, connect=3.0))
         llm = OllamaLLM(ollama_http, settings.ollama_model)
@@ -47,10 +48,9 @@ async def lifespan(app: FastAPI):
     app.state.history = history
     app.state.service = ChatService(
         llm,
-        SearchServiceClient(search_http),
+        ToolBox(GraphqlShop(graphql_http, settings.graphql_url)),
         history,
         store=settings.store_name,
-        context_size=settings.product_context_size,
         turns=settings.history_turns,
         ttl=settings.history_ttl_seconds,
         max_chars=settings.max_message_chars,
@@ -84,7 +84,8 @@ def _sse(e: Event) -> str:
     return f"event: {e.type}\ndata: {json.dumps(e.data, ensure_ascii=False)}\n\n"
 
 
-# Khách vãng lai cũng dùng được (gateway giới hạn tần suất theo IP); đăng nhập thì lịch sử gắn với tài khoản.
+# Khách vãng lai cũng dùng được (chỉ tool đọc công khai; gateway giới hạn tần suất theo IP). Đăng nhập thì lịch sử
+# gắn với tài khoản và tool chạy bằng chính token của khách, nên trợ lý không làm được gì vượt quyền khách.
 @app.post("/api/ecommerce/chatbot/chat")
 async def chat(
     body: ChatBody,
@@ -95,10 +96,10 @@ async def chat(
         text = svc.prepare(body.message, body.session_id)
     except InvalidRequest as e:
         raise HTTPException(400, str(e)) from e
-    subject = principal.subject if principal else None
+    customer = Customer(principal.subject, principal.token) if principal else Customer()
 
     async def events() -> AsyncIterator[str]:
-        async for e in svc.chat(text, body.session_id, subject):
+        async for e in svc.chat(text, body.session_id, customer):
             yield _sse(e)
 
     # X-Accel-Buffering: không để proxy (nginx/APISIX) gom buffer làm mất hiệu ứng stream.

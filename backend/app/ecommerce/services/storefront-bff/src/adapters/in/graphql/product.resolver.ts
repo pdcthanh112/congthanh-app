@@ -1,19 +1,24 @@
-import type { ProductDetail, ProductSummary } from '@ecommerce/clients';
+import type { ProductDetail, ProductOptionValue, ProductSummary, StockLevel } from '@ecommerce/clients';
 import { DomainError, Public } from '@ecommerce/platform';
 import { Args, Context, ID, Int, Parent, Query, ResolveField, ResolveReference, Resolver } from '@nestjs/graphql';
 import { StorefrontService } from '../../../application/storefront.service.js';
 import { type GqlCtx, loadersOf } from './loaders.js';
-import { discountPercent, money, stock } from './mappers.js';
+import { decimalMoney, discountPercent, money, stock } from './mappers.js';
 import {
   CategoryRef,
   type FacetFilterInput,
   MoneyModel,
+  ProductAttributeModel,
   ProductModel,
+  ProductOptionModel,
   ProductPageModel,
   ProductSearchInput,
   ProductSearchResultModel,
   type ProductSource,
+  ProductSpecificationGroupModel,
+  ProductVariantModel,
   StockModel,
+  StockStatusGql,
 } from './types.js';
 
 const MAX_PAGE_SIZE = 100;
@@ -30,16 +35,11 @@ export class ProductResolver {
     @Args('slug', { nullable: true }) slug?: string,
   ): Promise<ProductSource | null> {
     if (!!id === !!slug) throw DomainError.invalid('provide exactly one of id or slug');
-    const loaders = loadersOf(ctx, this.svc);
-    if (id) return (await loaders.summary.load(id)) ? { id } : null;
-    try {
-      const detail = await this.svc.products.bySlug(slug as string);
-      loaders.detail.prime(detail.id, detail);
-      return { id: detail.id };
-    } catch (e) {
-      if (e instanceof DomainError && e.kind === 'NOT_FOUND') return null;
-      throw e;
-    }
+    const productId = id ?? (await this.idBySlug(slug as string));
+    if (!productId) return null;
+    // Sản phẩm nháp hoặc ngừng bán không hiện ở storefront (giỏ hàng vẫn thấy qua CartLine.product để báo lỗi).
+    const summary = await loadersOf(ctx, this.svc).summary.load(productId);
+    return summary?.active ? { id: productId } : null;
   }
 
   @Query(() => ProductPageModel, { description: 'Danh sách sản phẩm, lọc theo danh mục nếu có' })
@@ -52,9 +52,7 @@ export class ProductResolver {
   ): Promise<ProductPageModel> {
     const size = Math.min(Math.max(limit, 1), MAX_PAGE_SIZE);
     const p = Math.max(page, 1);
-    const res = categoryId
-      ? await this.svc.products.byCategory(categoryId, p, size)
-      : await this.svc.products.list(p, size);
+    const res = categoryId ? await this.svc.products.byCategory(categoryId, p, size) : await this.svc.products.list(p, size);
     return {
       items: this.prime(ctx, res.responseList),
       page: res.paginationInfo.page,
@@ -143,10 +141,7 @@ export class ProductResolver {
     return (await this.detail(p, ctx)).slug ?? null;
   }
 
-  @ResolveField(() => String, { nullable: true }) async description(
-    @Parent() p: ProductSource,
-    @Context() ctx: GqlCtx,
-  ) {
+  @ResolveField(() => String, { nullable: true }) async description(@Parent() p: ProductSource, @Context() ctx: GqlCtx) {
     return (await this.detail(p, ctx)).description ?? null;
   }
 
@@ -177,6 +172,84 @@ export class ProductResolver {
     }
   }
 
+  @ResolveField(() => ID, { nullable: true }) async parentId(@Parent() p: ProductSource, @Context() ctx: GqlCtx) {
+    return (await this.detail(p, ctx)).parentId ?? null;
+  }
+
+  @ResolveField(() => Boolean) async hasVariant(@Parent() p: ProductSource, @Context() ctx: GqlCtx) {
+    return (await this.detail(p, ctx)).hasVariant ?? false;
+  }
+
+  /**
+   * Thông số theo thứ tự product-service đã sắp (nhóm → thứ tự thuộc tính). Thuộc tính MULTI_SELECT có nhiều dòng
+   * cùng thuộc tính: gộp thành một dòng, giá trị nối bằng ", " (ADR 0033).
+   */
+  @ResolveField(() => [ProductAttributeModel]) async attributes(@Parent() p: ProductSource, @Context() ctx: GqlCtx): Promise<ProductAttributeModel[]> {
+    const byAttribute = new Map<string, { group: string | null; name: string; values: string[] }>();
+    for (const a of (await this.detail(p, ctx)).attribute ?? []) {
+      const value = attributeValue(a);
+      if (!a.attribute || !value) continue;
+      const key = a.attributeId == null ? a.attribute : String(a.attributeId);
+      const row = byAttribute.get(key) ?? { group: a.groupName ?? null, name: a.attribute, values: [] };
+      row.values.push(value);
+      byAttribute.set(key, row);
+    }
+    return [...byAttribute.values()].map((r) => ({ group: r.group, name: r.name, value: r.values.join(', ') }));
+  }
+
+  @ResolveField(() => [ProductSpecificationGroupModel]) async specifications(@Parent() p: ProductSource, @Context() ctx: GqlCtx): Promise<ProductSpecificationGroupModel[]> {
+    return ((await this.detail(p, ctx)).specifications ?? []).map((g) => ({ name: g.name ?? null, items: g.items }));
+  }
+
+  @ResolveField(() => [ProductOptionModel]) async options(@Parent() p: ProductSource, @Context() ctx: GqlCtx): Promise<ProductOptionModel[]> {
+    if (!(await this.detail(p, ctx)).hasVariant) return [];
+    const byOption = new Map<number, ProductOptionModel>();
+    for (const v of await loadersOf(ctx, this.svc).optionValues.load(p.id)) {
+      const option = byOption.get(v.productOptionId) ?? { id: String(v.productOptionId), name: v.productOptionName, values: [] };
+      if (!option.values.includes(v.productOptionValue)) option.values.push(v.productOptionValue);
+      byOption.set(v.productOptionId, option);
+    }
+    return [...byOption.values()];
+  }
+
+  @ResolveField(() => [ProductVariantModel]) async variants(@Parent() p: ProductSource, @Context() ctx: GqlCtx): Promise<ProductVariantModel[]> {
+    if (!(await this.detail(p, ctx)).hasVariant) return [];
+    const loaders = loadersOf(ctx, this.svc);
+    const [variants, optionValues] = await Promise.all([loaders.variants.load(p.id), loaders.optionValues.load(p.id)]);
+    const optionNames = optionNamesById(optionValues);
+    // Tồn kho từng biến thể gom một lần gọi inventory-service; lỗi thì để null như Product.stock.
+    const levels = await loaders.stock.loadMany(variants.map((v) => v.id));
+    return variants.map((v, i) => {
+      const level = levels[i];
+      const images = (v.image ?? []).map((img) => img.imagePath);
+      return {
+        id: v.id,
+        name: v.name,
+        slug: v.slug ?? null,
+        sku: v.sku ?? null,
+        // Biến thể thiếu đơn vị tiền thì không đoán (ADR 0029): trả null, UI hiển thị giá của sản phẩm cha.
+        price: v.price != null && v.currency ? decimalMoney({ amount: v.price, currency: v.currency }) : null,
+        thumbnail: v.thumbnail?.imagePath ?? images[0] ?? null,
+        images,
+        options: Object.entries(v.options ?? {}).map(([optionId, value]) => ({
+          optionId,
+          name: optionNames.get(optionId) ?? '',
+          value,
+        })),
+        stock: level instanceof Error ? null : variantStock(level),
+      };
+    });
+  }
+
+  private async idBySlug(slug: string): Promise<string | null> {
+    try {
+      return (await this.svc.products.bySlug(slug)).id;
+    } catch (e) {
+      if (e instanceof DomainError && e.kind === 'NOT_FOUND') return null;
+      throw e;
+    }
+  }
+
   private async summary(p: ProductSource, ctx: GqlCtx): Promise<ProductSummary> {
     const s = await loadersOf(ctx, this.svc).summary.load(p.id);
     if (!s) throw DomainError.notFound(`product ${p.id} not found`);
@@ -192,6 +265,23 @@ export class ProductResolver {
     for (const d of list) loaders.detail.prime(d.id, d);
     return list.map((d) => ({ id: d.id }));
   }
+}
+
+/** Giá trị hiển thị của một dòng thông số: kèm đơn vị nếu thuộc tính có đơn vị. */
+function attributeValue(a: { value?: string | null; valueNumber?: number | null; unit?: string | null }): string | null {
+  const base = a.value ?? (a.valueNumber == null ? null : String(a.valueNumber));
+  if (!base) return null;
+  return a.unit ? `${base} ${a.unit}` : base;
+}
+
+/** Biến thể inventory-service không biết tới thì coi như hết hàng. */
+function variantStock(level: StockLevel | null | undefined): StockModel {
+  return level ? stock(level) : { status: StockStatusGql.OUT_OF_STOCK, available: 0 };
+}
+
+/** optionId (dạng chuỗi như key JSON của biến thể) → tên trục option. */
+function optionNamesById(values: readonly ProductOptionValue[]): Map<string, string> {
+  return new Map(values.map((v) => [String(v.productOptionId), v.productOptionName]));
 }
 
 /** Gộp bộ lọc trùng key; bỏ bộ lọc rỗng. */

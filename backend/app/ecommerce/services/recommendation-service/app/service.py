@@ -119,7 +119,7 @@ class RecommendationService:
         await self.store.record_order(customer_id, sorted(set(product_ids)), self.now())
 
     async def rebuild(self, batch: int = 500) -> int:
-        """Batch định kỳ: nhúng sản phẩm chưa có/đã đổi vector, dọn tương tác cũ (> 180 ngày)."""
+        """Batch định kỳ: nhúng sản phẩm chưa có/đã đổi vector, dọn tương tác cũ (> 180 ngày), tạo partition tháng tới."""
         done = 0
         if self.index.enabled:
             while True:
@@ -133,7 +133,11 @@ class RecommendationService:
                 if len(todo) < batch:
                     break
         pruned = await self.store.prune(self.now() - timedelta(days=180))
-        log.info("recommendation rebuild done", extra={"x_embedded": done, "x_pruned": pruned})
+        partitions = await self.store.maintain_partitions()
+        log.info(
+            "recommendation rebuild done",
+            extra={"x_embedded": done, "x_pruned": pruned, "x_partitions_created": partitions},
+        )
         return done
 
 

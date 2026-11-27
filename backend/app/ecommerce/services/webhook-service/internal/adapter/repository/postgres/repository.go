@@ -97,11 +97,11 @@ func scanDelivery(row pgx.CollectableRow) (domain.Delivery, error) {
 	return d, err
 }
 
-func (r *Repository) ClaimDue(ctx context.Context, limit int, lease time.Duration) ([]domain.Delivery, error) {
-	rows, _ := r.pool.Query(ctx, `UPDATE deliveries SET next_attempt_at = now() + $2::interval
-		WHERE id IN (SELECT id FROM deliveries WHERE status = 'PENDING' AND next_attempt_at <= now()
+func (r *Repository) ClaimDue(ctx context.Context, now time.Time, limit int, lease time.Duration) ([]domain.Delivery, error) {
+	rows, _ := r.pool.Query(ctx, `UPDATE deliveries SET next_attempt_at = $3
+		WHERE id IN (SELECT id FROM deliveries WHERE status = 'PENDING' AND next_attempt_at <= $2
 		             ORDER BY next_attempt_at LIMIT $1 FOR UPDATE SKIP LOCKED)
-		RETURNING `+delCols, limit, lease.String())
+		RETURNING `+delCols, limit, now, now.Add(lease))
 	return pgx.CollectRows(rows, scanDelivery)
 }
 
@@ -125,7 +125,7 @@ func (r *Repository) GetDelivery(ctx context.Context, id string) (domain.Deliver
 	return d, err
 }
 
-func (r *Repository) Retry(ctx context.Context, id string) error {
-	_, err := r.pool.Exec(ctx, `UPDATE deliveries SET status='PENDING', attempts=0, next_attempt_at=now() WHERE id=$1`, idgen.Arg(id))
+func (r *Repository) Retry(ctx context.Context, id string, now time.Time) error {
+	_, err := r.pool.Exec(ctx, `UPDATE deliveries SET status='PENDING', attempts=0, next_attempt_at=$2 WHERE id=$1`, idgen.Arg(id), now)
 	return err
 }

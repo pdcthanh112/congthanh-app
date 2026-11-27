@@ -208,24 +208,53 @@ enum PaymentMethod {
 """Sản phẩm (dữ liệu gốc ở product-service)"""
 type Product @key(fields: "id") {
   active: Boolean!
+  attributes: [ProductAttribute!]!
   brandName: String
   categories: [Category!]!
   description: String
   """Phần trăm giảm so với giá gốc (0 nếu không giảm)"""
   discountPercent: Int!
+  hasVariant: Boolean!
   id: ID!
   images: [String!]!
   name: String!
+  """Rỗng khi sản phẩm không có biến thể"""
+  options: [ProductOption!]!
   originalPrice: Money!
+  """Có giá trị khi sản phẩm là một biến thể: id sản phẩm cha"""
+  parentId: ID
   price: Money!
   """Thường mua kèm hoặc sản phẩm tương tự"""
   recommendations(kind: RecommendationKind! = BOUGHT_TOGETHER, limit: Int! = 8): [Recommendation!]!
   sellerId: ID!
   sku: String!
   slug: String
+  """Thông số tự do, hiển thị sau attributes"""
+  specifications: [ProductSpecificationGroup!]!
   """null khi inventory-service tạm không trả lời"""
   stock: Stock
   thumbnail: String
+  """Rỗng khi sản phẩm không có biến thể"""
+  variants: [ProductVariant!]!
+}
+
+"""Thông số kỹ thuật hiển thị ở trang chi tiết"""
+type ProductAttribute {
+  """Nhóm hiển thị, ví dụ "Màn hình"; null = không nhóm"""
+  group: String
+  name: String!
+  """
+  Giá trị đã ghép đơn vị nếu có ("1.2 kg"); nhiều giá trị nối bằng ", "
+  """
+  value: String!
+}
+
+"""Một trục biến thể (màu, size) và các giá trị đang có biến thể bán"""
+type ProductOption {
+  id: ID!
+  name: String!
+  """Theo thứ tự hiển thị"""
+  values: [String!]!
 }
 
 type ProductPage {
@@ -271,6 +300,33 @@ enum ProductSort {
   PRICE_ASC
   PRICE_DESC
   RELEVANCE
+}
+
+"""Nhóm thông số tự do chỉ để hiển thị (ADR 0033); không dùng để lọc"""
+type ProductSpecificationGroup {
+  items: [ProductSpecificationItem!]!
+  """null = nhóm không tiêu đề"""
+  name: String
+}
+
+type ProductSpecificationItem {
+  name: String!
+  value: String!
+}
+
+"""Biến thể đang bán; thêm vào giỏ bằng id của biến thể"""
+type ProductVariant {
+  id: ID!
+  images: [String!]!
+  name: String!
+  options: [VariantOptionValue!]!
+  """null khi biến thể chưa có giá kèm đơn vị tiền"""
+  price: Money
+  sku: String
+  slug: String
+  """null khi inventory-service tạm không trả lời"""
+  stock: Stock
+  thumbnail: String
 }
 
 type PromotionQuote {
@@ -329,4 +385,11 @@ enum StockStatus {
   IN_STOCK
   LOW_STOCK
   OUT_OF_STOCK
+}
+
+type VariantOptionValue {
+  name: String!
+  """id của ProductOption"""
+  optionId: ID!
+  value: String!
 }

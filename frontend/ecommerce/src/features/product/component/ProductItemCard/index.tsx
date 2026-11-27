@@ -1,10 +1,5 @@
 'use client';
 
-import Image from 'next/image';
-import { Heart } from 'lucide-react';
-import { useSession } from 'next-auth/react';
-import { useTranslations } from 'next-intl';
-import { toast } from 'react-toastify';
 import DefaultImage from '@/assets/images/default-image.jpg';
 import StarRating from '@/components/common/StarRating';
 import { Button, Card } from '@/components/ui';
@@ -15,7 +10,12 @@ import { cn } from '@/lib/utils';
 import { Product } from '@/models/types';
 import useAppModalStore from '@/store/useAppModal';
 import { PATH } from '@/utils/constants/path';
-import { formatCurrency, formatNumber } from '@/utils/helper';
+import { formatMoney, formatNumber } from '@/utils/helper';
+import { Heart } from 'lucide-react';
+import { useSession } from 'next-auth/react';
+import { useLocale, useTranslations } from 'next-intl';
+import Image from 'next/image';
+import { toast } from 'react-toastify';
 
 type ProductItemProps = {
   product: Product;
@@ -23,12 +23,9 @@ type ProductItemProps = {
   priority?: boolean;
 };
 
-/**
- * Thẻ sản phẩm. Điểm đánh giá lấy từ product.ratingSummary (đã ghép sẵn ở supergraph),
- * trạng thái wishlist lấy từ một query dùng chung, nên không còn gọi API theo từng thẻ (N+1).
- */
 const ProductItemCard = ({ product, priority = false }: ProductItemProps) => {
   const t = useTranslations();
+  const locale = useLocale();
   const { status } = useSession();
   const openModalAuth = useAppModalStore((s) => s.openModalAuth);
   const wishlistIds = useWishlistIds();
@@ -80,8 +77,13 @@ const ProductItemCard = ({ product, priority = false }: ProductItemProps) => {
           {product.name}
         </Link>
 
-        <div className="mb-3 flex justify-end text-lg font-medium text-yellow-500">
-          <span>{formatCurrency(10000000, 'vi', 'VND')}</span>
+        <div className="mb-3 flex items-baseline justify-end gap-2">
+          {!!product.discountPercent && product.originalPrice && (
+            <span className="text-xs text-gray-400 line-through">{formatMoney(product.originalPrice, locale)}</span>
+          )}
+          {product.price && (
+            <span className="text-lg font-medium text-yellow-500">{formatMoney(product.price, locale)}</span>
+          )}
         </div>
 
         <div className="mb-3 flex items-center justify-between gap-2">

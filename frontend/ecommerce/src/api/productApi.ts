@@ -1,19 +1,17 @@
-import { gqlWith } from '@/graphql/client';
-import { CategoryQuery, ProductQuery, ProductsQuery, SearchProductsQuery } from '@/graphql/documents';
-import { ok, paged, toProduct } from '@/graphql/legacy';
+import { gql, gqlWith } from '@/graphql/client';
 import {
-  PaginationParams,
-  Product,
-  ProductFilter,
-  ProductOptionValueDisplay,
-  ProductOptionValueGet,
-  ProductVariant,
-  ProductVariantAttribute,
-  Response,
-  ResponseWithPagination,
-} from '@/models/types';
+  CategoryQuery,
+  ProductDetailQuery,
+  ProductQuery,
+  ProductRecommendationsQuery,
+  ProductsQuery,
+  SearchProductsQuery,
+  TrackProductViewMutation,
+} from '@/graphql/documents';
+import { paged, toProduct } from '@/graphql/legacy';
+import type { ProductDetail, Recommendation, RecommendationKind } from '@/graphql/types';
+import { PaginationParams, Product, ProductFilter, ResponseWithPagination } from '@/models/types';
 
-/** Dữ liệu catalog là public: khi gọi từ server thì không gắn token và cache 60 giây (ISR). */
 const CATALOG = { anonymous: true, revalidate: 60 } as const;
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -68,14 +66,6 @@ export const getProductById = async (productId: string): Promise<Product> => {
   return toProduct(product);
 };
 
-export const getProductBySlug = async (productSlug: string): Promise<Response<Product>> => {
-  const { product } = await gqlWith(CATALOG, ProductQuery, { slug: productSlug });
-  if (!product) throw new Error('Product not found');
-  return ok(toProduct(product));
-};
-
-export const getProductDetailBySlug = getProductBySlug;
-
 /** page tính từ 0 như API cũ. */
 export const getProductByCategory = async (categoryIdOrSlug: string, page: number, limit: number) => {
   const categoryId = await resolveCategoryId(categoryIdOrSlug);
@@ -88,16 +78,17 @@ export const searchProducts = async (keyword: string): Promise<Product[]> => {
   return searchProducts.map(toProduct);
 };
 
-// Biến thể/tuỳ chọn sản phẩm chưa có trong supergraph: trả rỗng để trang chi tiết hiển thị sản phẩm đơn.
-export const getVariantAttributeValueByProduct = async (
-  _productId: string
-): Promise<Response<ProductVariantAttribute[]>> => ok([]);
-export async function getProductOptionValues(_productId: string): Promise<ProductOptionValueGet[]> {
-  return [];
-}
-export async function getProductVariationsByParentId(_parentId: string): Promise<ProductVariant[]> {
-  return [];
-}
-export async function getProductOptionValueByProductId(_productId: string): Promise<ProductOptionValueDisplay[]> {
-  return [];
-}
+/** Trang chi tiết (kèm biến thể, thông số); null khi không có hoặc đã ngừng bán. */
+export const getProductDetail = async (slug: string): Promise<ProductDetail | null> =>
+  (await gqlWith(CATALOG, ProductDetailQuery, { slug })).product;
+
+export const getProductRecommendations = async (
+  productId: string,
+  kind: RecommendationKind,
+  limit: number
+): Promise<Recommendation[]> =>
+  (await gql(ProductRecommendationsQuery, { productId, kind, limit })).product?.recommendations ?? [];
+
+/** Tín hiệu "đã xem" cho recommendation-service; khách chưa đăng nhập không có định danh nên BFF bỏ qua. */
+export const trackProductView = async (productId: string): Promise<boolean> =>
+  (await gql(TrackProductViewMutation, { productId })).trackProductView;

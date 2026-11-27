@@ -6,10 +6,13 @@ import { drizzle } from 'drizzle-orm/node-postgres';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import * as schema from '../src/adapters/out/persistence/schema.js';
 import { DrizzleUnitOfWork, readRepositories } from '../src/adapters/out/persistence/unit-of-work.js';
+import { BroadcastService } from '../src/application/broadcast.service.js';
+import { BroadcastWorker } from '../src/application/broadcast.worker.js';
 import { DeliveryWorker } from '../src/application/delivery.worker.js';
 import { EventHandlers } from '../src/application/event-handlers.js';
 import { NotificationService } from '../src/application/notification.service.js';
-import { type ChannelSender, NoAddressError, type Recipient } from '../src/application/ports.js';
+import { type ChannelSender, NoAddressError, type Recipient, type SendRateLimiter } from '../src/application/ports.js';
+import type { BroadcastAudience } from '../src/domain/broadcast.js';
 import type { Notification } from '../src/domain/notification.js';
 
 const url = process.env.TEST_DATABASE_URL;
@@ -41,7 +44,13 @@ describe.skipIf(!url)('notification-service + Postgres', () => {
     c2: { id: 'c2', enabled: true },
     admin: { id: 'admin', email: 'admin@example.com', enabled: true },
   };
-  const directory = { find: async (id: string) => people[id], withRole: async () => ['admin'] };
+  const directory = {
+    find: async (id: string) => people[id],
+    withRole: async () => ['admin'],
+    page: async (_audience: BroadcastAudience, first: number, max: number) =>
+      Object.values(people).slice(first, first + max),
+  };
+  const unlimited: SendRateLimiter = { acquire: async (_c, wanted) => wanted, release: async () => undefined };
   const handlers = new EventHandlers(new DrizzleUnitOfWork(db), directory, service);
   const sent: string[] = [];
   let failEmail = 0;
@@ -53,7 +62,21 @@ describe.skipIf(!url)('notification-service + Postgres', () => {
       sent.push(`${r.email}:${m.title}`);
     },
   };
-  const worker = new DeliveryWorker(read, directory, [email], clock, { enabled: false, intervalMs: 0, batchSize: 50 });
+  const worker = new DeliveryWorker(read, directory, [email], unlimited, clock, {
+    enabled: false,
+    intervalMs: 0,
+    batchSize: 50,
+  });
+  const broadcasts = new BroadcastService(new DrizzleUnitOfWork(db), read, clock, { next: () => nextSnowflakeId() });
+  const expander = new BroadcastWorker(
+    new DrizzleUnitOfWork(db),
+    read,
+    directory,
+    service,
+    clock,
+    { next: () => nextSnowflakeId() },
+    { enabled: false, intervalMs: 0, pageSize: 2 },
+  );
 
   beforeAll(async () => {
     await pool.query(`DROP SCHEMA IF EXISTS ${SCHEMA} CASCADE`);
@@ -143,5 +166,94 @@ describe.skipIf(!url)('notification-service + Postgres', () => {
   it('sắp hết hàng → báo admin', async () => {
     await handlers.lowStock('l1', 'p9', 2);
     expect((await service.list('admin', false, 1, 10)).items[0]?.type).toBe('LOW_STOCK');
+  });
+  it('broadcast: chia trang người nhận, idempotent theo khoá, gửi xong thì COMPLETED', async () => {
+    const draft = {
+      category: 'PROMOTION' as const,
+      title: 'Flash sale 12.12',
+      body: 'Giảm tới 50% từ 0h',
+      link: '/flash-sale',
+      channels: ['IN_APP', 'EMAIL'] as const,
+      audience: { kind: 'ALL_USERS' as const },
+      scheduledAt: null,
+    };
+    const b = await broadcasts.create({ ...draft, channels: [...draft.channels] }, 'admin', 'k-1');
+    const again = await broadcasts.create({ ...draft, channels: [...draft.channels] }, 'admin', 'k-1');
+    expect(again.id).toBe(b.id);
+
+    await expander.tick();
+    const queued = await broadcasts.get(b.id);
+    expect(queued).toMatchObject({ status: 'SENDING', audienceCursor: 3, recipients: 3 });
+    await expander.tick(); // chạy lại không tạo trùng
+    expect((await broadcasts.get(b.id)).recipients).toBe(3);
+
+    const before = sent.length;
+    await worker.tick();
+    expect(
+      sent
+        .slice(before)
+        .filter((s) => s.endsWith('Flash sale 12.12'))
+        .sort(),
+    ).toEqual(['admin@example.com:Flash sale 12.12', 'c1@example.com:Flash sale 12.12']);
+    await expander.tick();
+    expect((await broadcasts.get(b.id)).status).toBe('COMPLETED');
+    const counts = await broadcasts.deliveryCounts(b.id);
+    expect(counts).toEqual(
+      expect.arrayContaining([
+        { channel: 'EMAIL', status: 'SENT', count: 2 },
+        { channel: 'EMAIL', status: 'SKIPPED', count: 1 },
+      ]),
+    );
+  });
+
+  it('lượt gửi giao dịch đi trước lượt gửi hàng loạt', async () => {
+    const one = new DeliveryWorker(read, directory, [email], unlimited, clock, {
+      enabled: false,
+      intervalMs: 0,
+      batchSize: 1,
+    });
+    const b = await broadcasts.create(
+      {
+        category: 'SYSTEM',
+        title: 'Maintenance',
+        body: 'Bảo trì 2h sáng',
+        link: null,
+        channels: ['EMAIL'],
+        audience: { kind: 'ALL_USERS' },
+        scheduledAt: null,
+      },
+      'admin',
+      'k-2',
+    );
+    await expander.tick();
+    expect((await broadcasts.get(b.id)).status).toBe('SENDING');
+    await handlers.orderPlaced('e-prio', 'order-0003', 'c1', usd(5));
+    const before = sent.length;
+    await one.tick();
+    expect(sent.slice(before)).toEqual(['c1@example.com:Order placed']);
+    await worker.tick();
+  });
+
+  it('broadcast hẹn giờ chưa tới hạn thì chưa gửi; huỷ được một lần', async () => {
+    const b = await broadcasts.create(
+      {
+        category: 'PROMOTION',
+        title: 'Sắp mở bán',
+        body: 'Còn 1 giờ',
+        link: null,
+        channels: ['IN_APP'],
+        audience: { kind: 'ALL_USERS' },
+        scheduledAt: new Date(now.getTime() + 3_600_000),
+      },
+      'admin',
+      'k-3',
+    );
+    await expander.tick();
+    expect((await broadcasts.get(b.id)).status).toBe('SCHEDULED');
+    expect((await broadcasts.cancel(b.id)).status).toBe('CANCELLED');
+    await expect(broadcasts.cancel(b.id)).rejects.toThrow('already cancelled');
+    now = new Date(now.getTime() + 2 * 3_600_000);
+    await expander.tick();
+    expect((await broadcasts.get(b.id)).recipients).toBe(0);
   });
 });

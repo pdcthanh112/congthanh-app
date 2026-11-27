@@ -36,15 +36,17 @@ class ProductQueryAdapter implements ProductQueries {
     private final ProductImageJpaRepository images;
     private final VariantOptionValueJpaRepository optionValues;
     private final VariantOptionCombinationJpaRepository combinations;
+    private final ProductSpecificationsStore specifications;
 
     ProductQueryAdapter(ProductJpaRepository products, ProductAttributeValueJpaRepository attributeValues,
                         ProductImageJpaRepository images, VariantOptionValueJpaRepository optionValues,
-                        VariantOptionCombinationJpaRepository combinations) {
+                        VariantOptionCombinationJpaRepository combinations, ProductSpecificationsStore specifications) {
         this.products = products;
         this.attributeValues = attributeValues;
         this.images = images;
         this.optionValues = optionValues;
         this.combinations = combinations;
+        this.specifications = specifications;
     }
 
     @Override
@@ -71,7 +73,10 @@ class ProductQueryAdapter implements ProductQueries {
     @Override
     @Transactional(readOnly = true)
     public Optional<ProductDTO> detail(String id) {
-        return products.findDetailById(id).map(ProductDtoMapper::product);
+        return products.findDetailById(id).map(ProductDtoMapper::product).map(d -> {
+            d.setSpecifications(specifications.load(d.getId()).groups());
+            return d;
+        });
     }
 
     @Override

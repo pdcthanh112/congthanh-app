@@ -34,4 +34,14 @@ public class ProductAttributeValueDTO implements Serializable {
     private BigDecimal valueNumber;
 
     private String unit;
+
+    /** Thứ tự của thuộc tính trong nhóm (product_attribute.display_order). */
+    private int attributeOrder;
+
+    /** Nhóm hiển thị; null khi thuộc tính không thuộc nhóm nào (ADR 0033). */
+    private Long groupId;
+
+    private String groupName;
+
+    private Integer groupOrder;
 }

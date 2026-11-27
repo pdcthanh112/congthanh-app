@@ -1,6 +1,6 @@
 import { DomainError } from '@ecommerce/platform/errors';
 import { Inject, Injectable } from '@nestjs/common';
-import { type Category, CHANNELS, type Channel, type Notification } from '../domain/notification.js';
+import { type Category, CHANNELS, type Channel, type Notification, priorityOf } from '../domain/notification.js';
 import { channelsFor, keyOf, type Preferences, type QuietHours, validateQuietHours } from '../domain/preferences.js';
 import {
   CLOCK,
@@ -58,6 +58,7 @@ export class NotificationService {
       },
       channels.filter((c) => c !== 'IN_APP'),
       now,
+      { priority: priorityOf(req.category) },
     );
   }
 

@@ -26,8 +26,7 @@ final class ProductDtoMapper {
                 .map(ProductImageDTO::getImagePath)
                 .orElse(null);
         List<ProductAttributeValueDTO> attributes = p.getAttribute().stream()
-                .sorted(Comparator.comparingInt((ProductAttributeValueEntity v) -> v.getProductAttribute().getDisplayOrder())
-                        .thenComparing(v -> v.getProductAttribute().getName()))
+                .sorted(ATTRIBUTE_ORDER)
                 .map(ProductDtoMapper::attributeValue)
                 .toList();
         List<ProductCategoryDTO> categories = p.getCategory().stream()
@@ -67,9 +66,28 @@ final class ProductDtoMapper {
                 .build();
     }
 
+    private static final Comparator<ProductAttributeValueEntity> ATTRIBUTE_ORDER = Comparator
+            .comparing((ProductAttributeValueEntity v) -> groupOrder(v.getProductAttribute()), Comparator.nullsLast(Comparator.naturalOrder()))
+            .thenComparing(v -> groupName(v.getProductAttribute()), Comparator.nullsLast(Comparator.naturalOrder()))
+            .thenComparingInt(v -> v.getProductAttribute().getDisplayOrder())
+            .thenComparing(v -> v.getProductAttribute().getName())
+            .thenComparing(ProductAttributeValueEntity::getId);
+
+    private static Integer groupOrder(ProductAttributeEntity a) {
+        return a.getGroup() == null ? null : a.getGroup().getDisplayOrder();
+    }
+
+    private static String groupName(ProductAttributeEntity a) {
+        return a.getGroup() == null ? null : a.getGroup().getName();
+    }
+
     static ProductAttributeValueDTO attributeValue(ProductAttributeValueEntity v) {
         ProductAttributeEntity a = v.getProductAttribute();
         return ProductAttributeValueDTO.builder()
+                .attributeOrder(a.getDisplayOrder())
+                .groupId(a.getGroupId())
+                .groupName(groupName(a))
+                .groupOrder(groupOrder(a))
                 .id(v.getId())
                 .attribute(a.getName())
                 .attributeId(a.getId())

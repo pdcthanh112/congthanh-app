@@ -6,6 +6,12 @@ const optional = z
   .optional()
   .transform((v) => v || undefined);
 
+const optionalRate = z
+  .string()
+  .optional()
+  .transform((v) => (v ? Number(v) : undefined))
+  .pipe(z.number().int().positive().optional());
+
 export const envSchema = baseEnv
   .merge(databaseEnv)
   .merge(kafkaEnv)
@@ -38,6 +44,18 @@ export const envSchema = baseEnv
       .default('true')
       .transform((v) => v === 'true'),
     DELIVERY_INTERVAL_MS: z.coerce.number().default(2000),
+    DELIVERY_BATCH_SIZE: z.coerce.number().int().positive().default(50),
+    // Hạn mức gửi mỗi giây theo kênh, dùng chung mọi pod (ADR 0034); bỏ trống = không giới hạn.
+    EMAIL_RATE_PER_SECOND: optionalRate,
+    SMS_RATE_PER_SECOND: optionalRate,
+    WEB_PUSH_RATE_PER_SECOND: optionalRate,
+    FCM_RATE_PER_SECOND: optionalRate,
+    BROADCAST_WORKER_ENABLED: z
+      .enum(['true', 'false'])
+      .default('true')
+      .transform((v) => v === 'true'),
+    BROADCAST_INTERVAL_MS: z.coerce.number().default(5000),
+    BROADCAST_PAGE_SIZE: z.coerce.number().int().min(1).max(1000).default(500),
   });
 export type Env = z.infer<typeof envSchema>;
 export const env = (): Env => loadEnv(envSchema);

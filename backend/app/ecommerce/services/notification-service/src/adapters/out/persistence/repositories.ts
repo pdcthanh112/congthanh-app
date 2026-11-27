@@ -1,18 +1,24 @@
 import type { Database } from '@ecommerce/platform';
 import { nextSnowflakeId } from '@ecommerce/platform';
-import { and, count, desc, eq, inArray, isNull, sql } from 'drizzle-orm';
+import { and, count, desc, eq, inArray, isNull, lt, lte, or, sql } from 'drizzle-orm';
 import type {
+  BroadcastRepository,
+  DeliveryCount,
   DeliveryQueue,
   DeviceRepository,
+  EnqueueOptions,
   LocalViews,
+  NewNotification,
   NotificationRepository,
   PreferenceRepository,
   WebPushSubscription,
 } from '../../../application/ports.js';
+import type { Broadcast } from '../../../domain/broadcast.js';
 import type { Category, Channel, Delivery, Notification } from '../../../domain/notification.js';
 import { defaultPreferences, type Preferences } from '../../../domain/preferences.js';
 import type * as schema from './schema.js';
 import {
+  broadcasts,
   deliveries,
   fcmTokens,
   notifications,
@@ -33,21 +39,31 @@ const toNotification = (r: typeof notifications.$inferSelect): Notification => (
 export class DrizzleNotificationRepository implements NotificationRepository {
   constructor(private readonly db: Conn) {}
 
-  async insertIfNew(n: Notification, channels: readonly Channel[], now: Date) {
-    const rows = await this.db.insert(notifications).values(n).onConflictDoNothing().returning();
-    const created = rows[0];
-    if (!created) return undefined;
-    if (channels.length > 0) {
-      await this.db.insert(deliveries).values(
-        channels.map((channel) => ({
-          id: nextSnowflakeId(),
-          notificationId: created.id,
-          channel,
-          nextAttemptAt: now,
-        })),
-      );
-    }
-    return toNotification(created);
+  async insertIfNew(n: Notification, channels: readonly Channel[], now: Date, opts: EnqueueOptions) {
+    const [created] = await this.insertManyIfNew([{ notification: n, channels }], now, opts);
+    return created;
+  }
+
+  async insertManyIfNew(items: readonly NewNotification[], now: Date, opts: EnqueueOptions) {
+    if (items.length === 0) return [];
+    const rows = await this.db
+      .insert(notifications)
+      .values(items.map((i) => i.notification))
+      .onConflictDoNothing({ target: notifications.dedupKey })
+      .returning();
+    const channelsByDedupKey = new Map(items.map((i) => [i.notification.dedupKey, i.channels]));
+    const queued = rows.flatMap((r) =>
+      (channelsByDedupKey.get(r.dedupKey) ?? []).map((channel) => ({
+        id: nextSnowflakeId(),
+        notificationId: r.id,
+        channel,
+        nextAttemptAt: now,
+        priority: opts.priority,
+        broadcastId: opts.broadcastId ?? null,
+      })),
+    );
+    if (queued.length > 0) await this.db.insert(deliveries).values(queued);
+    return rows.map(toNotification);
   }
 
   async list(userId: string, unreadOnly: boolean, limit: number, offset: number) {
@@ -102,6 +118,26 @@ export class DrizzlePreferenceRepository implements PreferenceRepository {
     return { userId, disabled: new Set(row.disabled), quietHours: row.quietHours ?? null };
   }
 
+  async getMany(userIds: readonly string[]) {
+    const rows =
+      userIds.length === 0
+        ? []
+        : await this.db
+            .select()
+            .from(preferences)
+            .where(inArray(preferences.userId, [...userIds]));
+    const byUserId = new Map<string, Preferences>(
+      rows.map((r) => [
+        r.userId,
+        { userId: r.userId, disabled: new Set(r.disabled), quietHours: r.quietHours ?? null },
+      ]),
+    );
+    for (const id of userIds) {
+      if (!byUserId.has(id)) byUserId.set(id, defaultPreferences(id));
+    }
+    return byUserId;
+  }
+
   async save(p: Preferences) {
     const values = {
       userId: p.userId,
@@ -153,8 +189,9 @@ export class DrizzleDeviceRepository implements DeviceRepository {
 export class DrizzleDeliveryQueue implements DeliveryQueue {
   constructor(private readonly db: Database<typeof schema>) {}
 
-  async claimDue(limit: number, now: Date, lease: Date): Promise<Delivery[]> {
+  async claimDue(channel: Channel, limit: number, now: Date, lease: Date): Promise<Delivery[]> {
     // Claim trong một câu lệnh: chọn bằng SKIP LOCKED rồi đẩy next_attempt_at ra sau (lease) để pod khác không lấy.
+    // Theo từng kênh (mỗi kênh một hạn mức) và ưu tiên trước, rồi mới tới hạn sớm nhất (ADR 0034).
     const rows = await this.db.execute<{
       id: string;
       notification_id: string;
@@ -167,8 +204,8 @@ export class DrizzleDeliveryQueue implements DeliveryQueue {
       update ${deliveries} d set next_attempt_at = ${lease}
       from (
         select id from ${deliveries}
-        where status = 'PENDING' and next_attempt_at <= ${now}
-        order by next_attempt_at
+        where status = 'PENDING' and channel = ${channel} and next_attempt_at <= ${now}
+        order by priority, next_attempt_at
         limit ${limit}
         for update skip locked
       ) due
@@ -255,5 +292,132 @@ export class DrizzleLocalViews implements LocalViews {
         available: before.available,
       }
     );
+  }
+}
+
+const toBroadcast = (r: typeof broadcasts.$inferSelect): Broadcast => ({
+  id: r.id,
+  category: r.category as Category,
+  title: r.title,
+  body: r.body,
+  link: r.link,
+  channels: r.channels,
+  audience: r.audience,
+  status: r.status,
+  scheduledAt: r.scheduledAt,
+  audienceCursor: r.audienceCursor,
+  recipients: r.recipients,
+  createdBy: r.createdBy,
+  createdAt: r.createdAt,
+  completedAt: r.completedAt,
+  cancelledAt: r.cancelledAt,
+});
+
+export class DrizzleBroadcastRepository implements BroadcastRepository {
+  constructor(private readonly db: Conn) {}
+
+  async insertOrGet(b: Broadcast, idempotencyKey: string) {
+    const [row] = await this.db
+      .insert(broadcasts)
+      .values({ ...b, idempotencyKey })
+      .onConflictDoNothing({ target: [broadcasts.createdBy, broadcasts.idempotencyKey] })
+      .returning();
+    if (row) return toBroadcast(row);
+    const [existing] = await this.db
+      .select()
+      .from(broadcasts)
+      .where(and(eq(broadcasts.createdBy, b.createdBy), eq(broadcasts.idempotencyKey, idempotencyKey)));
+    if (!existing) throw new Error(`broadcast with idempotency key ${idempotencyKey} vanished`);
+    return toBroadcast(existing);
+  }
+
+  async get(id: string) {
+    const [row] = await this.db.select().from(broadcasts).where(eq(broadcasts.id, id));
+    return row && toBroadcast(row);
+  }
+
+  async lock(id: string) {
+    const [row] = await this.db.select().from(broadcasts).where(eq(broadcasts.id, id)).for('update');
+    return row && toBroadcast(row);
+  }
+
+  async list(limit: number, offset: number) {
+    const [rows, [total]] = await Promise.all([
+      this.db.select().from(broadcasts).orderBy(desc(broadcasts.createdAt)).limit(limit).offset(offset),
+      this.db.select({ n: count() }).from(broadcasts),
+    ]);
+    return { items: rows.map(toBroadcast), total: total?.n ?? 0 };
+  }
+
+  async claimDue(now: Date, lease: Date) {
+    const due = this.db
+      .select({ id: broadcasts.id })
+      .from(broadcasts)
+      .where(
+        and(
+          inArray(broadcasts.status, ['SCHEDULED', 'EXPANDING']),
+          lte(broadcasts.scheduledAt, now),
+          or(isNull(broadcasts.leaseUntil), lt(broadcasts.leaseUntil, now)),
+        ),
+      )
+      .orderBy(broadcasts.scheduledAt)
+      .limit(1)
+      .for('update', { skipLocked: true });
+    const [row] = await this.db
+      .update(broadcasts)
+      .set({ status: 'EXPANDING', leaseUntil: lease })
+      .where(inArray(broadcasts.id, due))
+      .returning();
+    return row && toBroadcast(row);
+  }
+
+  async advance(id: string, cursor: number, recipientsAdded: number, lease: Date) {
+    await this.db
+      .update(broadcasts)
+      .set({
+        audienceCursor: cursor,
+        recipients: sql`${broadcasts.recipients} + ${recipientsAdded}`,
+        leaseUntil: lease,
+      })
+      .where(eq(broadcasts.id, id));
+  }
+
+  async markSending(id: string) {
+    await this.db.update(broadcasts).set({ status: 'SENDING', leaseUntil: null }).where(eq(broadcasts.id, id));
+  }
+
+  async cancel(id: string, at: Date) {
+    await this.db
+      .update(broadcasts)
+      .set({ status: 'CANCELLED', cancelledAt: at, leaseUntil: null })
+      .where(eq(broadcasts.id, id));
+    const skipped = await this.db
+      .update(deliveries)
+      .set({ status: 'SKIPPED', lastError: 'broadcast cancelled' })
+      .where(and(eq(deliveries.broadcastId, id), eq(deliveries.status, 'PENDING')))
+      .returning({ id: deliveries.id });
+    return skipped.length;
+  }
+
+  async completeFinished(at: Date) {
+    const rows = await this.db
+      .update(broadcasts)
+      .set({ status: 'COMPLETED', completedAt: at })
+      .where(
+        and(
+          eq(broadcasts.status, 'SENDING'),
+          sql`not exists (select 1 from ${deliveries} d where d.broadcast_id = ${broadcasts.id} and d.status = 'PENDING')`,
+        ),
+      )
+      .returning({ id: broadcasts.id });
+    return rows.map((r) => r.id);
+  }
+
+  async deliveryCounts(id: string): Promise<DeliveryCount[]> {
+    return this.db
+      .select({ channel: deliveries.channel, status: deliveries.status, count: count() })
+      .from(deliveries)
+      .where(eq(deliveries.broadcastId, id))
+      .groupBy(deliveries.channel, deliveries.status);
   }
 }

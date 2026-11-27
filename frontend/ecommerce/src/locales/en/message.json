@@ -206,7 +206,11 @@
     "rating_filter": "Rating",
     "star_up": "{count} stars & up",
     "load_more": "Load more",
-    "loading_more": "Loading..."
+    "loading_more": "Loading...",
+    "related_products": "Similar products",
+    "choose_options": "Please select all product options",
+    "stock_left": "{count} left in stock",
+    "sku": "SKU"
   },
   "cart": {
     "your_cart": "Your cart",
@@ -405,5 +409,23 @@
   "supplier": {
     "products": "Products",
     "products_coming_soon": "This store’s product list is not available yet."
+  },
+  "chat": {
+    "open": "Open shopping assistant",
+    "close": "Close assistant",
+    "title": "Shopping assistant",
+    "greeting": "Hi! I can help you find products, suggest options, add items to your cart or check your orders.",
+    "placeholder": "Ask about products, your cart, orders...",
+    "send": "Send",
+    "new_chat": "New conversation",
+    "thinking": "Thinking...",
+    "error_generic": "The assistant ran into a problem. Please try again later.",
+    "error_rate_limited": "You're sending messages too quickly. Please wait a moment and try again.",
+    "tool_search": "Searching products...",
+    "tool_product": "Checking product details...",
+    "tool_recommend": "Finding recommendations...",
+    "tool_cart": "Updating your cart...",
+    "tool_orders": "Checking your orders...",
+    "disclaimer": "The AI assistant can make mistakes. Check prices and stock on the product page."
   }
 }

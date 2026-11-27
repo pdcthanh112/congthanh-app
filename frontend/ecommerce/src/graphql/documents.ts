@@ -40,6 +40,37 @@ export const ProductQuery = doc<{ product: T.Product | null }, { id?: T.ID; slug
   }`
 );
 
+/** Trang chi tiết: thêm thông số, trục option và biến thể (kèm giá, tồn kho từng biến thể). */
+export const ProductDetailQuery = doc<{ product: T.ProductDetail | null }, { slug: string }>(
+  `query ProductDetail($slug: String!) {
+    product(slug: $slug) {
+      ${PRODUCT_CARD} sku description images brandName sellerId active parentId hasVariant
+      stock { available status } categories { id name slug } tags { id name }
+      ratingSummary { average count stars }
+      attributes { group name value }
+      specifications { name items { name value } }
+      options { id name values }
+      variants {
+        id name slug sku thumbnail images price { ${MONEY} }
+        options { optionId name value } stock { available status }
+      }
+    }
+  }`
+);
+
+export const ProductRecommendationsQuery = doc<
+  { product: { recommendations: T.Recommendation[] } | null },
+  { productId: T.ID; kind: T.RecommendationKind; limit: number }
+>(
+  `query ProductRecommendations($productId: ID!, $kind: RecommendationKind!, $limit: Int!) {
+    product(id: $productId) { recommendations(kind: $kind, limit: $limit) { score reason product { ${PRODUCT_CARD} } } }
+  }`
+);
+
+export const TrackProductViewMutation = doc<{ trackProductView: boolean }, { productId: T.ID }>(
+  `mutation TrackProductView($productId: ID!) { trackProductView(productId: $productId) }`
+);
+
 export const SearchProductsQuery = doc<{ searchProducts: T.ProductCard[] }, { keyword: string }>(
   `query SearchProducts($keyword: String!) { searchProducts(keyword: $keyword) { ${PRODUCT_CARD} } }`
 );

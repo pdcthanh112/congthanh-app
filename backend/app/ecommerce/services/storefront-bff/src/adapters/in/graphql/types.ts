@@ -1,14 +1,4 @@
-import {
-  Directive,
-  Field,
-  Float,
-  GraphQLISODateTime,
-  ID,
-  InputType,
-  Int,
-  ObjectType,
-  registerEnumType,
-} from '@nestjs/graphql';
+import { Directive, Field, Float, GraphQLISODateTime, ID, InputType, Int, ObjectType, registerEnumType } from '@nestjs/graphql';
 
 /** Tiền: amount là số thập phân theo đơn vị tiền (USD 2 chữ số lẻ, JPY không có); formatted để hiển thị ngay. */
 @ObjectType('Money')
@@ -49,6 +39,57 @@ export interface ProductSource {
   id: string;
 }
 
+@ObjectType('ProductAttribute', { description: 'Thông số kỹ thuật hiển thị ở trang chi tiết' })
+export class ProductAttributeModel {
+  @Field(() => String, { nullable: true, description: 'Nhóm hiển thị, ví dụ "Màn hình"; null = không nhóm' })
+  group!: string | null;
+  @Field() name!: string;
+  @Field({ description: 'Giá trị đã ghép đơn vị nếu có ("1.2 kg"); nhiều giá trị nối bằng ", "' }) value!: string;
+}
+
+@ObjectType('ProductSpecificationItem')
+export class ProductSpecificationItemModel {
+  @Field() name!: string;
+  @Field() value!: string;
+}
+
+@ObjectType('ProductSpecificationGroup', {
+  description: 'Nhóm thông số tự do chỉ để hiển thị (ADR 0033); không dùng để lọc',
+})
+export class ProductSpecificationGroupModel {
+  @Field(() => String, { nullable: true, description: 'null = nhóm không tiêu đề' }) name!: string | null;
+  @Field(() => [ProductSpecificationItemModel]) items!: ProductSpecificationItemModel[];
+}
+
+@ObjectType('ProductOption', { description: 'Một trục biến thể (màu, size) và các giá trị đang có biến thể bán' })
+export class ProductOptionModel {
+  @Field(() => ID) id!: string;
+  @Field() name!: string;
+  @Field(() => [String], { description: 'Theo thứ tự hiển thị' }) values!: string[];
+}
+
+@ObjectType('VariantOptionValue')
+export class VariantOptionValueModel {
+  @Field(() => ID, { description: 'id của ProductOption' }) optionId!: string;
+  @Field() name!: string;
+  @Field() value!: string;
+}
+
+@ObjectType('ProductVariant', { description: 'Biến thể đang bán; thêm vào giỏ bằng id của biến thể' })
+export class ProductVariantModel {
+  @Field(() => ID) id!: string;
+  @Field() name!: string;
+  @Field(() => String, { nullable: true }) slug!: string | null;
+  @Field(() => String, { nullable: true }) sku!: string | null;
+  @Field(() => MoneyModel, { nullable: true, description: 'null khi biến thể chưa có giá kèm đơn vị tiền' })
+  price!: MoneyModel | null;
+  @Field(() => String, { nullable: true }) thumbnail!: string | null;
+  @Field(() => [String]) images!: string[];
+  @Field(() => [VariantOptionValueModel]) options!: VariantOptionValueModel[];
+  @Field(() => StockModel, { nullable: true, description: 'null khi inventory-service tạm không trả lời' })
+  stock!: StockModel | null;
+}
+
 @ObjectType('Product', { description: 'Sản phẩm (dữ liệu gốc ở product-service)' })
 @Directive('@key(fields: "id")')
 export class ProductModel {
@@ -68,6 +109,16 @@ export class ProductModel {
   @Field(() => [CategoryRef]) categories!: CategoryRef[];
   @Field(() => StockModel, { nullable: true, description: 'null khi inventory-service tạm không trả lời' })
   stock!: StockModel | null;
+  @Field(() => ID, { nullable: true, description: 'Có giá trị khi sản phẩm là một biến thể: id sản phẩm cha' })
+  parentId!: string | null;
+  @Field() hasVariant!: boolean;
+  @Field(() => [ProductAttributeModel]) attributes!: ProductAttributeModel[];
+  @Field(() => [ProductSpecificationGroupModel], { description: 'Thông số tự do, hiển thị sau attributes' })
+  specifications!: ProductSpecificationGroupModel[];
+  @Field(() => [ProductOptionModel], { description: 'Rỗng khi sản phẩm không có biến thể' })
+  options!: ProductOptionModel[];
+  @Field(() => [ProductVariantModel], { description: 'Rỗng khi sản phẩm không có biến thể' })
+  variants!: ProductVariantModel[];
 }
 
 @ObjectType('ProductPage')
@@ -141,8 +192,7 @@ export class CheckoutInput {
   @Field({ nullable: true }) promotionCode?: string;
   @Field({
     nullable: true,
-    description:
-      'ConfirmationToken (ctoken_...) từ Stripe Payment Element cho CARD/APPLE_PAY/GOOGLE_PAY/AFFIRM/KLARNA/AFTERPAY; bỏ trống với PayPal',
+    description: 'ConfirmationToken (ctoken_...) từ Stripe Payment Element cho CARD/APPLE_PAY/GOOGLE_PAY/AFFIRM/KLARNA/AFTERPAY; bỏ trống với PayPal',
   })
   paymentToken?: string;
   @Field({

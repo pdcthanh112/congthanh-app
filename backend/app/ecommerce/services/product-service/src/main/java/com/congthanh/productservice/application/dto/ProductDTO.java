@@ -1,5 +1,6 @@
 package com.congthanh.productservice.application.dto;
 
+import com.congthanh.productservice.domain.model.Specifications;
 import com.congthanh.productservice.domain.model.enums.ProductStatus;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -51,6 +52,9 @@ public class ProductDTO implements Serializable {
     private List<ProductImageDTO> image;
 
     private List<ProductAttributeValueDTO> attribute;
+
+    /** Thông số tự do chỉ để hiển thị (ADR 0033); chỉ có ở API chi tiết, danh sách để null. */
+    private List<Specifications.Group> specifications;
 
     private String supplier;
 

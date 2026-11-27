@@ -1,5 +1,6 @@
 package com.congthanh.productservice.application.dto.request;
 
+import com.congthanh.commonservice.exception.BadRequestException;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
@@ -40,6 +41,23 @@ public record CreateProductRequest(@NotBlank @Size(max = 255) String name,
     public record ImageRequest(@NotNull Long mediaId, @NotBlank @Size(max = 1024) String url, int displayOrder) {
     }
 
-    public record AttributeRequest(@NotNull Long attributeId, @NotBlank String value) {
+    /** Giá trị thông số: {@code value} cho thuộc tính một giá trị, {@code values} cho MULTI_SELECT (ADR 0033). */
+    public record AttributeRequest(@NotNull Long attributeId, String value, @Size(max = 50) List<String> values) {
+
+        /** Danh sách giá trị đã gộp; thiếu cả hai hoặc gửi cả hai thì 400. */
+        public List<String> rawValues() {
+            boolean hasValue = value != null && !value.isBlank();
+            boolean hasValues = values != null && !values.isEmpty();
+            if (hasValue && hasValues) {
+                throw new BadRequestException("attribute " + attributeId + ": send either value or values, not both");
+            }
+            if (hasValue) {
+                return List.of(value);
+            }
+            if (hasValues) {
+                return List.copyOf(values);
+            }
+            throw new BadRequestException("attribute " + attributeId + ": value is required");
+        }
     }
 }

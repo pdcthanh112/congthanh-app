@@ -94,14 +94,74 @@ describe('storefront-bff GraphQL', () => {
     expect((await gql(`{ product { id } }`)).errors?.[0]?.extensions?.code).toBe('BAD_USER_INPUT');
   });
 
+  it('sản phẩm ngừng bán không hiện ở storefront, theo id hay slug', async () => {
+    expect((await gql(`{ product(id: "p-off") { id } }`)).data?.product).toBeNull();
+    expect((await gql(`{ product(slug: "slug-p-off") { id } }`)).data?.product).toBeNull();
+  });
+
+  it('trang chi tiết: thông số, trục option, biến thể kèm giá và tồn kho', async () => {
+    const res = await gql(`{
+      product(slug: "slug-p-var") {
+        hasVariant parentId attributes { group name value } specifications { name items { name value } }
+        options { id name values }
+        variants { id sku price { amount currency } thumbnail options { optionId name value } stock { status available } }
+      }
+    }`);
+    expect(res.errors).toBeUndefined();
+    expect(res.data?.product).toEqual({
+      hasVariant: true,
+      parentId: null,
+      attributes: [
+        { group: 'Chất liệu & kiểu dáng', name: 'Chất liệu', value: 'Cotton' },
+        { group: 'Chất liệu & kiểu dáng', name: 'Phong cách', value: 'Thể thao, Hàn Quốc' },
+        { group: null, name: 'Khối lượng', value: '0.3 kg' },
+      ],
+      specifications: [{ name: 'Bảo quản', items: [{ name: 'Giặt', value: 'Nước lạnh' }] }],
+      options: [
+        { id: '1', name: 'Màu', values: ['Đỏ', 'Xanh'] },
+        { id: '2', name: 'Size', values: ['M', 'L'] },
+      ],
+      variants: [
+        {
+          id: 'p-var-red-m',
+          sku: 'POLO-RED-M',
+          price: { amount: 22, currency: 'USD' },
+          thumbnail: '/p-var/red.jpg',
+          options: [
+            { optionId: '1', name: 'Màu', value: 'Đỏ' },
+            { optionId: '2', name: 'Size', value: 'M' },
+          ],
+          stock: { status: 'IN_STOCK', available: 4 },
+        },
+        {
+          id: 'p-var-blue-l',
+          sku: 'POLO-BLUE-L',
+          price: null,
+          thumbnail: null,
+          options: [
+            { optionId: '1', name: 'Màu', value: 'Xanh' },
+            { optionId: '2', name: 'Size', value: 'L' },
+          ],
+          stock: { status: 'OUT_OF_STOCK', available: 0 },
+        },
+      ],
+    });
+  });
+
+  it('sản phẩm không có biến thể trả options và variants rỗng', async () => {
+    const res = await gql(`{ product(id: "p1") { hasVariant options { id } variants { id } } }`);
+    expect(res.data?.product).toEqual({ hasVariant: false, options: [], variants: [] });
+  });
+
+  it('biến thể trả parentId để trang chuyển về sản phẩm cha', async () => {
+    expect((await gql(`{ product(id: "p-var-red-m") { parentId } }`)).data?.product).toEqual({ parentId: 'p-var' });
+  });
+
   it('tìm kiếm qua search-service: từ khoá và searchCatalog trả sản phẩm kèm facet', async () => {
-    expect((await gql(`{ searchProducts(keyword: "jeans") { id name } }`)).data?.searchProducts).toEqual([
-      { id: 'p2', name: 'Slim Jeans' },
-    ]);
-    const r = await gql(
-      `query($i: ProductSearchInput!) { searchCatalog(input: $i) { total page items { id name } options { key } } }`,
-      { i: { text: 'shirt', options: [{ key: 'Color', values: ['Black'] }], limit: 5 } },
-    );
+    expect((await gql(`{ searchProducts(keyword: "jeans") { id name } }`)).data?.searchProducts).toEqual([{ id: 'p2', name: 'Slim Jeans' }]);
+    const r = await gql(`query($i: ProductSearchInput!) { searchCatalog(input: $i) { total page items { id name } options { key } } }`, {
+      i: { text: 'shirt', options: [{ key: 'Color', values: ['Black'] }], limit: 5 },
+    });
     expect(r.data?.searchCatalog).toEqual({
       total: 1,
       page: 1,
@@ -111,15 +171,12 @@ describe('storefront-bff GraphQL', () => {
   });
 
   it('router Federation lấy Product qua _entities', async () => {
-    const r = await gql(
-      `query($r: [_Any!]!) { _entities(representations: $r) { ... on Product { id name price { amount } } } }`,
-      {
-        r: [
-          { __typename: 'Product', id: 'p2' },
-          { __typename: 'Product', id: 'p1' },
-        ],
-      },
-    );
+    const r = await gql(`query($r: [_Any!]!) { _entities(representations: $r) { ... on Product { id name price { amount } } } }`, {
+      r: [
+        { __typename: 'Product', id: 'p2' },
+        { __typename: 'Product', id: 'p1' },
+      ],
+    });
     expect(r.data?._entities).toEqual([
       { id: 'p2', name: 'Slim Jeans', price: { amount: 45 } },
       { id: 'p1', name: 'Cotton T-Shirt', price: { amount: 15 } },
@@ -164,9 +221,7 @@ describe('storefront-bff GraphQL', () => {
          trendingProducts(limit: 3) { product { id } } }`,
     );
     expect(reco.errors).toBeUndefined();
-    expect(reco.data?.product.recommendations).toEqual([
-      { reason: 'SIMILAR', product: { id: 'p2', name: 'Slim Jeans' } },
-    ]);
+    expect(reco.data?.product.recommendations).toEqual([{ reason: 'SIMILAR', product: { id: 'p2', name: 'Slim Jeans' } }]);
     expect(reco.data?.trendingProducts).toEqual([{ product: { id: 'p2' } }]);
 
     const order = await gql(

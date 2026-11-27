@@ -43,7 +43,7 @@ class ProductTest {
     @Test
     void activationNeedsPriceOrSellableVariant() {
         Product noPrice = Product.create(new Product.Draft("p2", "Free", "free", null, null, null, null, null, null, false,
-                List.of("c1"), List.of(), null));
+                List.of("c1"), List.of(), null, null));
         assertThatThrownBy(() -> noPrice.activate(false)).isInstanceOf(BadRequestException.class);
 
         Product p = shirt();
@@ -94,10 +94,10 @@ class ProductTest {
         assertThatThrownBy(() -> p.setThumbnail(42L)).isInstanceOf(BadRequestException.class);
 
         ProductAttribute pages = ProductAttribute.define(9L, new ProductAttribute.Spec("pages", "Pages", AttributeDataType.NUMBER,
-                null, true, false, 0));
-        p.addAttribute(pages.valueOf("225"));
-        assertThatThrownBy(() -> p.addAttribute(pages.valueOf("1"))).isInstanceOf(ConflictException.class);
-        assertThatThrownBy(() -> pages.valueOf("many")).isInstanceOf(BadRequestException.class).hasMessageContaining("Pages");
+                null, true, false, 0, null, null));
+        p.addAttribute(pages.valuesOf(List.of("225")));
+        assertThatThrownBy(() -> p.addAttribute(pages.valuesOf(List.of("1")))).isInstanceOf(ConflictException.class);
+        assertThatThrownBy(() -> pages.valuesOf(List.of("many"))).isInstanceOf(BadRequestException.class).hasMessageContaining("Pages");
         assertThat(p.attributes()).singleElement().satisfies(a -> assertThat(a.number()).isEqualByComparingTo("225"));
     }
 
@@ -120,21 +120,129 @@ class ProductTest {
 
     @Test
     void attributeTypeCannotChangeOnceUsed() {
-        ProductAttribute a = ProductAttribute.define(1L, new ProductAttribute.Spec(null, "Note", null, null, false, false, 0));
-        assertThatThrownBy(() -> a.redefine(new ProductAttribute.Spec(null, "Note", AttributeDataType.NUMBER, null, false, false, 0), true))
+        ProductAttribute a = ProductAttribute.define(1L, new ProductAttribute.Spec(null, "Note", null, null, false, false, 0, null, null));
+        assertThatThrownBy(() -> a.redefine(new ProductAttribute.Spec(null, "Note", AttributeDataType.NUMBER, null, false, false, 0, null,
+                null), true))
                 .isInstanceOf(ConflictException.class);
-        assertThatThrownBy(() -> ProductAttribute.define(2L, new ProductAttribute.Spec(null, "Ram", null, null, true, false, 0)))
+        assertThatThrownBy(() -> ProductAttribute.define(2L, new ProductAttribute.Spec(null, "Ram", null, null, true, false, 0, null, null)))
                 .isInstanceOf(BadRequestException.class).hasMessageContaining("code");
+    }
+
+    @Test
+    void multiSelectAttributeKeepsSeveralDistinctValuesAndChangesReplaceThemAll() {
+        Product p = shirt();
+        ProductAttribute style = ProductAttribute.define(3L, new ProductAttribute.Spec("style", "Phong cách",
+                AttributeDataType.MULTI_SELECT, null, true, false, 0, null, null));
+
+        p.addAttribute(style.valuesOf(List.of("Thể thao", "Hàn Quốc", "thể thao")));
+        assertThat(p.attributes()).extracting(AttributeValue::value).containsExactly("Thể thao", "Hàn Quốc");
+
+        p.changeAttribute(style.valuesOf(List.of("Cơ bản")));
+        assertThat(p.attributes()).extracting(AttributeValue::value).containsExactly("Cơ bản");
+    }
+
+    @Test
+    void singleValueAttributeRejectsSeveralValues() {
+        ProductAttribute material = ProductAttribute.define(4L, new ProductAttribute.Spec(null, "Chất liệu", AttributeDataType.TEXT,
+                null, false, false, 0, null, null));
+
+        assertThatThrownBy(() -> material.valuesOf(List.of("Cotton", "Linen")))
+                .isInstanceOf(BadRequestException.class).hasMessageContaining("single value");
+    }
+
+    @Test
+    void allowedValuesAreEnforcedAndRewrittenToTheirSpelling() {
+        ProductAttribute collar = ProductAttribute.define(5L, new ProductAttribute.Spec(null, "Cổ áo", AttributeDataType.TEXT,
+                null, false, false, 0, null, List.of("Cổ tròn", "Cổ tim")));
+
+        assertThat(collar.valuesOf(List.of("cổ TRÒN"))).extracting(AttributeValue::value).containsExactly("Cổ tròn");
+        assertThatThrownBy(() -> collar.valuesOf(List.of("Cổ bẻ")))
+                .isInstanceOf(BadRequestException.class).hasMessageContaining("not an allowed value");
+    }
+
+    @Test
+    void allowedValuesOnlyForTextAttributesAndMustBeDistinct() {
+        assertThatThrownBy(() -> ProductAttribute.define(6L, new ProductAttribute.Spec(null, "Ram", AttributeDataType.NUMBER, "GB",
+                false, false, 0, null, List.of("8", "16"))))
+                .isInstanceOf(BadRequestException.class).hasMessageContaining("TEXT and MULTI_SELECT");
+        assertThatThrownBy(() -> ProductAttribute.define(7L, new ProductAttribute.Spec(null, "Màu", AttributeDataType.TEXT, null,
+                false, false, 0, null, List.of("Đỏ", "đỏ"))))
+                .isInstanceOf(BadRequestException.class).hasMessageContaining("duplicate");
+    }
+
+    @Test
+    void categoryTemplateRejectsDuplicateAttributes() {
+        var items = List.of(new CategoryAttributeTemplate.Item(1L, true, 0), new CategoryAttributeTemplate.Item(1L, false, 1));
+
+        assertThatThrownBy(() -> new CategoryAttributeTemplate("cat-1", items))
+                .isInstanceOf(BadRequestException.class).hasMessageContaining("twice");
+    }
+
+    @Test
+    void specificationsAreNormalisedAndEmptyGroupsDropped() {
+        Specifications specs = Specifications.of(List.of(
+                new Specifications.Group(" Màn hình ", List.of(new Specifications.Item(" Kích thước ", " 6.7 inch "))),
+                new Specifications.Group("Trống", List.of()),
+                new Specifications.Group(null, List.of(new Specifications.Item("Bảo hành", "12 tháng")))));
+
+        assertThat(specs.groups()).containsExactly(
+                new Specifications.Group("Màn hình", List.of(new Specifications.Item("Kích thước", "6.7 inch"))),
+                new Specifications.Group(null, List.of(new Specifications.Item("Bảo hành", "12 tháng"))));
+    }
+
+    @Test
+    void specificationsRejectBlankValuesAndDuplicateRows() {
+        assertThatThrownBy(() -> Specifications.of(List.of(new Specifications.Group("Pin",
+                List.of(new Specifications.Item("Dung lượng", " "))))))
+                .isInstanceOf(BadRequestException.class).hasMessageContaining("group 1 row 1 value");
+        assertThatThrownBy(() -> Specifications.of(List.of(new Specifications.Group("Pin", List.of(
+                new Specifications.Item("Dung lượng", "5000 mAh"), new Specifications.Item("dung lượng", "4000 mAh"))))))
+                .isInstanceOf(BadRequestException.class).hasMessageContaining("duplicate");
+    }
+
+    @Test
+    void onlyParentProductsCarrySpecifications() {
+        Product parent = shirt();
+        OptionValue black = parent.declareOptionValue(5L, "Black", ids::incrementAndGet);
+        Product variant = parent.createVariant(variant("v1", "SKU-1"), List.of(black), Set.of());
+        Specifications specs = Specifications.of(List.of(new Specifications.Group(null,
+                List.of(new Specifications.Item("Xuất xứ", "Việt Nam")))));
+
+        parent.changeSpecifications(specs);
+
+        assertThat(parent.specifications()).isEqualTo(specs);
+        assertThatThrownBy(() -> variant.changeSpecifications(specs)).isInstanceOf(BadRequestException.class);
+    }
+
+    @Test
+    void attributeGroupNeedsAName() {
+        assertThatThrownBy(() -> AttributeGroup.define(1L, "  ", 0)).isInstanceOf(BadRequestException.class);
+        assertThat(AttributeGroup.define(1L, " Màn hình ", 2).name()).isEqualTo("Màn hình");
+    }
+
+    @Test
+    void sellerOwnsProductAndItsVariantsWhilePlatformProductsBelongToNoSeller() {
+        Product parent = shirt();
+        OptionValue black = parent.declareOptionValue(5L, "Black", ids::incrementAndGet);
+
+        Product v = parent.createVariant(variant("v1", "SKU-1"), List.of(black), Set.of());
+
+        assertThat(parent.isOwnedBy("seller-1")).isTrue();
+        assertThat(parent.isOwnedBy("seller-2")).isFalse();
+        assertThat(v.isOwnedBy("seller-1")).isTrue();
+        Product platform = Product.create(draft("platform", List.of("c1")));
+        assertThat(platform.ownerId()).isNull();
+        assertThat(platform.isOwnedBy(null)).isFalse();
     }
 
     private Product shirt() {
         return Product.create(new Product.Draft("p1", "Shirt", "shirt", "SKU-P1", null, new Money(new BigDecimal("10"), "USD"),
                 null, null, null, false, List.of("c1", "c2", "c1"),
-                List.of(new ProductImage(1L, "a.jpg", 1), new ProductImage(2L, "b.jpg", 2)), null));
+                List.of(new ProductImage(1L, "a.jpg", 1), new ProductImage(2L, "b.jpg", 2)), null, "seller-1"));
     }
 
     private static Product.Draft draft(String slug, List<String> categories) {
-        return new Product.Draft("p9", "X", slug, null, null, null, null, null, null, false, categories, List.of(), null);
+        return new Product.Draft("p9", "X", slug, null, null, null, null, null, null, false, categories, List.of(), null, null);
     }
 
     private static Product.VariantDraft variant(String id, String sku) {

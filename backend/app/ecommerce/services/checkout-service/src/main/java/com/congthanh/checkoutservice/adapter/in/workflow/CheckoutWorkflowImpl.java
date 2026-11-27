@@ -34,14 +34,14 @@ import java.time.Duration;
  *
  * <pre>
  *  redeem voucher ─► giữ hàng ─► giữ điểm + store credit ─► authorize phần còn lại ─► [chờ khách trả tiền ở cổng]
- *  ─► capture ─► commit kho ─► trừ hẳn điểm + store credit ─► confirm
+ *  ─► capture ─► commit kho ─► confirm ─► trừ hẳn điểm + store credit
  *       │                │            │                 │                     │            │
  *       └──── lỗi ở bất kỳ bước nào tới commit kho: bù trừ ngược (refund ◄ release ◄ cancel voucher) rồi huỷ đơn
  * </pre>
  *
  * Capture đứng trước commit kho vì tiền hoàn lại được (refund), còn hàng đã commit thì không trả về kho được.
  * Commit kho là bước "pivot": retry lỗi tạm thời tới khi xong, chỉ bù trừ khi inventory từ chối hẳn (chắc chắn
- * chưa commit). Sau pivot chỉ còn confirm; nếu confirm bị từ chối hẳn thì hoàn tiền, huỷ đơn và ghi log lỗi để
+ * chưa commit). Sau pivot chỉ còn confirm; nếu confirm bị từ chối hẳn thì hoàn tiền, nhả điểm và store credit, huỷ đơn và ghi log lỗi để
  * vận hành xử lý phần hàng đã xuất, chứ không để workflow fail với tiền đã trừ.
  * Đổi logic workflow sau khi đã chạy production phải dùng {@code Workflow.getVersion} để không vỡ replay.
  */
@@ -51,6 +51,7 @@ public class CheckoutWorkflowImpl implements CheckoutWorkflow {
     private static final Duration DEFAULT_PAYMENT_TIMEOUT = Duration.ofMinutes(15);
     static final String CAPTURE_BEFORE_COMMIT = "capture-before-commit";
     static final String TENDERS = "store-credit-and-loyalty";
+    static final String TENDERS_AFTER_CONFIRM = "capture-tenders-after-confirm";
 
     private static final RetryOptions FORWARD_RETRY = RetryOptions.newBuilder()
             .setInitialInterval(Duration.ofSeconds(1))
@@ -210,12 +211,10 @@ public class CheckoutWorkflowImpl implements CheckoutWorkflow {
             return compensate(orderId, saga, e);
         }
 
-        // Sau pivot: trừ hẳn store credit và điểm đã giữ (phải xong, retry mãi).
-        if (in.usesStoreCredit() && heldStoreCredit) {
-            storedValueMustComplete.capture(orderId);
-        }
-        if (in.usesLoyaltyPoints() && reservedPoints) {
-            loyaltyMustComplete.commit(orderId);
+        boolean tendersAfterConfirm = Workflow.getVersion(TENDERS_AFTER_CONFIRM, Workflow.DEFAULT_VERSION, 1)
+                != Workflow.DEFAULT_VERSION;
+        if (!tendersAfterConfirm) {
+            captureTenders(in);
         }
 
         try {
@@ -226,9 +225,15 @@ public class CheckoutWorkflowImpl implements CheckoutWorkflow {
                     + " committed stock needs manual review", orderId, failureReason);
             step = Step.COMPENSATING;
             paymentsMustComplete.refund(new RefundPaymentRequest(orderId, "order confirmation failed"));
+            if (tendersAfterConfirm) {
+                releaseTenders(in);
+            }
             mustComplete.cancelOrder(orderId, failureReason);
             step = Step.CANCELLED;
             return new CheckoutResult(orderId, false, null, failureReason);
+        }
+        if (tendersAfterConfirm) {
+            captureTenders(in);
         }
         step = Step.COMPLETED;
         return new CheckoutResult(orderId, true, paymentId, null);
@@ -237,11 +242,6 @@ public class CheckoutWorkflowImpl implements CheckoutWorkflow {
     private boolean heldStoreCredit;
     private boolean reservedPoints;
 
-    /**
-     * Giữ điểm thưởng và store credit (hold id / redemption id = order id, idempotent), đăng ký bù trừ trước khi gọi.
-     *
-     * @return số tiền còn phải charge cổng thanh toán
-     */
     private BigDecimal reserveTenders(CheckoutInput in, Saga saga) {
         BigDecimal payable = in.amount();
         step = Step.RESERVING_TENDERS;
@@ -265,7 +265,26 @@ public class CheckoutWorkflowImpl implements CheckoutWorkflow {
         return payable;
     }
 
-    /** Thứ tự cũ (commit kho rồi mới capture), chỉ để replay workflow bắt đầu trước khi đổi. */
+    /** Trừ hẳn store credit và điểm đã giữ (phải xong, retry mãi; idempotent theo order id). */
+    private void captureTenders(CheckoutInput in) {
+        if (in.usesStoreCredit() && heldStoreCredit) {
+            storedValueMustComplete.capture(in.orderId());
+        }
+        if (in.usesLoyaltyPoints() && reservedPoints) {
+            loyaltyMustComplete.commit(in.orderId());
+        }
+    }
+
+    /** Nhả store credit và điểm đang giữ khi đơn bị huỷ sau pivot (phải xong, retry mãi; idempotent theo order id). */
+    private void releaseTenders(CheckoutInput in) {
+        if (in.usesStoreCredit() && heldStoreCredit) {
+            storedValueMustComplete.release(in.orderId(), "order confirmation failed");
+        }
+        if (in.usesLoyaltyPoints() && reservedPoints) {
+            loyaltyMustComplete.release(in.orderId());
+        }
+    }
+
     private CheckoutResult legacyCommitThenCapture(String orderId, String paymentId, Saga saga) {
         try {
             step = Step.COMMITTING_INVENTORY;
@@ -300,7 +319,6 @@ public class CheckoutWorkflowImpl implements CheckoutWorkflow {
 
     @Override
     public void cancel(String reason) {
-        // Chỉ có tác dụng trước capture; sau đó đơn đi tới cùng.
         if (cancelRequest == null) {
             cancelRequest = reason == null || reason.isBlank() ? "cancelled by customer" : reason;
         }

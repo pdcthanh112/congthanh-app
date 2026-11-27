@@ -41,8 +41,10 @@ public final class Product {
     private String sku;
     private String gtin;
     private String description;
+    private Specifications specifications = Specifications.EMPTY;
     private Money price;
     private String supplier;
+    private String ownerId;
     private Long brandId;
     private boolean featured;
     private ProductStatus status;
@@ -52,7 +54,8 @@ public final class Product {
     private final Long version;
     private final List<ProductImage> images = new ArrayList<>();
     private final List<CategoryAssignment> categories = new ArrayList<>();
-    private final Map<Long, AttributeValue> attributes = new LinkedHashMap<>();
+    /** Giá trị thông số theo id thuộc tính; thuộc tính MULTI_SELECT có thể có nhiều giá trị (ADR 0033). */
+    private final Map<Long, List<AttributeValue>> attributes = new LinkedHashMap<>();
     private final List<OptionValue> optionValues = new ArrayList<>();
     private final List<OptionSelection> selections = new ArrayList<>();
 
@@ -65,10 +68,13 @@ public final class Product {
         this.version = version;
     }
 
-    /** Thông tin tạo sản phẩm gốc. Ảnh là ảnh đã có trên media-service. */
+    /**
+     * Thông tin tạo sản phẩm gốc. Ảnh là ảnh đã có trên media-service. {@code ownerId}: subject của SELLER tạo sản
+     * phẩm, {@code null} là sản phẩm của sàn (chỉ ADMIN sửa).
+     */
     public record Draft(String id, String name, String slug, String sku, String gtin, Money price, String description,
                         String supplier, Long brandId, boolean featured, List<String> categoryIds,
-                        List<ProductImage> images, Long thumbnailId) {
+                        List<ProductImage> images, Long thumbnailId, String ownerId) {
     }
 
     /** Thông tin tạo variant; {@code name} trống thì ghép tên sản phẩm gốc với các giá trị đã chọn. */
@@ -86,6 +92,7 @@ public final class Product {
         p.price = d.price();
         p.description = d.description();
         p.supplier = blankToNull(d.supplier());
+        p.ownerId = blankToNull(d.ownerId());
         p.brandId = d.brandId();
         p.featured = d.featured();
         p.replaceCategoriesInternal(d.categoryIds());
@@ -131,6 +138,7 @@ public final class Product {
             }
         }
         Product v = new Product(d.id(), id, variantKey(chosen), null);
+        v.ownerId = ownerId;
         String defaultName = name + " " + chosen.stream().map(OptionValue::value).collect(Collectors.joining(" "));
         v.name = d.name() == null || d.name().isBlank() ? requireName(defaultName) : requireName(d.name());
         v.sku = normalizeSku(d.sku());
@@ -237,6 +245,16 @@ public final class Product {
         changed();
     }
 
+    /** Thay toàn bộ thông số tự do (ADR 0033); chỉ sản phẩm gốc có, biến thể dùng chung của cha. */
+    public void changeSpecifications(Specifications newSpecifications) {
+        requireLive();
+        if (parentId != null && newSpecifications != null && !newSpecifications.isEmpty()) {
+            throw new BadRequestException("specifications belong to the parent product, not to a variant");
+        }
+        specifications = newSpecifications == null ? Specifications.EMPTY : newSpecifications;
+        changed();
+    }
+
     public void changeSupplier(String newSupplier) {
         requireLive();
         supplier = blankToNull(newSupplier);
@@ -322,22 +340,28 @@ public final class Product {
 
     // ------------------------------------------------------------------ thuộc tính
 
-    /** Thêm giá trị; thuộc tính đã có giá trị thì 409 (dùng {@link #changeAttribute}). */
-    public void addAttribute(AttributeValue value) {
+    /**
+     * Gán giá trị cho một thuộc tính chưa có trên sản phẩm; đã có thì 409 (dùng {@link #changeAttribute}).
+     * {@code values} là kết quả {@link ProductAttribute#valuesOf}: cùng một thuộc tính, đã chuẩn hoá và bỏ trùng.
+     */
+    public void addAttribute(List<AttributeValue> values) {
         requireLive();
-        if (attributes.containsKey(value.attributeId())) {
-            throw new ConflictException("product already has a value for attribute " + value.attributeId());
+        long attributeId = requireSameAttribute(values);
+        if (attributes.containsKey(attributeId)) {
+            throw new ConflictException("product already has a value for attribute " + attributeId);
         }
-        attributes.put(value.attributeId(), value);
+        attributes.put(attributeId, List.copyOf(values));
         changed();
     }
 
-    public void changeAttribute(AttributeValue value) {
+    /** Thay toàn bộ giá trị của một thuộc tính đã có trên sản phẩm; chưa có thì 404. */
+    public void changeAttribute(List<AttributeValue> values) {
         requireLive();
-        if (!attributes.containsKey(value.attributeId())) {
+        long attributeId = requireSameAttribute(values);
+        if (!attributes.containsKey(attributeId)) {
             throw new NotFoundException("attribute value not found");
         }
-        attributes.put(value.attributeId(), value);
+        attributes.put(attributeId, List.copyOf(values));
         changed();
     }
 
@@ -347,6 +371,17 @@ public final class Product {
             throw new NotFoundException("attribute value not found");
         }
         changed();
+    }
+
+    private static long requireSameAttribute(List<AttributeValue> values) {
+        if (values == null || values.isEmpty()) {
+            throw new BadRequestException("at least one attribute value is required");
+        }
+        long attributeId = values.getFirst().attributeId();
+        if (values.stream().anyMatch(v -> v.attributeId() != attributeId)) {
+            throw new IllegalStateException("values must belong to one attribute");
+        }
+        return attributeId;
     }
 
     // ------------------------------------------------------------------ vòng đời
@@ -476,7 +511,8 @@ public final class Product {
                         String description, Money price, String supplier, Long brandId, boolean featured,
                         ProductStatus status, Long thumbnailId, boolean hasVariant, String variantKey, Long version,
                         List<ProductImage> images, List<CategoryAssignment> categories, List<AttributeValue> attributes,
-                        List<OptionValue> optionValues, List<OptionSelection> selections) {
+                        List<OptionValue> optionValues, List<OptionSelection> selections, String ownerId,
+                        Specifications specifications) {
     }
 
     public static Product rehydrate(State s) {
@@ -486,8 +522,10 @@ public final class Product {
         p.sku = s.sku();
         p.gtin = s.gtin();
         p.description = s.description();
+        p.specifications = s.specifications() == null ? Specifications.EMPTY : s.specifications();
         p.price = s.price();
         p.supplier = s.supplier();
+        p.ownerId = s.ownerId();
         p.brandId = s.brandId();
         p.featured = s.featured();
         p.status = s.status();
@@ -495,7 +533,9 @@ public final class Product {
         p.hasVariant = s.hasVariant();
         p.images.addAll(s.images());
         p.categories.addAll(s.categories());
-        s.attributes().forEach(a -> p.attributes.put(a.attributeId(), a));
+        for (AttributeValue a : s.attributes()) {
+            p.attributes.computeIfAbsent(a.attributeId(), k -> new ArrayList<>()).add(a);
+        }
         p.optionValues.addAll(s.optionValues());
         p.selections.addAll(s.selections());
         return p;
@@ -509,8 +549,15 @@ public final class Product {
     public String sku() { return sku; }
     public String gtin() { return gtin; }
     public String description() { return description; }
+    public Specifications specifications() { return specifications; }
     public Money price() { return price; }
     public String supplier() { return supplier; }
+    public String ownerId() { return ownerId; }
+
+    /** Người bán {@code subject} có sở hữu sản phẩm không; sản phẩm của sàn ({@code ownerId == null}) không thuộc ai. */
+    public boolean isOwnedBy(String subject) {
+        return ownerId != null && ownerId.equals(subject);
+    }
     public Long brandId() { return brandId; }
     public boolean featured() { return featured; }
     public ProductStatus status() { return status; }
@@ -520,7 +567,8 @@ public final class Product {
     public Long version() { return version; }
     public List<ProductImage> images() { return List.copyOf(images); }
     public List<CategoryAssignment> categories() { return List.copyOf(categories); }
-    public List<AttributeValue> attributes() { return List.copyOf(attributes.values()); }
+    /** Mọi giá trị thông số, gom theo thuộc tính (thứ tự thêm vào). */
+    public List<AttributeValue> attributes() { return attributes.values().stream().flatMap(List::stream).toList(); }
     public List<OptionValue> optionValues() { return List.copyOf(optionValues); }
     public List<OptionSelection> selections() { return List.copyOf(selections); }
 }

@@ -9,7 +9,7 @@ env:
   LLM_PROVIDER: anthropic
   ANTHROPIC_MODEL: claude-opus-5-5
   ANTHROPIC_EFFORT: low
-  SEARCH_URL: http://search-service:5013
+  GRAPHQL_URL: http://graphql-router:4000/graphql
   REDIS_URL: redis://redis.data.svc.cluster.local:6379/6
   JWT_JWKS_URL: http://keycloak-service.identity.svc.cluster.local:8080/realms/ecommerce/protocol/openid-connect/certs
 secretEnv:

@@ -8,7 +8,7 @@ import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 
 /**
- * Dọn {@code outbox} và {@code processed_events} quá hạn.
+ * Dọn {@code outbox} và {@code processed_events} quá hạn, và bảo trì partition theo tháng của service (nếu có).
  *
  * <p>Debezium đọc event từ WAL (replication slot giữ WAL tới khi connector xác nhận), không đọc lại hàng trong
  * bảng, nên xoá hàng outbox đã ghi không làm mất event; chỉ giữ một lúc để tra cứu. {@code processed_events} phải
@@ -37,6 +37,19 @@ public class OutboxJanitor {
         OffsetDateTime now = OffsetDateTime.now(clock).withOffsetSameInstant(ZoneOffset.UTC);
         return new Purged(purge("outbox", "created_at", now.minus(outboxRetention)),
                 purge("processed_events", "processed_at", now.minus(processedRetention)));
+    }
+
+    /**
+     * Gọi {@code maintain_partitions()} mà migration của service tạo khi service có bảng partition theo tháng, để luôn
+     * có sẵn partition các tháng tới. Trả số partition vừa tạo; schema không có hàm này thì trả 0.
+     */
+    public int maintainPartitions() {
+        Boolean exists = jdbc.sql("SELECT to_regprocedure('maintain_partitions()') IS NOT NULL")
+                .query(Boolean.class).single();
+        if (!Boolean.TRUE.equals(exists)) {
+            return 0;
+        }
+        return jdbc.sql("SELECT maintain_partitions()").query(Integer.class).single();
     }
 
     private long purge(String table, String column, OffsetDateTime before) {

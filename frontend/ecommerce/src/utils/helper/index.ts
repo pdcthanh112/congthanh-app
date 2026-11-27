@@ -6,16 +6,8 @@ export const formatNumber = (value: number) => {
   }).format(value);
 };
 
-export const formatCurrency = (number: number, locale?: string, currency?: string) => {
-  const formatter = new Intl.NumberFormat(locale ?? 'en-US', {
-    style: 'currency',
-    currency: currency ?? 'USD',
-    maximumFractionDigits: 0,
-    minimumFractionDigits: 0,
-  });
-
-  return formatter.format(number);
-};
+export const formatMoney = (money: { amount: number; currency: string }, locale: string) =>
+  new Intl.NumberFormat(locale, { style: 'currency', currency: money.currency }).format(money.amount);
 
 export function getSupplierUrl(slug: string, path: string = '') {
   if (typeof window !== 'undefined') {

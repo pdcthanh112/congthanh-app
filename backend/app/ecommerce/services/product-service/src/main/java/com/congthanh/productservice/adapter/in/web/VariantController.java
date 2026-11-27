@@ -4,6 +4,7 @@ import com.congthanh.commonservice.model.response.Response;
 import com.congthanh.productservice.application.dto.request.CreateVariantRequest;
 import com.congthanh.productservice.application.dto.viewmodel.ProductVariantVm;
 import com.congthanh.productservice.application.dto.viewmodel.VariantOptionVm;
+import com.congthanh.productservice.application.port.in.ProductAccessUseCase;
 import com.congthanh.productservice.application.port.in.VariantOptionService;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
@@ -11,6 +12,7 @@ import jakarta.validation.constraints.NotBlank;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -24,6 +26,7 @@ import static com.congthanh.productservice.adapter.in.web.ProductAttributeContro
 class VariantController {
 
     private final VariantOptionService variants;
+    private final ProductAccessUseCase access;
 
     record CreateOptionRequest(@NotBlank String name) {
     }
@@ -40,7 +43,9 @@ class VariantController {
 
     @PostMapping("/products/{parentId}/variants")
     ResponseEntity<Response<ProductVariantVm>> createVariant(@PathVariable("parentId") String parentId,
-                                                             @RequestBody @Valid CreateVariantRequest request) {
+                                                             @RequestBody @Valid CreateVariantRequest request,
+                                                             Authentication auth) {
+        access.requireModifiable(parentId, Actors.of(auth));
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ok(variants.createVariant(parentId, request), "Created successfully"));
     }

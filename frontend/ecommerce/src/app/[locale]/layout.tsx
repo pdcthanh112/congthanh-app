@@ -7,11 +7,12 @@ import { NextIntlClientProvider } from 'next-intl';
 import { getMessages, getTranslations, setRequestLocale } from 'next-intl/server';
 import AppHeader from '@/components/app-component/AppHeader';
 import AppFooter from '@/components/app-component/AppFooter';
+import ChatWidget from '@/features/chat/ChatWidget';
 import AppNavbar from '@/components/app-component/AppNavbar';
 import AppContent from '@/components/app-component/AppContent';
 import Providers from '../providers';
 import { RootLayout } from '@/layout';
-import { isValidLocale, locales, type Locale } from '@/lib/locales';
+import { isValidLocale, localeDirection, locales, type Locale } from '@/lib/locales';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -60,7 +61,7 @@ export default async function Layout({ children, params }: { children: React.Rea
   const messages = await getMessages();
 
   return (
-    <html lang={locale} suppressHydrationWarning>
+    <html lang={locale} dir={localeDirection(locale)} suppressHydrationWarning>
       <body className={inter.className}>
         <NextIntlClientProvider locale={locale} messages={messages}>
           <Providers>
@@ -70,6 +71,7 @@ export default async function Layout({ children, params }: { children: React.Rea
               <RootLayout>{children}</RootLayout>
             </AppContent>
             <AppFooter />
+            <ChatWidget />
           </Providers>
         </NextIntlClientProvider>
       </body>

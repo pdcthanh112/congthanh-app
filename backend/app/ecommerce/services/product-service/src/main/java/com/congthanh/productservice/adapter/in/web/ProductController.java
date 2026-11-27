@@ -3,11 +3,13 @@ package com.congthanh.productservice.adapter.in.web;
 import com.congthanh.commonservice.model.response.Response;
 import com.congthanh.productservice.application.dto.ProductCategoryDTO;
 import com.congthanh.productservice.application.dto.ProductDTO;
+import com.congthanh.productservice.application.dto.request.ChangeSpecificationsRequest;
 import com.congthanh.productservice.application.dto.request.CreateProductRequest;
 import com.congthanh.productservice.application.dto.request.UpdateProductRequest;
 import com.congthanh.productservice.application.dto.response.ResponseWithPagination;
 import com.congthanh.productservice.application.dto.response.VariantValueResponse;
 import com.congthanh.productservice.application.dto.viewmodel.*;
+import com.congthanh.productservice.application.port.in.ProductAccessUseCase;
 import com.congthanh.productservice.application.port.in.ProductCategoryService;
 import com.congthanh.productservice.application.port.in.ProductService;
 import com.congthanh.productservice.application.port.in.VariantOptionService;
@@ -19,6 +21,7 @@ import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -34,6 +37,7 @@ public class ProductController {
     private final ProductService productService;
     private final VariantOptionService variantOptionService;
     private final ProductCategoryService productCategoryService;
+    private final ProductAccessUseCase access;
 
     record ChangeStatusRequest(@NotNull ProductStatus status) {
     }
@@ -71,36 +75,56 @@ public class ProductController {
     }
 
     @PostMapping("")
-    public ResponseEntity<Response<ProductDTO>> createProduct(@RequestBody @Valid CreateProductRequest request) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(ok(productService.createProduct(request), "Created successfully"));
+    public ResponseEntity<Response<ProductDTO>> createProduct(@RequestBody @Valid CreateProductRequest request, Authentication auth) {
+        String ownerId = Actors.of(auth).ownerOfNewProduct();
+        return ResponseEntity.status(HttpStatus.CREATED).body(ok(productService.createProduct(request, ownerId), "Created successfully"));
     }
 
     @PutMapping("")
-    public ResponseEntity<Response<ProductDTO>> updateProduct(@RequestBody @Valid UpdateProductRequest request) {
+    public ResponseEntity<Response<ProductDTO>> updateProduct(@RequestBody @Valid UpdateProductRequest request, Authentication auth) {
+        access.requireModifiable(request.id(), Actors.of(auth));
         return ResponseEntity.ok(ok(productService.updateProduct(request), "Updated successfully"));
+    }
+
+    @PutMapping("/{id}/specifications")
+    @Operation(summary = "Replace the free-form specifications of a product",
+            description = "Display-only specification groups (ADR 0033); filterable specs belong to attributes. Send the "
+                    + "product version you have: 409 if someone else changed the product.")
+    public ResponseEntity<Response<ProductDTO>> changeSpecifications(@PathVariable("id") String id,
+                                                                     @RequestBody @Valid ChangeSpecificationsRequest request,
+                                                                     Authentication auth) {
+        access.requireModifiable(id, Actors.of(auth));
+        return ResponseEntity.ok(ok(productService.changeSpecifications(id, request), "Updated successfully"));
     }
 
     @PatchMapping("/{id}/status")
     public ResponseEntity<Response<ProductDTO>> changeStatus(@PathVariable("id") String id,
-                                                             @RequestBody @Valid ChangeStatusRequest request) {
+                                                             @RequestBody @Valid ChangeStatusRequest request,
+                                                             Authentication auth) {
+        access.requireModifiable(id, Actors.of(auth));
         return ResponseEntity.ok(ok(productService.changeStatus(id, request.status()), "Updated successfully"));
     }
 
     @DeleteMapping("/delete/{id}")
-    public ResponseEntity<Void> deleteProduct(@PathVariable("id") String id) {
+    public ResponseEntity<Void> deleteProduct(@PathVariable("id") String id, Authentication auth) {
+        access.requireModifiable(id, Actors.of(auth));
         productService.deleteProduct(id);
         return ResponseEntity.noContent().build();
     }
 
     @PostMapping("/{id}/categories/{categoryId}")
     public ResponseEntity<Response<List<ProductCategoryDTO>>> addCategory(@PathVariable("id") String id,
-                                                                          @PathVariable("categoryId") String categoryId) {
+                                                                          @PathVariable("categoryId") String categoryId,
+                                                                          Authentication auth) {
+        access.requireModifiable(id, Actors.of(auth));
         return ResponseEntity.ok(ok(productCategoryService.addCategoryToProduct(id, categoryId), "Updated successfully"));
     }
 
     @DeleteMapping("/{id}/categories/{categoryId}")
     public ResponseEntity<Response<List<ProductCategoryDTO>>> removeCategory(@PathVariable("id") String id,
-                                                                             @PathVariable("categoryId") String categoryId) {
+                                                                             @PathVariable("categoryId") String categoryId,
+                                                                             Authentication auth) {
+        access.requireModifiable(id, Actors.of(auth));
         return ResponseEntity.ok(ok(productCategoryService.removeCategoryFromProduct(id, categoryId), "Updated successfully"));
     }
 
@@ -122,7 +146,6 @@ public class ProductController {
         return ResponseEntity.ok(ok(productService.getFeaturedProducts(page, limit), "Get successfully"));
     }
 
-    /** Tra cứu theo tên/SKU (back-office). Storefront tìm kiếm, lọc, facet qua search-service. */
     @GetMapping("/search")
     public ResponseEntity<Response<List<ProductDTO>>> searchProduct(@RequestParam String search) {
         return ResponseEntity.ok(ok(productService.searchProduct(search), "Get successfully"));
@@ -133,7 +156,6 @@ public class ProductController {
         return ResponseEntity.ok(productService.getProductVariationsByParentId(parentId));
     }
 
-    /** Các trục variant và giá trị đang bán (đọc từ read model). */
     @GetMapping("/{id}/variants/attributes/detail")
     public ResponseEntity<Response<List<VariantValueResponse>>> getVariantAttributeValueDetail(@PathVariable("id") String productId) {
         return ResponseEntity.ok(ok(productService.getVariantOptionGroups(productId), "Get successfully"));

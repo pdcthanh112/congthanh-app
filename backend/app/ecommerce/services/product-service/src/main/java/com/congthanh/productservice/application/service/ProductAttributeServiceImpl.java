@@ -1,11 +1,13 @@
 package com.congthanh.productservice.application.service;
 
+import com.congthanh.commonservice.exception.BadRequestException;
 import com.congthanh.commonservice.exception.ConflictException;
 import com.congthanh.commonservice.exception.NotFoundException;
 import com.congthanh.commonservice.id.Snowflake;
 import com.congthanh.productservice.application.dto.ProductAttributeDTO;
 import com.congthanh.productservice.application.mapper.ProductAttributeMapper;
 import com.congthanh.productservice.application.port.in.ProductAttributeService;
+import com.congthanh.productservice.application.port.out.AttributeGroupRepository;
 import com.congthanh.productservice.application.port.out.ProductAttributeRepository;
 import com.congthanh.productservice.domain.model.ProductAttribute;
 import lombok.RequiredArgsConstructor;
@@ -19,6 +21,7 @@ import java.util.List;
 public class ProductAttributeServiceImpl implements ProductAttributeService {
 
     private final ProductAttributeRepository attributes;
+    private final AttributeGroupRepository groups;
 
     @Override
     public List<ProductAttributeDTO> getAllProductAttribute() {
@@ -29,6 +32,7 @@ public class ProductAttributeServiceImpl implements ProductAttributeService {
     @Transactional
     public ProductAttributeDTO createProductAttribute(ProductAttributeDTO dto) {
         ProductAttribute a = ProductAttribute.define(Snowflake.nextId(), spec(dto));
+        requireGroup(a);
         requireUnique(a);
         attributes.save(a);
         return ProductAttributeMapper.toDto(a);
@@ -39,9 +43,17 @@ public class ProductAttributeServiceImpl implements ProductAttributeService {
     public ProductAttributeDTO updateProductAttribute(Long id, ProductAttributeDTO dto) {
         ProductAttribute a = attributes.findById(id).orElseThrow(() -> new NotFoundException("attribute not found"));
         a.redefine(spec(dto), attributes.hasValues(id));
+        requireGroup(a);
         requireUnique(a);
         attributes.save(a);
         return ProductAttributeMapper.toDto(a);
+    }
+
+    /** Nhóm phải tồn tại (DB có FK); kiểm trước để trả 400 rõ ràng thay vì lỗi ràng buộc. */
+    private void requireGroup(ProductAttribute a) {
+        if (a.groupId() != null && groups.findById(a.groupId()).isEmpty()) {
+            throw new BadRequestException("attribute group not found: " + a.groupId());
+        }
     }
 
     /** Tên và code unique (DB cũng chặn); kiểm trước để trả lời rõ ràng. */
@@ -58,6 +70,6 @@ public class ProductAttributeServiceImpl implements ProductAttributeService {
 
     private static ProductAttribute.Spec spec(ProductAttributeDTO dto) {
         return new ProductAttribute.Spec(dto.getCode(), dto.getName(), dto.getDataType(), dto.getUnit(), dto.isFilterable(),
-                dto.isSearchable(), dto.getDisplayOrder());
+                dto.isSearchable(), dto.getDisplayOrder(), dto.getGroupId(), dto.getOptions());
     }
 }

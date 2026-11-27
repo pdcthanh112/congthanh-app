@@ -18,6 +18,8 @@ public final class ProductAttributeMapper {
                 .filterable(a.filterable())
                 .searchable(a.searchable())
                 .displayOrder(a.displayOrder())
+                .groupId(a.groupId())
+                .options(a.options())
                 .build();
     }
 }

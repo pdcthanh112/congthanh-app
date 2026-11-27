@@ -58,4 +58,19 @@ class OutboxJanitorTest {
         assertThat(jdbc.sql("SELECT count(*) FROM outbox").query(Long.class).single()).isEqualTo(1);
         assertThat(jdbc.sql("SELECT event_id FROM processed_events").query(String.class).single()).isEqualTo("new");
     }
+
+    @Test
+    void maintainPartitionsReturnsZeroWhenSchemaHasNoFunction() {
+        var janitor = new OutboxJanitor(jdbc, Duration.ofHours(1), Duration.ofDays(14), Clock.systemUTC());
+
+        assertThat(janitor.maintainPartitions()).isZero();
+    }
+
+    @Test
+    void maintainPartitionsCallsSchemaFunction() {
+        jdbc.sql("CREATE FUNCTION maintain_partitions() RETURNS int LANGUAGE sql AS $$ SELECT 2 $$").update();
+        var janitor = new OutboxJanitor(jdbc, Duration.ofHours(1), Duration.ofDays(14), Clock.systemUTC());
+
+        assertThat(janitor.maintainPartitions()).isEqualTo(2);
+    }
 }

@@ -15,7 +15,7 @@
 CREATE EXTENSION IF NOT EXISTS pg_trgm WITH SCHEMA public;
 
 CREATE TABLE products (
-    id          bigint       NOT NULL, -- Snowflake
+    id          bigint       NOT NULL, 
     parent_id   bigint,
     name        varchar(255) NOT NULL,
     slug        varchar(255),
@@ -24,10 +24,10 @@ CREATE TABLE products (
     description text,
     has_variant boolean      NOT NULL DEFAULT false,
     is_featured boolean      NOT NULL DEFAULT false,
-    price       numeric(19,4), -- đủ cho đơn vị tiền 3 chữ số lẻ (BHD, KWD)
-    currency    character(3),  -- ISO 4217 của price; bắt buộc khi có giá
-    brand       bigint,        -- id thương hiệu ở catalog-service
-    thumbnail   bigint,        -- id ảnh (media-service) trong product_images
+    price       numeric(19,4), 
+    currency    character(3),
+    brand       bigint,       
+    thumbnail   bigint,        
     supplier    varchar(255),
     status      varchar(16)  NOT NULL DEFAULT 'INACTIVE',
     -- Variant: id các variant_option_value đã chọn, sắp tăng dần, nối bằng '-'. Unique trong cùng sản phẩm gốc
@@ -135,7 +135,7 @@ CREATE UNIQUE INDEX variant_option_name_key ON variant_option (lower(name));
 
 CREATE TABLE variant_option_value (
     id                bigint       NOT NULL,
-    product_id        bigint       NOT NULL, -- sản phẩm gốc
+    product_id        bigint       NOT NULL, 
     variant_option_id bigint       NOT NULL,
     value             varchar(255) NOT NULL,
     display_order     integer      NOT NULL DEFAULT 0,

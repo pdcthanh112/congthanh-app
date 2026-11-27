@@ -5,6 +5,7 @@ import com.congthanh.commonservice.exception.ConflictException;
 import com.congthanh.commonservice.exception.NotFoundException;
 import com.congthanh.commonservice.id.Snowflake;
 import com.congthanh.productservice.application.dto.ProductDTO;
+import com.congthanh.productservice.application.dto.request.ChangeSpecificationsRequest;
 import com.congthanh.productservice.application.dto.request.CreateProductRequest;
 import com.congthanh.productservice.application.dto.request.CreateVariantRequest;
 import com.congthanh.productservice.application.dto.request.UpdateProductRequest;
@@ -27,6 +28,7 @@ import com.congthanh.productservice.application.port.out.ProductRepository;
 import com.congthanh.productservice.application.readmodel.ProductDocument;
 import com.congthanh.productservice.domain.model.Money;
 import com.congthanh.productservice.domain.model.Product;
+import com.congthanh.productservice.domain.model.Specifications;
 import com.congthanh.productservice.domain.model.ProductAttribute;
 import com.congthanh.productservice.domain.model.ProductImage;
 import com.congthanh.productservice.domain.model.enums.ProductStatus;
@@ -196,7 +198,7 @@ public class ProductServiceImpl implements ProductService {
 
     @Override
     @Transactional
-    public ProductDTO createProduct(CreateProductRequest request) {
+    public ProductDTO createProduct(CreateProductRequest request, String ownerId) {
         requireCategories(request.categoryIds());
         String id = Snowflake.nextString();
         String slug = request.slug() == null || request.slug().isBlank()
@@ -209,13 +211,13 @@ public class ProductServiceImpl implements ProductService {
                 .toList();
         Product product = Product.create(new Product.Draft(id, request.name(), slug, request.sku(), request.gtin(),
                 Money.ofNullable(request.price(), request.currency()), request.description(), request.supplier(),
-                request.brandId(), request.featured(), request.categoryIds(), images, request.thumbnailId()));
+                request.brandId(), request.featured(), request.categoryIds(), images, request.thumbnailId(), ownerId));
         Set<Long> seen = new HashSet<>();
         for (CreateProductRequest.AttributeRequest a : request.attributes()) {
             if (!seen.add(a.attributeId())) {
                 throw new BadRequestException("attribute " + a.attributeId() + " is listed twice");
             }
-            product.addAttribute(requireAttribute(a.attributeId()).valueOf(a.value()));
+            product.addAttribute(requireAttribute(a.attributeId()).valuesOf(a.rawValues()));
         }
         products.save(product);
 
@@ -277,6 +279,21 @@ public class ProductServiceImpl implements ProductService {
         }
         products.save(product);
         return getProductDetailById(product.id());
+    }
+
+    @Override
+    @Transactional
+    public ProductDTO changeSpecifications(String id, ChangeSpecificationsRequest request) {
+        Product product = requireProduct(id);
+        product.requireVersion(request.version());
+        List<Specifications.Group> groups = request.groups().stream()
+                .map(g -> new Specifications.Group(g.name(), g.items().stream()
+                        .map(i -> new Specifications.Item(i.name(), i.value()))
+                        .toList()))
+                .toList();
+        product.changeSpecifications(Specifications.of(groups));
+        products.save(product);
+        return getProductDetailById(id);
     }
 
     @Override

@@ -8,6 +8,9 @@ import {
 import type { Message } from '../../../domain/notification.js';
 import { emailHtml } from '../../../domain/templates.js';
 
+/** Trang thông báo trên storefront (chưa có trang tuỳ chọn riêng). */
+const UNSUBSCRIBE_PATH = '/notification';
+
 export interface SmtpOptions {
   /** smtp://user:pass@host:587 (local: Mailpit smtp://localhost:1025) */
   url: string;
@@ -32,6 +35,8 @@ export class EmailSender implements ChannelSender {
         subject: m.title,
         text: `${m.body}${m.link ? `\n\n${this.opts.appUrl}${m.link}` : ''}`,
         html: m.html ?? emailHtml(m, this.opts.appUrl),
+        // Thư không giao dịch: hộp thư hiện nút huỷ đăng ký, trỏ tới trang tuỳ chọn thông báo.
+        ...(m.marketing ? { list: { unsubscribe: `${this.opts.appUrl}${UNSUBSCRIBE_PATH}` } } : {}),
       });
     } catch (e) {
       const code = (e as { responseCode?: number }).responseCode;

@@ -35,3 +35,6 @@ Không sửa ADR đã "Accepted"; muốn đổi thì viết ADR mới và đánh
 | 0029 | [Mọi khoản tiền phải mang đơn vị tiền của giao dịch, không mặc định USD](0029-currency-required.md) | Proposed |
 | 0030 | [Lưu product/attribute/variant có ràng buộc ở Postgres; lọc và facet ở Elasticsearch](0030-catalog-attributes-variants-search.md) | Proposed |
 | 0031 | [Quy ước Domain-Driven Design cho các service](0031-ddd-conventions.md) | Proposed |
+| 0032 | [Partition theo tháng cho bảng nhật ký ghi thêm lớn](0032-time-partitioned-tables.md) | Proposed |
+| 0033 | [Thông số sản phẩm: nhiều giá trị, giá trị cho phép, nhóm hiển thị, mẫu theo danh mục](0033-product-specifications.md) | Proposed |
+| 0034 | [Gửi thông báo và email hàng loạt (broadcast) trong notification-service](0034-bulk-notification-broadcast.md) | Proposed |

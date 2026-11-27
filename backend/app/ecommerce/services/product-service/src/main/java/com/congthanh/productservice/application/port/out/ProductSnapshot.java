@@ -1,5 +1,6 @@
 package com.congthanh.productservice.application.port.out;
 
+import com.congthanh.productservice.domain.model.Specifications;
 import com.congthanh.productservice.domain.model.enums.ProductStatus;
 
 import java.math.BigDecimal;
@@ -14,9 +15,10 @@ public record ProductSnapshot(String id, String parentId, String name, String sl
                               String description, ProductStatus status, boolean featured, boolean hasVariant,
                               String supplier, Long brandId, BigDecimal price, String currency, Long thumbnailId,
                               List<Image> images, List<String> categoryIds, List<Attribute> attributes,
-                              List<Option> options, List<ProductSnapshot> variants) {
+                              List<Option> options, List<ProductSnapshot> variants, Specifications specifications) {
 
     public ProductSnapshot {
+        specifications = specifications == null ? Specifications.EMPTY : specifications;
         images = List.copyOf(images);
         categoryIds = List.copyOf(categoryIds);
         attributes = List.copyOf(attributes);
@@ -28,8 +30,9 @@ public record ProductSnapshot(String id, String parentId, String name, String sl
     }
 
     /** {@code code} null nếu thuộc tính chưa có code; {@code number} chỉ có với thuộc tính NUMBER. */
+    /** Một giá trị thông số; thuộc tính MULTI_SELECT có nhiều bản ghi cùng code. {@code group} null = không nhóm. */
     public record Attribute(String code, String name, String value, BigDecimal number, String unit,
-                            boolean filterable, boolean searchable, int displayOrder) {
+                            boolean filterable, boolean searchable, int displayOrder, String group, Integer groupOrder) {
     }
 
     public record Option(long optionId, String optionName, long valueId, String value, int valueOrder, int displayOrder) {
